@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="SourceParts\Types.fs" />
+        <Compile Include="SourceParts\Source.fs" />
+        <Folder Include="Frontend" />
+        <Folder Include="Driver" />
+    </ItemGroup>
+
+</Project>

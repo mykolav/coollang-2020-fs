@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LibCool", "src\LibCool\LibCool.fsproj", "{5D210341-5494-4294-915B-972AB7A13A68}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LibCool.Tests", "src\LibCool.Tests\LibCool.Tests.fsproj", "{A3ECB6E2-BB01-472F-81AC-29EEC2456A2F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5D210341-5494-4294-915B-972AB7A13A68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D210341-5494-4294-915B-972AB7A13A68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D210341-5494-4294-915B-972AB7A13A68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D210341-5494-4294-915B-972AB7A13A68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3ECB6E2-BB01-472F-81AC-29EEC2456A2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3ECB6E2-BB01-472F-81AC-29EEC2456A2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3ECB6E2-BB01-472F-81AC-29EEC2456A2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3ECB6E2-BB01-472F-81AC-29EEC2456A2F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
