@@ -1,30 +1,55 @@
 namespace LibCool.Tests.Lexer
 
+open System.Runtime.CompilerServices
+open LibCool.DiagnosticParts
 open LibCool.Frontend
+open LibCool.SourceParts
 open LibCool.Tests
 
-type LexerTestCase =
-    { Snippet: string
-      Expected: Token[] }
+[<IsReadOnly; Struct>]
+type Snippet = Snippet of content: string
     with
-    override this.ToString() = 
+    member this.ToDisplayString() =
+        let (Snippet content) = this
         "\"" +
-        (if this.Snippet.Length > 100 
-        then this.Snippet.[0..100] + "..."
-        else this.Snippet) +
+        (if content.Length > 100 
+        then content.[0..100] + "..."
+        else content) +
         "\""
         
+    override this.ToString() =
+        let (Snippet content) = this
+        content
+
+type TokenTestCase =
+    { Snippet: Snippet
+      Expected: Token[] }
+    with
+    override this.ToString() = this.Snippet.ToDisplayString()
+
+type InvalidNumberTestCase =
+    { Snippet: Snippet
+      Expected: Diagnostic[] }
+    with
+    override this.ToString() = this.Snippet.ToDisplayString()
+        
 type LexerTestCaseSource() =
-    static let map (tuples: (string * Token[])[]) =
+    static let map_token_test_cases (tuples: (string * Token[])[]) =
         tuples |> Array.map (fun (snippet, expected) ->
-                                 [| { Snippet = snippet; Expected = expected } :> obj |])
+                                 [| { TokenTestCase.Snippet = Snippet(snippet)
+                                      Expected = expected } :> obj |])
+
+    static let map_invalid_number_test_cases (tuples: (string * Diagnostic[])[]) =
+        tuples |> Array.map (fun (snippet, expected) ->
+                                 [| { InvalidNumberTestCase.Snippet = Snippet(snippet)
+                                      Expected = expected } :> obj |])
         
     [<Literal>]
     static let qqqStringContent1 = "This starts a string literal\r\nthat continues on for several lines\neven though it includes \"'s and \\'s and newline characters\r\nin a \"wild\" profu\\sion\\\\ of normally i\\\\egal t\"ings.\\"
     [<Literal>]
     static let qqqStringContent2 = "This starts a string literal\r\nthat /*continues*/ on for several lines\n// even though it includes \"'s and \\'s and newline characters\r\nin a \"wild\" profu\\sion\\\\ of normally i\\\\egal t\"ings.\\"
 
-    static member TestCases = map [|
+    static member TokenTestCases = map_token_test_cases [|
         //
         // Whitespace
         //
@@ -72,8 +97,6 @@ type LexerTestCaseSource() =
         "__corge_9001_grault__", [| T.ID("__corge_9001_grault__") |]
         "QUUX", [| T.ID("QUUX") |]
         "__QUUZ__", [| T.ID("__QUUZ__") |]
-        //"0corge", [| T.Int("0corge") |]
-        //"9001corge", [| T.Int("9001corge") |]
         "_9001corge", [| T.ID("_9001corge") |]
         "_9001_corge", [| T.ID("_9001_corge") |]
         "grault9001", [| T.ID("grault9001") |]
@@ -103,12 +126,10 @@ type LexerTestCaseSource() =
         //
         // Int literals
         //
-        "0",        [| T.Int(0) |]
-        "01",       [| T.Int(1) |]
-        "1",        [| T.Int(1) |]
-        "9001",     [| T.Int(9001) |]
-        // "90a1",  [| T.Int("90a1") |]
-        // "9.001", [| T.Int("9.001") |]
+        "0",            [| T.Int(0) |]
+        "01",           [| T.Int(1) |]
+        "1",            [| T.Int(1) |]
+        "9001",         [| T.Int(9001) |]
         " 9001",        [| T.Int(9001) |]
         "  9001",       [| T.Int(9001) |]
         "\t9001",       [| T.Int(9001) |]
@@ -298,9 +319,15 @@ type LexerTestCaseSource() =
         "yield", [| T.Yield |]
         "Yield", [| T.ID("Yield") |]
     |]
+    
+    static member InvalidNumberTestCases = map_invalid_number_test_cases [|
+        "0corge",    [| { Code = InvalidNumber; Span = { First = 0u; Last = 1u } } |]
+        "9001corge", [| { Code = InvalidNumber; Span = { First = 0u; Last = 4u } } |]
+        "90a1",      [| { Code = InvalidNumber; Span = { First = 0u; Last = 2u } } |]
+        "9.001",     [| { Code = InvalidNumber; Span = { First = 0u; Last = 1u } } |]
+    |]
 
-open LibCool.SourceParts
-open LibCool.Tests
+open System.Collections.Generic
 open Xunit
 
 type LexerTests() =
@@ -312,11 +339,11 @@ type LexerTests() =
         }
     
     [<Theory>]
-    [<MemberData("TestCases", MemberType=typeof<LexerTestCaseSource>)>]
-    member _.``Lex``(tc: LexerTestCase) =
+    [<MemberData("TokenTestCases", MemberType=typeof<LexerTestCaseSource>)>]
+    member _.``Lex``(tc: TokenTestCase) =
         // Arrange
         let expected_tokens = Array.append tc.Expected [| T.EOF |]
-        let source = Source([ { FileName = "lexer-test.cool"; Content = tc.Snippet } ])
+        let source = Source([ { FileName = "lexer-test.cool"; Content = tc.Snippet.ToString() } ])
         let lexer = Lexer(source)
 
         // Act
@@ -324,3 +351,16 @@ type LexerTests() =
         
         // Assert
         AssertTokens.Equal(expected = expected_tokens, actual = actual_tokens)
+
+    [<Theory>]
+    [<MemberData("InvalidNumberTestCases", MemberType=typeof<LexerTestCaseSource>)>]
+    member _.``Lex invalid number``(tc: InvalidNumberTestCase) =
+        // Arrange
+        let source = Source([ { FileName = "lexer-test.cool"; Content = tc.Snippet.ToString() } ])
+        let lexer = Lexer(source)
+
+        // Act
+        lexer |> get_tokens |> ignore
+        
+        // Assert
+        AssertDiags.Equal(expected = tc.Expected, actual = lexer.Diagnostics)

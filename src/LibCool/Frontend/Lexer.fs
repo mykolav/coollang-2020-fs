@@ -1,11 +1,14 @@
 namespace LibCool.Frontend
 
-open System
+open System.Collections.Generic
+
+open LibCool.DiagnosticParts
 open LibCool.SourceParts
 
 type private Ch = Ch of char | EOF
 
 type Lexer(_source: Source) =
+    let _diags = List<Diagnostic>()
     let mutable _offset: uint32 = 0u
     
     let eat_char() : Ch =
@@ -29,3 +32,5 @@ type Lexer(_source: Source) =
     
     member _.Current with get() = _current
     member _.MoveNext() = false
+    
+    member _.Diagnostics with get() = _diags :> IReadOnlyList<Diagnostic> 

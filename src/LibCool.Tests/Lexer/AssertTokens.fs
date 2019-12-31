@@ -34,37 +34,27 @@ open System
 open System.Text
 open System.IO
 open System.Runtime.CompilerServices
+open LibCool.DiagnosticParts
 open StringBuilderExtensions
 
 [<IsReadOnly; Struct>]
 type private Mismatch =
-    { Expected: Token option
-      Actual: Token option
+    { Expected: string
+      Actual: string
       At: int }
 
-type AssertTokens() =
-    static let either defaultValue handleSome (option: 'a option) =
+[<RequireQualifiedAccess>]
+module private AssertStringSeq =
+    let either defaultValue handleSome (option: 'a option) =
         match option with
         | Some value -> handleSome value
         | None       -> defaultValue
 
-    static let str_of_value (kind: TokenKind) =
-        match kind with
-        | Invalid value                   -> value.ToString()
-        | Identifier value                -> value.ToString() 
-        | IntLiteral value                -> value.ToString()
-        | StringLiteral value             -> value.ToString()
-        | TripleQuotedStringLiteral value -> value.ToString()
-        | _                               -> ""
-    
-    static let str_of_token (token: Token) =
-        sprintf "%s" (token.Kind.ToString().Replace("Kind", ""))
-        
-    static let append_mismatch (expected: StringBuilder)
-                               (actual: StringBuilder)
-                               (mismatch: Mismatch) =
-        let expected_str = sprintf "%d: %s; " mismatch.At (either "<NONE>" str_of_token mismatch.Expected)
-        let actual_str   = sprintf "%d: %s; " mismatch.At (either "<NONE>" str_of_token mismatch.Actual)
+    let append_mismatch (expected: StringBuilder)
+                        (actual: StringBuilder)
+                        (mismatch: Mismatch) =
+        let expected_str = sprintf "%d: %s; " mismatch.At mismatch.Expected
+        let actual_str   = sprintf "%d: %s; " mismatch.At mismatch.Actual
 
         expected
             .Append(expected_str)
@@ -78,9 +68,9 @@ type AssertTokens() =
                  requiredLen = expected.Length)
             |> ignore
 
-    static let format_mismatches (expected_len: int)
-                                 (actual_len: int)
-                                 (mismatches: seq<Mismatch>) =
+    let format_mismatches (expected_len: int)
+                          (actual_len: int)
+                          (mismatches: seq<Mismatch>) =
         let expected = StringBuilder("[")
         let actual = StringBuilder("[")
                                    
@@ -98,18 +88,12 @@ type AssertTokens() =
                                                  (String.Join("; ", mismatch_positions))
         message.ToString()
 
-
-    static let is_match (expected: Token option) (actual: Token option) =
-        match expected, actual with
-        | None, None                  -> invalidOp "kind and token cannot both be None"
-        | Some _, None | None, Some _ -> false
-        | Some e, Some a              ->
-            e.Kind = a.Kind && (str_of_value e.Kind) = (str_of_value a.Kind)
-
-    static member Equal(expected: seq<Token>, actual: seq<Token>) = 
+    let Equal(expected: seq<string>, actual: seq<string>) = 
         let mismatches = Seq.zipAll expected actual
-                         |> Seq.mapi (fun i (e, a) -> { Expected = e; Actual = a; At = i })
-                         |> Seq.filter (fun it -> not (is_match it.Expected it.Actual))
+                         |> Seq.mapi (fun i (e, a) -> { At = i
+                                                        Expected = either "<NONE>" (fun it -> it) e
+                                                        Actual = either "<NONE>" (fun it -> it) a })
+                         |> Seq.filter (fun it -> it.Expected <> it.Actual)
 
         if Seq.any mismatches
         then
@@ -117,3 +101,25 @@ type AssertTokens() =
                                             (Seq.length actual) 
                                             mismatches
             raise (Xunit.Sdk.XunitException(message))
+    
+
+[<RequireQualifiedAccess>]
+type AssertTokens() =
+    static let str_of_token (token: Token) =
+        sprintf "%s" (token.Kind.ToString().Replace("Kind", ""))
+
+    static member Equal(expected: seq<Token>, actual: seq<Token>) = 
+        let expected_strs = expected |> Seq.map (fun it -> str_of_token it)
+        let actual_strs = actual |> Seq.map (fun it -> str_of_token it)
+        AssertStringSeq.Equal(expected_strs, actual_strs)
+        
+        
+[<RequireQualifiedAccess>]
+type AssertDiags() =
+    static let str_of_diag (diag: Diagnostic) =
+        sprintf "[%d..%d]: %s" diag.Span.First diag.Span.Last (diag.Code.ToString())
+        
+    static member Equal(expected: seq<Diagnostic>, actual: seq<Diagnostic>) =
+        let expected_strs = expected |> Seq.map (fun it -> str_of_diag it)
+        let actual_strs = actual |> Seq.map (fun it -> str_of_diag it)
+        AssertStringSeq.Equal(expected_strs, actual_strs)
