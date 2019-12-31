@@ -9,6 +9,9 @@
 
     <ItemGroup>
         <Compile Include="SourceTests.fs" />
+        <Compile Include="Lexer\TokenFactory.fs" />
+        <Compile Include="Lexer\AssertTokens.fs" />
+        <Compile Include="Lexer\LexerTests.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

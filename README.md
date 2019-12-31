@@ -2,7 +2,7 @@
 
 ## This is a work in progress and at a very early stage.
 
-# COOL 2016
+# Cool 2016
 
 [CoolAid: The Cool 2016 Reference Manual](http://pabst.cs.uwm.edu/classes/cs654/handouts/cool-manual.pdf)
 
@@ -25,7 +25,7 @@ type errors can arise in the execution of Cool programs.
 
 # Acknowledgements
 
- The original COOL language was designed by [Alex Aiken](https://theory.stanford.edu/~aiken/).  
+ The original Cool language was designed by [Alex Aiken](https://theory.stanford.edu/~aiken/).  
  The Cool 2016 version was designed by [John Boyland](https://uwm.edu/engineering/people/boyland-ph-d-john/).
 
 # License

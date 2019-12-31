@@ -2,20 +2,18 @@ namespace LibCool.SourceParts
 
 open System.Runtime.CompilerServices
 
-type Offset = uint32
-
 [<IsReadOnly; Struct>]
 type HalfOpenRange =
-    { First: Offset
-      Last: Offset }
-
-module HalfOpenRange =
-    let mk_range (first: Offset) (last: Offset) =
-        { First = first
-          Last  = last }
+    { First: uint32
+      Last: uint32 }
+    with
+    static member Invalid = { First = 0u; Last = 0u }
+    static member Mk first last = { First = first; Last = last }
 
 [<IsReadOnly; Struct>]
 type Location =
     { FileName: string 
       Line: uint32 
       Col: uint32 }
+
+
