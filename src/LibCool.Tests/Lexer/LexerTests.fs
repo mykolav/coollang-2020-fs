@@ -327,7 +327,6 @@ type LexerTestCaseSource() =
         "9.001",     [| { Code = InvalidNumber; Span = { First = 0u; Last = 1u } } |]
     |]
 
-open System.Collections.Generic
 open Xunit
 
 type LexerTests() =
