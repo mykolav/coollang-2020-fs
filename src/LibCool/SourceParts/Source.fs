@@ -46,7 +46,7 @@ type Source(partSeq: SourcePart seq) =
            if _content.[i] = '\r' || _content.[i] = '\n'
            then do
                // If we found "\r\n" or "\n\r",
-               // make sure we consider both chars as a single line end combination
+               // make sure we consider both chars as a single line-end combination
                if (uint32 i + 1u < _size) && (_content.[i + 1] = '\r' || _content.[i + 1] = '\n')
                then do
                    i <- i + 1

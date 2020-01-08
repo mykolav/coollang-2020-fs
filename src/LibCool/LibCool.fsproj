@@ -10,8 +10,9 @@
         <Compile Include="DiagnosticParts.fs" />
         <Compile Include="Frontend\TokenParts.fs" />
         <Compile Include="Frontend\Lexer.fs" />
-        <Compile Include="Frontend\AST.fs" />
+        <Compile Include="Frontend\Ast.fs" />
         <Compile Include="Frontend\Parser.fs" />
+        <Compile Include="Frontend\AstVisitor.fs" />
         <Folder Include="Driver" />
     </ItemGroup>
 

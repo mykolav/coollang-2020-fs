@@ -72,6 +72,7 @@ open System.Runtime.CompilerServices
     character literals respectively: '\t', '\n', '\r', and ' '.
 *)
 
+[<RequireQualifiedAccess>]
 type TokenKind =
     | Invalid of string
     | EOF

@@ -41,7 +41,7 @@ module T =
     let Class = { Kind = Class; Span = HalfOpenRange.Invalid } 
     let Def = { Kind = Def; Span = HalfOpenRange.Invalid } 
     let Else = { Kind = Else; Span = HalfOpenRange.Invalid } 
-    let Extends = { Kind = Extends; Span = HalfOpenRange.Invalid } 
+    let Extends = { Kind = ExtendsInfoExtends; Span = HalfOpenRange.Invalid } 
     let False = { Kind = False; Span = HalfOpenRange.Invalid } 
     let If = { Kind = If; Span = HalfOpenRange.Invalid } 
     let Match = { Kind = Match; Span = HalfOpenRange.Invalid } 
