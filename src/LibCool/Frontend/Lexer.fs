@@ -28,7 +28,7 @@ type Lexer(_source: Source) =
     let move_next() =
         ()
 
-    let mutable _current = { Kind = Invalid ""; Span = HalfOpenRange.Invalid }
+    let mutable _current = { Kind = TokenKind.Invalid ""; Span = HalfOpenRange.Invalid }
     
     member _.Current with get() = _current
     member _.MoveNext() = false
