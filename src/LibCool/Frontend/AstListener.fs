@@ -42,10 +42,10 @@ type AstListener() =
     abstract member LeaveVarFormals: var_formals:Node<VarFormal>[] -> unit
     default this.LeaveVarFormals(var_formals:Node<VarFormal>[]) : unit = ()
 
-    abstract member EnterVarFormal: var_formal:VarFormal * key:Guid * span:HalfOpenRange -> unit
-    default this.EnterVarFormal(var_formal:VarFormal, key:Guid, span:HalfOpenRange) : unit = ()
-    abstract member LeaveVarFormal: var_formal:VarFormal * key:Guid * span:HalfOpenRange -> unit
-    default this.LeaveVarFormal(var_formal:VarFormal, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member EnterVarFormal: var_formal:VarFormal * index:int * key:Guid * span:HalfOpenRange -> unit
+    default this.EnterVarFormal(var_formal:VarFormal, index:int, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveVarFormal: var_formal:VarFormal * index:int * key:Guid * span:HalfOpenRange -> unit
+    default this.LeaveVarFormal(var_formal:VarFormal, index:int, key:Guid, span:HalfOpenRange) : unit = ()
     
     abstract member EnterExtends: extends:Extends * key:Guid * span:HalfOpenRange -> unit
     default this.EnterExtends(extends:Extends, key:Guid, span:HalfOpenRange) : unit = ()
@@ -68,10 +68,10 @@ type AstListener() =
     abstract member LeaveFormals: formals:Node<Formal>[] -> unit
     default this.LeaveFormals(formals:Node<Formal>[]) : unit = ()
     
-    abstract member EnterFormal: formal:Formal * key:Guid * span:HalfOpenRange -> unit
-    default this.EnterFormal(formal:Formal, key:Guid, span:HalfOpenRange) : unit = ()
-    abstract member LeaveFormal: formal:Formal * key:Guid * span:HalfOpenRange -> unit
-    default this.LeaveFormal(formal:Formal, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member EnterFormal: formal:Formal * index:int * key:Guid * span:HalfOpenRange -> unit
+    default this.EnterFormal(formal:Formal, index:int, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveFormal: formal:Formal * index:int * key:Guid * span:HalfOpenRange -> unit
+    default this.LeaveFormal(formal:Formal, index:int, key:Guid, span:HalfOpenRange) : unit = ()
 
     // Attribute
     abstract member EnterAttr: attr_info:AttrInfo * key:Guid * span:HalfOpenRange -> unit
@@ -108,57 +108,57 @@ type AstListener() =
     default _.LeaveAssign(left:Node<ID>, right:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
     
     // If
-    abstract member EnterIf: condition:Node<Expr> * then_branch:Node<Expr> * else_branch:Node<Expr> -> unit
-    default _.EnterIf(condition:Node<Expr>, then_branch:Node<Expr>, else_branch:Node<Expr>) : unit = ()
-    abstract member LeaveIf: condition:Node<Expr> * then_branch:Node<Expr> * else_branch:Node<Expr> -> unit
-    default _.LeaveIf(condition:Node<Expr>, then_branch:Node<Expr>, else_branch:Node<Expr>) : unit = ()
+    abstract member EnterIf: condition:Node<Expr> * then_branch:Node<Expr> * else_branch:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterIf(condition:Node<Expr>, then_branch:Node<Expr>, else_branch:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveIf: condition:Node<Expr> * then_branch:Node<Expr> * else_branch:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveIf(condition:Node<Expr>, then_branch:Node<Expr>, else_branch:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
     
-    abstract member EnterIfCond: condition:Node<Expr> -> unit
-    default _.EnterIfCond(condition:Node<Expr>) : unit = ()
-    abstract member LeaveIfCond: condition:Node<Expr> -> unit
-    default _.LeaveIfCond(condition:Node<Expr>) : unit = ()
+    abstract member EnterIfCond: condition:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterIfCond(condition:Expr, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveIfCond: condition:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveIfCond(condition:Expr, key:Guid, span:HalfOpenRange) : unit = ()
 
-    abstract member EnterThenBranch: then_branch:Node<Expr> -> unit
-    default _.EnterThenBranch(then_branch:Node<Expr>) : unit = ()
-    abstract member LeaveThenBranch: then_branch:Node<Expr> -> unit
-    default _.LeaveThenBranch(then_branch:Node<Expr>) : unit = ()
+    abstract member EnterThenBranch: then_branch:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterThenBranch(then_branch:Expr, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveThenBranch: then_branch:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveThenBranch(then_branch:Expr, key:Guid, span:HalfOpenRange) : unit = ()
 
-    abstract member EnterElseBranch: else_branch:Node<Expr> -> unit
-    default _.EnterElseBranch(else_branch:Node<Expr>) : unit = ()
-    abstract member LeaveElseBranch: else_branch:Node<Expr> -> unit
-    default _.LeaveElseBranch(else_branch:Node<Expr>) : unit = ()
+    abstract member EnterElseBranch: else_branch:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterElseBranch(else_branch:Expr, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveElseBranch: else_branch:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveElseBranch(else_branch:Expr, key:Guid, span:HalfOpenRange) : unit = ()
     
     // While
-    abstract member EnterWhile: condition:Node<Expr> * body:Node<Expr> -> unit
-    default _.EnterWhile(condition:Node<Expr>, body:Node<Expr>) : unit = ()
-    abstract member LeaveWhile: condition:Node<Expr> * body:Node<Expr> -> unit
-    default _.LeaveWhile(condition:Node<Expr>, body:Node<Expr>) : unit = ()
+    abstract member EnterWhile: condition:Node<Expr> * body:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterWhile(condition:Node<Expr>, body:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveWhile: condition:Node<Expr> * body:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveWhile(condition:Node<Expr>, body:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
     
-    abstract member EnterWhileCond: condition:Node<Expr> -> unit
-    default _.EnterWhileCond(condition:Node<Expr>) : unit = ()
-    abstract member LeaveWhileCond: condition:Node<Expr> -> unit
-    default _.LeaveWhileCond(condition:Node<Expr>) : unit = ()
+    abstract member EnterWhileCond: condition:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterWhileCond(condition:Expr, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveWhileCond: condition:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveWhileCond(condition:Expr, key:Guid, span:HalfOpenRange) : unit = ()
 
-    abstract member EnterWhileBody: body:Node<Expr> -> unit
-    default _.EnterWhileBody(body:Node<Expr>) : unit = ()
-    abstract member LeaveWhileBody: body:Node<Expr> -> unit
-    default _.LeaveWhileBody(body:Node<Expr>) : unit = ()
+    abstract member EnterWhileBody: body:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterWhileBody(body:Expr, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveWhileBody: body:Expr * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveWhileBody(body:Expr, key:Guid, span:HalfOpenRange) : unit = ()
     
     // Match
-    abstract member EnterMatch: expr:Node<Expr> * cases:Cases -> unit
-    default _.EnterMatch(expr:Node<Expr>, cases:Cases) : unit = ()
-    abstract member LeaveMatch: expr:Node<Expr> * cases:Cases -> unit
-    default _.LeaveMatch(expr:Node<Expr>, cases:Cases) : unit = ()
+    abstract member EnterMatch: expr:Node<Expr> * cases_hd:Node<Case> * cases_tl:Node<Case>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterMatch(expr:Node<Expr>, cases_hd:Node<Case>, cases_tl:Node<Case>[], key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveMatch: expr:Node<Expr> * cases_hd:Node<Case> * cases_tl:Node<Case>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveMatch(expr:Node<Expr>, cases_hd:Node<Case>, cases_tl:Node<Case>[], key:Guid, span:HalfOpenRange) : unit = ()
     
     abstract member EnterMatchExpr: expr:Expr * key:Guid * span:HalfOpenRange -> unit
     default _.EnterMatchExpr(expr:Expr, key:Guid, span:HalfOpenRange) : unit = ()
     abstract member LeaveMatchExpr: expr:Expr * key:Guid * span:HalfOpenRange -> unit
     default _.LeaveMatchExpr(expr:Expr, key:Guid, span:HalfOpenRange) : unit = ()
 
-    abstract member EnterMatchCases: cases:Cases -> unit
-    default _.EnterMatchCases(cases:Cases) : unit = ()
-    abstract member LeaveMatchCases: cases:Cases -> unit
-    default _.LeaveMatchCases(cases:Cases) : unit = ()
+    abstract member EnterMatchCases: cases_hd:Node<Case> * cases_tl:Node<Case>[] -> unit
+    default _.EnterMatchCases(cases_hd:Node<Case>, cases_tl:Node<Case>[]) : unit = ()
+    abstract member LeaveMatchCases: cases_hd:Node<Case> * cases_tl:Node<Case>[] -> unit
+    default _.LeaveMatchCases(cases_hd:Node<Case>, cases_tl:Node<Case>[]) : unit = ()
 
     // Match/case
     abstract member EnterMatchCase: case:Case * key:Guid * span:HalfOpenRange -> unit
@@ -166,10 +166,10 @@ type AstListener() =
     abstract member LeaveMatchCase: case:Case * key:Guid * span:HalfOpenRange -> unit
     default _.LeaveMatchCase(case:Case, key:Guid, span:HalfOpenRange) : unit = ()
     
-    abstract member EnterMatchCasePattern: id:Node<ID> * type_name:Node<TYPE_NAME> * key:Guid * span:HalfOpenRange -> unit
-    default _.EnterMatchCasePattern(id:Node<ID>, type_name:Node<TYPE_NAME>, key:Guid, span:HalfOpenRange) : unit = ()
-    abstract member LeaveMatchCasePattern: id:Node<ID> * type_name:Node<TYPE_NAME> * key:Guid * span:HalfOpenRange -> unit
-    default _.LeaveMatchCasePattern(id:Node<ID>, type_name:Node<TYPE_NAME>, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member EnterMatchCasePattern: pattern:Pattern * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterMatchCasePattern(pattern:Pattern, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveMatchCasePattern: pattern:Pattern * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveMatchCasePattern(pattern:Pattern, key:Guid, span:HalfOpenRange) : unit = ()
 
     abstract member EnterMatchCaseBlock: block:Block * key:Guid * span:HalfOpenRange -> unit
     default _.EnterMatchCaseBlock(block:Block, key:Guid, span:HalfOpenRange) : unit = ()
@@ -177,28 +177,28 @@ type AstListener() =
     default _.LeaveMatchCaseBlock(block:Block, key:Guid, span:HalfOpenRange) : unit = ()
     
     // Dispatch
-    abstract member EnterDispatch: obj_expr:Node<Expr> * method_id:Node<ID> * actuals:Node<Expr>[] -> unit
-    default _.EnterDispatch(obj_expr:Node<Expr>, method_id:Node<ID>, actuals:Node<Expr>[]) : unit = ()
-    abstract member LeaveDispatch: obj_expr:Node<Expr> * method_id:Node<ID> * actuals:Node<Expr>[] -> unit
-    default _.LeaveDispatch(obj_expr:Node<Expr>, method_id:Node<ID>, actuals:Node<Expr>[]) : unit = ()
+    abstract member EnterDispatch: obj_expr:Node<Expr> * method_id:Node<ID> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterDispatch(obj_expr:Node<Expr>, method_id:Node<ID>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveDispatch: obj_expr:Node<Expr> * method_id:Node<ID> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveDispatch(obj_expr:Node<Expr>, method_id:Node<ID>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
     
     // Implicit `this` dispatch
-    abstract member EnterImplicitThisDispatch: method_id:Node<ID> * actuals:Node<Expr>[] -> unit
-    default _.EnterImplicitThisDispatch(method_id:Node<ID>, actuals:Node<Expr>[]) : unit = ()
-    abstract member LeaveImplicitThisDispatch: method_id:Node<ID> * actuals:Node<Expr>[] -> unit
-    default _.LeaveImplicitThisDispatch(method_id:Node<ID>, actuals:Node<Expr>[]) : unit = ()
+    abstract member EnterImplicitThisDispatch: method_id:Node<ID> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterImplicitThisDispatch(method_id:Node<ID>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveImplicitThisDispatch: method_id:Node<ID> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveImplicitThisDispatch(method_id:Node<ID>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
     
     // Super dispatch
-    abstract member EnterSuperDispatch: method_id:Node<ID> * actuals:Node<Expr>[] -> unit
-    default _.EnterSuperDispatch(method_id:Node<ID>, actuals:Node<Expr>[]) : unit = ()
-    abstract member LeaveSuperDispatch: method_id:Node<ID> * actuals:Node<Expr>[] -> unit
-    default _.LeaveSuperDispatch(method_id:Node<ID>, actuals:Node<Expr>[]) : unit = ()
+    abstract member EnterSuperDispatch: method_id:Node<ID> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterSuperDispatch(method_id:Node<ID>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveSuperDispatch: method_id:Node<ID> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveSuperDispatch(method_id:Node<ID>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
     
     // Object creation
-    abstract member EnterObjectCreation: Node<TYPE_NAME> * actuals:Node<Expr>[] -> unit
-    default _.EnterObjectCreation(type_name: Node<TYPE_NAME>, actuals:Node<Expr>[]) : unit = ()
-    abstract member LeaveObjectCreation: Node<TYPE_NAME> * actuals:Node<Expr>[] -> unit
-    default _.LeaveObjectCreation(type_name: Node<TYPE_NAME>, actuals:Node<Expr>[]) : unit = ()
+    abstract member EnterObjectCreation: Node<TYPE_NAME> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterObjectCreation(type_name: Node<TYPE_NAME>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveObjectCreation: Node<TYPE_NAME> * actuals:Node<Expr>[] * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveObjectCreation(type_name: Node<TYPE_NAME>, actuals:Node<Expr>[], key:Guid, span:HalfOpenRange) : unit = ()
 
     // Bool negation
     abstract member EnterBoolNegation: expr:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
@@ -207,15 +207,13 @@ type AstListener() =
     default _.LeaveBoolNegation(expr:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
     
     // Compare
-    abstract member EnterComparison: left:Node<Expr> * op:CompareOp * right:Node<Expr> -> unit
-    default _.EnterComparison(left:Node<Expr>, op:CompareOp, right:Node<Expr>) : unit = ()
-    abstract member LeaveComparison: left:Node<Expr> * op:CompareOp * right:Node<Expr> -> unit
-    default _.LeaveComparison(left:Node<Expr>, op:CompareOp, right:Node<Expr>) : unit = ()
+    abstract member EnterComparison: left:Node<Expr> * op:CompareOp * right:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterComparison(left:Node<Expr>, op:CompareOp, right:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveComparison: left:Node<Expr> * op:CompareOp * right:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveComparison(left:Node<Expr>, op:CompareOp, right:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
 
-    abstract member EnterComparisonOp: op:CompareOp * span:HalfOpenRange -> unit
-    default _.EnterComparisonOp(op:CompareOp, span:HalfOpenRange) : unit = ()
-    abstract member LeaveComparisonOp: op:CompareOp * span:HalfOpenRange -> unit
-    default _.LeaveComparisonOp(op:CompareOp, span:HalfOpenRange) : unit = ()
+    abstract member VisitCOMPARISON_OP: op:CompareOp -> unit
+    default _.VisitCOMPARISON_OP(op:CompareOp) : unit = ()
 
     // Unary minus
     abstract member EnterUnaryMinus: expr:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
@@ -224,25 +222,25 @@ type AstListener() =
     default _.LeaveUnaryMinus(expr:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
 
     // Arith
-    abstract member EnterArith: left:Node<Expr> * op:ArithOp * right:Node<Expr> -> unit
-    default _.EnterArith(left:Node<Expr>, op:ArithOp, right:Node<Expr>) : unit = ()
-    abstract member LeaveArith: left:Node<Expr> * op:ArithOp * right:Node<Expr> -> unit
-    default _.LeaveArith(left:Node<Expr>, op:ArithOp, right:Node<Expr>) : unit = ()
+    abstract member EnterArith: left:Node<Expr> * op:ArithOp * right:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterArith(left:Node<Expr>, op:ArithOp, right:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveArith: left:Node<Expr> * op:ArithOp * right:Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveArith(left:Node<Expr>, op:ArithOp, right:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
 
-    abstract member VisitArithOp: op:ArithOp * span:HalfOpenRange -> unit
-    default _.VisitArithOp(op:ArithOp, span:HalfOpenRange) : unit = ()
+    abstract member VisitARITH_OP: op:ArithOp -> unit
+    default _.VisitARITH_OP(op:ArithOp) : unit = ()
     
     // Braced block    
-    abstract member EnterBracedBlock: BlockInfo option * key:Guid * span:HalfOpenRange -> unit
-    default _.EnterBracedBlock(block_info_opt: BlockInfo option, key:Guid, span:HalfOpenRange) : unit = ()
-    abstract member LeaveBracedBlock: BlockInfo option * key:Guid * span:HalfOpenRange -> unit
-    default _.LeaveBracedBlock(block_info_opt: BlockInfo option, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member EnterBracedBlock: Node<BlockInfo> option * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterBracedBlock(block_info_opt: Node<BlockInfo> option, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveBracedBlock: Node<BlockInfo> option * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveBracedBlock(block_info_opt: Node<BlockInfo> option, key:Guid, span:HalfOpenRange) : unit = ()
     
     // Parenthesized expr
-    abstract member EnterParensExpr: Node<Expr> -> unit
-    default _.EnterParensExpr(expr:Node<Expr>) : unit = ()
-    abstract member LeaveParensExpr: Node<Expr> -> unit
-    default _.LeaveParensExpr(expr:Node<Expr>) : unit = ()
+    abstract member EnterParensExpr: Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterParensExpr(expr:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveParensExpr: Node<Expr> * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveParensExpr(expr:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
 
     // Id
     abstract member VisitId: id:ID * key:Guid * span:HalfOpenRange -> unit
@@ -273,10 +271,10 @@ type AstListener() =
     abstract member LeaveActuals: actuals:Node<Expr>[] -> unit
     default _.LeaveActuals(actuals:Node<Expr>[]) : unit = ()
     
-    abstract member EnterActual: actual:Expr * key:Guid * span:HalfOpenRange -> unit
-    default _.EnterActual(actual:Expr, key:Guid, span:HalfOpenRange) : unit = ()
-    abstract member LeaveActual: actual:Expr * key:Guid * span:HalfOpenRange -> unit
-    default _.LeaveActual(actual:Expr, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member EnterActual: actual:Expr * index:int * key:Guid * span:HalfOpenRange -> unit
+    default _.EnterActual(actual:Expr, index:int, key:Guid, span:HalfOpenRange) : unit = ()
+    abstract member LeaveActual: actual:Expr * index:int * key:Guid * span:HalfOpenRange -> unit
+    default _.LeaveActual(actual:Expr, index:int, key:Guid, span:HalfOpenRange) : unit = ()
 
     // Terminals
     abstract member VisitID: id:ID * key:Guid * span:HalfOpenRange -> unit
@@ -296,3 +294,12 @@ type AstListener() =
 
     abstract member VisitARROW: unit -> unit
     default _.VisitARROW() : unit = ()
+
+    abstract member VisitDOT: unit -> unit
+    default _.VisitDOT() : unit = ()
+
+    abstract member VisitWITH: unit -> unit
+    default _.VisitWITH() : unit = ()
+
+    abstract member VisitNULL: unit -> unit
+    default _.VisitNULL() : unit = ()
