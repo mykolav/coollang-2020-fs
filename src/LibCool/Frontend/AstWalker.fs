@@ -237,9 +237,7 @@ type AstWalker private (_listener: AstListener) as this =
 
         match method_info.MethodBody.Value with
         | MethodBody.Expr expr ->
-            _listener.EnterExpr(expr, method_info.MethodBody.Key, method_info.MethodBody.Span)
             this.WalkExpr(expr, method_info.MethodBody.Key, method_info.MethodBody.Span)
-            _listener.LeaveExpr(expr, method_info.MethodBody.Key, method_info.MethodBody.Span)
         | MethodBody.Native ->
             _listener.VisitNATIVE()
     
@@ -253,9 +251,7 @@ type AstWalker private (_listener: AstListener) as this =
 
         match attr_info.AttrBody.Value with
         | AttrBody.Expr expr ->
-            _listener.EnterExpr(expr, attr_info.AttrBody.Key, attr_info.AttrBody.Span)
             this.WalkExpr(expr, attr_info.AttrBody.Key, attr_info.AttrBody.Span)
-            _listener.LeaveExpr(expr, attr_info.AttrBody.Key, attr_info.AttrBody.Span)
         | AttrBody.Native ->
             _listener.VisitNATIVE()
 
@@ -263,6 +259,8 @@ type AstWalker private (_listener: AstListener) as this =
 
     // Class
     let walk_extends(extends:Extends, key:Guid, span:HalfOpenRange) : unit =
+        _listener.EnterExtends(extends, key, span)
+        
         match extends with
         | Extends.Info extends_info ->
             _listener.VisitTYPE_NAME(extends_info.TYPE_NAME.Value,
@@ -273,6 +271,8 @@ type AstWalker private (_listener: AstListener) as this =
             _listener.LeaveActuals(extends_info.Actuals)
         | Extends.Native ->
             _listener.VisitNATIVE()
+        
+        _listener.LeaveExtends(extends, key, span)
     
     let walk_features(features: Node<Feature>[]) : unit =
         _listener.EnterFeatures(features)
@@ -297,9 +297,7 @@ type AstWalker private (_listener: AstListener) as this =
 
         match klass.Extends with
         | Some extends_node ->
-            _listener.EnterExtends(extends_node.Value, extends_node.Key, extends_node.Span)
             walk_extends(extends_node.Value, extends_node.Key, extends_node.Span)
-            _listener.LeaveExtends(extends_node.Value, extends_node.Key, extends_node.Span)
         | None ->
             ()
             
@@ -337,56 +335,56 @@ type AstWalker private (_listener: AstListener) as this =
         | Expr.If (condition, then_branch, else_branch) ->
             walk_if(condition, then_branch, else_branch, key, span)
         | Expr.While (condition, body) ->
-            ()
+            walk_while(condition, body, key, span)
         | Expr.LtEq (left, right) ->
-            ()
+            walk_comparison(left, CompareOp.LtEq, right, key, span)
         | Expr.GtEq (left, right) ->
-            ()
+            walk_comparison(left, CompareOp.GtEq, right, key, span)
         | Expr.Lt (left, right) ->
-            ()
+            walk_comparison(left, CompareOp.Lt, right, key, span)
         | Expr.Gt (left, right) ->
-            ()
+            walk_comparison(left, CompareOp.Gt, right, key, span)
         | Expr.EqEq (left, right) ->
-            ()
+            walk_comparison(left, CompareOp.EqEq, right, key, span)
         | Expr.NotEq (left, right) ->
-            ()
+            walk_comparison(left, CompareOp.NotEq, right, key, span)
         | Expr.Mul (left, right) ->
-            ()
+            walk_arith(left, ArithOp.Mul, right, key, span)
         | Expr.Div (left, right) ->
-            ()
+            walk_arith(left, ArithOp.Div, right, key, span)
         | Expr.Sum (left, right) ->
-            ()
+            walk_arith(left, ArithOp.Sum, right, key, span)
         | Expr.Sub (left, right) ->
-            ()
+            walk_arith(left, ArithOp.Sub, right, key, span)
         | Expr.Match (expr, cases_hd, cases_tl) ->
-            ()
+            walk_match(expr, cases_hd, cases_tl, key, span)
         | Expr.Dispatch (obj_expr, method_id, actuals) ->
-            ()
+            walk_dispatch(obj_expr, method_id, actuals, key, span)
         // Primary expressions
         | Expr.ImplicitThisDispatch (method_id, actuals) ->
-            ()
+            walk_implicit_this_dispatch(method_id, actuals, key, span)
         | Expr.SuperDispatch (method_id, actuals) ->
-            ()
+            walk_super_dispatch(method_id, actuals, key, span)
         | Expr.ObjectCreation (class_name, actuals) ->
-            ()
+            walk_object_creation(class_name, actuals, key, span)
         | Expr.BracedBlock block_info_opt ->
-            ()
+            walk_braced_block(block_info_opt, key, span)
         | Expr.ParensExpr node_expr ->
-            ()
-        | Expr.Id node_id ->
-            ()
+            walk_parens_expr(node_expr, key, span)
+        | Expr.Id value ->
+            _listener.VisitId(value)
         | Expr.Int value ->
-            ()
+            _listener.VisitInt(value)
         | Expr.Str value ->
-            ()
+            _listener.VisitStr(value)
         | Expr.Bool value ->
-            ()
+            _listener.VisitBool(value)
         | Expr.This ->
-            ()
+            _listener.VisitThis()
         | Expr.Null ->
-            ()
+            _listener.VisitNull()
         | Expr.Unit ->
-            ()
+            _listener.VisitUnit()
         
         _listener.LeaveExpr(expr, key, span)
         

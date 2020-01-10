@@ -243,18 +243,18 @@ type AstListener() =
     default _.LeaveParensExpr(expr:Node<Expr>, key:Guid, span:HalfOpenRange) : unit = ()
 
     // Id
-    abstract member VisitId: id:ID * key:Guid * span:HalfOpenRange -> unit
-    default _.VisitId(_:ID, _:Guid, _:HalfOpenRange) : unit = ()
+    abstract member VisitId: id:ID -> unit
+    default _.VisitId(_:ID) : unit = ()
     
     // Literals    
-    abstract member VisitInt: literal:INT * span:HalfOpenRange -> unit
-    default _.VisitInt(_:INT, _:HalfOpenRange) : unit = ()
+    abstract member VisitInt: literal:INT -> unit
+    default _.VisitInt(_:INT) : unit = ()
     
-    abstract member VisitStr: literal:STRING * span:HalfOpenRange -> unit
-    default _.VisitStr(_:STRING, _:HalfOpenRange) : unit = ()
+    abstract member VisitStr: literal:STRING -> unit
+    default _.VisitStr(_:STRING) : unit = ()
     
-    abstract member VisitBool: literal:BOOL * span:HalfOpenRange -> unit
-    default _.VisitBool(_:BOOL, _:HalfOpenRange) : unit = ()
+    abstract member VisitBool: literal:BOOL -> unit
+    default _.VisitBool(_:BOOL) : unit = ()
     
     abstract member VisitThis: unit -> unit
     default _.VisitThis() : unit = ()

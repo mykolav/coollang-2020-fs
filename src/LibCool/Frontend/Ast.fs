@@ -165,9 +165,9 @@ type Expr =
     | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | ObjectCreation of class_name: Node<TYPE_NAME> * actuals: Node<Expr> []
-    | BracedBlock of BlockInfo option
+    | BracedBlock of Node<BlockInfo> option
     | ParensExpr of Node<Expr>
-    | Id of Node<ID>
+    | Id of ID
     | Int of INT
     | Str of STRING
     | Bool of BOOL
