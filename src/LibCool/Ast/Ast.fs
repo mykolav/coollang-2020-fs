@@ -1,4 +1,4 @@
-namespace rec LibCool.Frontend
+namespace rec LibCool.Ast
 
 open System
 open System.Runtime.CompilerServices
@@ -125,7 +125,7 @@ type AttrBody =
 
 [<RequireQualifiedAccess>]
 type Block =
-    | Info of BlockInfo
+    | Implicit of BlockInfo
     | Braced of Node<BlockInfo> option
 
 type BlockInfo =
@@ -160,7 +160,7 @@ type Expr =
     | Sum of left: Node<Expr> * right: Node<Expr>
     | Sub of left: Node<Expr> * right: Node<Expr>
     | Match of expr: Node<Expr> * cases_hd: Node<Case> * cases_tl: Node<Case> []
-    | Dispatch of obj_expr: Node<Expr> * method_id: Node<ID> * actuals: Node<Expr> []
+    | Dispatch of receiver: Node<Expr> * method_id: Node<ID> * actuals: Node<Expr> []
     // Primary
     | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []

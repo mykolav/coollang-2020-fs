@@ -343,7 +343,7 @@ type LexerTests() =
         // Arrange
         let expected_tokens = Array.append tc.Expected [| T.EOF |]
         let source = Source([ { FileName = "lexer-test.cool"; Content = tc.Snippet.ToString() } ])
-        let lexer = Lexer(source)
+        let lexer = Lexer(source, DiagnosticBag())
 
         // Act
         let actual_tokens = lexer |> get_tokens |> Array.ofSeq
@@ -356,10 +356,11 @@ type LexerTests() =
     member _.``Lex invalid number``(tc: InvalidNumberTestCase) =
         // Arrange
         let source = Source([ { FileName = "lexer-test.cool"; Content = tc.Snippet.ToString() } ])
-        let lexer = Lexer(source)
+        let diagnostics = DiagnosticBag()
+        let lexer = Lexer(source, diagnostics)
 
         // Act
         lexer |> get_tokens |> ignore
         
         // Assert
-        AssertDiags.Equal(expected = tc.Expected, actual = lexer.Diagnostics)
+        AssertDiags.Equal(expected = tc.Expected, actual = diagnostics.ToReadOnlyList())

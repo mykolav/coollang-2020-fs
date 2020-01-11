@@ -1,15 +1,14 @@
 namespace LibCool.Frontend
 
-open System.Collections.Generic
-
 open LibCool.DiagnosticParts
 open LibCool.SourceParts
 
 type private Ch = Ch of char | EOF
 
-type Lexer(_source: Source) =
-    let _diags = List<Diagnostic>()
+
+type Lexer(_source: Source, _diags: DiagnosticBag) =
     let mutable _offset: uint32 = 0u
+    
     
     let eat_char() : Ch =
         if _offset = _source.Size
@@ -20,17 +19,19 @@ type Lexer(_source: Source) =
         _offset <- _offset + 1u
         result
         
+    
     let peek_char() : Ch =
         if _offset < _source.Size
         then Ch _source.[_offset]
         else EOF
     
+    
     let move_next() =
         ()
 
+    
     let mutable _current = { Kind = TokenKind.Invalid ""; Span = HalfOpenRange.Invalid }
+    
     
     member _.Current with get() = _current
     member _.MoveNext() = false
-    
-    member _.Diagnostics with get() = _diags :> IReadOnlyList<Diagnostic> 

@@ -7,13 +7,14 @@
     <ItemGroup>
         <Compile Include="SourceParts\Types.fs" />
         <Compile Include="SourceParts\Source.fs" />
-        <Compile Include="DiagnosticParts.fs" />
+        <Compile Include="DiagnosticParts\DiagnosticParts.fs" />
+        <Compile Include="DiagnosticParts\DiagnosticBag.fs" />
+        <Compile Include="Ast\Ast.fs" />
+        <Compile Include="Ast\AstListener.fs" />
+        <Compile Include="Ast\AstWalker.fs" />
         <Compile Include="Frontend\TokenParts.fs" />
         <Compile Include="Frontend\Lexer.fs" />
-        <Compile Include="Frontend\Ast.fs" />
         <Compile Include="Frontend\Parser.fs" />
-        <Compile Include="Frontend\AstListener.fs" />
-        <Compile Include="Frontend\AstWalker.fs" />
         <Folder Include="Driver" />
     </ItemGroup>
 
