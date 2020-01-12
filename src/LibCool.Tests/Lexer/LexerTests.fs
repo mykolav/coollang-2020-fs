@@ -6,21 +6,6 @@ open LibCool.Frontend
 open LibCool.SourceParts
 open LibCool.Tests
 
-[<IsReadOnly; Struct>]
-type Snippet = Snippet of content: string
-    with
-    member this.ToDisplayString() =
-        let (Snippet content) = this
-        "\"" +
-        (if content.Length > 100 
-        then content.[0..100] + "..."
-        else content) +
-        "\""
-        
-    override this.ToString() =
-        let (Snippet content) = this
-        content
-
 type TokenTestCase =
     { Snippet: Snippet
       Expected: Token[] }
@@ -33,7 +18,8 @@ type InvalidNumberTestCase =
     with
     override this.ToString() = this.Snippet.ToDisplayString()
         
-type LexerTestCaseSource() =
+[<Sealed>]
+type LexerTestCaseSource private () =
     static let map_token_test_cases (tuples: (string * Token[])[]) =
         tuples |> Array.map (fun (snippet, expected) ->
                                  [| { TokenTestCase.Snippet = Snippet(snippet)

@@ -31,7 +31,7 @@ open LibCool.DiagnosticParts
 //     NOTE: 'var' was not expected at this point of the var declaration
 //     NOTE: Assuming 'var' is the next var declaration's begging
 
-type Parser private (_lexer: Lexer, _diags: DiagnosticBag) =
+type Parser(_lexer: Lexer, _diags: DiagnosticBag) =
     member _.Parse() : Ast =
         { Program = Node.Mk(HalfOpenRange.Invalid,
                             { ClassDecls = [| |] })
