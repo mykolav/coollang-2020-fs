@@ -1,4 +1,4 @@
-namespace LibCool.Tests.Lexer
+namespace LibCool.Tests.Support
 
 module private Seq =
     let any source = not (Seq.isEmpty source)

@@ -1,5 +1,4 @@
-namespace LibCool.Tests
-
+namespace LibCool.Tests.Support
 
 [<RequireQualifiedAccess>]
 module AssertFail =

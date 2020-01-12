@@ -1,6 +1,7 @@
 namespace LibCool.Tests.Lexer
 
 open LibCool.Frontend
+open LibCool.Tests.Support
 
 [<RequireQualifiedAccess>]
 type AssertTokens() =

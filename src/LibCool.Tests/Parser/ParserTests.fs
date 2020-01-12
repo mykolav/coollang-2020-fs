@@ -5,7 +5,7 @@ open Xunit
 open LibCool.DiagnosticParts
 open LibCool.Frontend
 open LibCool.SourceParts
-open LibCool.Tests
+open LibCool.Tests.Support
 
 
 [<IsReadOnly; Struct>]
@@ -35,13 +35,13 @@ type ParserTests() =
     member _.``Parsed OK``(tc: ParsedOKTestCase) =
         // Arrange
         let source = Source([ { FileName = "parsed-ok-test.cool"; Content = tc.Snippet.ToString() } ])
-        let diagnosticBag = DiagnosticBag()
-        let lexer = Lexer(source, diagnosticBag)
-        let parser = Parser(lexer, diagnosticBag)
+        let diagnostic_bag = DiagnosticBag()
+        let lexer = Lexer(source, diagnostic_bag)
+        let parser = Parser(lexer, diagnostic_bag)
 
         // Act
         let ast = parser.Parse()
-        let diags = diagnosticBag.ToReadOnlyList()
+        let diags = diagnostic_bag.ToReadOnlyList()
         let rendered = if diags.Count = 0 then CoolRenderer.Render(ast) else ""
         
         // Assert

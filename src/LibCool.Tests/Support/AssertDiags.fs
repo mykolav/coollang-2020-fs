@@ -1,7 +1,6 @@
-namespace LibCool.Tests
+namespace LibCool.Tests.Support
 
 open LibCool.DiagnosticParts
-open LibCool.Tests.Lexer
 
 [<RequireQualifiedAccess>]
 type AssertDiags() =

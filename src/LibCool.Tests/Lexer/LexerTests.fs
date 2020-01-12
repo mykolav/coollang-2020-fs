@@ -1,10 +1,10 @@
 namespace LibCool.Tests.Lexer
 
-open System.Runtime.CompilerServices
 open LibCool.DiagnosticParts
 open LibCool.Frontend
 open LibCool.SourceParts
 open LibCool.Tests
+open LibCool.Tests.Support
 
 type TokenTestCase =
     { Snippet: Snippet

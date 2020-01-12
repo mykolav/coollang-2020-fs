@@ -1,4 +1,4 @@
-namespace LibCool.Tests
+namespace LibCool.Tests.Support
 
 open System.Runtime.CompilerServices
 

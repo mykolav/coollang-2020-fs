@@ -8,11 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="AssertFail.fs" />
-        <Compile Include="AssertStringSeq.fs" />
-        <Compile Include="AssertDiags.fs" />
+        <Compile Include="Support\AssertFail.fs" />
+        <Compile Include="Support\AssertStringSeq.fs" />
+        <Compile Include="Support\SpanRenderer.fs" />
+        <Compile Include="Support\AssertDiags.fs" />
+        <Compile Include="Support\Snippet.fs" />
         <Compile Include="SourceTests.fs" />
-        <Compile Include="Snippet.fs" />
         <Compile Include="Lexer\TokenFactory.fs" />
         <Compile Include="Lexer\AssertTokens.fs" />
         <Compile Include="Lexer\LexerTests.fs" />
@@ -21,6 +22,8 @@
         <Compile Include="Parser\CoolSnippets.fs" />
         <Compile Include="Parser\AssertSnippets.fs" />
         <Compile Include="Parser\ParserTests.fs" />
+        <Compile Include="Semantics\CoolWithSemanticDiagsSnippets.fs" />
+        <Compile Include="Semantics\SemanticTests.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

@@ -2,7 +2,7 @@ namespace LibCool.Tests.Parser
 
 open System.Text
 open System.Text.RegularExpressions
-open LibCool.Tests
+open LibCool.Tests.Support
 
 
 [<Sealed>]
