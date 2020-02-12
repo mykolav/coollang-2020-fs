@@ -18,28 +18,11 @@ module private Seq =
                 else if haveY     then yield (None, Some ey.Current)
         }
 
-module private StringBuilderExtensions =
-    open System.Text
-    
-    type StringBuilder with
-        member this.Pad(len: int, requiredLen: int) =
-            if len < requiredLen 
-            then let paddingLength = requiredLen - len
-                 this.Append(new string(' ', paddingLength)) |> ignore
-            this
-
 open System
 open System.Text
 open System.IO
-open System.Runtime.CompilerServices
-open LibCool.DiagnosticParts
-open StringBuilderExtensions
-
-[<IsReadOnly; Struct>]
-type Mismatch =
-    { Expected: string
-      Actual: string
-      At: int }
+open LibCool.Tests.Support
+open LibCool.Tests.Support.StringBuilderExtensions
 
 [<RequireQualifiedAccess>]
 module AssertStringSeq =
@@ -56,14 +39,14 @@ module AssertStringSeq =
 
         expected
             .Append(expected_str)
-            .Pad(len = expected.Length, 
-                 requiredLen = actual.Length)
+            .Pad(len=expected.Length, 
+                 requiredLen=actual.Length)
             |> ignore
             
         actual
             .Append(actual_str)
-            .Pad(len = actual.Length, 
-                 requiredLen = expected.Length)
+            .Pad(len=actual.Length, 
+                 requiredLen=expected.Length)
             |> ignore
 
     let format_mismatches (expected_len: int)

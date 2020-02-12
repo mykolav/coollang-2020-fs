@@ -307,10 +307,10 @@ type LexerTestCaseSource private () =
     |]
     
     static member InvalidNumberTestCases = map_invalid_number_test_cases [|
-        "0corge",    [| { Code = InvalidNumber; Span = { First = 0u; Last = 1u } } |]
-        "9001corge", [| { Code = InvalidNumber; Span = { First = 0u; Last = 4u } } |]
-        "90a1",      [| { Code = InvalidNumber; Span = { First = 0u; Last = 2u } } |]
-        "9.001",     [| { Code = InvalidNumber; Span = { First = 0u; Last = 1u } } |]
+        "0corge",    [| { Severity = Error; Span = { First = 0u; Last = 1u }; Message = "" } |]
+        "9001corge", [| { Severity = Error; Span = { First = 0u; Last = 4u }; Message = "" } |]
+        "90a1",      [| { Severity = Error; Span = { First = 0u; Last = 2u }; Message = "" } |]
+        "9.001",     [| { Severity = Error; Span = { First = 0u; Last = 1u }; Message = "" } |]
     |]
 
 open Xunit
@@ -349,4 +349,7 @@ type LexerTests() =
         lexer |> get_tokens |> ignore
         
         // Assert
-        AssertDiags.Equal(expected = tc.Expected, actual = diagnostics.ToReadOnlyList())
+        AssertDiags.Equal(
+            expected=tc.Expected,
+            actual=diagnostics.ToReadOnlyList(),
+            cool_snippet=tc.Snippet.ToString())

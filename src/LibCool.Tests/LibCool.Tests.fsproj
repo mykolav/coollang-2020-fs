@@ -8,6 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Support\StringBuilderExtensions.fs" />
+        <Compile Include="Support\Mismatch.fs" />
         <Compile Include="Support\AssertFail.fs" />
         <Compile Include="Support\AssertStringSeq.fs" />
         <Compile Include="Support\SpanRenderer.fs" />
@@ -22,8 +24,19 @@
         <Compile Include="Parser\CoolSnippets.fs" />
         <Compile Include="Parser\AssertSnippets.fs" />
         <Compile Include="Parser\ParserTests.fs" />
-        <Compile Include="Semantics\CoolWithSemanticDiagsSnippets.fs" />
-        <Compile Include="Semantics\SemanticTests.fs" />
+        <Content Include="Compiler\CoolPrograms\Syntax\SemiExpected.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\CircularBaseClass.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\MethodArgumentNumberMismatch1.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\OverrideKeywordRequired.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\ProgramAlreadyContainsADefinition1.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\RedefinesInheritedAttribute.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\TypeAlreadyContainsADefinition1.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\TypeMismatch1.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\TypeMismatch2.cool" />
+        <Content Include="Compiler\CoolPrograms\Semantics\TypeNameCouldNotBeFound1.cool" />
+        <Content Include="Compiler\CoolPrograms\Valid\Fibonacci.cool" />
+        <Content Include="Compiler\CoolPrograms\Valid\QuickSort.cool" />
+        <Compile Include="Compiler\CompilerTests.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 

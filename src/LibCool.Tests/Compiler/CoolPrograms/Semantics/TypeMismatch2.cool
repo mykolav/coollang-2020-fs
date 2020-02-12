@@ -1,0 +1,9 @@
+class A() {
+    def foo(s: String) : Int = 0;
+}
+
+class Main() {
+    { new A().foo(42) };
+}
+// DIAG: TypeMismatch1.cool(6,19): Error: Argument 1: Expected the type to be 'String' but found 'Int'
+// DIAG: Build failed: Errors: 1. Warnings: 0

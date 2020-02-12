@@ -1,0 +1,10 @@
+class A() {
+    var i: Int = 0;
+    def foo() : Int = 0
+    var i: Int = 0;
+    def foo() : Int = 0
+}
+class Main() {}
+// DIAG: TypeAlreadyContainsADefinition1.cool(4,9): Error: The type 'A' already contains a definition for 'i'
+// DIAG: TypeAlreadyContainsADefinition1.cool(5,9): Error: The type 'A' already contains a definition for 'foo'
+// DIAG: Build failed: Errors: 2. Warnings: 0

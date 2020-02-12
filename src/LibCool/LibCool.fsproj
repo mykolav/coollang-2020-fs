@@ -16,7 +16,7 @@
         <Compile Include="Frontend\Lexer.fs" />
         <Compile Include="Frontend\Parser.fs" />
         <Compile Include="Frontend\SemanticAnalyzer.fs" />
-        <Folder Include="Driver" />
+        <Compile Include="Driver\Driver.fs" />
     </ItemGroup>
 
 </Project>

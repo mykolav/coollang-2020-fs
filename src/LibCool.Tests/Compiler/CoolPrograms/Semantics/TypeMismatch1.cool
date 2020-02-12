@@ -1,0 +1,10 @@
+class A() {
+    {
+        var it: Int = ""
+    };
+} 
+
+class Main() {}
+
+// DIAG: TypeMismatch1.cool(3,23): Error: Expected the type to be 'Int' but found 'String'
+// DIAG: Build failed: Errors: 1. Warnings: 0
