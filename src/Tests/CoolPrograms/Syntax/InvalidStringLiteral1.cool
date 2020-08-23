@@ -1,0 +1,13 @@
+class Main() extends IO() {
+    {
+        out_string("Hello, 
+        Cool\
+        Programming \   
+        Language!");
+        out_nl()
+    }
+}
+// DIAG: Syntax/InvalidStringLiteral1.cool(3,28): Error: String literals cannot contain line breaks
+// DIAG: Syntax/InvalidStringLiteral1.cool(4,14): Error: String literals cannot contain line breaks
+// DIAG: Syntax/InvalidStringLiteral1.cool(5,25): Error: String literals cannot contain line breaks
+// DIAG: Build failed: Errors: 3. Warnings: 0

@@ -18,6 +18,7 @@
         <Compile Include="Lexer\AssertTokens.fs" />
         <Compile Include="Lexer\LexerTests.fs" />
         <Compile Include="Parser\CoolRenderer.fs" />
+        <Compile Include="Parser\CoolRenderer1.fs" />
         <Compile Include="Parser\AssertAst.fs" />
         <Compile Include="Parser\CoolSnippets.fs" />
         <Compile Include="Parser\AssertSnippets.fs" />
@@ -27,6 +28,22 @@
         <Compile Include="Compiler\AssertCompilerOutput.fs" />
         <Compile Include="Compiler\CompilerTests.fs" />
         <Compile Include="Program.fs" />
+        <Content Include="CoolPrograms\Valid\QuickSort.cool" />
+        <Content Include="CoolPrograms\Valid\InsertionSort.cool" />
+        <Content Include="CoolPrograms\Valid\Fibonacci.cool" />
+        <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
+        <Content Include="CoolPrograms\Syntax\UnterminatedStringLiteral1.cool" />
+        <Content Include="CoolPrograms\Syntax\InvalidStringLiteral1.cool" />
+        <Content Include="CoolPrograms\Syntax\InvalidStringLiteral2.cool" />
+        <Content Include="CoolPrograms\Semantics\TypeNameCouldNotBeFound1.cool" />
+        <Content Include="CoolPrograms\Semantics\TypeMismatch2.cool" />
+        <Content Include="CoolPrograms\Semantics\TypeMismatch1.cool" />
+        <Content Include="CoolPrograms\Semantics\TypeAlreadyContainsADefinition1.cool" />
+        <Content Include="CoolPrograms\Semantics\RedefinesInheritedAttribute.cool" />
+        <Content Include="CoolPrograms\Semantics\ProgramAlreadyContainsADefinition1.cool" />
+        <Content Include="CoolPrograms\Semantics\OverrideKeywordRequired.cool" />
+        <Content Include="CoolPrograms\Semantics\MethodArgumentNumberMismatch1.cool" />
+        <Content Include="CoolPrograms\Semantics\CircularBaseClass.cool" />
     </ItemGroup>
 
     <ItemGroup>

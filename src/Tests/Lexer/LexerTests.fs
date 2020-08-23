@@ -1,10 +1,12 @@
 namespace Tests.Lexer
 
+
 open LibCool.DiagnosticParts
 open LibCool.Frontend
 open LibCool.SourceParts
 open Tests
 open Tests.Support
+
 
 type TokenTestCase =
     { Snippet: Snippet
@@ -13,13 +15,6 @@ type TokenTestCase =
     override this.ToString() = this.Snippet.ToDisplayString()
 
 
-type InvalidNumberTestCase =
-    { Snippet: Snippet
-      Expected: Diagnostic[] }
-    with
-    override this.ToString() = this.Snippet.ToDisplayString()
-
-        
 [<Sealed>]
 type LexerTestCaseSource private () =
 
@@ -27,12 +22,6 @@ type LexerTestCaseSource private () =
     static let map_token_test_cases (tuples: (string * Token[])[]) =
         tuples |> Array.map (fun (snippet, expected) ->
                                  [| { TokenTestCase.Snippet = Snippet(snippet)
-                                      Expected = expected } :> obj |])
-
-
-    static let map_invalid_number_test_cases (tuples: (string * Diagnostic[])[]) =
-        tuples |> Array.map (fun (snippet, expected) ->
-                                 [| { InvalidNumberTestCase.Snippet = Snippet(snippet)
                                       Expected = expected } :> obj |])
         
 
@@ -103,7 +92,7 @@ type LexerTestCaseSource private () =
         "\"Hello/*, world!\"",        [| T.Str "Hello/*, world!" |]
         "\"Hello/*, world!*/\"",      [| T.Str "Hello/*, world!*/" |]
         "\"Power level: 9001\"",      [| T.Str "Power level: 9001" |]
-        "\"Power \\0 level: 9001\"",  [| T.Str "Power \0 level: 9001" |]
+        "\"Power \\0 level: 9001\"",  [| T.Str (sprintf "Power %c level: 9001" (char 0)) |]
         "\"Power \\b level: 9001\"",  [| T.Str "Power \b level: 9001" |]
         "\"Power \\t level: 9001\"",  [| T.Str "Power \t level: 9001" |]
         "\"Power \\n level: 9001\"",  [| T.Str "Power \n level: 9001" |]
@@ -319,14 +308,6 @@ type LexerTestCaseSource private () =
         "yield", [| T.Yield |]
         "Yield", [| T.ID("Yield") |]
     |]
-    
-
-    static member InvalidNumberTestCases = map_invalid_number_test_cases [|
-        "0corge",    [| { Severity = Error; Span = { First = 0u; Last = 1u }; Message = "" } |]
-        "9001corge", [| { Severity = Error; Span = { First = 0u; Last = 4u }; Message = "" } |]
-        "90a1",      [| { Severity = Error; Span = { First = 0u; Last = 2u }; Message = "" } |]
-        "9.001",     [| { Severity = Error; Span = { First = 0u; Last = 1u }; Message = "" } |]
-    |]
 
 
 open Xunit
@@ -337,15 +318,18 @@ type LexerTests() =
     
     let enumerate_tokens (lexer: Lexer) =
         seq {
-            yield lexer.Current
-            while lexer.MoveNext() do
-                yield lexer.Current
+            let mutable token = lexer.LexNext()
+            yield token
+            
+            while token.Kind <> TokenKind.EOF do
+                token <- lexer.LexNext()
+                yield token
         }
     
     
     [<Theory>]
     [<MemberData("TokenTestCases", MemberType=typeof<LexerTestCaseSource>)>]
-    member _.``Lex ``(tc: TokenTestCase) =
+    member _.Lex(tc: TokenTestCase) =
         // Arrange
         let expected_tokens = Array.append tc.Expected [| T.EOF |]
         let source = Source([ { FileName = "lexer-test.cool"; Content = tc.Snippet.ToString() } ])

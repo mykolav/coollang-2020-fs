@@ -38,7 +38,12 @@ type AssertCompilerOutput private () =
 
 
     static member Matches(tc: CompilerTestCase, co: CompilerOutput) =
-        let diag_mismatches = StringSeq.compare tc.ExpectedDiags co.Diags
+        let actual_diags = co.Diags
+                           |> Seq.map (fun it -> if it.StartsWith(CompilerTestCaseSource.ProgramsPath)
+                                                 then it.Replace(CompilerTestCaseSource.ProgramsPath, "")
+                                                 else it)
+                           
+        let diag_mismatches = StringSeq.compare tc.ExpectedDiags actual_diags
         AssertStringSeq.EmptyMismatches(diag_mismatches,
                                         Seq.length tc.ExpectedDiags,
                                         Seq.length co.Diags,

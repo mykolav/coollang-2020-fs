@@ -1,10 +1,29 @@
 namespace Tests.Compiler
 
+open System
+open System.IO
+open LibCool.Driver
+
 module ProcessRunner =
 
 
     open System.Diagnostics
     open System.Text
+    
+    
+    [<Sealed>]
+    type private StringBuilderWriter() =
+        inherit TextWriter()
+        
+        let _sb_out = StringBuilder()
+        
+        override _.Encoding = stdout.Encoding
+        
+        override _.Write (s: string) = _sb_out.Append(s) |> ignore
+        override _.WriteLine (s: string) = _sb_out.AppendLine(s) |> ignore
+        override _.WriteLine() = _sb_out.AppendLine() |> ignore
+        
+        override _.ToString() = _sb_out.ToString()
 
 
     let run (file_name: string) (args: string): string =
@@ -31,5 +50,18 @@ module ProcessRunner =
         sb_output.ToString()
 
 
-    let run_clc (args: string): string =
-        run "../../../../clc/bin/Debug/netcoreapp3.1/clc.exe" args
+    let run_clc (args: seq<string>): string =
+        run "../../../../clc/bin/Debug/netcoreapp3.1/clc.exe" (String.Join(" ", args))
+
+
+    let run_clc_in_process (args: seq<string>): string =
+        use output = new StringBuilderWriter()
+        
+        let console_out = Console.Out
+        Console.SetOut(output)
+        
+        Driver.Compile(args) |> ignore
+        
+        Console.SetOut(console_out)
+        
+        output.ToString()

@@ -17,3 +17,5 @@ type Diagnostic =
     { Span: HalfOpenRange
       Severity: DiagnosticSeverity
       Message: string }
+    with
+    static member Of(severity, message, span) = { Span = span; Severity = severity; Message = message }

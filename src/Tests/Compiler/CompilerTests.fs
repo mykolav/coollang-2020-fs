@@ -1,7 +1,6 @@
 namespace Tests.Compiler
 
 
-open System
 open System.IO
 open Tests.Support
 open Xunit
@@ -14,13 +13,13 @@ type CompilerTests(test_output: ITestOutputHelper) =
 
     [<Theory>]
     [<MemberData("TestCases", MemberType = typeof<CompilerTestCaseSource>)>]
-    member _.``A program ``(path: string) =
+    member _.CompileAndRun(path: string) =
         // Arrange
-        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path)
+        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
         let tc = CompilerTestCase.ReadFrom(path)
 
         // Act
-        let clc_output = run_clc (String.Join(" ", [ path; "-o"; tc.FileName + ".exe" ]))
+        let clc_output = run_clc_in_process ([ path; "-o"; tc.FileName + ".exe" ])
         
         test_output.WriteLine("===== clc: =====")
         test_output.WriteLine(clc_output)

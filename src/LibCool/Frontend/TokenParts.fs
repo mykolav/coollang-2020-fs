@@ -1,8 +1,10 @@
 ﻿namespace LibCool.Frontend
 
+
 open LibCool.SourceParts
 open System.Diagnostics
 open System.Runtime.CompilerServices
+
 
 (*
 10 Lexical Structure
@@ -72,9 +74,10 @@ open System.Runtime.CompilerServices
     character literals respectively: '\t', '\n', '\r', and ' '.
 *)
 
+
 [<RequireQualifiedAccess>]
 type TokenKind =
-    | Invalid of string
+    | Invalid
     | EOF
     | Identifier of string
     // Literals
@@ -149,8 +152,13 @@ type TokenKind =
     | KwWith 
     | KwYield
 
+
 [<DebuggerDisplay("K: [{Kind}] - R: [{Range}]")>]
 [<IsReadOnly; Struct>]
 type Token =
     { Kind: TokenKind
       Span: HalfOpenRange }
+    with
+    static member EOF = { Kind = TokenKind.EOF; Span = HalfOpenRange.Invalid }
+    static member Invalid(span)= { Kind = TokenKind.Invalid; Span = span }
+    static member Of(kind, span) = { Kind = kind; Span = span }

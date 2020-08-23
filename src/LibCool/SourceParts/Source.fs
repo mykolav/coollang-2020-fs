@@ -1,18 +1,23 @@
 ﻿namespace LibCool.SourceParts
 
+
 open System
 open System.Collections.Generic
 open System.Diagnostics
 open System.Runtime.CompilerServices
 open System.Text
 
+
 [<IsReadOnly; Struct>]
 type SourcePart =
     { FileName: string
       Content: string }
 
+
 [<DebuggerDisplay("FL: [{_file_names.Length}] - S: [{_size}]")>]
 type Source(partSeq: SourcePart seq) =
+    
+    
     let parts = Array.ofSeq partSeq
     do
        if Array.isEmpty parts
@@ -60,12 +65,14 @@ type Source(partSeq: SourcePart seq) =
            i <- i + 1
         Array.ofSeq acc_offsets
 
+    
     let ensure_in_range (offset: uint32) =
         if offset >= _size
         then raise (ArgumentOutOfRangeException(
                         "offset",
                         sprintf "Expected offset >= 0 and < [%d] but it was [%d]" _size offset))
             
+    
     // Binary search the exact or closest left index of an offset in an array of offsets
     let index_of offset offsets =
         ensure_in_range offset
@@ -82,10 +89,12 @@ type Source(partSeq: SourcePart seq) =
         
         index
         
+    
     // Map a global offset to the source part's index
     let part_index_of offset =
         index_of offset _part_offsets
         
+    
     // Map a global offset to the line and col numbers  
     let line_col_of offset =
         let line = index_of offset _line_offsets
@@ -93,12 +102,15 @@ type Source(partSeq: SourcePart seq) =
         // (and not 0:0)
         struct {| Line = uint32 line + 1u; Col = offset - _line_offsets.[line] + 1u |}
         
+    
     member _.Size with get() = _size
+    
     
     member _.Item with get(offset: uint32) =
         ensure_in_range offset
         _content.[int offset]
         
+    
     member this.Map(offset: uint32) =
         let part = part_index_of offset
         let lc = line_col_of offset

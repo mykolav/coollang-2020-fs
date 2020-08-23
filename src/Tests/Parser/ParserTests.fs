@@ -37,7 +37,7 @@ type ParserTests() =
    
     [<Theory>]
     [<MemberData("ParserTestCases", MemberType=typeof<ParserTestCaseSource>)>]
-    member _.``Parse ``(tc: ParserTestCase) =
+    member _.Parse(tc: ParserTestCase) =
         // Arrange
         let source = Source([ { FileName = "parser-test-case.cool"; Content = tc.Snippet.ToString() } ])
         let diagnostic_bag = DiagnosticBag()
@@ -48,7 +48,7 @@ type ParserTests() =
         // Act
         let ast = parser.Parse()
         let diags = diagnostic_bag.ToReadOnlyList()
-        let rendered = if diags.Count = 0 then CoolRenderer.Render(ast) else ""
+        let rendered = if diags.Count = 0 then CoolRenderer1.Render(ast) else ""
         
         // Assert
         Assert.Empty(diags)

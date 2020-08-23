@@ -1,8 +1,10 @@
 namespace LibCool.Frontend
 
+
 open LibCool.SourceParts
 open LibCool.Ast
 open LibCool.DiagnosticParts
+
 
 // ERROR HANDLING:
 // 1) If any lexical errors, report and stop
@@ -30,9 +32,15 @@ open LibCool.DiagnosticParts
 // ... ERR123: File.cool:LL:CC: An incomplete var declaration
 //     NOTE: 'var' was not expected at this point of the var declaration
 //     NOTE: Assuming 'var' is the next var declaration's begging
-
 type Parser(_lexer: Lexer, _diags: DiagnosticBag) =
+
+
     member _.Parse() : Ast =
-        { Program = Node.Mk(HalfOpenRange.Invalid,
-                            { ClassDecls = [| |] })
+        let mutable token = _lexer.LexNext()
+        while token.Kind <> TokenKind.EOF do
+            token <- _lexer.LexNext()
+        
+        { Program =
+            Node.Of(HalfOpenRange.Invalid,
+                    { ClassDecls = [| |] })
         }

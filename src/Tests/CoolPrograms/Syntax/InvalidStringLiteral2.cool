@@ -1,0 +1,10 @@
+class Main() extends IO() {
+    {
+        out_string("Hello, \a\c\v Cool!");
+        out_nl()
+    }
+}
+// DIAG: Syntax/InvalidStringLiteral2.cool(3,28): Error: Invalid escaped char in the string literal
+// DIAG: Syntax/InvalidStringLiteral2.cool(3,30): Error: Invalid escaped char in the string literal
+// DIAG: Syntax/InvalidStringLiteral2.cool(3,32): Error: Invalid escaped char in the string literal
+// DIAG: Build failed: Errors: 3. Warnings: 0

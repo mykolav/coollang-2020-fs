@@ -1,0 +1,13 @@
+// DIAG: Syntax/UnterminatedStringLiteral1.cool(10,35): Error: String literals cannot contain line breaks
+// DIAG: Syntax/UnterminatedStringLiteral1.cool(11,17): Error: String literals cannot contain line breaks
+// DIAG: Syntax/UnterminatedStringLiteral1.cool(12,6): Error: String literals cannot contain line breaks
+// DIAG: Syntax/UnterminatedStringLiteral1.cool(13,2): Error: String literals cannot contain line breaks
+// DIAG: Syntax/UnterminatedStringLiteral1.cool(10,20): Error: Unterminated string literal
+// DIAG: Build failed: Errors: 5. Warnings: 0
+
+class Main() extends IO() {
+    {
+        out_string("Hello, Cool!);
+        out_nl()
+    }
+}

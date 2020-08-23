@@ -1,8 +1,10 @@
 namespace rec LibCool.Ast
 
+
 open System
 open System.Runtime.CompilerServices
 open LibCool.SourceParts
+
 
 // Generating keys based on the hierarchy of Nodes is deterministic and
 // seems to be a better option overall,
@@ -27,49 +29,60 @@ type Node<'TValue> =
       Span: HalfOpenRange
       Value: 'TValue }
 
+
 [<AbstractClass; Sealed; RequireQualifiedAccess>]
 type Node private () =
 
-    static member Mk<'TValue>(span: HalfOpenRange, value: 'TValue) =
+
+    static member Of<'TValue>(span: HalfOpenRange, value: 'TValue) =
         { Key = Guid.NewGuid()
           Span = span
           Value = value }
 
-    static member Mk<'TValue>(first: uint32, last: uint32, value: 'TValue) =
-        Node.Mk
+
+    static member Of<'TValue>(first: uint32, last: uint32, value: 'TValue) =
+        Node.Of
             (span =
                 { First = first
                   Last = last }, value = value)
 
+
 type Ast =
     { Program: Node<Program> }
+
 
 type ID =
     | ID of value: string
     member this.Value =
         let (ID value) = this in value
 
+
 type TYPE_NAME =
     | TYPE_NAME of value: string
     member this.Value =
         let (TYPE_NAME value) = this in value
+
 
 type INT =
     | INT of value: int
     member this.Value =
         let (INT value) = this in value
 
+
 type STRING =
     | STRING of value: string
     member this.Value =
         let (STRING value) = this in value
 
+
 type BOOL =
     | True
     | False
 
+
 type Program =
     { ClassDecls: Node<ClassDecl> [] }
+
 
 type ClassDecl =
     { TYPE_NAME: Node<TYPE_NAME>
@@ -77,24 +90,29 @@ type ClassDecl =
       Extends: Node<Extends> option
       ClassBody: Node<Feature> [] }
 
+
 [<RequireQualifiedAccess>]
 type Extends =
     | Info of ExtendsInfo
     | Native
 
+
 type ExtendsInfo =
     { TYPE_NAME: Node<TYPE_NAME>
       Actuals: Node<Expr> [] }
 
+
 type VarFormal =
     { ID: Node<ID>
       TYPE_NAME: Node<TYPE_NAME> }
+
 
 [<RequireQualifiedAccess>]
 type Feature =
     | Method of MethodInfo
     | Attr of AttrInfo
     | Block of Block
+
 
 type MethodInfo =
     { Override: bool
@@ -103,14 +121,17 @@ type MethodInfo =
       TYPE_NAME: Node<TYPE_NAME>
       MethodBody: Node<MethodBody> }
 
+
 [<RequireQualifiedAccess>]
 type MethodBody =
     | Expr of Expr
     | Native
 
+
 type Formal =
     { ID: Node<ID>
       TYPE_NAME: Node<TYPE_NAME> }
+
 
 [<RequireQualifiedAccess>]
 type AttrInfo =
@@ -118,29 +139,35 @@ type AttrInfo =
       TYPE_NAME: Node<TYPE_NAME>
       AttrBody: Node<AttrBody> }
 
+
 [<RequireQualifiedAccess>]
 type AttrBody =
     | Expr of Expr
     | Native
+
 
 [<RequireQualifiedAccess>]
 type Block =
     | Implicit of BlockInfo
     | Braced of Node<BlockInfo> option
 
+
 type BlockInfo =
     { Stmts: Node<Stmt> []
       Expr: Node<Expr> }
+
 
 [<RequireQualifiedAccess>]
 type Stmt =
     | VarDecl of VarDeclInfo
     | Expr of Expr
 
+
 type VarDeclInfo =
     { ID: Node<ID>
       TYPE_NAME: Node<TYPE_NAME>
       Expr: Node<Expr> }
+
 
 [<RequireQualifiedAccess>]
 type Expr =
@@ -175,9 +202,11 @@ type Expr =
     | Null
     | Unit
 
+
 type Case =
     { Pattern: Node<Pattern>
       Block: Node<Block> }
+
 
 [<RequireQualifiedAccess>]
 type Pattern =
