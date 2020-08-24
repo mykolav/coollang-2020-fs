@@ -1,0 +1,12 @@
+// DIAG: Syntax/UnexpectedChar.cool(7,1): Error: Unexpected character '@'
+// DIAG: Syntax/UnexpectedChar.cool(10,9): Error: Unexpected character '%'
+// DIAG: Syntax/UnexpectedChar.cool(10,10): Error: Unexpected character '~'
+// DIAG: Syntax/UnexpectedChar.cool(12,2): Error: Unexpected character '$'
+// DIAG: Build failed: Errors: 4. Warnings: 0
+
+@
+class Main() extends IO() {
+    {
+        %~
+    }
+}$
