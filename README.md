@@ -1,4 +1,4 @@
-# The Cool 2016 language compiler implemented in F#
+# The Cool 2020 language compiler implemented in F#
 
 ## This is a work in progress and at a very early stage.
 
