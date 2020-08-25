@@ -52,7 +52,7 @@ class Main() {
 ## An antlr4 grammar for Cool 2020
 
 ``` ANTLR
-grammar Cool2020;
+grammar Cool_2020;
 
 program 
     : classdecl+
@@ -127,7 +127,12 @@ exprsuffix
     ;
 
 cases
-    :
+    : '{' ('case' casepattern '=>' block)+ '}'
+    ;
+
+casepattern
+    : ID ':' ID
+    | 'null'
     ;
 
 ID

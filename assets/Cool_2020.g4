@@ -1,4 +1,4 @@
-grammar Cool2020;
+grammar Cool_2020;
 
 program 
     : classdecl+
@@ -73,7 +73,12 @@ exprsuffix
     ;
 
 cases
-    :
+    : '{' ('case' casepattern '=>' block)+ '}'
+    ;
+
+casepattern
+    : ID ':' ID
+    | 'null'
     ;
 
 ID
