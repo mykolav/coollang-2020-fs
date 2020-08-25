@@ -307,3 +307,6 @@ sandbox/**/*.interp
 #KDevelop
 .kdev4/
 *.kdev4
+
+#Misc
+/assets/.antlr
