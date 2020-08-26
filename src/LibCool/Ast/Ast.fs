@@ -26,7 +26,7 @@ open LibCool.SourceParts
 [<IsReadOnly; Struct>]
 type Node<'TValue> =
     { Key: Guid
-      Span: HalfOpenRange
+      Span: Range
       Value: 'TValue }
 
 
@@ -34,13 +34,13 @@ type Node<'TValue> =
 type Node private () =
 
 
-    static member Of<'TValue>(span: HalfOpenRange, value: 'TValue) =
+    static member Of<'TValue>(value: 'TValue, span: Range) =
         { Key = Guid.NewGuid()
           Span = span
           Value = value }
 
 
-    static member Of<'TValue>(first: uint32, last: uint32, value: 'TValue) =
+    static member Of<'TValue>(value: 'TValue, first: uint32, last: uint32) =
         Node.Of
             (span =
                 { First = first
@@ -81,14 +81,14 @@ type BOOL =
 
 
 type Program =
-    { ClassDecls: Node<ClassDecl> [] }
+    { ClassDecls: Node<ClassDecl>[] }
 
 
 type ClassDecl =
-    { TYPE_NAME: Node<TYPE_NAME>
-      VarFormals: Node<VarFormal> []
+    { NAME: Node<TYPE_NAME>
+      VarFormals: Node<VarFormal>[]
       Extends: Node<Extends> option
-      ClassBody: Node<Feature> [] }
+      ClassBody: Node<Feature>[] }
 
 
 [<RequireQualifiedAccess>]

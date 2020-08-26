@@ -157,8 +157,8 @@ type TokenKind =
 [<IsReadOnly; Struct>]
 type Token =
     { Kind: TokenKind
-      Span: HalfOpenRange }
+      Span: Range }
     with
-    static member EOF = { Kind = TokenKind.EOF; Span = HalfOpenRange.Invalid }
+    static member EOF(offset) = { Kind = TokenKind.EOF; Span = Range.Of(offset, offset + 1u) }
     static member Invalid(span)= { Kind = TokenKind.Invalid; Span = span }
     static member Of(kind, span) = { Kind = kind; Span = span }

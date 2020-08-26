@@ -14,7 +14,7 @@ type DiagnosticSeverity =
     
 [<IsReadOnly; Struct>]
 type Diagnostic =
-    { Span: HalfOpenRange
+    { Span: Range
       Severity: DiagnosticSeverity
       Message: string }
     with

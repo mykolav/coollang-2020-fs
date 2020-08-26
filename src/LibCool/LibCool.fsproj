@@ -10,8 +10,6 @@
         <Compile Include="DiagnosticParts\DiagnosticParts.fs" />
         <Compile Include="DiagnosticParts\DiagnosticBag.fs" />
         <Compile Include="Ast\Ast.fs" />
-        <Compile Include="Ast\AstListener.fs" />
-        <Compile Include="Ast\AstWalker.fs" />
         <Compile Include="Frontend\TokenParts.fs" />
         <Compile Include="Frontend\Lexer.fs" />
         <Compile Include="Frontend\Parser.fs" />

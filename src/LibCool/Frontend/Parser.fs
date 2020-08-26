@@ -34,13 +34,39 @@ open LibCool.DiagnosticParts
 //     NOTE: Assuming 'var' is the next var declaration's begging
 type Parser(_lexer: Lexer, _diags: DiagnosticBag) =
 
+    
+    let mutable _token = Token.Invalid(Range.Invalid)
+    
+    
+    (*
+        type ClassDecl =
+            { NAME: Node<string>
+              VarFormals: Node<VarFormal>[]
+              Extends: Node<Extends> option
+              ClassBody: Node<Feature>[] }
+    *)
+    let class_decl (): Node<ClassDecl> =
+        Node.Of({ ClassDecl.NAME = Node.Of((TYPE_NAME ""), Range.Invalid)
+                  VarFormals = [| |]
+                  Extends = None
+                  ClassBody = [| |] },
+                Range.Invalid)
+    
+    
+    let class_decls (): Node<ClassDecl>[] =
+        
+        [||]
 
+    
     member _.Parse() : Ast =
-        let mutable token = _lexer.LexNext()
-        while token.Kind <> TokenKind.EOF do
-            token <- _lexer.LexNext()
+        _token <- _lexer.LexNext()
+        let program_span_start = _token.Span.First
+        
+        let class_decl_nodes = class_decls()
+        let program_span = Range.Of((*first=*)program_span_start,
+                                            (*last=*)_token.Span.First)
         
         { Program =
-            Node.Of(HalfOpenRange.Invalid,
-                    { ClassDecls = [| |] })
+            Node.Of({ ClassDecls = class_decl_nodes },
+                    program_span)
         }
