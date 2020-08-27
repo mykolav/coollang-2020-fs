@@ -118,7 +118,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         | "val" -> TokenKind.KwVal 
         | "with" -> TokenKind.KwWith 
         | "yield" -> TokenKind.KwYield
-        | _ -> TokenKind.Identifier id
+        | _ -> TokenKind.Id id
         
         
     static let _escaped_char_map: Map<char, char> = Map.ofList [

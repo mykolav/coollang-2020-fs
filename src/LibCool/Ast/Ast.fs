@@ -87,7 +87,7 @@ type Program =
 type ClassDecl =
     { NAME: Node<TYPE_NAME>
       VarFormals: Node<VarFormal>[]
-      Extends: Node<Extends> option
+      Extends: Node<Extends> voption
       ClassBody: Node<Feature>[] }
 
 
@@ -149,7 +149,7 @@ type AttrBody =
 [<RequireQualifiedAccess>]
 type Block =
     | Implicit of BlockInfo
-    | Braced of Node<BlockInfo> option
+    | Braced of Node<BlockInfo> voption
 
 
 type BlockInfo =
@@ -192,7 +192,7 @@ type Expr =
     | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | ObjectCreation of class_name: Node<TYPE_NAME> * actuals: Node<Expr> []
-    | BracedBlock of Node<BlockInfo> option
+    | BracedBlock of Node<BlockInfo> voption
     | ParensExpr of Node<Expr>
     | Id of ID
     | Int of INT

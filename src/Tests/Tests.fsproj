@@ -33,6 +33,7 @@
         <Content Include="CoolPrograms\Valid\InsertionSort.cool" />
         <Content Include="CoolPrograms\Valid\Fibonacci.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
+        <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\UnterminatedStringLiteral1.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidStringLiteral1.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidStringLiteral2.cool" />

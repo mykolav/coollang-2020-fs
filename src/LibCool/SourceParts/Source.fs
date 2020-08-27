@@ -57,8 +57,11 @@ type Source(partSeq: SourcePart seq) =
                    i <- i + 1
                
                // OK, we moved past the current line's end.
-               // If we haven't reached the source's end, i + 1 is the next line's start offset 
-               if (uint32 i + 1u < _size)
+               // If we haven't reached past the source's end, i + 1 is the next line's start offset.
+               // We treat (i + 1u = _size) as a valid case to accomodate
+               // diagnostics that have their location at EOF
+               // (see the comments in `ensure_in_range` for more details).
+               if (uint32 i + 1u <= _size)
                then do
                    acc_offsets.Add(uint32 i + 1u)
            // Move to the next char
@@ -67,17 +70,21 @@ type Source(partSeq: SourcePart seq) =
 
     
     let ensure_in_range (offset: uint32) =
-        if offset >= _size
+        // We treat (offset = _size) as a valid case to accomodate
+        // diagnostics that have their location at EOF.
+        // E.g., if the parsers goes to the end of file looking for ')'
+        // and still cannot find it. The corresponding diag's location is at EOF.
+        if offset > _size
         then raise (ArgumentOutOfRangeException(
                         "offset",
-                        sprintf "Expected offset >= 0 and < [%d] but it was [%d]" _size offset))
+                        sprintf "Expected offset >= 0 and <= [%d] but it was [%d]" _size offset))
             
     
     // Binary search the exact or closest left index of an offset in an array of offsets
     let index_of offset offsets =
         ensure_in_range offset
 
-        let search_result = System.Array.BinarySearch(offsets, offset)
+        let search_result = Array.BinarySearch(offsets, offset)
         let index = if search_result >= 0
                     then search_result
                     else ~~~search_result - 1
@@ -103,15 +110,15 @@ type Source(partSeq: SourcePart seq) =
         struct {| Line = uint32 line + 1u; Col = offset - _line_offsets.[line] + 1u |}
         
     
-    member _.Size with get() = _size
+    member _.Size with get(): uint32 = _size
     
     
-    member _.Item with get(offset: uint32) =
+    member _.Item with get(offset: uint32): char =
         ensure_in_range offset
         _content.[int offset]
         
     
-    member this.Map(offset: uint32) =
+    member this.Map(offset: uint32): Location =
         let part = part_index_of offset
         let lc = line_col_of offset
         { FileName = _file_names.[part]; Line = lc.Line; Col = lc.Col }

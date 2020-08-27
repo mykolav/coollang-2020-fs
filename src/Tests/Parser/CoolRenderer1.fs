@@ -327,13 +327,13 @@ type CoolRenderer1 private () =
     
     
     // Braced block    
-     and EnterBracedBlock(_: Node<BlockInfo> option, _: Guid, _: Span) : unit =
+     and EnterBracedBlock(_: Node<BlockInfo> voption, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append("{")
             .AppendLine() |> ignore
         _indent.Increase()
     
-     and LeaveBracedBlock(_: Node<BlockInfo> option, _: Guid, _: Span) : unit =
+     and LeaveBracedBlock(_: Node<BlockInfo> voption, _: Guid, _: Span) : unit =
         _indent.Decrease()
         _acc_cool_text
             .Append("}")
@@ -460,12 +460,12 @@ type CoolRenderer1 private () =
 
 
     // Braced block
-     and walk_braced_block (block_info_opt: Node<BlockInfo> option, key: Guid, span: Span): unit =
+     and walk_braced_block (block_info_opt: Node<BlockInfo> voption, key: Guid, span: Span): unit =
         EnterBracedBlock(block_info_opt, key, span)
         match block_info_opt with
-        | Some block_info ->
+        | ValueSome block_info ->
             walk_block_info (block_info.Value, block_info.Key, block_info.Span)
-        | None ->
+        | ValueNone ->
             ()
         LeaveBracedBlock(block_info_opt, key, span)
 
@@ -740,9 +740,9 @@ type CoolRenderer1 private () =
         walk_var_formals (klass.VarFormals)
 
         match klass.Extends with
-        | Some extends_node ->
+        | ValueSome extends_node ->
             walk_extends (extends_node.Value, extends_node.Key, extends_node.Span)
-        | None ->
+        | ValueNone ->
             ()
 
         walk_features (klass.ClassBody)

@@ -4,9 +4,9 @@ namespace LibCool.Frontend
 [<Struct>]
 type ErrorOrOption<'TValue>
     = Error
-    | Ok of ('TValue option)
+    | Ok of ('TValue voption)
     with
-    member this.Value: 'TValue option =
+    member this.Value: 'TValue voption =
         match this with
         | Ok value -> value
         | _ -> invalidOp "ErrorOrOption.Value"

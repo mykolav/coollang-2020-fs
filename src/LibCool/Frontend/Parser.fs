@@ -2,6 +2,7 @@ namespace LibCool.Frontend
 
 
 open System.Collections.Generic
+open System.Text
 open LibCool.SourceParts
 open LibCool.Ast
 open LibCool.DiagnosticParts
@@ -29,32 +30,12 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
 
     
     let mutable _offset = 0
-
-    
-    let token (): Token = _tokens.[_offset]
-    let is (kind: TokenKind): bool = token().Kind = kind
-    let is_eof (): bool = is TokenKind.EOF
-    let is_id (): bool =
-        match token().Kind with
-        | TokenKind.Identifier _ -> true
-        | _ -> false
-    let is_int (): bool =
-        match token().Kind with
-        | TokenKind.IntLiteral _ -> true
-        | _ -> false
-    let is_string (): bool =
-        match token().Kind with
-        | TokenKind.StringLiteral _ -> true
-        | _ -> false
-    let is_qqq_string (): bool =
-        match token().Kind with
-        | TokenKind.TripleQuotedStringLiteral _ -> true
-        | _ -> false
+    let mutable _token = _tokens.[_offset]
 
     
     let get_id (token: Token): string =
         match token.Kind with
-        | TokenKind.Identifier value -> value
+        | TokenKind.Id value -> value
         | _ -> invalidArg "token" "The token is not an identifier"
     
     
@@ -75,26 +56,72 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
         | TokenKind.TripleQuotedStringLiteral value -> value
         | _ -> invalidArg "token" "The token is not a \"\"\" string literal"
         
+        
+    let get_kw_spelling (token: Token): string =
+        if not (token.IsKw || token.IsReservedKw)
+        then
+            invalidArg "token" "The token is not a keyword"
+            
+        _token.Kind.ToString().Replace("TokenKind.Kw", "").ToLower()
+
     
+    let get_kw_kind_spelling (token: Token): string =        
+        if not (token.IsKw || token.IsReservedKw)
+        then
+            invalidArg "token" "The token is not a keyword"
+            
+        if (_token.IsKw) then "keyword" else "reserved keyword"
+
+        
     let eat_token (): unit =
         if _offset + 1 >= _tokens.Length
         then
-            invalidOp (sprintf "_offset [%d] + 1 is > _tokens.Length [%d]" _offset _tokens.Length)
+            invalidOp (sprintf "_offset [%d] + 1 is >=f _tokens.Length [%d]" _offset _tokens.Length)
         
         _offset <- _offset + 1
+        _token <- _tokens.[_offset]
     
     
     let eat (kind: TokenKind): bool =
-        if is kind
+        if _token.Is kind
         then
             eat_token()
             true
         else
             false
-            
-            
-    let varformals (): Node<VarFormal>[] voption =
+    
+    
+    let varformal (): Node<VarFormal> voption =
         ValueNone
+    
+    
+    let varformals (): Node<VarFormal>[] voption =
+        if not (eat TokenKind.LParen)
+        then
+            _diags.Add(
+                Severity.Error,
+                "'(' expected. A varformals list must start with '('; an empty one is denoted as '()'",
+                _token.Span)
+            ValueNone
+        else
+            
+        let varformal_nodes = List<Node<VarFormal>>()
+        while not (_token.IsEof) && not (_token.Is(TokenKind.RParen)) do
+            eat_token()
+            
+        if (_token.IsEof)
+        then
+            _diags.Add(
+                Severity.Error,
+                "')' expected. A varformals list must end with ')'",
+                _token.Span)
+            ValueNone
+        else
+            
+        // Eat ')'
+        eat_token()
+        
+        ValueSome (varformal_nodes.ToArray())
     
     
     let extends (): ErrorOrOption<Node<Extends>> =
@@ -116,7 +143,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
                 None
         else
         *)
-        Ok None
+        Ok ValueNone
         
         
     let features (): Node<Feature>[] =
@@ -124,22 +151,26 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
         
     
     let class_decl (): Node<ClassDecl> voption =
-        let span_start = token().Span.First
+        let span_start = _token.Span.First
         
         if not (eat TokenKind.KwClass)
         then
-            _diags.Add(Severity.Error, "Expected 'class'. Only classes can appear at the top level", token().Span)
+            _diags.Add(Severity.Error, "'class' expected. Only classes can appear at the top level", _token.Span)
             ValueNone
         else
             
-        if not (is_id())
+        if not (_token.IsId)
         then
-            // TODO: Identifier expected; '{1}' is a keyword
-            _diags.Add(Severity.Error, "Expected a class name. Class name must be an identifier", token().Span)
+            let sb_message = StringBuilder("A class name expected. Class name must be an identifier")
+            if (_token.IsKw || _token.IsReservedKw)
+            then
+                sb_message.AppendFormat("; '{0}' is a {1}", get_kw_spelling _token, get_kw_kind_spelling _token) |> ignore;
+                
+            _diags.Add(Severity.Error, sb_message.ToString(), _token.Span)
             ValueNone
         else
            
-        let token_id = token()
+        let token_id = _token
         eat_token()
         
         let varformals_node_opt = varformals()
@@ -181,29 +212,43 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
               VarFormals = varformals_node_opt.Value
               Extends = extends_node_result.Value
               ClassBody = feature_nodes }
-        let class_decl_span = Span.Of(span_start, token().Span.First)
+        let class_decl_span = Span.Of(span_start, _token.Span.First)
         ValueSome (Node.Of(class_decl_value, class_decl_span))
     
     
     let class_decls (): Node<ClassDecl>[] =
         let class_decl_nodes = List<Node<ClassDecl>>()
-        while not (is_eof()) do
+        while not (_token.IsEof) do
             match class_decl() with
             | ValueSome class_decl_node ->
                 class_decl_nodes.Add(class_decl_node)
             | ValueNone ->
-                while not (is_eof()) && not (is TokenKind.KwClass) do
+                // We didn't manage to parse a class declaration.
+                // We can only start our next attempt to parse from a 'class' keyword.
+                // Let's skip all tokens until we find a 'class' keyword,
+                // as otherwise we'd have to report every non-'class' token as unexpected,
+                // and that would create a bunch of unhelpful diagnostics.
+                //
+                // In a specific case, where we have `class class`,
+                // `class_decl()` will complain the 'class' keyword is not a valid class name,
+                // and will not eat the second 'class' token.
+                // We need to eat the second 'class' unconditionally here,
+                // otherwise next invocation of `class_decl()` will start parsing from it,
+                // and report confusing syntax errors as a result.
+                let mutable found_kw_class = false
+                while not (_token.IsEof) && not found_kw_class do
                     eat_token()
+                    found_kw_class <- _token.Is(TokenKind.KwClass)
 
         class_decl_nodes.ToArray()
         
         
     let ast (): Ast =
-        let span_start = token().Span.First
+        let span_start = _token.Span.First
         
         let class_decl_nodes = class_decls()
         let span = Span.Of((*first=*)span_start,
-                           (*last=*)token().Span.First)
+                           (*last=*)_token.Span.First)
         
         { Program = Node.Of({ Program.ClassDecls = class_decl_nodes }, span) }
 

@@ -79,7 +79,7 @@ open System.Runtime.CompilerServices
 type TokenKind =
     | Invalid
     | EOF
-    | Identifier of string
+    | Id of string
     // Literals
     | IntLiteral of int
     | StringLiteral of string
@@ -159,6 +159,87 @@ type Token =
     { Kind: TokenKind
       Span: Span }
     with
+    
+    
     static member EOF(offset) = { Kind = TokenKind.EOF; Span = Span.Of(offset, offset + 1u) }
     static member Invalid(span)= { Kind = TokenKind.Invalid; Span = span }
     static member Of(kind, span) = { Kind = kind; Span = span }
+    
+    
+    member this.Is(kind: TokenKind): bool = this.Kind = kind
+    member this.IsEof: bool = this.Kind = TokenKind.EOF
+    
+    
+    member this.IsId: bool =
+        match this.Kind with
+        | TokenKind.Id _ -> true
+        | _ -> false
+
+    
+    member this.IsInt: bool =
+        match this.Kind with
+        | TokenKind.IntLiteral _ -> true
+        | _ -> false
+
+
+    member this.IsString: bool =
+        match this.Kind with
+        | TokenKind.StringLiteral _ -> true
+        | _ -> false
+
+
+    member this.IsQqqString: bool =
+        match this.Kind with
+        | TokenKind.TripleQuotedStringLiteral _ -> true
+        | _ -> false
+    
+    
+    member this.IsKw: bool =
+        match this.Kind with
+        | TokenKind.KwCase 
+        | TokenKind.KwClass 
+        | TokenKind.KwDef 
+        | TokenKind.KwElse 
+        | TokenKind.KwExtends 
+        | TokenKind.KwFalse 
+        | TokenKind.KwIf 
+        | TokenKind.KwMatch 
+        | TokenKind.KwNative
+        | TokenKind.KwNew 
+        | TokenKind.KwNull 
+        | TokenKind.KwOverride 
+        | TokenKind.KwSuper 
+        | TokenKind.KwThis 
+        | TokenKind.KwTrue 
+        | TokenKind.KwVar 
+        | TokenKind.KwWhile -> true
+        | _ -> false
+    
+    
+    member this.IsReservedKw: bool =
+        match this.Kind with
+        | TokenKind.KwAbstract 
+        | TokenKind.KwCatch 
+        | TokenKind.KwDo 
+        | TokenKind.KwFinal 
+        | TokenKind.KwFinally 
+        | TokenKind.KwFor 
+        | TokenKind.KwForSome 
+        | TokenKind.KwImplicit 
+        | TokenKind.KwImport 
+        | TokenKind.KwLazy 
+        | TokenKind.KwObject 
+        | TokenKind.KwPackage 
+        | TokenKind.KwPrivate 
+        | TokenKind.KwProtected 
+        | TokenKind.KwRequires
+        | TokenKind.KwReturn
+        | TokenKind.KwSealed 
+        | TokenKind.KwThrow 
+        | TokenKind.KwTrait 
+        | TokenKind.KwTry 
+        | TokenKind.KwType 
+        | TokenKind.KwVal 
+        | TokenKind.KwWith 
+        | TokenKind.KwYield -> true
+        | _ -> false

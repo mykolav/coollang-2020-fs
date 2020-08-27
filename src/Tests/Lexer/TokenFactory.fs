@@ -6,7 +6,7 @@ open LibCool.Frontend
 [<RequireQualifiedAccess>]
 module T = 
     let EOF = { Kind = TokenKind.EOF; Span = Span.Invalid }
-    let ID (value: string) = { Kind = TokenKind.Identifier value; Span = Span.Invalid }
+    let ID (value: string) = { Kind = TokenKind.Id value; Span = Span.Invalid }
     // Literals
     let Int (value: int) = { Kind = TokenKind.IntLiteral value; Span = Span.Invalid }
     let Str (value: string) = { Kind = TokenKind.StringLiteral value; Span = Span.Invalid }
