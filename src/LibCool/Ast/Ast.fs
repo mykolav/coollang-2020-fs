@@ -26,7 +26,7 @@ open LibCool.SourceParts
 [<IsReadOnly; Struct>]
 type Node<'TValue> =
     { Key: Guid
-      Span: Range
+      Span: Span
       Value: 'TValue }
 
 
@@ -34,7 +34,7 @@ type Node<'TValue> =
 type Node private () =
 
 
-    static member Of<'TValue>(value: 'TValue, span: Range) =
+    static member Of<'TValue>(value: 'TValue, span: Span) =
         { Key = Guid.NewGuid()
           Span = span
           Value = value }

@@ -6,16 +6,16 @@ open LibCool.SourceParts
 
 
 [<Struct>]
-type DiagnosticSeverity =
+type Severity =
     | Info
     | Warning
     | Error
 
     
 [<IsReadOnly; Struct>]
-type Diagnostic =
-    { Span: Range
-      Severity: DiagnosticSeverity
+type Diag =
+    { Span: Span
+      Severity: Severity
       Message: string }
     with
     static member Of(severity, message, span) = { Span = span; Severity = severity; Message = message }

@@ -6,5 +6,5 @@ open LibCool.DiagnosticParts
 
 [<Sealed>]
 type SemanticAnalyzer private () =
-    static member Analyze(ast: Ast) : IReadOnlyList<Diagnostic> =
-        List<Diagnostic>() :> IReadOnlyList<Diagnostic>
+    static member Analyze(ast: Ast) : IReadOnlyList<Diag> =
+        List<Diag>() :> IReadOnlyList<Diag>

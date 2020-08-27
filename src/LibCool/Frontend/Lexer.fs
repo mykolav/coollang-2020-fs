@@ -14,9 +14,12 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
     let mutable _offset: uint32 = 0u
 
     
-    let span (): Range = Range.Of(_token_start, _offset)
+    let span (): Span = Span.Of(_token_start, _offset)
             
             
+    let peek_char () : char = _source.[_offset]
+    
+    
     let is_letter (ch: char): bool = Char.IsLetter(ch) || ch = '_'
     let is_digit (ch: char): bool = Char.IsDigit(ch)
     let is_ws (ch: char): bool = Char.IsWhiteSpace(ch)
@@ -52,25 +55,22 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
     let eat_char () : unit = eat_chars 1u
 
 
-    let peek_char () : char = _source.[_offset]
-    
-    
     let eat_ws_crlf (): unit =
         while not (is_eof()) && Char.IsWhiteSpace(peek_char()) do
             eat_char()
             
             
-    let try_eat_linebreak(): Range =
+    let try_eat_linebreak(): Span =
         if is_ahead "\r\n"
         then
             eat_chars 2u
-            Range.Of(_offset - 2u, _offset)
+            Span.Of(_offset - 2u, _offset)
         else if (let ch = peek_char() in ch = '\r' || ch = '\n')
         then
             eat_char()
-            Range.Of(_offset - 1u, _offset)
+            Span.Of(_offset - 1u, _offset)
         else
-            Range.Invalid
+            Span.Invalid
         
         
     let id_kind (id: string): TokenKind =
@@ -180,7 +180,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             Token.Of(TokenKind.IntLiteral value, span())
         else
             
-        _diags.Add(Diagnostic.Of(DiagnosticSeverity.Error, "Invalid integer literal", span()))
+        _diags.Add(Diag.Of(Severity.Error, "Invalid integer literal", span()))
         Token.Invalid(span())
         
         
@@ -198,7 +198,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         then
             // line comment
             eat_char()
-            while not (is_eof()) && (try_eat_linebreak() = Range.Invalid) do
+            while not (is_eof()) && (try_eat_linebreak() = Span.Invalid) do
                 eat_char()
             
             None
@@ -231,15 +231,15 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         while Option.isNone token_opt do
             if is_eof()
             then
-                _diags.Add(Diagnostic.Of(DiagnosticSeverity.Error, "Unterminated string literal", span()))
+                _diags.Add(Diag.Of(Severity.Error, "Unterminated string literal", span()))
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_qqq_literal.ToString()),
-                                            Range.Of(_token_start + 3u, _offset)))
+                                            Span.Of(_token_start + 3u, _offset)))
             else
             
             if is_ahead "\"\"\""
             then
                 token_opt <- Some (Token.Of(TokenKind.TripleQuotedStringLiteral (sb_qqq_literal.ToString()),
-                                            Range.Of(_token_start + 3u, _offset + 1u)))
+                                            Span.Of(_token_start + 3u, _offset + 1u)))
                 eat_chars 3u
             else
                 
@@ -258,16 +258,16 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         while Option.isNone token_opt do
             if is_eof()
             then
-                _diags.Add(Diagnostic.Of(DiagnosticSeverity.Error, "Unterminated string literal", span()))
+                _diags.Add(Diag.Of(Severity.Error, "Unterminated string literal", span()))
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
-                                            Range.Of(_token_start + 1u, _offset)))
+                                            Span.Of(_token_start + 1u, _offset)))
             else
 
             let ch1 = peek_char()
             if ch1 = '"'
             then
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
-                                            Range.Of(_token_start + 1u, _offset + 1u)))
+                                            Span.Of(_token_start + 1u, _offset + 1u)))
                 eat_char()
             else
                 
@@ -285,9 +285,9 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                 
                 if is_eof()
                 then
-                    _diags.Add(Diagnostic.Of(DiagnosticSeverity.Error, "Unterminated string literal", span()))
+                    _diags.Add(Diag.Of(Severity.Error, "Unterminated string literal", span()))
                     token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
-                                                Range.Of(_token_start + 1u, _offset)))
+                                                Span.Of(_token_start + 1u, _offset)))
                 else
 
                 let ch2 = peek_char()
@@ -303,15 +303,15 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                     then
                         sb_literal.Append(_escaped_char_map.[ch2]) |> ignore
                     else
-                        _diags.Add(Diagnostic.Of(DiagnosticSeverity.Error,
+                        _diags.Add(Diag.Of(Severity.Error,
                                                  "Invalid escaped char in the string literal",
-                                                 Range.Of(_offset - 2u, _offset)))
+                                                 Span.Of(_offset - 2u, _offset)))
             else
                 
             let linebreak_span = try_eat_linebreak()
-            if linebreak_span <> Range.Invalid
+            if linebreak_span <> Span.Invalid
             then
-                _diags.Add(Diagnostic.Of(DiagnosticSeverity.Error,
+                _diags.Add(Diag.Of(Severity.Error,
                                          "String literals cannot contain line breaks",
                                          linebreak_span))
             else
@@ -451,7 +451,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             
         eat_char()
 
-        _diags.Add(Diagnostic.Of(DiagnosticSeverity.Error, sprintf "Unexpected character '%c'" ch, span()))
+        _diags.Add(Diag.Of(Severity.Error, sprintf "Unexpected character '%c'" ch, span()))
         Some (Token.Invalid(span()))
     
     

@@ -316,17 +316,6 @@ open Xunit
 type LexerTests() =
     
     
-    let enumerate_tokens (lexer: Lexer) =
-        seq {
-            let mutable token = lexer.LexNext()
-            yield token
-            
-            while token.Kind <> TokenKind.EOF do
-                token <- lexer.LexNext()
-                yield token
-        }
-    
-    
     [<Theory>]
     [<MemberData("TokenTestCases", MemberType=typeof<LexerTestCaseSource>)>]
     member _.Lex(tc: TokenTestCase) =
@@ -336,7 +325,7 @@ type LexerTests() =
         let lexer = Lexer(source, DiagnosticBag())
 
         // Act
-        let actual_tokens = lexer |> enumerate_tokens |> Array.ofSeq
+        let actual_tokens = TokenArray.ofLexer lexer
         
         // Assert
         AssertTokens.Equal(expected = expected_tokens, actual = actual_tokens)

@@ -98,12 +98,12 @@ type TokenKind =
     | GreaterEqual
     | Exclaim
     | ExclaimEqual
-    | LParen
-    | RParen
-    | LSquare
-    | RSquare
-    | LBrace
-    | RBrace
+    | LParen // (
+    | RParen // )
+    | LSquare // [
+    | RSquare // ]
+    | LBrace // {
+    | RBrace // }
     | Colon
     | Semi
     | Dot
@@ -157,8 +157,8 @@ type TokenKind =
 [<IsReadOnly; Struct>]
 type Token =
     { Kind: TokenKind
-      Span: Range }
+      Span: Span }
     with
-    static member EOF(offset) = { Kind = TokenKind.EOF; Span = Range.Of(offset, offset + 1u) }
+    static member EOF(offset) = { Kind = TokenKind.EOF; Span = Span.Of(offset, offset + 1u) }
     static member Invalid(span)= { Kind = TokenKind.Invalid; Span = span }
     static member Of(kind, span) = { Kind = kind; Span = span }

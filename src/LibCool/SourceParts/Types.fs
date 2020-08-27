@@ -10,7 +10,7 @@ open System.Runtime.CompilerServices
 /// https://stackoverflow.com/a/13067115
 /// So, given the `First` and `Last` elements, the corresponding range is [First,Last)
 [<IsReadOnly; Struct>]
-type Range =
+type Span =
     { First: uint32
       Last: uint32 }
     with

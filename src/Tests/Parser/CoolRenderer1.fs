@@ -60,7 +60,7 @@ type CoolRenderer1 private () =
 
         
     // Classes
-    let rec EnterClass(_: ClassDecl, _: Guid, _: Range) : unit =
+    let rec EnterClass(_: ClassDecl, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append(_indent)
             .Append("class ") |> ignore
@@ -73,13 +73,13 @@ type CoolRenderer1 private () =
         _acc_cool_text.Append(")") |> ignore
 
     
-    and EnterVarFormal(_: VarFormal, index: int, _: Guid, _: Range) : unit =
+    and EnterVarFormal(_: VarFormal, index: int, _: Guid, _: Span) : unit =
         if index > 0
         then do
             _acc_cool_text.Append(", ") |> ignore
         
     
-    and EnterExtends(_: Extends, _: Guid, _: Range) : unit =
+    and EnterExtends(_: Extends, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(" extends ") |> ignore
     
     
@@ -97,7 +97,7 @@ type CoolRenderer1 private () =
             .AppendLine() |> ignore
 
     // Method
-    and EnterMethod(method_info: MethodInfo, _: Guid, _: Range) =
+    and EnterMethod(method_info: MethodInfo, _: Guid, _: Span) =
         _acc_cool_text
             .Append(_indent)
             .Append(if method_info.Override then "override def " else "def ") |> ignore
@@ -110,13 +110,13 @@ type CoolRenderer1 private () =
         _acc_cool_text.Append(")") |> ignore
     
     
-     and EnterFormal(_: Formal, index: int, _: Guid, _: Range) : unit =
+     and EnterFormal(_: Formal, index: int, _: Guid, _: Span) : unit =
         if index > 0
         then do
             _acc_cool_text.Append(", ") |> ignore
         
     
-    and EnterMethodBody(method_body: MethodBody, _: Guid, _: Range) = 
+    and EnterMethodBody(method_body: MethodBody, _: Guid, _: Span) = 
         _acc_cool_text.Append(" = ") |> ignore
         match method_body with
         | MethodBody.Expr expr ->
@@ -127,7 +127,7 @@ type CoolRenderer1 private () =
                 _indent.Increase()
         | _ -> ()
     
-    and LeaveMethodBody(method_body: MethodBody, _: Guid, _: Range) = 
+    and LeaveMethodBody(method_body: MethodBody, _: Guid, _: Span) = 
         match method_body with
         | MethodBody.Expr expr ->
             match expr with
@@ -138,13 +138,13 @@ type CoolRenderer1 private () =
 
     
     // Attribute
-     and EnterAttr(_: AttrInfo, _: Guid, _: Range) : unit =
+     and EnterAttr(_: AttrInfo, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append(_indent)
             .Append("var ") |> ignore
     
     
-     and EnterAttrBody(attr_body: AttrBody, _: Guid, _: Range) = 
+     and EnterAttrBody(attr_body: AttrBody, _: Guid, _: Span) = 
         _acc_cool_text.Append(" = ") |> ignore
         match attr_body with
         | AttrBody.Expr expr ->
@@ -155,7 +155,7 @@ type CoolRenderer1 private () =
                 _indent.Increase()
         | _ -> ()
     
-     and LeaveAttrBody(attr_body: AttrBody, _: Guid, _: Range) = 
+     and LeaveAttrBody(attr_body: AttrBody, _: Guid, _: Span) = 
         match attr_body with
         | AttrBody.Expr expr ->
             match expr with
@@ -166,13 +166,13 @@ type CoolRenderer1 private () =
 
 
     // Block
-     and EnterBlock(_: BlockInfo, _: Guid, _: Range) : unit =
+     and EnterBlock(_: BlockInfo, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append("{")
             .AppendLine() |> ignore
         _indent.Increase()
     
-     and LeaveBlock(_: BlockInfo, _: Guid, _: Range) : unit =
+     and LeaveBlock(_: BlockInfo, _: Guid, _: Span) : unit =
         _indent.Decrease()
         _acc_cool_text
             .Append(_indent)
@@ -180,30 +180,30 @@ type CoolRenderer1 private () =
             .AppendLine() |> ignore
     
     
-     and EnterVarDecl(_: VarDeclInfo , _: Guid , _: Range) : unit =
+     and EnterVarDecl(_: VarDeclInfo , _: Guid , _: Span) : unit =
         _acc_cool_text
             .Append(_indent)
             .Append("var ") |> ignore
     
-     and LeaveVarDecl(_: VarDeclInfo , _: Guid , _: Range) : unit =
+     and LeaveVarDecl(_: VarDeclInfo , _: Guid , _: Span) : unit =
         _acc_cool_text
             .Append(";")
             .AppendLine() |> ignore
 
     
-     and EnterStmtExpr(_: Expr, _: Guid, _: Range) : unit =
+     and EnterStmtExpr(_: Expr, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(_indent) |> ignore
 
-     and LeaveStmtExpr(_: Expr, _: Guid, _: Range) : unit =
+     and LeaveStmtExpr(_: Expr, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append(";")
             .AppendLine() |> ignore
             
     
-     and EnterBlockLastExpr(_: Expr, _: Guid, _: Range) : unit =
+     and EnterBlockLastExpr(_: Expr, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(_indent) |> ignore
 
-     and LeaveBlockLastExpr(_: Expr, _: Guid, _: Range) : unit =
+     and LeaveBlockLastExpr(_: Expr, _: Guid, _: Span) : unit =
         _acc_cool_text.AppendLine() |> ignore
 
     
@@ -212,21 +212,21 @@ type CoolRenderer1 private () =
     // ...    
     
     // If
-     and EnterThenBranch(then_branch: Expr, _: Guid, _: Range) : unit =
+     and EnterThenBranch(then_branch: Expr, _: Guid, _: Span) : unit =
         match then_branch with
         | Expr.BracedBlock _ -> ()
         | _ ->
             _acc_cool_text.AppendLine() |> ignore
             _indent.Increase()
     
-     and LeaveThenBranch(then_branch: Expr, _: Guid, _: Range) : unit =
+     and LeaveThenBranch(then_branch: Expr, _: Guid, _: Span) : unit =
         match then_branch with
         | Expr.BracedBlock _ -> ()
         | _ ->
             _indent.Decrease()
 
     
-     and EnterElseBranch(else_branch: Expr, _: Guid, _: Range) : unit =
+     and EnterElseBranch(else_branch: Expr, _: Guid, _: Span) : unit =
         _acc_cool_text.Append("else") |> ignore
         
         match else_branch with
@@ -235,7 +235,7 @@ type CoolRenderer1 private () =
             _acc_cool_text.AppendLine() |> ignore
             _indent.Increase()
     
-     and LeaveElseBranch(else_branch: Expr, _: Guid, _: Range) : unit =
+     and LeaveElseBranch(else_branch: Expr, _: Guid, _: Span) : unit =
         match else_branch with
         | Expr.BracedBlock _ -> ()
         | _ ->
@@ -243,14 +243,14 @@ type CoolRenderer1 private () =
     
     
     // While
-     and EnterWhileBody(body: Expr, _: Guid, _: Range) : unit =
+     and EnterWhileBody(body: Expr, _: Guid, _: Span) : unit =
         match body with
         | Expr.BracedBlock _ -> ()
         | _ ->
             _acc_cool_text.AppendLine() |> ignore
             _indent.Increase()
     
-     and LeaveWhileBody(body: Expr, _: Guid, _: Range) : unit =
+     and LeaveWhileBody(body: Expr, _: Guid, _: Span) : unit =
         match body with
         | Expr.BracedBlock _ -> ()
         | _ ->
@@ -276,7 +276,7 @@ type CoolRenderer1 private () =
 
     
     // Match/case
-     and EnterMatchCase(_: Case, _: Guid, _: Range) : unit =
+     and EnterMatchCase(_: Case, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append(_indent)
             .Append("case ") |> ignore
@@ -285,17 +285,17 @@ type CoolRenderer1 private () =
     // Dispatch
     // Implicit `this` dispatch
     // Super dispatch
-     and EnterSuperDispatch(_: Node<ID>, _: Node<Expr>[], _: Guid, _: Range) : unit =
+     and EnterSuperDispatch(_: Node<ID>, _: Node<Expr>[], _: Guid, _: Span) : unit =
         _acc_cool_text.Append("super.") |> ignore
     
     
     // Object creation
-     and EnterObjectCreation(_: Node<TYPE_NAME>, _: Node<Expr>[], _: Guid, _: Range) : unit =
+     and EnterObjectCreation(_: Node<TYPE_NAME>, _: Node<Expr>[], _: Guid, _: Span) : unit =
         _acc_cool_text.Append("new ") |> ignore
 
     
     // Bool negation
-     and EnterBoolNegation(_: Node<Expr>, _: Guid, _: Range) : unit =
+     and EnterBoolNegation(_: Node<Expr>, _: Guid, _: Span) : unit =
         _acc_cool_text.Append("!") |> ignore
     
     
@@ -312,7 +312,7 @@ type CoolRenderer1 private () =
 
     
     // Unary minus
-     and EnterUnaryMinus(_: Node<Expr>, _: Guid, _: Range) : unit =
+     and EnterUnaryMinus(_: Node<Expr>, _: Guid, _: Span) : unit =
         _acc_cool_text.Append("-") |> ignore
 
     
@@ -327,13 +327,13 @@ type CoolRenderer1 private () =
     
     
     // Braced block    
-     and EnterBracedBlock(_: Node<BlockInfo> option, _: Guid, _: Range) : unit =
+     and EnterBracedBlock(_: Node<BlockInfo> option, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append("{")
             .AppendLine() |> ignore
         _indent.Increase()
     
-     and LeaveBracedBlock(_: Node<BlockInfo> option, _: Guid, _: Range) : unit =
+     and LeaveBracedBlock(_: Node<BlockInfo> option, _: Guid, _: Span) : unit =
         _indent.Decrease()
         _acc_cool_text
             .Append("}")
@@ -341,10 +341,10 @@ type CoolRenderer1 private () =
     
     
     // Parenthesized expr
-     and EnterParensExpr(_:Node<Expr>, _: Guid, _: Range) : unit =
+     and EnterParensExpr(_:Node<Expr>, _: Guid, _: Span) : unit =
         _acc_cool_text.Append("(") |> ignore
     
-     and LeaveParensExpr(_:Node<Expr>, _: Guid, _: Range) : unit =
+     and LeaveParensExpr(_:Node<Expr>, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(")") |> ignore
 
     
@@ -356,45 +356,45 @@ type CoolRenderer1 private () =
         _acc_cool_text.Append(")") |> ignore
 
     
-     and EnterActual(_: Expr, index: int, _: Guid, _: Range) : unit =
+     and EnterActual(_: Expr, index: int, _: Guid, _: Span) : unit =
         if index > 0
         then do
             _acc_cool_text.Append(", ") |> ignore
 
     
     // Id
-     and VisitId(id: ID, _: Guid, _: Range) : unit =
+     and VisitId(id: ID, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(id.Value) |> ignore
     
     
     // Literals    
-     and VisitInt(literal: INT, _: Guid, _: Range) : unit =
+     and VisitInt(literal: INT, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(literal.Value) |> ignore
     
 
-     and VisitStr(literal: STRING, _: Guid, _: Range) : unit =
+     and VisitStr(literal: STRING, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(literal.Value) |> ignore
     
 
-     and VisitBool(literal: BOOL, _: Guid, _: Range) : unit =
+     and VisitBool(literal: BOOL, _: Guid, _: Span) : unit =
         match literal with
         | BOOL.True -> _acc_cool_text.Append("true")
         | BOOL.False -> _acc_cool_text.Append("false")
         |> ignore
     
-     and VisitThis(_: Guid, _: Range) : unit = _acc_cool_text.Append("this") |> ignore
+     and VisitThis(_: Guid, _: Span) : unit = _acc_cool_text.Append("this") |> ignore
     
-     and VisitNull(_: Guid, _: Range) : unit = _acc_cool_text.Append("null") |> ignore
+     and VisitNull(_: Guid, _: Span) : unit = _acc_cool_text.Append("null") |> ignore
     
-     and VisitUnit(_: Guid, _: Range) : unit = _acc_cool_text.Append("()") |> ignore
+     and VisitUnit(_: Guid, _: Span) : unit = _acc_cool_text.Append("()") |> ignore
 
     
     // Terminals
-     and VisitID(id: ID, _: Guid, _: Range) : unit =
+     and VisitID(id: ID, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(id.Value) |> ignore 
     
     
-     and VisitTYPE_NAME(type_name: TYPE_NAME, _: Guid, _: Range) : unit =
+     and VisitTYPE_NAME(type_name: TYPE_NAME, _: Guid, _: Span) : unit =
         _acc_cool_text.Append(type_name.Value) |> ignore
 
     
@@ -412,7 +412,7 @@ type CoolRenderer1 private () =
 
     
     // Actuals
-     and walk_actual (actual: Expr, index: int, key: Guid, span: Range): unit =
+     and walk_actual (actual: Expr, index: int, key: Guid, span: Span): unit =
         EnterActual(actual, index, key, span)
         walk_expr(actual, key, span)
 
@@ -425,7 +425,7 @@ type CoolRenderer1 private () =
 
     // Expressions
     // Block
-     and walk_var_decl (var_decl_info: VarDeclInfo, key: Guid, span: Range): unit =
+     and walk_var_decl (var_decl_info: VarDeclInfo, key: Guid, span: Span): unit =
         EnterVarDecl(var_decl_info, key, span)
         VisitID(var_decl_info.ID.Value, var_decl_info.ID.Key, var_decl_info.ID.Span)
         VisitCOLON()
@@ -436,13 +436,13 @@ type CoolRenderer1 private () =
         LeaveVarDecl(var_decl_info, key, span)
 
 
-     and walk_stmt_expr (expr: Expr, key: Guid, span: Range): unit =
+     and walk_stmt_expr (expr: Expr, key: Guid, span: Span): unit =
         EnterStmtExpr(expr, key, span)
         walk_expr(expr, key, span)
         LeaveStmtExpr(expr, key, span)
 
 
-     and walk_block_info (block_info: BlockInfo, key: Guid, span: Range): unit =
+     and walk_block_info (block_info: BlockInfo, key: Guid, span: Span): unit =
         EnterBlock(block_info, key, span)
         block_info.Stmts
         |> Array.iter (fun it ->
@@ -460,7 +460,7 @@ type CoolRenderer1 private () =
 
 
     // Braced block
-     and walk_braced_block (block_info_opt: Node<BlockInfo> option, key: Guid, span: Range): unit =
+     and walk_braced_block (block_info_opt: Node<BlockInfo> option, key: Guid, span: Span): unit =
         EnterBracedBlock(block_info_opt, key, span)
         match block_info_opt with
         | Some block_info ->
@@ -470,7 +470,7 @@ type CoolRenderer1 private () =
         LeaveBracedBlock(block_info_opt, key, span)
 
 
-     and walk_block (block: Block, key: Guid, span: Range) =
+     and walk_block (block: Block, key: Guid, span: Span) =
         match block with
         | (Block.Implicit block_info) ->
             walk_block_info (block_info, key, span)
@@ -479,14 +479,14 @@ type CoolRenderer1 private () =
 
 
     // Assign
-     and walk_assign (lvalue: Node<ID>, rvalue: Node<Expr>, key: Guid, span: Range): unit =
+     and walk_assign (lvalue: Node<ID>, rvalue: Node<Expr>, key: Guid, span: Span): unit =
         VisitID(lvalue.Value, lvalue.Key, lvalue.Span)
         VisitEQUALS()
         walk_expr(rvalue.Value, rvalue.Key, rvalue.Span)
 
 
     // If
-    and walk_if (condition: Node<Expr>, then_branch: Node<Expr>, else_branch: Node<Expr>, key: Guid, span: Range): unit =
+    and walk_if (condition: Node<Expr>, then_branch: Node<Expr>, else_branch: Node<Expr>, key: Guid, span: Span): unit =
         // EnterIf(condition, then_branch, else_branch, key, span)
 
         // EnterIfCond(condition.Value, condition.Key, condition.Span)
@@ -503,7 +503,7 @@ type CoolRenderer1 private () =
 
 
     // While
-     and walk_while (condition: Node<Expr>, body: Node<Expr>, key: Guid, span: Range): unit =
+     and walk_while (condition: Node<Expr>, body: Node<Expr>, key: Guid, span: Span): unit =
         // EnterWhile(condition, body, key, span)
 
         // EnterWhileCond(condition.Value, condition.Key, condition.Span)
@@ -516,7 +516,7 @@ type CoolRenderer1 private () =
 
 
     // Match/case
-     and walk_match_case_pattern (pattern: Pattern, key: Guid, span: Range): unit =
+     and walk_match_case_pattern (pattern: Pattern, key: Guid, span: Span): unit =
         // EnterMatchCasePattern(pattern, key, span)
 
         match pattern with
@@ -530,7 +530,7 @@ type CoolRenderer1 private () =
         // LeaveMatchCasePattern(pattern, key, span)
 
 
-     and walk_match_case (case: Case, key: Guid, span: Range): unit =
+     and walk_match_case (case: Case, key: Guid, span: Span): unit =
         EnterMatchCase(case, key, span)
         walk_match_case_pattern (case.Pattern.Value, case.Pattern.Key, case.Pattern.Span)
         VisitARROW()
@@ -546,7 +546,7 @@ type CoolRenderer1 private () =
 
 
     // Match
-     and walk_match (expr: Node<Expr>, cases_hd: Node<Case>, cases_tl: Node<Case> [], key: Guid, span: Range): unit =
+     and walk_match (expr: Node<Expr>, cases_hd: Node<Case>, cases_tl: Node<Case> [], key: Guid, span: Span): unit =
         // EnterMatch(expr, cases_hd, cases_tl, key, span)
 
         // EnterMatchExpr(expr.Value, expr.Key, expr.Span)
@@ -560,7 +560,7 @@ type CoolRenderer1 private () =
 
 
     // Dispatch
-     and walk_dispatch (obj_expr: Node<Expr>, method_id: Node<ID>, actuals: Node<Expr> [], key: Guid, span: Range): unit =
+     and walk_dispatch (obj_expr: Node<Expr>, method_id: Node<ID>, actuals: Node<Expr> [], key: Guid, span: Span): unit =
         // EnterDispatch(obj_expr, method_id, actuals, key, span)
         walk_expr(obj_expr.Value, obj_expr.Key, obj_expr.Span)
         VisitDOT()
@@ -570,7 +570,7 @@ type CoolRenderer1 private () =
 
 
     // Implicit `this` dispatch
-     and walk_implicit_this_dispatch (method_id: Node<ID>, actuals: Node<Expr> [], key: Guid, span: Range): unit =
+     and walk_implicit_this_dispatch (method_id: Node<ID>, actuals: Node<Expr> [], key: Guid, span: Span): unit =
         // EnterImplicitThisDispatch(method_id, actuals, key, span)
         VisitID(method_id.Value, method_id.Key, method_id.Span)
         walk_actuals (actuals)
@@ -578,7 +578,7 @@ type CoolRenderer1 private () =
 
 
     // Super dispatch
-     and walk_super_dispatch (method_id: Node<ID>, actuals: Node<Expr> [], key: Guid, span: Range): unit =
+     and walk_super_dispatch (method_id: Node<ID>, actuals: Node<Expr> [], key: Guid, span: Span): unit =
         EnterSuperDispatch(method_id, actuals, key, span)
         VisitID(method_id.Value, method_id.Key, method_id.Span)
         walk_actuals (actuals)
@@ -586,7 +586,7 @@ type CoolRenderer1 private () =
 
 
     // Object creation
-     and walk_object_creation (type_name: Node<TYPE_NAME>, actuals: Node<Expr> [], key: Guid, span: Range): unit =
+     and walk_object_creation (type_name: Node<TYPE_NAME>, actuals: Node<Expr> [], key: Guid, span: Span): unit =
         EnterObjectCreation(type_name, actuals, key, span)
         VisitTYPE_NAME(type_name.Value, type_name.Key, type_name.Span)
         walk_actuals (actuals)
@@ -594,14 +594,14 @@ type CoolRenderer1 private () =
 
 
     // Bool negation
-     and walk_bool_negation (expr: Node<Expr>, key: Guid, span: Range): unit =
+     and walk_bool_negation (expr: Node<Expr>, key: Guid, span: Span): unit =
         EnterBoolNegation(expr, key, span)
         walk_expr(expr.Value, expr.Key, expr.Span)
         // LeaveBoolNegation(expr, key, span)
 
 
     // Compare
-     and walk_comparison (left: Node<Expr>, op: CompareOp, right: Node<Expr>, key: Guid, span: Range): unit =
+     and walk_comparison (left: Node<Expr>, op: CompareOp, right: Node<Expr>, key: Guid, span: Span): unit =
         // EnterComparison(left, op, right, key, span)
         walk_expr(left.Value, left.Key, left.Span)
         VisitCOMPARISON_OP(op)
@@ -610,28 +610,28 @@ type CoolRenderer1 private () =
 
 
     // Unary minus
-     and walk_unary_minus (expr: Node<Expr>, key: Guid, span: Range): unit =
+     and walk_unary_minus (expr: Node<Expr>, key: Guid, span: Span): unit =
         EnterUnaryMinus(expr, key, span)
         walk_expr(expr.Value, expr.Key, expr.Span)
         // LeaveUnaryMinus(expr, key, span)
 
 
     // Arith
-     and walk_arith (left: Node<Expr>, op: ArithOp, right: Node<Expr>, key: Guid, span: Range): unit =
+     and walk_arith (left: Node<Expr>, op: ArithOp, right: Node<Expr>, key: Guid, span: Span): unit =
         walk_expr(left.Value, left.Key, left.Span)
         VisitARITH_OP(op)
         walk_expr(right.Value, right.Key, right.Span)
 
 
     // Parenthesized expr
-     and walk_parens_expr (expr: Node<Expr>, key: Guid, span: Range): unit =
+     and walk_parens_expr (expr: Node<Expr>, key: Guid, span: Span): unit =
         EnterParensExpr(expr, key, span)
         walk_expr(expr.Value, expr.Key, expr.Span)
         LeaveParensExpr(expr, key, span)
 
 
     // Classes
-     and walk_var_formal (var_formal: VarFormal, index: int, key: Guid, span: Range): unit =
+     and walk_var_formal (var_formal: VarFormal, index: int, key: Guid, span: Span): unit =
         EnterVarFormal(var_formal, index, key, span)
         VisitID(var_formal.ID.Value, var_formal.ID.Key, var_formal.ID.Span)
         VisitCOLON()
@@ -646,7 +646,7 @@ type CoolRenderer1 private () =
 
 
     // Method
-     and walk_formal (formal: Formal, index: int, key: Guid, span: Range): unit =
+     and walk_formal (formal: Formal, index: int, key: Guid, span: Span): unit =
         EnterFormal(formal, index, key, span)
         VisitID(formal.ID.Value, formal.ID.Key, formal.ID.Span)
         VisitCOLON()
@@ -660,7 +660,7 @@ type CoolRenderer1 private () =
         LeaveFormals(formals)
 
 
-     and walk_method (method_info: MethodInfo, key: Guid, span: Range): unit =
+     and walk_method (method_info: MethodInfo, key: Guid, span: Span): unit =
         EnterMethod(method_info, key, span)
         VisitID(method_info.ID.Value, method_info.ID.Key, method_info.ID.Span)
         walk_formals (method_info.Formals)
@@ -681,7 +681,7 @@ type CoolRenderer1 private () =
 
 
     // Attribute
-     and walk_attr (attr_info: AttrInfo, key: Guid, span: Range): unit =
+     and walk_attr (attr_info: AttrInfo, key: Guid, span: Span): unit =
         EnterAttr(attr_info, key, span)
         VisitID(attr_info.ID.Value, attr_info.ID.Key, attr_info.ID.Span)
         VisitCOLON()
@@ -701,7 +701,7 @@ type CoolRenderer1 private () =
 
 
     // Class
-     and walk_extends (extends: Extends, key: Guid, span: Range): unit =
+     and walk_extends (extends: Extends, key: Guid, span: Span): unit =
         EnterExtends(extends, key, span)
 
         match extends with
@@ -734,7 +734,7 @@ type CoolRenderer1 private () =
         LeaveFeatures(features)
 
 
-     and walk_class (klass: ClassDecl, key: Guid, span: Range): unit =
+     and walk_class (klass: ClassDecl, key: Guid, span: Span): unit =
         EnterClass(klass, key, span)
         VisitTYPE_NAME(klass.NAME.Value, klass.NAME.Key, klass.NAME.Span)
         walk_var_formals (klass.VarFormals)
@@ -750,7 +750,7 @@ type CoolRenderer1 private () =
 
 
     // Program
-    and walk_program (program: Program, key: Guid, span: Range): unit =
+    and walk_program (program: Program, key: Guid, span: Span): unit =
         // EnterProgram(program, key, span)
 
         program.ClassDecls
@@ -770,7 +770,7 @@ type CoolRenderer1 private () =
 
 
     // This function has to be declared as a member to support mutually recursive calls
-    and walk_expr (expr: Expr, key: Guid, span: Range): unit =
+    and walk_expr (expr: Expr, key: Guid, span: Span): unit =
         match expr with
         | Expr.Assign(left, right) ->
             walk_assign (left, right, key, span)

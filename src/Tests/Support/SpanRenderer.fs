@@ -10,6 +10,6 @@ type SpanRenderer private () =
     override _.ToString() : string = ""
     
     
-    static member Render(cool_text: string, spans: Range[]) : string =
+    static member Render(cool_text: string, spans: Span[]) : string =
         let renderer = SpanRenderer()
         renderer.ToString()

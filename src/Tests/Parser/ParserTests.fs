@@ -43,7 +43,7 @@ type ParserTests() =
         let diagnostic_bag = DiagnosticBag()
 
         let lexer = Lexer(source, diagnostic_bag)
-        let parser = Parser(lexer, diagnostic_bag)
+        let parser = Parser(TokenArray.ofLexer lexer, diagnostic_bag)
 
         // Act
         let ast = parser.Parse()
