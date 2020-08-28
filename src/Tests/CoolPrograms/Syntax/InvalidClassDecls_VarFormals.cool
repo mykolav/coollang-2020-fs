@@ -1,0 +1,73 @@
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(21,15): Error: The varformal's name expected. The name must be an identifier
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(24,17): Error: ':' expected. A varformal's name and type must be delimited by ':'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(27,19): Error: The varformal's type name expected. The type name must be an identifier
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(30,18): Error: ':' expected. A varformal's name and type must be delimited by ':'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(33,16): Error: The varformal's name expected. The name must be an identifier
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(36,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(39,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(42,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(45,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(48,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(51,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(54,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(57,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(60,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(63,0): Error: 'var' expected. A varformal declaration must start with 'var'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(66,0): Error: ',' expected. Elements of a varformal list must be delimited by ','
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(69,12): Error: '(' expected. A varformals list must start with '('; an empty one is denoted as '()'
+// DIAG: Syntax/InvalidClassDecls_VarFormals.cool(72,1): Error: ')' expected. A varformals list must end with ')'
+// DIAG: Build failed: Errors: 18. Warnings: 0
+
+class Main(var) {
+}
+
+class Main(var i) {
+}
+
+class Main(var i :) {
+}
+
+class Main(var i Int) {
+}
+
+class Main(var : Int) {
+}
+
+class Main(,var i: Int) {
+}
+
+class Main(var i: Int,) {
+}
+
+class Main(var i: Int,,) {
+}
+
+class Main(var i: Int,,,) {
+}
+
+class Main(,) {
+}
+
+class Main(,,) {
+}
+
+class Main(,,,) {
+}
+
+class Main(i : Int, var s : String) {
+}
+
+class Main(var i : Int, s : String) {
+}
+
+class Main(i : Int, s : String) {
+}
+
+class Main(var i : Int var s : String) {
+}
+
+class Main {
+}
+
+class Main( {
+}
