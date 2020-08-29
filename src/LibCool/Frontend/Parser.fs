@@ -174,38 +174,44 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
             
         let varformal_nodes = List<Node<VarFormal>>()
 
-        while not (_token.IsEof || _token.Is(TokenKind.RParen)) do
-            let is_varformal_expected =
-                if (varformal_nodes.Count > 0) && not (eat TokenKind.Comma)
-                then
-                    _diags.Add(
-                        Severity.Error,
-                        "',' expected. Elements of a varformal list must be delimited by ','",
-                        _token.Span)
-                    // We didn't find ',' where expected.
-                    // Recover from this error by eating tokens
-                    // until we find 'var' -- the start of another varformal.
-                    while not (_token.IsEof ||
-                               _token.Is(TokenKind.RParen) ||
-                               _token.Is(TokenKind.KwVar)) do
-                        eat_token()
-                    _token.Is(TokenKind.KwVar)
-                else
-                    true
+        let mutable is_varformal_expected = not (_token.IsEof || _token.Is(TokenKind.RParen))
+        while is_varformal_expected do
+            match varformal() with
+            | ValueSome varformal_node ->
+                varformal_nodes.Add(varformal_node)
                 
-            if is_varformal_expected
-            then
-                match varformal() with
-                | ValueSome varformal_node ->
-                    varformal_nodes.Add(varformal_node)
-                | ValueNone ->
-                    // We didn't manage to parse a varformal.
-                    // Recover from this error by eating tokens
-                    // until we find 'var' -- the start of another varformal.
-                    while not (_token.IsEof ||
-                               _token.Is(TokenKind.RParen) ||
-                               _token.Is(TokenKind.KwVar)) do
-                        eat_token()
+                if _token.IsEof || _token.Is(TokenKind.RParen)
+                then
+                    is_varformal_expected <- false
+                else
+
+                if (eat TokenKind.Comma)
+                then
+                    is_varformal_expected <- true
+                else
+
+                _diags.Add(
+                    Severity.Error,
+                    "',' expected. Elements of a varformal list must be delimited by ','",
+                    _token.Span)
+                
+                // We didn't find ',' where expected.
+                // Recover from this error by eating tokens
+                // until we find 'var' -- the start of another varformal.
+                while not (_token.IsEof ||
+                           _token.Is(TokenKind.RParen) ||
+                           _token.Is(TokenKind.KwVar)) do
+                    eat_token()
+                is_varformal_expected <- _token.Is(TokenKind.KwVar)
+            | ValueNone ->
+                // We didn't manage to parse a varformal.
+                // Recover from this error by eating tokens
+                // until we find 'var' -- the start of another varformal.
+                while not (_token.IsEof ||
+                           _token.Is(TokenKind.RParen) ||
+                           _token.Is(TokenKind.KwVar)) do
+                    eat_token()
+                is_varformal_expected <- _token.Is(TokenKind.KwVar)
             
         if (_token.IsEof)
         then
