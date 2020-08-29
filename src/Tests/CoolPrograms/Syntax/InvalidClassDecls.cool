@@ -1,11 +1,3 @@
-// DIAG: Syntax/InvalidClassDecls.cool(9,1): Error: 'class' expected. Only classes can appear at the top level
-// DIAG: Syntax/InvalidClassDecls.cool(12,7): Error: A class name expected. Class name must be an identifier
-// DIAG: Syntax/InvalidClassDecls.cool(15,7): Error: A class name expected. Class name must be an identifier; 'class' is a keyword
-// DIAG: Syntax/InvalidClassDecls.cool(18,7): Error: A class name expected. Class name must be an identifier; 'object' is a reserved keyword
-// DIAG: Syntax/InvalidClassDecls.cool(21,12): Error: '(' expected. A varformals list must start with '('; an empty one is denoted as '()'
-// DIAG: Syntax/InvalidClassDecls.cool(26,1): Error: ')' expected. A varformals list must end with ')'
-// DIAG: Build failed: Errors: 6. Warnings: 0
-
 Main() {
 }
 
@@ -18,8 +10,8 @@ class class() {
 class object() {
 }
 
-class Main {
-}
-
-class Main( {
-}
+// DIAG: Syntax/InvalidClassDecls.cool(1,1): Error: 'class' expected. Only classes can appear at the top level
+// DIAG: Syntax/InvalidClassDecls.cool(4,7): Error: A class name expected. Class name must be an identifier
+// DIAG: Syntax/InvalidClassDecls.cool(7,7): Error: A class name expected. Class name must be an identifier; 'class' is a keyword
+// DIAG: Syntax/InvalidClassDecls.cool(10,7): Error: A class name expected. Class name must be an identifier; 'object' is a reserved keyword
+// DIAG: Build failed: Errors: 4. Warnings: 0

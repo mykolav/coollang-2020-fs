@@ -33,44 +33,52 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
     let mutable _token = _tokens.[_offset]
 
     
-    let get_id (token: Token): string =
+    static let get_id (token: Token): string =
         match token.Kind with
         | TokenKind.Id value -> value
         | _ -> invalidArg "token" "The token is not an identifier"
     
     
-    let get_int (token: Token): int =
+    static let get_int (token: Token): int =
         match token.Kind with
         | TokenKind.IntLiteral value -> value
         | _ -> invalidArg "token" "The token is not an int literal"
     
     
-    let get_string (token: Token): string =
+    static let get_string (token: Token): string =
         match token.Kind with
         | TokenKind.StringLiteral value -> value
         | _ -> invalidArg "token" "The token is not a string literal"
     
     
-    let get_qqq_string (token: Token): string =
+    static let get_qqq_string (token: Token): string =
         match token.Kind with
         | TokenKind.TripleQuotedStringLiteral value -> value
         | _ -> invalidArg "token" "The token is not a \"\"\" string literal"
         
         
-    let get_kw_spelling (token: Token): string =
+    static let get_kw_spelling (token: Token): string =
         if not (token.IsKw || token.IsReservedKw)
         then
             invalidArg "token" "The token is not a keyword"
             
-        _token.Kind.ToString().Replace("TokenKind.Kw", "").ToLower()
+        token.Kind.ToString().Replace("TokenKind.Kw", "").ToLower()
 
     
-    let get_kw_kind_spelling (token: Token): string =        
+    static let get_kw_kind_spelling (token: Token): string =        
         if not (token.IsKw || token.IsReservedKw)
         then
             invalidArg "token" "The token is not a keyword"
             
-        if (_token.IsKw) then "keyword" else "reserved keyword"
+        if (token.IsKw) then "keyword" else "reserved keyword"
+
+        
+    static let get_kw_description (token: Token): string =
+        if token.IsKw || token.IsReservedKw
+        then
+            sprintf "; '%s' is a %s" (get_kw_spelling token) (get_kw_kind_spelling token)
+        else
+            ""
 
         
     let eat_token (): unit =
@@ -92,7 +100,66 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
     
     
     let varformal (): Node<VarFormal> voption =
-        ValueNone
+        let span_start = _token.Span.First
+        
+        if not (eat TokenKind.KwVar)
+        then
+            _diags.Add(
+                Severity.Error,
+                "'var' expected. A varformal declaration must start with 'var'",
+                _token.Span)
+            ValueNone
+        else
+            
+        if not (_token.IsId)
+        then
+            let sb_message =
+                 StringBuilder()
+                     .Append("A varformal name expected. Varformal name must be an identifier")
+                     .Append(get_kw_description _token)
+                
+            _diags.Add(Severity.Error, sb_message.ToString(), _token.Span)
+
+            ValueNone
+        else
+            
+        let token_id = _token
+        eat_token()
+            
+        if not (eat TokenKind.Colon)
+        then
+            _diags.Add(
+                Severity.Error,
+                "':' expected. A varformal's name and type must be delimited by ':'",
+                _token.Span)
+            ValueNone
+        else
+            
+        if not (_token.IsId)
+        then
+            let sb_message =
+                StringBuilder()
+                    .Append("The varformal's type name expected. The type name must be an identifier")
+                    .Append(get_kw_description _token)
+                    
+            _diags.Add(Severity.Error, sb_message.ToString(), _token.Span)
+            
+            ValueNone
+        else
+
+        let token_type = _token
+        eat_token()
+        
+        let id_node = Node.Of(ID (get_id token_id), token_id.Span)
+        let type_node = Node.Of(TYPE_NAME (get_id token_type), token_type.Span)
+        
+        let varformal_value =
+            { VarFormal.ID = id_node
+              TYPE_NAME = type_node }
+            
+        let varformal_span = Span.Of(span_start, _token.Span.First)
+        
+        ValueSome (Node.Of(varformal_value, varformal_span))
     
     
     let varformals (): Node<VarFormal>[] voption =
@@ -106,8 +173,39 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
         else
             
         let varformal_nodes = List<Node<VarFormal>>()
-        while not (_token.IsEof) && not (_token.Is(TokenKind.RParen)) do
-            eat_token()
+
+        while not (_token.IsEof || _token.Is(TokenKind.RParen)) do
+            let is_varformal_expected =
+                if (varformal_nodes.Count > 0) && not (eat TokenKind.Comma)
+                then
+                    _diags.Add(
+                        Severity.Error,
+                        "',' expected. Elements of a varformal list must be delimited by ','",
+                        _token.Span)
+                    // We didn't find ',' where expected.
+                    // Recover from this error by eating tokens
+                    // until we find 'var' -- the start of another varformal.
+                    while not (_token.IsEof ||
+                               _token.Is(TokenKind.RParen) ||
+                               _token.Is(TokenKind.KwVar)) do
+                        eat_token()
+                    _token.Is(TokenKind.KwVar)
+                else
+                    true
+                
+            if is_varformal_expected
+            then
+                match varformal() with
+                | ValueSome varformal_node ->
+                    varformal_nodes.Add(varformal_node)
+                | ValueNone ->
+                    // We didn't manage to parse a varformal.
+                    // Recover from this error by eating tokens
+                    // until we find 'var' -- the start of another varformal.
+                    while not (_token.IsEof ||
+                               _token.Is(TokenKind.RParen) ||
+                               _token.Is(TokenKind.KwVar)) do
+                        eat_token()
             
         if (_token.IsEof)
         then
@@ -161,10 +259,10 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
             
         if not (_token.IsId)
         then
-            let sb_message = StringBuilder("A class name expected. Class name must be an identifier")
-            if (_token.IsKw || _token.IsReservedKw)
-            then
-                sb_message.AppendFormat("; '{0}' is a {1}", get_kw_spelling _token, get_kw_kind_spelling _token) |> ignore;
+            let sb_message =
+                StringBuilder()
+                    .Append("A class name expected. Class name must be an identifier")
+                    .Append(get_kw_description _token)
                 
             _diags.Add(Severity.Error, sb_message.ToString(), _token.Span)
             ValueNone
