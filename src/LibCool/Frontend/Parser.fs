@@ -97,6 +97,13 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
             true
         else
             false
+            
+            
+    let eat_until (kinds: seq<TokenKind>): unit =
+        let kind_set = Set.ofSeq kinds
+        while not (_token.IsEof ||
+                   kind_set.Contains(_token.Kind)) do
+            eat_token()
     
     
     let varformal (): Node<VarFormal> voption =
@@ -198,19 +205,13 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
                 // We didn't find ',' where expected.
                 // Recover from this error by eating tokens
                 // until we find 'var' -- the start of another varformal.
-                while not (_token.IsEof ||
-                           _token.Is(TokenKind.RParen) ||
-                           _token.Is(TokenKind.KwVar)) do
-                    eat_token()
+                eat_until [TokenKind.RParen; TokenKind.KwVar]
                 is_varformal_expected <- _token.Is(TokenKind.KwVar)
             | ValueNone ->
                 // We didn't manage to parse a varformal.
                 // Recover from this error by eating tokens
                 // until we find 'var' -- the start of another varformal.
-                while not (_token.IsEof ||
-                           _token.Is(TokenKind.RParen) ||
-                           _token.Is(TokenKind.KwVar)) do
-                    eat_token()
+                eat_until [TokenKind.RParen; TokenKind.KwVar]
                 is_varformal_expected <- _token.Is(TokenKind.KwVar)
             
         if (_token.IsEof)
@@ -328,21 +329,11 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
                 class_decl_nodes.Add(class_decl_node)
             | ValueNone ->
                 // We didn't manage to parse a class declaration.
-                // We can only start our next attempt to parse from a 'class' keyword.
+                // We can start our next attempt to parse from only a 'class' keyword.
                 // Let's skip all tokens until we find a 'class' keyword,
                 // as otherwise we'd have to report every non-'class' token as unexpected,
                 // and that would create a bunch of unhelpful diagnostics.
-                //
-                // In a specific case, where we have `class class`,
-                // `class_decl()` will complain the 'class' keyword is not a valid class name,
-                // and will not eat the second 'class' token.
-                // We need to eat the second 'class' unconditionally here,
-                // otherwise next invocation of `class_decl()` will start parsing from it,
-                // and report confusing syntax errors as a result.
-                let mutable found_kw_class = false
-                while not (_token.IsEof) && not found_kw_class do
-                    eat_token()
-                    found_kw_class <- _token.Is(TokenKind.KwClass)
+                eat_until [TokenKind.KwClass]
 
         class_decl_nodes.ToArray()
         
