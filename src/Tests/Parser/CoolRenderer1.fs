@@ -707,7 +707,7 @@ type CoolRenderer1 private () =
         match extends with
         | Extends.Info extends_info ->
             VisitTYPE_NAME
-                (extends_info.TYPE_NAME.Value, extends_info.TYPE_NAME.Key, extends_info.TYPE_NAME.Span)
+                (extends_info.PARENT_NAME.Value, extends_info.PARENT_NAME.Key, extends_info.PARENT_NAME.Span)
             EnterActuals(extends_info.Actuals)
             walk_actuals (extends_info.Actuals)
             LeaveActuals(extends_info.Actuals)

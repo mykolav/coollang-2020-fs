@@ -174,7 +174,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
         then
             _diags.Add(
                 Severity.Error,
-                "'(' expected. A varformals list must start with '('; an empty one is denoted as '()'",
+                "'(' expected. A varformals list must start with '('; an empty one is denoted by '()'",
                 _token.Span)
             ValueNone
         else
@@ -229,26 +229,66 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
         ValueSome (varformal_nodes.ToArray())
     
     
-    let extends (): ErrorOrOption<Node<Extends>> =
-        (*
-        if eat TokenKind.KwExtends
+    let actuals (): Node<Expr>[] voption =
+        if not (eat TokenKind.LParen)
         then
-            if not (eat TokenKind.Identifier)
-            then
-                // Diag...
-                None
-            else
-               
-            let actuals_node_opt = actuals() 
-            if Option.isNone actuals_node_opt
-            then
-                // Diag...
-                None
-            else
-                None
+            _diags.Add(
+                Severity.Error,
+                "'(' expected. An actuals list must start with '('; an empty one is denoted by '()'",
+                _token.Span)
+            ValueNone
         else
-        *)
-        Ok ValueNone
+            
+        let actual_nodes = List<Node<Expr>>()
+            
+        if (_token.Is(TokenKind.RParen))
+        then
+            _diags.Add(Severity.Error, "')' expected. An actuals list must end with ')'", _token.Span)
+            ValueNone
+        else
+            
+        // Eat ')'
+        eat_token()
+        
+        ValueSome (actual_nodes.ToArray())
+    
+    
+    let extends (): ErrorOrOption<Node<Extends>> =
+        let span_start = _token.Span.First
+        
+        if not (eat TokenKind.KwExtends)
+        then
+            Ok ValueNone
+        else
+
+        if not (_token.IsId)
+        then
+            let sb_message =
+                StringBuilder()
+                    .Append("A parent class name expected. Parent class name must be an identifier")
+                    .Append(get_kw_description _token)
+                    
+            _diags.Add(Severity.Error, sb_message.ToString(), _token.Span)
+            
+            Error
+        else
+            
+        let token_id = _token
+        eat_token()
+           
+        let actual_nodes_opt = actuals()
+        if ValueOption.isNone actual_nodes_opt
+        then
+            Error
+        else
+        
+        let extends_info =
+            { ExtendsInfo.PARENT_NAME = Node.Of(TYPE_NAME (get_id token_id), token_id.Span)
+              Actuals = actual_nodes_opt.Value }
+              
+        let extends_span = Span.Of(span_start, _token.Span.First)
+            
+        Ok (ValueSome (Node.Of(Extends.Info extends_info, extends_span)))
         
         
     let features (): Node<Feature>[] =
@@ -287,7 +327,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
         else
         
         let extends_node_result = extends()
-        if ErrorOrOption.isError extends_node_result
+        if extends_node_result.IsError
         then
             // The callee already emitted relevant diags.
             // We aren't going to add anything else.
@@ -296,7 +336,11 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
             
         if not (eat TokenKind.LBrace)
         then
-            // Diag...
+            let sb_message =
+                StringBuilder()
+                    .Append(if extends_node_result.IsNone then "'extends' or " else "")
+                    .Append("'{' expected. A class body must start with '{'")
+            _diags.Add(Severity.Error, sb_message.ToString(), _token.Span)
             ValueNone
         else
             
@@ -304,9 +348,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) =
         
         if (not (eat TokenKind.RBrace))
         then
-            // Probably, we don't want to emit any diagnostics here.
-            // Instead `features()` should emit something along the lines:
-            // "Error: Did not expect $token. Expected a feature or '}'"
+            // The callee already emitted relevant diags.
+            // We aren't going to add anything else.
             ValueNone
         else
             

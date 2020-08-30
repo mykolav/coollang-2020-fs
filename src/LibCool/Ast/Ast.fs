@@ -98,7 +98,7 @@ type Extends =
 
 
 type ExtendsInfo =
-    { TYPE_NAME: Node<TYPE_NAME>
+    { PARENT_NAME: Node<TYPE_NAME>
       Actuals: Node<Expr> [] }
 
 

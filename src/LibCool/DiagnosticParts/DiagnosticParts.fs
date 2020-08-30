@@ -5,14 +5,14 @@ open System.Runtime.CompilerServices
 open LibCool.SourceParts
 
 
-[<Struct>]
+[<RequireQualifiedAccess; Struct>]
 type Severity =
     | Info
     | Warning
     | Error
 
     
-[<IsReadOnly; Struct>]
+[<Struct; IsReadOnly>]
 type Diag =
     { Span: Span
       Severity: Severity

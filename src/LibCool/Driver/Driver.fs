@@ -65,7 +65,13 @@ type Driver private () =
         
         for diag in diagnostic_bag.ToReadOnlyList() do
             let { FileName = file_name; Line = line; Col = col } = source.Map(diag.Span.First)
-            Console.WriteLine("{0}({1},{2}): {3}: {4}", file_name, line, col, (diag.Severity.ToString()), diag.Message)
+            Console.WriteLine(
+                "{0}({1},{2}): {3}: {4}",
+                file_name,
+                line,
+                col,
+                (diag.Severity.ToString().Replace("Severity.", "")),
+                diag.Message)
 
         if diagnostic_bag.ErrorsCount = 0
         then
