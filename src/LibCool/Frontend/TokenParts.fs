@@ -153,7 +153,7 @@ type TokenKind =
     | KwYield
 
 
-[<DebuggerDisplay("K: [{Kind}] - R: [{Range}]")>]
+[<DebuggerDisplay("K: [{Kind}] - S: [{Span}]")>]
 [<IsReadOnly; Struct>]
 type Token =
     { Kind: TokenKind
