@@ -22,14 +22,36 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         
         _offset <- _offset + 1
         _token <- _tokens.[_offset]
-    
-    
-    let eat (kind: TokenKind): bool =
+            
+            
+    let eat (kind: TokenKind)
+            (error_message: string): bool =
         if _token.Is kind
         then
             eat_token()
             true
         else
+            _diags.Error(error_message, _token.Span)
+            false
+
+
+    let try_eat (kind: TokenKind): bool =
+        if _token.Is kind
+        then
+            eat_token()
+            true
+        else
+            false
+
+                
+    let eat_when (is_match: bool)
+                 (error_message: string): bool =
+        if is_match
+        then
+            eat_token()
+            true
+        else
+            _diags.Error(error_message, _token.Span)
             false
             
             
@@ -38,8 +60,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         while not (_token.IsEof ||
                    kind_set.Contains(_token.Kind)) do
             eat_token()
-    
-    
+
+        
     let expr (): Node<Expr> voption =
         ValueNone
     
@@ -89,11 +111,9 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     let braced_block (): Node<BlockInfo voption> voption =
         let span_start = _token.Span.First
         
-        if not (eat TokenKind.LBrace)
+        if not (eat TokenKind.LBrace
+                    "'{' expected. A braced block must start with '{'; an empty one is denoted by '{}'")
         then
-            _diags.Error(
-                "'{' expected. A braced block must start with '{'; an empty one is denoted by '{}'",
-                _token.Span)
             ValueNone
         else
 
@@ -121,52 +141,34 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     let varformal (): Node<VarFormal> voption =
         let span_start = _token.Span.First
         
-        if not (eat TokenKind.KwVar)
+        if not (eat TokenKind.KwVar
+                    "'var' expected. A varformal declaration must start with 'var'")
         then
-            _diags.Error(
-                "'var' expected. A varformal declaration must start with 'var'",
-                _token.Span)
             ValueNone
         else
-            
-        if not (_token.IsId)
-        then
-            let sb_message =
-                 StringBuilder()
-                     .Append("A varformal name expected. Varformal name must be an identifier")
-                     .Append(_token.KwDescription)
-                
-            _diags.Error(sb_message.ToString(), _token.Span)
 
-            ValueNone
-        else
-            
         let token_id = _token
-        eat_token()
-            
-        if not (eat TokenKind.Colon)
+        if not (eat_when _token.IsId
+                         ("A varformal name expected. Varformal name must be an identifier" +
+                          _token.KwDescription))
         then
-            _diags.Error(
-                "':' expected. A varformal's name and type must be delimited by ':'",
-                _token.Span)
             ValueNone
         else
             
-        if not (_token.IsId)
+        if not (eat TokenKind.Colon
+                    "':' expected. A varformal's name and type must be delimited by ':'")
         then
-            let sb_message =
-                StringBuilder()
-                    .Append("The varformal's type name expected. The type name must be an identifier")
-                    .Append(_token.KwDescription)
-                    
-            _diags.Error(sb_message.ToString(), _token.Span)
+            ValueNone
+        else
             
+        let token_type = _token
+        if not (eat_when _token.IsId
+                         ("The varformal's type name expected. The type name must be an identifier" +
+                          _token.KwDescription))
+        then
             ValueNone
         else
 
-        let token_type = _token
-        eat_token()
-        
         let id_node = Node.Of(ID token_id.Id, token_id.Span)
         let type_node = Node.Of(TYPE_NAME token_type.Id, token_type.Span)
         
@@ -224,26 +226,19 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     let extends (): ErrorOrOption<Node<Extends>> =
         let span_start = _token.Span.First
         
-        if not (eat TokenKind.KwExtends)
+        if not (try_eat TokenKind.KwExtends)
         then
             Ok ValueNone
         else
 
-        if not (_token.IsId)
+        let token_id = _token
+        if not (eat_when _token.IsId
+                         ("A parent class name expected. Parent class name must be an identifier" +
+                          _token.KwDescription))
         then
-            let sb_message =
-                StringBuilder()
-                    .Append("A parent class name expected. Parent class name must be an identifier")
-                    .Append(_token.KwDescription)
-                    
-            _diags.Error(sb_message.ToString(), _token.Span)
-            
             Error
         else
             
-        let token_id = _token
-        eat_token()
-           
         let actual_nodes_opt = actuals()
         if ValueOption.isNone actual_nodes_opt
         then
@@ -262,43 +257,27 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     let formal (): Node<Formal> voption =
         let span_start = _token.Span.First
         
-        if not (_token.IsId)
-        then
-            let sb_message =
-                 StringBuilder()
-                     .Append("A formal name expected. Formal name must be an identifier")
-                     .Append(_token.KwDescription)
-                
-            _diags.Error(sb_message.ToString(), _token.Span)
-
-            ValueNone
-        else
-            
         let token_id = _token
-        eat_token()
-            
-        if not (eat TokenKind.Colon)
+        if not (eat_when _token.IsId
+                         ("A formal name expected. Formal name must be an identifier" +
+                          _token.KwDescription))
         then
-            _diags.Error(
-                "':' expected. A formal's name and type must be delimited by ':'",
-                _token.Span)
             ValueNone
         else
             
-        if not (_token.IsId)
+        if not (eat TokenKind.Colon
+                    "':' expected. A formal's name and type must be delimited by ':'")
         then
-            let sb_message =
-                StringBuilder()
-                    .Append("The formal's type name expected. The type name must be an identifier")
-                    .Append(_token.KwDescription)
-                    
-            _diags.Error(sb_message.ToString(), _token.Span)
-            
             ValueNone
         else
-
+            
         let token_type = _token
-        eat_token()
+        if not (eat_when _token.IsId
+                         ("The formal's type name expected. The type name must be an identifier" +
+                          _token.KwDescription))
+        then
+            ValueNone
+        else
         
         let id_node = Node.Of(ID token_id.Id, token_id.Span)
         let type_node = Node.Of(TYPE_NAME token_type.Id, token_type.Span)
@@ -336,47 +315,37 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     
     
     let method (span_start: uint32, is_override: bool) : Node<Feature> voption =
-        if not _token.IsId
+        let token_id = _token
+        if not (eat_when _token.IsId
+                         ("A method name expected. Method name must be an identifier" +
+                          _token.KwDescription))
         then
-            let sb_message =
-                StringBuilder()
-                    .Append("A method name expected. Method name must be an identifier")
-                    .Append(_token.KwDescription)
-            _diags.Error(sb_message.ToString(), _token.Span)
             ValueNone
         else
             
-        let token_id = _token
-        eat_token()
-        
         let formal_nodes_opt = formals()
         if formal_nodes_opt.IsNone
         then
             ValueNone
         else
             
-        if not (eat TokenKind.Colon)
+        if not (eat TokenKind.Colon
+                    "':' expected. A method's formals and return type must be delimited by ':'")
         then
-            _diags.Error("':' expected. A method's formals and return type must be delimited by ':'", _token.Span)
             ValueNone
         else
 
-        if not _token.IsId
+        let token_type = _token
+        if not (eat_when _token.IsId
+                         ("A return type name expected. Type name must be an identifier" +
+                          _token.KwDescription))
         then
-            let sb_message =
-                StringBuilder()
-                    .Append("A return type name expected. Type name must be an identifier")
-                    .Append(_token.KwDescription)
-            _diags.Error(sb_message.ToString(), _token.Span)
             ValueNone
         else
-            
-        let token_type = _token
-        eat_token()
         
-        if not (eat TokenKind.Equal)
+        if not (eat TokenKind.Equal
+                    "'=' expected. A method's return type and body must be delimited by '='")
         then
-            _diags.Error("'=' expected. A method's return type and body must be delimited by '='", _token.Span)
             ValueNone
         else
             
@@ -402,52 +371,36 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     let attribute (): Node<Feature> voption =
         let span_start = _token.Span.First
         
-        if not (eat TokenKind.KwVar)
+        if not (try_eat TokenKind.KwVar)
         then
-            ValueNone
-        else
-            
-        if not (_token.IsId)
-        then
-            let sb_message =
-                 StringBuilder()
-                     .Append("An attribute name expected. Attribute name must be an identifier")
-                     .Append(_token.KwDescription)
-                
-            _diags.Error(sb_message.ToString(), _token.Span)
-
             ValueNone
         else
             
         let token_id = _token
-        eat_token()
-            
-        if not (eat TokenKind.Colon)
+        if not (eat_when _token.IsId
+                         ("An attribute name expected. Attribute name must be an identifier" +
+                          _token.KwDescription))
         then
-            _diags.Error(
-                "':' expected. An attribute's name and type must be delimited by ':'",
-                _token.Span)
             ValueNone
         else
             
-        if not (_token.IsId)
+        if not (eat TokenKind.Colon
+                    "':' expected. An attribute's name and type must be delimited by ':'")
         then
-            let sb_message =
-                StringBuilder()
-                    .Append("The attribute's type name expected. The type name must be an identifier")
-                    .Append(_token.KwDescription)
-                    
-            _diags.Error(sb_message.ToString(), _token.Span)
-            
             ValueNone
         else
-
+            
         let token_type = _token
-        eat_token()
-        
-        if not (eat TokenKind.Equal)
+        if not (eat_when _token.IsId
+                         ("The attribute's type name expected. The type name must be an identifier" +
+                          _token.KwDescription))
         then
-            _diags.Error("'=' expected. An attribute's type and initializer must be delimited by '='", _token.Span)
+            ValueNone
+        else
+        
+        if not (eat TokenKind.Equal
+                    "'=' expected. An attribute's type and initializer must be delimited by '='")
+        then
             ValueNone
         else
             
@@ -472,18 +425,18 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     let feature (): Node<Feature> voption =
         let span_start = _token.Span.First
         
-        if eat TokenKind.KwOverride
+        if try_eat TokenKind.KwOverride
         then
-            if not (eat TokenKind.KwDef)
+            if not (eat TokenKind.KwDef
+                        "'def' expected. An overriden method must start with 'override def'")
             then
-                _diags.Error("'def' expected. An overriden method must start with 'override def'", _token.Span)
                 ValueNone
             else
                 
             method(span_start, (*is_override=*)true)
         else
 
-        if eat TokenKind.KwDef
+        if try_eat TokenKind.KwDef
         then
             method(span_start, (*is_override=*)false)
         else
@@ -512,14 +465,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
 
 
     let classbody (): Node<Feature>[] voption =
-        // if not (eat TokenKind.LBrace)
-        // then
-        //     _diags.Error(
-        //         "'{' expected. A class body must start with '{'; an empty one is denoted by '{}'",
-        //         _token.Span)
-        //     ValueNone
-        // else
-            
+        // The caller must eat '{' or emit a diagnostic if it's empty
+        
         let feature_nodes = List<Node<Feature>>()
 
         let recover (): unit = 
@@ -543,9 +490,9 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             | ValueSome feature_node ->
                 feature_nodes.Add(feature_node)
                 
-                if not (eat TokenKind.Semi)
+                if not (eat TokenKind.Semi
+                            "';' expected. Features must be terminated by ';'")
                 then
-                    _diags.Error("';' expected. Features must be terminated by ';'", _token.Span)
                     recover()
 
             | ValueNone ->
@@ -569,26 +516,20 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     let class_decl (): Node<ClassDecl> voption =
         let span_start = _token.Span.First
         
-        if not (eat TokenKind.KwClass)
+        if not (eat TokenKind.KwClass
+                    "'class' expected. Only classes can appear at the top level")
         then
-            _diags.Error("'class' expected. Only classes can appear at the top level", _token.Span)
             ValueNone
         else
             
-        if not (_token.IsId)
+        let token_id = _token
+        if not (eat_when _token.IsId
+                         ("A class name expected. Class name must be an identifier" +
+                          _token.KwDescription))
         then
-            let sb_message =
-                StringBuilder()
-                    .Append("A class name expected. Class name must be an identifier")
-                    .Append(_token.KwDescription)
-                
-            _diags.Error(sb_message.ToString(), _token.Span)
             ValueNone
         else
            
-        let token_id = _token
-        eat_token()
-        
         let varformals_node_opt = varformals()
         if ValueOption.isNone varformals_node_opt
         then
@@ -605,13 +546,10 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
             
-        if not (eat TokenKind.LBrace)
+        if not (eat TokenKind.LBrace
+                    ((if extends_node_result.IsNone then "'extends' or " else "") +
+                     "'{' expected. A class body must start with '{'"))
         then
-            let sb_message =
-                StringBuilder()
-                    .Append(if extends_node_result.IsNone then "'extends' or " else "")
-                    .Append("'{' expected. A class body must start with '{'")
-            _diags.Error(sb_message.ToString(), _token.Span)
             ValueNone
         else
             
@@ -622,13 +560,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             // We aren't going to add anything else.
             ValueNone
         else
-        
-        if (not (eat TokenKind.RBrace))
-        then
-            // The callee already emitted relevant diags.
-            // We aren't going to add anything else.
-            ValueNone
-        else
+
+        // classbody() eats '}'        
             
         let name_node = Node.Of(TYPE_NAME token_id.Id, token_id.Span)
         
@@ -688,7 +621,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                     is_element_expected <- false
                 else
 
-                if eat delimiter
+                if try_eat delimiter
                 then
                     is_element_expected <- true
                 else
@@ -716,9 +649,9 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                                                is_list_end: unit -> bool)
                                                : Node<'T>[] voption =
         
-        if not (eat list_start)
+        if not (eat list_start
+                    list_start_error_message)
         then
-            _diags.Error(list_start_error_message, _token.Span)
             ValueNone
         else
 
