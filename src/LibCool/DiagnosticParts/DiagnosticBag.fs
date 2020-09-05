@@ -15,8 +15,16 @@ type DiagnosticBag() =
     member _.WarningsCount = _diagnostics |> Seq.filter(fun it -> it.Severity = Severity.Warning) |> Seq.length
     
     
-    member this.Add(severity: Severity, message: string, span: Span) =
-        _diagnostics.Add(Diag.Of(severity, message, span))
+    member this.Error(message: string, span: Span) =
+        _diagnostics.Add(Diag.Of(Severity.Error, message, span))
+        
+        
+    member this.Warn(message: string, span: Span) =
+        _diagnostics.Add(Diag.Of(Severity.Warning, message, span))
+        
+        
+    member this.Info(message: string, span: Span) =
+        _diagnostics.Add(Diag.Of(Severity.Info, message, span))
         
         
     member _.ToReadOnlyList() : IReadOnlyList<Diag> =
