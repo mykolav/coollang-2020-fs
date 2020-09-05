@@ -327,13 +327,13 @@ type CoolRenderer1 private () =
     
     
     // Braced block    
-     and EnterBracedBlock(_: Node<BlockInfo> voption, _: Guid, _: Span) : unit =
+     and EnterBracedBlock(_: Node<BlockInfo voption>, _: Guid, _: Span) : unit =
         _acc_cool_text
             .Append("{")
             .AppendLine() |> ignore
         _indent.Increase()
     
-     and LeaveBracedBlock(_: Node<BlockInfo> voption, _: Guid, _: Span) : unit =
+     and LeaveBracedBlock(_: Node<BlockInfo voption>, _: Guid, _: Span) : unit =
         _indent.Decrease()
         _acc_cool_text
             .Append("}")
@@ -460,21 +460,21 @@ type CoolRenderer1 private () =
 
 
     // Braced block
-     and walk_braced_block (block_info_opt: Node<BlockInfo> voption, key: Guid, span: Span): unit =
-        EnterBracedBlock(block_info_opt, key, span)
-        match block_info_opt with
+     and walk_braced_block (block_node: Node<BlockInfo voption>, key: Guid, span: Span): unit =
+        EnterBracedBlock(block_node, key, span)
+        match block_node.Value with
         | ValueSome block_info ->
-            walk_block_info (block_info.Value, block_info.Key, block_info.Span)
+            walk_block_info (block_info, block_node.Key, block_node.Span)
         | ValueNone ->
             ()
-        LeaveBracedBlock(block_info_opt, key, span)
+        LeaveBracedBlock(block_node, key, span)
 
 
-     and walk_block (block: Block, key: Guid, span: Span) =
+     and walk_block (block: CaseBlock, key: Guid, span: Span) =
         match block with
-        | (Block.Implicit block_info) ->
+        | (CaseBlock.Implicit block_info) ->
             walk_block_info (block_info, key, span)
-        | (Block.Braced block_info_opt) ->
+        | (CaseBlock.Braced block_info_opt) ->
             walk_braced_block (block_info_opt, key, span)
 
 
@@ -725,9 +725,7 @@ type CoolRenderer1 private () =
                 walk_method (method_info, feature_node.Key, feature_node.Span)
             | Feature.Attr attr_info ->
                 walk_attr (attr_info, feature_node.Key, feature_node.Span)
-            | Feature.Block (Block.Implicit block_info) ->
-                walk_block_info (block_info, feature_node.Key, feature_node.Span)
-            | Feature.Block (Block.Braced block_info_opt) ->
+            | Feature.BracedBlock block_info_opt ->
                 walk_braced_block (block_info_opt, feature_node.Key, feature_node.Span)
 
         features |> Array.iter visit_feature

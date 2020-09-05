@@ -71,13 +71,13 @@ varformal
     ;
 
 classbody
-    : '{' feature* '}'
+    : '{' (feature ';')* '}'
     ;
 
 feature
-    : 'override'? 'def' ID formals ':' ID '=' expr ';'
-    | 'var' ID ':' ID '=' expr ';'
-    | '{' block '}' ';'
+    : 'override'? 'def' ID formals ':' ID '=' expr
+    | 'var' ID ':' ID '=' expr
+    | '{' block '}'
     ;
 
 formals
@@ -127,13 +127,19 @@ exprsuffix
     ;
 
 cases
-    : '{' ('case' casepattern '=>' block)+ '}'
+    : '{' ('case' casepattern '=>' caseblock)+ '}'
     ;
 
 casepattern
     : ID ':' ID
     | 'null'
     ;
+
+caseblock
+    : block
+    | '{' block '}'
+    ;
+
 
 ID
     : [a-zA-Z$_][a-zA-Z0-9$_]*

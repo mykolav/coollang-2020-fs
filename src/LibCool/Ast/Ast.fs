@@ -6,23 +6,6 @@ open System.Runtime.CompilerServices
 open LibCool.SourceParts
 
 
-// Generating keys based on the hierarchy of Nodes is deterministic and
-// seems to be a better option overall,
-// but it turns out implementing it is somewhat complicated.
-// At the moment I cannot come up with a nice solution for cases where:
-//     A parsed expression can be an immediate child of the Node<parent>
-//     or a grandchild of the same Node<parent>.
-// Happens when parsing an expression by climbing precedence.
-// E. g.:
-//     a + b => in this case the `sum`Node is the parent and `b` is its immediate child.
-//     a + b * c => in this case the `sum` is the parent of the `multiply`Node
-//                  which in turn is the parent of `b`.
-// Hence, to generate a hierarchical key for `b` we need to somehow look forward
-// and figure out which of the cases we're dealing with.
-//
-// Trying to do this I end up with a load of messy code.
-// So, let's give up on it for now and resort to using good old GUIDs
-// and keep making progress on the compiler...
 [<IsReadOnly; Struct>]
 type Node<'TValue> =
     { Key: Guid
@@ -111,7 +94,7 @@ type VarFormal =
 type Feature =
     | Method of MethodInfo
     | Attr of AttrInfo
-    | Block of Block
+    | BracedBlock of Node<BlockInfo voption>
 
 
 type MethodInfo =
@@ -144,12 +127,6 @@ type AttrInfo =
 type AttrBody =
     | Expr of Expr
     | Native
-
-
-[<RequireQualifiedAccess>]
-type Block =
-    | Implicit of BlockInfo
-    | Braced of Node<BlockInfo> voption
 
 
 type BlockInfo =
@@ -192,7 +169,7 @@ type Expr =
     | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | ObjectCreation of class_name: Node<TYPE_NAME> * actuals: Node<Expr> []
-    | BracedBlock of Node<BlockInfo> voption
+    | BracedBlock of Node<BlockInfo voption>
     | ParensExpr of Node<Expr>
     | Id of ID
     | Int of INT
@@ -205,7 +182,13 @@ type Expr =
 
 type Case =
     { Pattern: Node<Pattern>
-      Block: Node<Block> }
+      Block: Node<CaseBlock> }
+
+
+[<RequireQualifiedAccess>]
+type CaseBlock =
+    | Implicit of BlockInfo
+    | Braced of Node<BlockInfo voption>
 
 
 [<RequireQualifiedAccess>]
