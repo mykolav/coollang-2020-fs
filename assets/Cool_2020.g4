@@ -42,18 +42,19 @@ block
     : (('var' ID ':' ID '=')? expr ';')* expr
     ;
 
-// The expresson's syntax is split in `expr`, `exprprefix`, `primary`, and `exprsuffix` to avoid left recursion.
+// The expresson's syntax is split in `expr`, `assign_or_prefixop`, `primary`, and `infixop_and_rhs` to avoid left recursion.
 expr
-    : exprprefix* primary exprsuffix*
+    : prefix* primary infixop_and_rhs*
     ;
 
-exprprefix
-    : ID '=' expr
-    | '!' expr
-    | '-' expr
-    | 'if' '(' expr ')' expr 'else' expr
-    | 'while' '(' expr ')' expr
+prefix
+    : ID '='
+    | '!'
+    | '-'
+    | 'if' '(' expr ')' expr 'else'
+    | 'while' '(' expr ')'
     ;
+
 
 primary
     : ('super' '.')? ID actuals
@@ -69,10 +70,10 @@ primary
     | 'this'
     ;
 
-exprsuffix
-    : (('<=' | '<' | '>=' | '>' | '==' | '*' | '/' | '+' | '-') expr) 
-    | ('match' cases) 
-    | ('.' ID actuals)
+infixop_and_rhs
+    : ('<=' | '<' | '>=' | '>' | '==' | '*' | '/' | '+' | '-') expr
+    | 'match' cases
+    | '.' ID actuals
     ;
 
 cases

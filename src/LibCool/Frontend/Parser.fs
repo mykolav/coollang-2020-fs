@@ -70,16 +70,81 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             eat_token()
 
     
+    // To parse expressions we effectively use the recursive productions below.
+    // The recursive productions are in contrast with the iterative productions,
+    // defined in the grammar file, e.g.:
+    // ```
+    // expr
+    // : prefix* primary infixop_and_rhs*
+    // ;
+    // ```
+    //
+    // The reason is, it's trivial to implement, if we can create partially initialized Ast nodes
+    // and later mutate them. E.g., in pseudocode:
+    // ```
+    // let assign = Assign (id=..., expr=NULL)
+    // ...
+    // assign.expr <- prefix()
+    // ```
+    //
+    // As we use immutable data structures to represent Ast,
+    // it's not immediately obvious how to go about implementing the iterative productions.
+    //
+    // So we resort to the "recursive" productions,
+    // as they make working with the immutable Ast data structures possible.
+    //
+    // expr
+    //     // Assign
+    //     : ID '=' expr
+    //     // Two primary expressions starting with ID.
+    //     // Included in `expr` so that parsing without lookahead is possible.
+    //     | ID
+    //     | ID actuals
+    //     // Prefix ops
+    //     | '!' expr
+    //     | '-' expr
+    //     | 'if' '(' expr ')' expr 'else' expr
+    //     | 'while' '(' expr ')' expr
+    //     | primary infixop_and_rhs*
+    //     ;
+    // 
+    // primary
+    //     : 'super' '.' ID actuals
+    //     | 'new' ID actuals
+    //     | '{' block? '}'
+    //     | '(' expr ')'
+    //     | 'null'
+    //     | '(' ')'
+    //     | INTEGER
+    //     | STRING
+    //     | BOOLEAN
+    //     | 'this'
+    //     ;
+    // 
+    // infixop_and_rhs
+    //     : ('<=' | '<' | '>=' | '>' | '==' | '*' | '/' | '+' | '-') expr infixop?
+    //     | 'match' cases infixop1
+    //     | '.' ID actuals infixop1
+    //     ;
     let rec expr (): ErrorOrOption<Node<Expr>> =
         let span_start = _token.Span.First
         
         let first_token = _token
         if try_eat_when _token.IsId
         then
+            //
+            // Assign
+            //
+            // 'ID = ' is an expression prefix.
             if try_eat TokenKind.Equal
             then
+                // 'ID =' can be followed by:
+                // - expressions starting with an expression prefix;
+                // - a primary expression;
+                // - a primary expression (expression suffix)+.
+                // In other words, by any expression.
                 let init_node_opt = required_expr ("An expression expected. When declaring a var," +
-                                                  " '=' must be followed by an initializer expression")
+                                                   " '=' must be followed by an initializer expression")
                 if init_node_opt.IsNone
                 then
                     Error
@@ -94,10 +159,40 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 let assign_node = Node.Of(assign_value, assing_span)
                 Ok (ValueSome assign_node)
             else
-                let expr_id_node = Node.Of(Expr.Id (ID first_token.Id), first_token.Span)
-                Ok (ValueSome expr_id_node)
+                
+            //
+            //  Two primary expressions starting with ID
+            //
+            // "ID actuals" is a primary expression.
+            // A primary expression cannot be followed by another primary expression,
+            // only by an infix op, i.e.: (expression suffix)*
+            if try_eat TokenKind.LParen
+            then
+                let actual_nodes_opt = actuals()
+                if actual_nodes_opt.IsNone
+                then
+                    Error
+                else
+                
+                let id_node = Node.Of(ID first_token.Id, first_token.Span)
+                
+                let expr_dispatch_span = Span.Of(span_start, _token.Span.First)
+                let expr_dispatch_value = Expr.ImplicitThisDispatch (method_id=id_node,
+                                                                     actuals=actual_nodes_opt.Value)
+                
+                // The 'ID actuals' dispatch can be followed by any infix op except '='.
+                infixop_and_rhs (Node.Of(expr_dispatch_value, expr_dispatch_span))
+            else
+
+            // "ID" is a primary expression.
+            // A primary expression cannot be followed by another primary expression,
+            // only by an infix op, i.e.: (expression suffix)*
+            infixop_and_rhs (Node.Of(Expr.Id (ID first_token.Id), first_token.Span))
         else
-            
+        
+        //
+        // Prefix ops.
+        //     
         if try_eat TokenKind.Exclaim
         then
             let expr_node_opt = required_expr "An expression expected. '!' must be followed by an expression"
@@ -196,7 +291,10 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok (ValueSome (Node.Of(expr_while_value, expr_while_span)))
         else
 
-        // | primary exprsuffix?
+        //
+        // No prefix op specified
+        //
+        // primary infixop*
         match primary() with
         | Error ->
             Error
@@ -206,27 +304,16 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             // But the caller can report a more specific error message, so we return control to the caller.
             Ok ValueNone
         | Ok (ValueSome primary_node) ->            
-            expr_suffix(primary_node)
+            infixop_and_rhs(primary_node)
         
-        
+    
+    // A primary expression cannot be followed by another primary expression,
+    // only by an infix op, i.e.: (expression suffix)*    
     and primary (): ErrorOrOption<Node<Expr>> =
         let span_start = _token.Span.First
         let first_token = _token
-            
-        // | ID
-        // | ID actuals
-        if try_eat_when _token.IsId
-        then
-            // TODO: ...
-            if not (try_eat TokenKind.LParen)
-            then
-                Ok (ValueSome (Node.Of(Expr.Id (ID first_token.Id), first_token.Span)))
-            else
-                
-            Ok ValueNone
-        else
 
-        // : ('super' '.')? ID actuals
+        // ('super' '.')? ID actuals
         if try_eat TokenKind.KwSuper
         then
             if not (eat TokenKind.Dot "'.' expected. 'super' can only be used in a super dispatch expression")
@@ -255,7 +342,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok (ValueSome (Node.Of(expr_super_dispatch_value, expr_super_dispatch_span)))
         else
 
-        // | 'new' ID actuals
+        // 'new' ID actuals
         if try_eat TokenKind.KwNew
         then
             if not (eat_when _token.IsId ("A type name expected. Type name must be an identifier" +
@@ -278,7 +365,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok (ValueSome (Node.Of(expr_new_value, expr_new_span)))
         else
             
-        // | '{' block '}'
+        // '{' block '}'
         if _token.Is(TokenKind.LBrace)
         then
             let block_node_opt = braced_block()
@@ -295,8 +382,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok (ValueSome (Node.Of(block_value, block_span)))
         else
             
-        // | '(' expr ')'
-        // | '(' ')'
+        // '(' expr ')'
+        // '(' ')'
         if try_eat TokenKind.LParen
         then
             if try_eat TokenKind.RParen
@@ -319,7 +406,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok (ValueSome (Node.Of(expr_parens_value, expr_parens_span)))
         else
             
-        // | 'null'
+        // 'null'
         if try_eat TokenKind.KwNull
         then
             Ok (ValueSome (Node.Of(Expr.Null, first_token.Span)))
@@ -330,13 +417,13 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok (ValueSome (Node.Of(Expr.This, first_token.Span)))
         else
 
-        // | INTEGER
+        // INTEGER
         if try_eat_when _token.IsInt
         then
             Ok (ValueSome (Node.Of(Expr.Int (INT first_token.Int), first_token.Span)))
         else
 
-        // | STRING
+        // STRING
         if try_eat_when (_token.IsString || _token.IsQqqString)
         then
             Ok (ValueSome (Node.Of(Expr.Str (STRING (value=first_token.String,
@@ -344,7 +431,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                                    first_token.Span)))
         else
 
-        // | BOOLEAN
+        // BOOLEAN
         if try_eat TokenKind.KwTrue || try_eat TokenKind.KwFalse
         then
             let expr_bool_value =
@@ -362,13 +449,13 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok ValueNone
         
         
-    // exprsuffix
+    // infixop_and_rhs
     //     : (('<=' | '<' | '>=' | '>' | '==' | '*' | '/' | '+' | '-') expr) 
     //     | ('match' cases) 
     //     | ('.' ID actuals)
     //     ;
-    and expr_suffix (prefix: Node<Expr>): ErrorOrOption<Node<Expr>> =
-        Ok (ValueSome prefix)
+    and infixop_and_rhs (lhs: Node<Expr>): ErrorOrOption<Node<Expr>> =
+        Ok (ValueSome lhs)
     
 
     and required_expr (expr_required_error_message: string): Node<Expr> voption =
