@@ -23,7 +23,7 @@ classbody
 feature
     : 'override'? 'def' ID formals ':' ID '=' expr
     | 'var' ID ':' ID '=' expr
-    | '{' block '}'
+    | '{' block? '}'
     ;
 
 formals
@@ -39,13 +39,16 @@ actuals
     ;
 
 block
-    : ((('var' ID ':' ID '=')? expr ';')* expr)?
+    : (('var' ID ':' ID '=')? expr ';')* expr
     ;
 
-// The expresson's syntax is split in `expr`, `primary`, and `exprsuffix` to avoid left recursion.
+// The expresson's syntax is split in `expr`, `exprprefix`, `primary`, and `exprsuffix` to avoid left recursion.
 expr
-    : primary exprsuffix?
-    | ID '=' expr
+    : exprprefix* primary exprsuffix*
+    ;
+
+exprprefix
+    : ID '=' expr
     | '!' expr
     | '-' expr
     | 'if' '(' expr ')' expr 'else' expr
@@ -55,7 +58,7 @@ expr
 primary
     : ('super' '.')? ID actuals
     | 'new' ID actuals
-    | '{' block '}'
+    | '{' block? '}'
     | '(' expr ')'
     | 'null'
     | '(' ')'
@@ -83,7 +86,7 @@ casepattern
 
 caseblock
     : block
-    | '{' block '}'
+    | '{' block? '}'
     ;
 
 

@@ -23,7 +23,13 @@ type ErrorOrOption<'TValue>
     member this.IsNone: bool = not this.IsSome 
         
     
-    member this.Value: 'TValue voption =
+    member this.Option: 'TValue voption =
         match this with
-        | Ok value -> value
+        | Ok value_option -> value_option
+        | _ -> invalidOp "ErrorOrOption.Value"
+        
+    
+    member this.Value: 'TValue =
+        match this with
+        | Ok value_option -> value_option.Value
         | _ -> invalidOp "ErrorOrOption.Value"

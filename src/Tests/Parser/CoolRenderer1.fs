@@ -809,7 +809,7 @@ type CoolRenderer1 private () =
             walk_implicit_this_dispatch (method_id, actuals, key, span)
         | Expr.SuperDispatch(method_id, actuals) ->
             walk_super_dispatch (method_id, actuals, key, span)
-        | Expr.ObjectCreation(class_name, actuals) ->
+        | Expr.New(class_name, actuals) ->
             walk_object_creation (class_name, actuals, key, span)
         | Expr.BracedBlock block_info_opt ->
             walk_braced_block (block_info_opt, key, span)

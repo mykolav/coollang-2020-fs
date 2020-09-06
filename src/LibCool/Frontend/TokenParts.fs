@@ -166,53 +166,6 @@ type Token =
     static member Of(kind, span) = { Kind = kind; Span = span }
     
     
-    member this.Id: string =
-        match this.Kind with
-        | TokenKind.Id value -> value
-        | _ -> invalidArg "token" "The token is not an identifier"
-    
-    
-    member this.Int: int =
-        match this.Kind with
-        | TokenKind.IntLiteral value -> value
-        | _ -> invalidArg "token" "The token is not an int literal"
-    
-    
-    member this.String: string =
-        match this.Kind with
-        | TokenKind.StringLiteral value -> value
-        | _ -> invalidArg "token" "The token is not a string literal"
-    
-    
-    member this.QqqString: string =
-        match this.Kind with
-        | TokenKind.TripleQuotedStringLiteral value -> value
-        | _ -> invalidArg "token" "The token is not a \"\"\" string literal"
-        
-        
-    member this.KwSpelling: string =
-        if not (this.IsKw || this.IsReservedKw)
-        then
-            invalidArg "token" "The token is not a keyword"
-            
-        this.Kind.ToString().Replace("TokenKind.Kw", "").ToLower()
-
-    
-    member this.KwKindSpelling: string =        
-        if not (this.IsKw || this.IsReservedKw)
-        then
-            invalidArg "token" "The token is not a keyword"
-            
-        if (this.IsKw) then "keyword" else "reserved keyword"
-
-        
-    member this.KwDescription: string =
-        if this.IsKw || this.IsReservedKw
-        then
-            sprintf "; '%s' is a %s" (this.KwSpelling) (this.KwKindSpelling)
-        else
-            ""
-
     member this.Is(kind: TokenKind): bool = this.Kind = kind
     member this.IsEof: bool = this.Kind = TokenKind.EOF
     
@@ -290,3 +243,51 @@ type Token =
         | TokenKind.KwWith 
         | TokenKind.KwYield -> true
         | _ -> false
+    
+    
+    member this.Id: string =
+        match this.Kind with
+        | TokenKind.Id value -> value
+        | _ -> invalidArg "token" "The token is not an identifier"
+    
+    
+    member this.Int: int =
+        match this.Kind with
+        | TokenKind.IntLiteral value -> value
+        | _ -> invalidArg "token" "The token is not an int literal"
+    
+    
+    member this.String: string =
+        match this.Kind with
+        | TokenKind.StringLiteral value -> value
+        | _ -> invalidArg "token" "The token is not a string literal"
+    
+    
+    member this.QqqString: string =
+        match this.Kind with
+        | TokenKind.TripleQuotedStringLiteral value -> value
+        | _ -> invalidArg "token" "The token is not a \"\"\" string literal"
+        
+        
+    member this.KwSpelling: string =
+        if not (this.IsKw || this.IsReservedKw)
+        then
+            invalidArg "token" "The token is not a keyword"
+            
+        this.Kind.ToString().Replace("TokenKind.Kw", "").ToLower()
+
+    
+    member this.KwKindSpelling: string =        
+        if not (this.IsKw || this.IsReservedKw)
+        then
+            invalidArg "token" "The token is not a keyword"
+            
+        if (this.IsKw) then "keyword" else "reserved keyword"
+
+        
+    member this.KwDescription: string =
+        if this.IsKw || this.IsReservedKw
+        then
+            sprintf "; '%s' is a %s" (this.KwSpelling) (this.KwKindSpelling)
+        else
+            ""

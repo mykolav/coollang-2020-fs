@@ -11,19 +11,23 @@ type Node<'TValue> =
     { Key: Guid
       Span: Span
       Value: 'TValue }
+    with
+    member this.Map<'TMapped>(mapping: 'TValue -> 'TMapped): Node<'TMapped> =
+        Node.Of(mapping this.Value, this.Span)
+        
 
 
 [<AbstractClass; Sealed; RequireQualifiedAccess>]
 type Node private () =
 
 
-    static member Of<'TValue>(value: 'TValue, span: Span) =
+    static member Of<'TValue>(value: 'TValue, span: Span): Node<'TValue> =
         { Key = Guid.NewGuid()
           Span = span
           Value = value }
 
 
-    static member Of<'TValue>(value: 'TValue, first: uint32, last: uint32) =
+    static member Of<'TValue>(value: 'TValue, first: uint32, last: uint32): Node<'TValue> =
         Node.Of
             (span =
                 { First = first
@@ -53,11 +57,14 @@ type INT =
 
 
 type STRING =
-    | STRING of value: string
+    | STRING of value: string * is_qqq: bool
     member this.Value =
-        let (STRING value) = this in value
+        let (STRING (value, _)) = this in value
+    member this.IsQqq =
+        let (STRING (_, is_qqq)) = this in is_qqq
 
 
+[<RequireQualifiedAccess>]
 type BOOL =
     | True
     | False
@@ -148,7 +155,7 @@ type VarDeclInfo =
 
 [<RequireQualifiedAccess>]
 type Expr =
-    | Assign of left: Node<ID> * right: Node<Expr>
+    | Assign of id: Node<ID> * expr: Node<Expr>
     | BoolNegation of Node<Expr>
     | UnaryMinus of Node<Expr>
     | If of condition: Node<Expr> * then_branch: Node<Expr> * else_branch: Node<Expr>
@@ -168,7 +175,7 @@ type Expr =
     // Primary
     | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
     | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []
-    | ObjectCreation of class_name: Node<TYPE_NAME> * actuals: Node<Expr> []
+    | New of type_name: Node<TYPE_NAME> * actuals: Node<Expr> []
     | BracedBlock of Node<BlockInfo voption>
     | ParensExpr of Node<Expr>
     | Id of ID
