@@ -98,14 +98,14 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     //     : ID '=' expr
     //     // Two primary expressions starting with ID.
     //     // Included in `expr` so that parsing without lookahead is possible.
-    //     | ID
-    //     | ID actuals
+    //     | ID infixop_and_rhs?
+    //     | ID actuals infixop_and_rhs?
     //     // Prefix ops
     //     | '!' expr
     //     | '-' expr
     //     | 'if' '(' expr ')' expr 'else' expr
     //     | 'while' '(' expr ')' expr
-    //     | primary infixop_and_rhs*
+    //     | primary infixop_and_rhs?
     //     ;
     // 
     // primary
@@ -165,7 +165,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             //
             // "ID actuals" is a primary expression.
             // A primary expression cannot be followed by another primary expression,
-            // only by an infix op, i.e.: (expression suffix)*
+            // only by an infix op, i.e.: (infixop rhs)*
             if try_eat TokenKind.LParen
             then
                 let actual_nodes_opt = actuals()
@@ -186,7 +186,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
 
             // "ID" is a primary expression.
             // A primary expression cannot be followed by another primary expression,
-            // only by an infix op, i.e.: (expression suffix)*
+            // only by an infix op, i.e.: (infixop rhs)*
             infixop_and_rhs (Node.Of(Expr.Id (ID first_token.Id), first_token.Span))
         else
         
