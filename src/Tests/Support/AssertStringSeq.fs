@@ -9,7 +9,7 @@ module private Seq =
     let any source = not (Seq.isEmpty source)
 
 
-type FormatMessageFn = ((*expected_len:*)int) -> ((*actual_len:*)int) -> ((*mismatches:*)seq<Mismatch>) -> string
+type FormatMessageFn = ((*expected_len=*)int) -> ((*actual_len=*)int) -> ((*mismatches=*)seq<Mismatch>) -> string
 
 
 [<Sealed>]

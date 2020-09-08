@@ -161,7 +161,11 @@ type Token =
     with
     
     
-    static member EOF(offset) = { Kind = TokenKind.EOF; Span = Span.Of(offset, offset + 1u) }
+    static member EOF(offset) = {
+        Kind = TokenKind.EOF
+        // EOF is the end of file, which means its size is 0.
+        Span = Span.Of(offset, offset)
+    }
     static member Invalid(span)= { Kind = TokenKind.Invalid; Span = span }
     static member Of(kind, span) = { Kind = kind; Span = span }
     
@@ -245,6 +249,21 @@ type Token =
         | _ -> false
     
     
+    member this.IsInfixOp: bool =
+        match this.Kind with
+        | TokenKind.Plus -> true
+        | TokenKind.Minus -> true
+        | TokenKind.Slash -> true
+        | TokenKind.Star -> true
+        | TokenKind.EqualEqual -> true
+        | TokenKind.Less -> true
+        | TokenKind.Greater -> true
+        | TokenKind.LessEqual -> true
+        | TokenKind.GreaterEqual -> true
+        | TokenKind.ExclaimEqual -> true
+        | _ -> false
+    
+    
     member this.Id: string =
         match this.Kind with
         | TokenKind.Id value -> value
@@ -291,3 +310,24 @@ type Token =
             sprintf "; '%s' is a %s" (this.KwSpelling) (this.KwKindSpelling)
         else
             ""
+
+
+    member this.InfixOpSpelling: string =
+        if not this.IsInfixOp
+        then
+            invalidArg "token" "The token is not an infix operator"
+
+        match this.Kind with            
+        | TokenKind.Plus -> "+"
+        | TokenKind.Minus -> "-"
+        | TokenKind.Slash -> "/"
+        | TokenKind.Star -> "*"
+        | TokenKind.EqualEqual -> "=="
+        | TokenKind.Less -> "<"
+        | TokenKind.Greater -> ">"
+        | TokenKind.LessEqual -> "<="
+        | TokenKind.GreaterEqual -> ">="
+        | TokenKind.ExclaimEqual -> "!="
+        | _ -> invalidOp "Unreachable"
+
+    

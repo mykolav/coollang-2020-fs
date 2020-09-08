@@ -34,8 +34,8 @@ type Source(partSeq: SourcePart seq) =
     
     // Calculate the part offsets
     let (_part_offsets, _size) =
-        parts |> Array.mapFold (fun offset it -> (offset, (*next offset: *) offset + uint32 it.Content.Length))
-                               (*first offset: *) 0u
+        parts |> Array.mapFold (fun offset it -> (offset, (*next offset=*) offset + uint32 it.Content.Length))
+                               (*first offset=*) 0u
 
     // Calculate the line offsets
     let _line_offsets =

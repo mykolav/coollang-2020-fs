@@ -63,8 +63,8 @@ class QuickSort() extends IO() {
 class Main() {
   {
     new QuickSort()
-  }
-};
+  };
+}
 
 // DIAG: Build succeeded: Errors: 0. Warnings: 0
 // OUT: 30 20 50 40 10

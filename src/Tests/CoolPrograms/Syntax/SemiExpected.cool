@@ -2,7 +2,7 @@ class Main() extends IO() {
     {
         out_string("Hello, Cool!")
         out_nl()
-    }
+    };
 }
-// DIAG: Syntax/SemiExpected.cool(3,35): Error: ';' expected
+// DIAG: Syntax/SemiExpected.cool(3,35): Error: ';' expected. Statements of a block must be delimited by ';'
 // DIAG: Build failed: Errors: 1. Warnings: 0

@@ -200,5 +200,5 @@ type CaseBlock =
 
 [<RequireQualifiedAccess>]
 type Pattern =
-    | IdType of Node<ID> * Node<TYPE_NAME>
+    | IdType of id:Node<ID> * pattern_type:Node<TYPE_NAME>
     | Null
