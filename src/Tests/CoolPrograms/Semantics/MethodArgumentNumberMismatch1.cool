@@ -1,7 +1,7 @@
-class B() { def foo() : Int = 0 } 
+class B() { def foo() : Int = 0; } 
 
 class Main() {
-    new B().foo("Hello, B!")
+    { new B().foo("Hello, B!") };
 }
 // DIAG: MethodArgumentNumberMismatch1.cool(2,29): Error: The method 'foo' takes 0 argument(s) but is passed 1 argument(s)
 // DIAG: Build failed: Errors: 1. Warnings: 0

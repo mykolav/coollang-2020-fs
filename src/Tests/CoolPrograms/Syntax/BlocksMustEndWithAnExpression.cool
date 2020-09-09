@@ -1,0 +1,10 @@
+class A() {
+    {
+        var it: Int = 9001;
+    };
+} 
+
+class Main() {}
+
+// DIAG: Syntax/BlocksMustEndWithAnExpression.cool(3,9): Error: Blocks must end with an expression
+// DIAG: Build failed: Errors: 1. Warnings: 0

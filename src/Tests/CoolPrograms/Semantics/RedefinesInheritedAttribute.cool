@@ -1,5 +1,5 @@
-class A() { var i: Int = 0 }
-class B() extends A() { var i: Int = 0 } 
+class A() { var i: Int = 0; }
+class B() extends A() { var i: Int = 0; } 
 
 class Main() {}
 // DIAG: RedefinesInheritedAttribute.cool(2,29): Error: 'B.i' redefines inherited attribute 'A.i'

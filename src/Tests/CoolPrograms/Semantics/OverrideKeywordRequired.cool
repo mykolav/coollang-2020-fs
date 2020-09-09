@@ -1,5 +1,5 @@
-class A() { def foo() : Int = 0 }
-class B() extends A() { def foo() : Int = 0 } 
+class A() { def foo() : Int = 0; }
+class B() extends A() { def foo() : Int = 0; } 
 
 class Main() {}
 // DIAG: OverrideKeywordRequired.cool(2,29): Error: 'B.foo' redefines 'A.foo'. Use the 'override' keyword if redefinition was intended.

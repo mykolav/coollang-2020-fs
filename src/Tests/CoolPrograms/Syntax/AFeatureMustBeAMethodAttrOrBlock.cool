@@ -1,0 +1,6 @@
+class Main() {
+    new IO().out_string("Hello, Cool!")
+}
+
+// DIAG: Syntax/AFeatureMustBeAMethodAttrOrBlock.cool(2,5): Error: 'def', 'override def', 'var', or '{' expected. Only a method, attribute, or block can appear at the class level
+// DIAG: Build failed: Errors: 1. Warnings: 0

@@ -1,0 +1,12 @@
+class B() { 
+    def foo() : Int = 0
+    var it: String = "Hello, Cool!"
+    {}
+} 
+
+class Main() {
+}
+// DIAG: Syntax/FeaturesMustBeTerminatedByASemi.cool(2,24): Error: ';' expected. Features must be terminated by ';'
+// DIAG: Syntax/FeaturesMustBeTerminatedByASemi.cool(3,36): Error: ';' expected. Features must be terminated by ';'
+// DIAG: Syntax/FeaturesMustBeTerminatedByASemi.cool(4,7): Error: ';' expected. Features must be terminated by ';'
+// DIAG: Build failed: Errors: 3. Warnings: 0

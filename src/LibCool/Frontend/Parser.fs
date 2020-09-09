@@ -13,6 +13,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     
     let mutable _offset = 0
     let mutable _token = _tokens.[_offset]
+    let mutable _prev_token_span_last = 0u
 
         
     let eat_token (): unit =
@@ -20,6 +21,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         then
             invalidOp (sprintf "_offset [%d] + 1 is >=f _tokens.Length [%d]" _offset _tokens.Length)
         
+        _prev_token_span_last <- _token.Span.Last
         _offset <- _offset + 1
         _token <- _tokens.[_offset]
             
@@ -31,7 +33,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             eat_token()
             true
         else
-            _diags.Error(error_message, _token.Span)
+            _diags.Error(error_message, Span.Of(_prev_token_span_last, _token.Span.First))
             false
 
 
@@ -60,7 +62,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             eat_token()
             true
         else
-            _diags.Error(error_message, _token.Span)
+            _diags.Error(error_message, Span.Of(_prev_token_span_last, _token.Span.First))
             false
             
             
@@ -858,6 +860,14 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         let block_info_result = block_info((*terminators=*)[TokenKind.RBrace])
         if block_info_result.IsError
         then
+            // There was an error parsing block_info,
+            // Try to eat the braced block's remaining tokens,
+            // we seem to produce better diagnostic messages this way.
+            eat_until [TokenKind.RBrace]
+            if _token.Is(TokenKind.RBrace)
+            then
+                eat_token()
+                
             ValueNone
         else
             
@@ -866,7 +876,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             _diags.Error("'}' expected. A braced block must end with '}'", _token.Span)
             ValueNone
         else
-            
+                
         // Eat '}'
         let token_rbrace = _token
         eat_token()
@@ -1199,7 +1209,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         else
             
         _diags.Error(
-            "'def', 'override def', 'var', or '{' expected. A class feature must be a method, attribute, or block",
+            "'def', 'override def', 'var', or '{' expected. Only a method, attribute, or block can appear at the class level",
             _token.Span)    
         ValueNone
 

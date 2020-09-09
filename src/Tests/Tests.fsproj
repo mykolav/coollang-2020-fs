@@ -39,6 +39,9 @@
         <Content Include="CoolPrograms\Syntax\InvalidStringLiteral1.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidStringLiteral2.cool" />
         <Content Include="CoolPrograms\Syntax\UnexpectedChar.cool" />
+        <Content Include="CoolPrograms\Syntax\BlocksMustEndWithAnExpression.cool" />
+        <Content Include="CoolPrograms\Syntax\FeaturesMustBeTerminatedByASemi.cool" />
+        <Content Include="CoolPrograms\Syntax\AFeatureMustBeAMethodAttrOrBlock.cool" />
         <Content Include="CoolPrograms\Semantics\TypeNameCouldNotBeFound1.cool" />
         <Content Include="CoolPrograms\Semantics\TypeMismatch2.cool" />
         <Content Include="CoolPrograms\Semantics\TypeMismatch1.cool" />
