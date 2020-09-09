@@ -499,14 +499,14 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             let expr_value =                
                 match first_token.Kind with
                 | TokenKind.LessEqual    -> Expr.LtEq (left=lhs, right=rhs)
-                | TokenKind.Less         -> Expr.Lt (left=rhs, right=rhs)
-                | TokenKind.GreaterEqual -> Expr.GtEq (left=rhs, right=rhs)
-                | TokenKind.Greater      -> Expr.Gt (left=rhs, right=rhs)
-                | TokenKind.EqualEqual   -> Expr.EqEq (left=rhs, right=rhs)
-                | TokenKind.Star         -> Expr.Mul (left=rhs, right=rhs)
-                | TokenKind.Slash        -> Expr.Div (left=rhs, right=rhs)
-                | TokenKind.Plus         -> Expr.Sum (left=rhs, right=rhs)
-                | TokenKind.Minus        -> Expr.Sub (left=rhs, right=rhs)
+                | TokenKind.Less         -> Expr.Lt (left=lhs, right=rhs)
+                | TokenKind.GreaterEqual -> Expr.GtEq (left=lhs, right=rhs)
+                | TokenKind.Greater      -> Expr.Gt (left=lhs, right=rhs)
+                | TokenKind.EqualEqual   -> Expr.EqEq (left=lhs, right=rhs)
+                | TokenKind.Star         -> Expr.Mul (left=lhs, right=rhs)
+                | TokenKind.Slash        -> Expr.Div (left=lhs, right=rhs)
+                | TokenKind.Plus         -> Expr.Sum (left=lhs, right=rhs)
+                | TokenKind.Minus        -> Expr.Sub (left=lhs, right=rhs)
                 | _                      -> invalidOp "Unreachable"
                     
             ValueSome (Node.Of(expr_value, expr_span))

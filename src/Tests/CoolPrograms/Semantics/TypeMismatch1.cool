@@ -1,6 +1,7 @@
 class A() {
     {
-        var it: Int = ""
+        var it: Int = "";
+        ()
     };
 } 
 

@@ -1,401 +1,631 @@
 namespace Tests.Parser
-//
-//open System
-//open System.Text
-//open LibCool.SourceParts
-//open LibCool.Ast
-//
-//[<Sealed>]
-//type private Indent(?width: int) =
-//    let _width = defaultArg width 2
-//    let mutable _level = 0
-//    
-//    let mk_value () = String(' ', count = _level * _width)
-//    let mutable _value = mk_value ()
-//    
-//    
-//    member _.Increase() =
-//        _level <- _level + 1
-//        _value <- mk_value ()
-//        
-//    
-//    member _.Decrease() =
-//        if _level = 0
-//        then
-//            invalidOp "An indent's level cannot go less than 0"
-//            
-//        _level <- _level - 1
-//        _value <- mk_value ()
-//       
-//    
-//    override _.ToString() = _value
-//
-//
-//[<Sealed>]
-//type CoolRenderer private () =
-//    inherit AstListener()
-//    
-//
-//    let _indent = Indent()
-//    let _acc_cool_text = StringBuilder()
-//
-//        
-//    // Classes
-//    override _.EnterClass(_: ClassDecl, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append("class ") |> ignore
-//        
-//    
-//    override _.EnterVarFormals(_: Node<VarFormal>[]) : unit =
-//        _acc_cool_text.Append("(") |> ignore
-//    
-//    override _.LeaveVarFormals(_: Node<VarFormal>[]) : unit =
-//        _acc_cool_text.Append(")") |> ignore
-//
-//    
-//    override _.EnterVarFormal(_: VarFormal, index: int, _: Guid, _: HalfOpenRange) : unit =
-//        if index > 0
-//        then do
-//            _acc_cool_text.Append(", ") |> ignore
-//        
-//    
-//    override _.EnterExtends(_: Extends, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(" extends ") |> ignore
-//    
-//    
-//    override _.EnterFeatures(_: Node<Feature>[]) : unit =
-//        _acc_cool_text
-//            .Append(" {")
-//            .AppendLine() |> ignore
-//        _indent.Increase()
-//            
-//    override _.LeaveFeatures(_: Node<Feature>[]) : unit =
-//        _indent.Decrease()
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append("}")
-//            .AppendLine() |> ignore
-//
-//    // Method
-//    override _.EnterMethod(method_info: MethodInfo, _: Guid, _: HalfOpenRange) =
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append(if method_info.Override then "override def " else "def ") |> ignore
-//    
-//    
-//    override _.EnterFormals(_:Node<Formal>[]) : unit =
-//        _acc_cool_text.Append("(") |> ignore
-//    
-//    override _.LeaveFormals(_:Node<Formal>[]) : unit =
-//        _acc_cool_text.Append(")") |> ignore
-//    
-//    
-//    override _.EnterFormal(_: Formal, index: int, _: Guid, _: HalfOpenRange) : unit =
-//        if index > 0
-//        then do
-//            _acc_cool_text.Append(", ") |> ignore
-//        
-//    
-//    override _.EnterMethodBody(method_body: MethodBody, _: Guid, _: HalfOpenRange) = 
-//        _acc_cool_text.Append(" = ") |> ignore
-//        match method_body with
-//        | MethodBody.Expr expr ->
-//            match expr with
-//            | Expr.BracedBlock _ -> ()
-//            | _ ->
-//                _acc_cool_text.AppendLine() |> ignore
-//                _indent.Increase()
-//        | _ -> ()
-//    
-//    override _.LeaveMethodBody(method_body: MethodBody, _: Guid, _: HalfOpenRange) = 
-//        match method_body with
-//        | MethodBody.Expr expr ->
-//            match expr with
-//            | Expr.BracedBlock _ -> ()
-//            | _ ->
-//                _indent.Decrease()
-//        | _ -> ()
-//
-//    
-//    // Attribute
-//    override _.EnterAttr(_: AttrInfo, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append("var ") |> ignore
-//    
-//    
-//    override _.EnterAttrBody(attr_body: AttrBody, _: Guid, _: HalfOpenRange) = 
-//        _acc_cool_text.Append(" = ") |> ignore
-//        match attr_body with
-//        | AttrBody.Expr expr ->
-//            match expr with
-//            | Expr.BracedBlock _ -> ()
-//            | _ ->
-//                _acc_cool_text.AppendLine() |> ignore
-//                _indent.Increase()
-//        | _ -> ()
-//    
-//    override _.LeaveAttrBody(attr_body: AttrBody, _: Guid, _: HalfOpenRange) = 
-//        match attr_body with
-//        | AttrBody.Expr expr ->
-//            match expr with
-//            | Expr.BracedBlock _ -> ()
-//            | _ ->
-//                _indent.Decrease()
-//        | _ -> ()
-//
-//
-//    // Block
-//    override _.EnterBlock(_: BlockInfo, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append("{")
-//            .AppendLine() |> ignore
-//        _indent.Increase()
-//    
-//    override _.LeaveBlock(_: BlockInfo, _: Guid, _: HalfOpenRange) : unit =
-//        _indent.Decrease()
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append("}")
-//            .AppendLine() |> ignore
-//    
-//    
-//    override _.EnterVarDecl(_: VarDeclInfo , _: Guid , _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append("var ") |> ignore
-//    
-//    override _.LeaveVarDecl(_: VarDeclInfo , _: Guid , _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append(";")
-//            .AppendLine() |> ignore
-//
-//    
-//    override _.EnterStmtExpr(_: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(_indent) |> ignore
-//
-//    override _.LeaveStmtExpr(_: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append(";")
-//            .AppendLine() |> ignore
-//            
-//    
-//    override _.EnterBlockLastExpr(_: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(_indent) |> ignore
-//
-//    override _.LeaveBlockLastExpr(_: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.AppendLine() |> ignore
-//
-//    
-//    // Expressions
-//    // Assign
-//    // ...    
-//    
-//    // If
-//    override _.EnterThenBranch(then_branch: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        match then_branch with
-//        | Expr.BracedBlock _ -> ()
-//        | _ ->
-//            _acc_cool_text.AppendLine() |> ignore
-//            _indent.Increase()
-//    
-//    override _.LeaveThenBranch(then_branch: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        match then_branch with
-//        | Expr.BracedBlock _ -> ()
-//        | _ ->
-//            _indent.Decrease()
-//
-//    
-//    override _.EnterElseBranch(else_branch: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append("else") |> ignore
-//        
-//        match else_branch with
-//        | Expr.BracedBlock _ -> ()
-//        | _ ->
-//            _acc_cool_text.AppendLine() |> ignore
-//            _indent.Increase()
-//    
-//    override _.LeaveElseBranch(else_branch: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        match else_branch with
-//        | Expr.BracedBlock _ -> ()
-//        | _ ->
-//            _indent.Decrease()
-//    
-//    
-//    // While
-//    override _.EnterWhileBody(body: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        match body with
-//        | Expr.BracedBlock _ -> ()
-//        | _ ->
-//            _acc_cool_text.AppendLine() |> ignore
-//            _indent.Increase()
-//    
-//    override _.LeaveWhileBody(body: Expr, _: Guid, _: HalfOpenRange) : unit =
-//        match body with
-//        | Expr.BracedBlock _ -> ()
-//        | _ ->
-//            _indent.Decrease()
-//    
-//    
-//    // Match
-//    override _.VisitMATCH() : unit = _acc_cool_text.Append(" match ") |> ignore
-//
-//
-//    override _.EnterMatchCases(_: Node<Case>, _: Node<Case>[]) : unit =
-//        _acc_cool_text
-//            .Append("{")
-//            .AppendLine() |> ignore
-//        _indent.Increase()
-//    
-//    override _.LeaveMatchCases(_: Node<Case>, _: Node<Case>[]) : unit =
-//        _indent.Decrease()
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append("}")
-//            .AppendLine() |> ignore
-//
-//    
-//    // Match/case
-//    override _.EnterMatchCase(_: Case, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append(_indent)
-//            .Append("case ") |> ignore
-//    
-//    
-//    // Dispatch
-//    // Implicit `this` dispatch
-//    // Super dispatch
-//    override _.EnterSuperDispatch(_: Node<ID>, _: Node<Expr>[], _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append("super.") |> ignore
-//    
-//    
-//    // Object creation
-//    override _.EnterObjectCreation(_: Node<TYPE_NAME>, _: Node<Expr>[], _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append("new ") |> ignore
-//
-//    
-//    // Bool negation
-//    override _.EnterBoolNegation(_: Node<Expr>, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append("!") |> ignore
-//    
-//    
-//    // Compare
-//    override _.VisitCOMPARISON_OP(op: CompareOp) : unit =
-//        match op with
-//        | CompareOp.LtEq -> _acc_cool_text.Append(" <= ")
-//        | CompareOp.GtEq -> _acc_cool_text.Append(" >= ")
-//        | CompareOp.Lt -> _acc_cool_text.Append(" < ")
-//        | CompareOp.Gt -> _acc_cool_text.Append(" > ")
-//        | CompareOp.EqEq -> _acc_cool_text.Append(" == ")
-//        | CompareOp.NotEq -> _acc_cool_text.Append(" != ")
-//        |> ignore
-//
-//    
-//    // Unary minus
-//    override _.EnterUnaryMinus(_: Node<Expr>, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append("-") |> ignore
-//
-//    
-//    // Arith
-//    override _.VisitARITH_OP(op: ArithOp) : unit =
-//        match op with
-//        | ArithOp.Mul -> _acc_cool_text.Append(" * ")
-//        | ArithOp.Div -> _acc_cool_text.Append(" / ")
-//        | ArithOp.Sum -> _acc_cool_text.Append(" + ")
-//        | ArithOp.Sub -> _acc_cool_text.Append(" - ")
-//        |> ignore
-//    
-//    
-//    // Braced block    
-//    override _.EnterBracedBlock(_: Node<BlockInfo> option, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text
-//            .Append("{")
-//            .AppendLine() |> ignore
-//        _indent.Increase()
-//    
-//    override _.LeaveBracedBlock(_: Node<BlockInfo> option, _: Guid, _: HalfOpenRange) : unit =
-//        _indent.Decrease()
-//        _acc_cool_text
-//            .Append("}")
-//            .AppendLine() |> ignore
-//    
-//    
-//    // Parenthesized expr
-//    override _.EnterParensExpr(_:Node<Expr>, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append("(") |> ignore
-//    
-//    override _.LeaveParensExpr(_:Node<Expr>, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(")") |> ignore
-//
-//    
-//    // Actuals
-//    override _.EnterActuals(_: Node<Expr>[]) : unit =
-//        _acc_cool_text.Append("(") |> ignore
-//    
-//    override _.LeaveActuals(_: Node<Expr>[]) : unit =
-//        _acc_cool_text.Append(")") |> ignore
-//
-//    
-//    override _.EnterActual(_: Expr, index: int, _: Guid, _: HalfOpenRange) : unit =
-//        if index > 0
-//        then do
-//            _acc_cool_text.Append(", ") |> ignore
-//
-//    
-//    // Id
-//    override _.VisitId(id: ID, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(id.Value) |> ignore
-//    
-//    
-//    // Literals    
-//    override _.VisitInt(literal: INT, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(literal.Value) |> ignore
-//    
-//
-//    override _.VisitStr(literal: STRING, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(literal.Value) |> ignore
-//    
-//
-//    override _.VisitBool(literal: BOOL, _: Guid, _: HalfOpenRange) : unit =
-//        match literal with
-//        | BOOL.True -> _acc_cool_text.Append("true")
-//        | BOOL.False -> _acc_cool_text.Append("false")
-//        |> ignore
-//    
-//    override _.VisitThis(_: Guid, _: HalfOpenRange) : unit = _acc_cool_text.Append("this") |> ignore
-//    
-//    override _.VisitNull(_: Guid, _: HalfOpenRange) : unit = _acc_cool_text.Append("null") |> ignore
-//    
-//    override _.VisitUnit(_: Guid, _: HalfOpenRange) : unit = _acc_cool_text.Append("()") |> ignore
-//
-//    
-//    // Terminals
-//    override _.VisitID(id: ID, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(id.Value) |> ignore 
-//    
-//    
-//    override _.VisitTYPE_NAME(type_name: TYPE_NAME, _: Guid, _: HalfOpenRange) : unit =
-//        _acc_cool_text.Append(type_name.Value) |> ignore
-//
-//    
-//    override _.VisitCOLON() : unit = _acc_cool_text.Append(": ") |> ignore
-//
-//    override _.VisitEQUALS() : unit = _acc_cool_text.Append(" = ") |> ignore
-//
-//    override _.VisitNATIVE() : unit = _acc_cool_text.Append("native") |> ignore
-//
-//    override _.VisitARROW() : unit = _acc_cool_text.Append(" => ") |> ignore
-//        
-//    override _.VisitDOT() : unit = _acc_cool_text.Append(".") |> ignore
-//
-//    override _.VisitNULL() : unit = _acc_cool_text.Append("null") |> ignore
-//
-//    
-//    override _.ToString() = _acc_cool_text.ToString()
-//
-//    
-//    static member Render(ast: Ast) =
-//        let renderer = CoolRenderer()
-//        AstWalker.Walk(ast, renderer)
-//        renderer.ToString()
+
+
+open System
+open System.Runtime.CompilerServices
+open System.Text
+open LibCool.Ast
+
+
+[<Extension>]
+type StringBuilderExtensions private () =
+    [<Extension>] static member Nop(_: StringBuilder): unit = ()
+
+
+[<RequireQualifiedAccess>]
+type CompareOp =
+    | LtEq
+    | GtEq
+    | Lt
+    | Gt
+    | EqEq
+    | NotEq
+
+
+[<RequireQualifiedAccess>]
+type ArithOp =
+    | Mul
+    | Div
+    | Sum
+    | Sub
+    
+
+[<Sealed>]
+type private Indent(?width: int) =
+    let _width = defaultArg width 2
+    let mutable _level = 0
+    
+    let mk_value () = String(' ', count = _level * _width)
+    let mutable _value = mk_value ()
+    
+    
+    member this.Increase() =
+        _level <- _level + 1
+        _value <- mk_value ()
+        
+    
+    member this.Decrease() =
+        if _level = 0
+        then
+            invalidOp "An indent's level cannot go less than 0"
+            
+        _level <- _level - 1
+        _value <- mk_value ()
+       
+    
+    override this.ToString() = _value
+
+
+[<Sealed>]
+type CoolRenderer private () =
+
+    
+    let _indent = Indent()
+    let _sb_cool = StringBuilder()
+
+    // Method
+    let rec EnterFormals(_:Node<Formal>[]) : unit =
+        _sb_cool.Append("(") |> ignore
+    
+    and LeaveFormals(_:Node<Formal>[]) : unit =
+        _sb_cool.Append(")") |> ignore
+    
+    
+    and EnterFormal(_: Formal, index: int) : unit =
+        if index > 0
+        then do
+            _sb_cool.Append(", ") |> ignore
+        
+    
+    // Attribute
+    and EnterAttr(_: AttrInfo) : unit =
+        _sb_cool
+            .Append(_indent)
+            .Append("var ") |> ignore
+    
+    
+    and EnterAttrBody(attr_body: AttrBody) = 
+        _sb_cool.Append(" = ") |> ignore
+        match attr_body with
+        | AttrBody.Expr expr ->
+            match expr with
+            | Expr.BracedBlock _ -> ()
+            | _ ->
+                _sb_cool.AppendLine() |> ignore
+                _indent.Increase()
+        | _ -> ()
+    
+    and LeaveAttrBody(attr_body: AttrBody) = 
+        match attr_body with
+        | AttrBody.Expr expr ->
+            match expr with
+            | Expr.BracedBlock _ -> ()
+            | _ ->
+                _indent.Decrease()
+        | _ -> ()
+
+    
+    and before_braced_block_or_expr (it: Expr) : unit =
+        match it with
+        | Expr.BracedBlock _ ->
+            ()
+        | _ ->
+            _indent.Increase()
+            _sb_cool.AppendLine().Append(_indent).Nop()
+   
+    and after_braced_block_or_expr (it: Expr) : unit =
+        match it with
+        | Expr.BracedBlock _ -> ()
+        | _                  -> _indent.Decrease()
+    
+    
+    // Dispatch
+    // Implicit `this` dispatch
+    // Super dispatch
+     and EnterSuperDispatch(_: Node<ID>, _: Node<Expr>[]) : unit =
+        _sb_cool.Append("super.").Nop()
+    
+    
+    // Object creation
+     and EnterObjectCreation(_: Node<TYPE_NAME>, _: Node<Expr>[]) : unit =
+        _sb_cool.Append("new ") |> ignore
+
+    
+    // Bool negation
+     and EnterBoolNegation(_: Node<Expr>) : unit =
+        _sb_cool.Append("!") |> ignore
+    
+    
+    // Parenthesized expr
+     and EnterParensExpr(_:Node<Expr>) : unit =
+        _sb_cool.Append("(") |> ignore
+    
+     and LeaveParensExpr(_:Node<Expr>) : unit =
+        _sb_cool.Append(")") |> ignore
+
+    
+    // Actuals
+     and walk_actual (actual: Expr, index: int): unit =
+        if index > 0
+        then
+            _sb_cool.Append(", ").Nop()
+
+        walk_expr actual
+
+
+     and walk_actuals (actuals: Node<Expr> []): unit =
+        _sb_cool.Append("(").Nop()
+        actuals |> Array.iteri (fun i it -> walk_actual (it.Value, i))
+        _sb_cool.Append(")").Nop()
+
+
+    // Expressions
+    // Block
+     and walk_var_decl (var_decl_info: VarDeclInfo): unit =
+        _sb_cool
+            .Append("var ")
+            .Append(var_decl_info.ID.Value)
+            .Append(": ")
+            .Append(var_decl_info.TYPE_NAME.Value)
+            .Append(" = ")
+            .Nop()
+        
+        walk_expr(var_decl_info.Expr.Value)
+
+        _sb_cool.Append(";")
+                .AppendLine().Nop()
+
+
+     and walk_stmt_expr (expr: Expr): unit =
+        walk_expr expr
+        _sb_cool.Append(";")
+                .AppendLine().Nop()
+
+
+     and walk_block_info (block_info: BlockInfo): unit =
+        block_info.Stmts
+        |> Array.iteri (fun i it ->
+            if i > 0
+            then
+                _sb_cool.Append(_indent).Nop()
+
+            match it.Value with
+            | Stmt.VarDecl var_decl_info -> walk_var_decl var_decl_info
+            | Stmt.Expr expr -> walk_stmt_expr expr)
+
+        let block_expr = block_info.Expr
+    
+        // If it's the only expression in the block,
+        // it's also the first.
+        // We don't want to ident the first expression/stmt of the block.
+        if block_info.Stmts.Length > 0
+        then
+            _sb_cool.Append(_indent).Nop()
+            
+        walk_expr block_expr.Value
+        _sb_cool.AppendLine().Nop()
+
+
+    // Braced block
+     and walk_braced_block (block_node: Node<BlockInfo voption>): unit =
+        _sb_cool.Append("{").Nop()
+        _indent.Increase()
+
+        let indent = 
+            match block_node.Value with
+            | ValueSome block_info ->
+                _sb_cool.AppendLine().Append(_indent).Nop()
+                walk_block_info block_info
+                true
+            | ValueNone ->
+                false
+            
+        _indent.Decrease()
+        _sb_cool
+            .Append(if indent then _indent.ToString() else "")
+            .Append("}")
+            .Nop()
+
+
+    and walk_block (block: CaseBlock) =
+       match block with
+       | (CaseBlock.Implicit block_info) ->
+           walk_block_info (block_info)
+       | (CaseBlock.Braced block_info_opt) ->
+           walk_braced_block (block_info_opt)
+
+
+    // Assign
+    and walk_assign (lvalue: Node<ID>, rvalue: Node<Expr>): unit =
+       _sb_cool.Append(lvalue.Value)
+                     .Append(" = ").Nop()
+       walk_expr rvalue.Value
+
+
+    // If
+    and walk_if (condition: Node<Expr>, then_branch: Node<Expr>, else_branch: Node<Expr>): unit =
+        _sb_cool.Append("if (").Nop()
+        walk_expr condition.Value
+        _sb_cool.Append(") ").Nop()
+        
+        // enter 'then' branch
+        before_braced_block_or_expr then_branch.Value
+        walk_expr then_branch.Value
+
+        match then_branch.Value with
+        | Expr.BracedBlock _ ->
+            _sb_cool.Append(" ").Nop()
+        | _ ->
+            _indent.Decrease()
+            _sb_cool.AppendLine().Append(_indent).Nop()
+        
+        _sb_cool.Append("else ").Nop()
+        
+        // enter 'else' branch        
+        before_braced_block_or_expr else_branch.Value
+        walk_expr else_branch.Value
+        after_braced_block_or_expr else_branch.Value
+
+
+    // While
+    and walk_while (condition: Node<Expr>, body: Node<Expr>): unit =
+        _sb_cool.Append("while (").Nop()
+        walk_expr condition.Value
+        _sb_cool.Append(") ").Nop()
+ 
+        before_braced_block_or_expr body.Value
+        walk_expr body.Value
+        after_braced_block_or_expr body.Value
+
+
+    // Match/case
+    and walk_match_case_pattern (pattern: Pattern): unit =
+       match pattern with
+       | Pattern.IdType(node_id, node_type_name) ->
+           _sb_cool
+               .Append(node_id.Value)
+               .Append(": ")
+               .Append(node_type_name.Value)
+               .Nop()
+       | Pattern.Null ->
+           _sb_cool.Append("null").Nop()
+
+
+    and walk_match_case (case: Case): unit =
+       _sb_cool.Append(_indent)
+               .Append("case ").Nop()
+       walk_match_case_pattern case.Pattern.Value
+       _sb_cool.Append(" => ").Nop()
+       walk_block case.Block.Value
+
+
+    and walk_match_cases (cases_hd: Node<Case>, cases_tl: Node<Case> []): unit =
+       _sb_cool
+           .Append("{")
+           .AppendLine().Nop()
+       _indent.Increase()
+
+       walk_match_case cases_hd.Value
+       cases_tl |> Array.iter (fun it -> walk_match_case it.Value)
+       
+       _indent.Decrease()
+       _sb_cool
+           .Append(_indent)
+           .Append("}").Nop()
+
+
+    // Match
+    and walk_match (expr: Node<Expr>, cases_hd: Node<Case>, cases_tl: Node<Case> []): unit =
+        walk_expr expr.Value
+
+        _sb_cool.Append(" match ").Nop()
+
+        walk_match_cases (cases_hd, cases_tl)
+
+
+    // Dispatch
+     and walk_dispatch (obj_expr: Node<Expr>, method_id: Node<ID>, actuals: Node<Expr> []): unit =
+        // EnterDispatch(obj_expr, method_id, actuals)
+        walk_expr obj_expr.Value
+        _sb_cool.Append(".").Nop()
+        _sb_cool.Append(method_id.Value).Nop()
+        walk_actuals (actuals)
+        // LeaveDispatch(obj_expr, method_id, actuals)
+
+
+    // Implicit `this` dispatch
+    and walk_implicit_this_dispatch (method_id: Node<ID>, actuals: Node<Expr> []): unit =
+        _sb_cool.Append(method_id.Value).Nop()
+        walk_actuals actuals
+
+
+    // Super dispatch
+    and walk_super_dispatch (method_id: Node<ID>, actuals: Node<Expr> []): unit =
+        _sb_cool.Append("super.")
+                .Append(method_id.Value).Nop()
+        walk_actuals actuals
+
+
+    // Object creation
+     and walk_object_creation (type_name: Node<TYPE_NAME>, actuals: Node<Expr> []): unit =
+        EnterObjectCreation(type_name, actuals)
+        _sb_cool.Append(type_name.Value).Nop()
+        walk_actuals (actuals)
+        // LeaveObjectCreation(type_name, actuals)
+
+
+    // Bool negation
+     and walk_bool_negation (expr: Node<Expr>): unit =
+        EnterBoolNegation(expr)
+        walk_expr expr.Value
+        // LeaveBoolNegation(expr)
+
+
+    // Compare
+     and walk_comparison (left: Node<Expr>, op: CompareOp, right: Node<Expr>): unit =
+        walk_expr left.Value
+
+        (match op with
+        | CompareOp.LtEq -> _sb_cool.Append(" <= ")
+        | CompareOp.GtEq -> _sb_cool.Append(" >= ")
+        | CompareOp.Lt -> _sb_cool.Append(" < ")
+        | CompareOp.Gt -> _sb_cool.Append(" > ")
+        | CompareOp.EqEq -> _sb_cool.Append(" == ")
+        | CompareOp.NotEq -> _sb_cool.Append(" != ")
+        ).Nop()
+
+        walk_expr right.Value
+
+
+    // Unary minus
+    and walk_unary_minus (expr: Node<Expr>): unit =
+       _sb_cool.Append("-").Nop()
+       walk_expr expr.Value
+
+
+    // Arith
+    and walk_arith (left: Node<Expr>, op: ArithOp, right: Node<Expr>): unit =
+       walk_expr left.Value
+
+       (match op with
+       | ArithOp.Mul -> _sb_cool.Append(" * ")
+       | ArithOp.Div -> _sb_cool.Append(" / ")
+       | ArithOp.Sum -> _sb_cool.Append(" + ")
+       | ArithOp.Sub -> _sb_cool.Append(" - ")
+       ).Nop()
+
+       walk_expr right.Value
+
+
+    // Parenthesized expr
+     and walk_parens_expr (expr: Node<Expr>): unit =
+        EnterParensExpr(expr)
+        walk_expr expr.Value
+        LeaveParensExpr(expr)
+
+
+    // Classes
+    and walk_var_formal (var_formal: VarFormal, index: int): unit =
+        _sb_cool.Append(if index > 0 then ", " else "")
+                .Append("var ")
+                .Append(var_formal.ID.Value)
+                .Append(": ")
+                .Append(var_formal.TYPE_NAME.Value).Nop()
+
+
+    and walk_var_formals (var_formals: Node<VarFormal> []): unit =
+        _sb_cool.Append("(").Nop()
+        var_formals |> Array.iteri (fun i it -> walk_var_formal(it.Value, i))
+        _sb_cool.Append(")").Nop()
+
+
+    // Method
+    and walk_formal (formal: Formal, index: int): unit =
+        EnterFormal(formal, index)
+        _sb_cool.Append(formal.ID.Value).Nop()
+        _sb_cool.Append(": ").Nop()
+        _sb_cool.Append(formal.TYPE_NAME.Value).Nop()
+
+
+    and walk_formals (formals: Node<Formal> []): unit =
+        EnterFormals(formals)
+        formals |> Array.iteri (fun i it -> walk_formal(it.Value, i))
+        LeaveFormals(formals)
+
+
+    and walk_method (method_info: MethodInfo): unit =
+        _sb_cool.Append(_indent)
+                .Append(if method_info.Override then "override def " else "def ")
+                .Append(method_info.ID.Value)
+                .Nop()
+        
+        walk_formals method_info.Formals
+        
+        _sb_cool.Append(": ")
+                .Append(method_info.TYPE_NAME.Value)
+                .Append(" = ")
+                .Nop()
+        
+        let method_body = method_info.MethodBody.Value
+        
+        match method_body with
+        | MethodBody.Expr expr ->
+            before_braced_block_or_expr expr
+        | _ ->
+            ()
+        
+        match method_body with
+        | MethodBody.Expr expr ->
+            walk_expr expr
+        | MethodBody.Native ->
+            _sb_cool.Append("native").Nop()
+        
+        match method_body with
+        | MethodBody.Expr expr ->
+           match expr with
+           | Expr.BracedBlock _ -> ()
+           | _                  -> _indent.Decrease()
+        | _ ->
+            ()
+
+
+    // Attribute
+     and walk_attr (attr_info: AttrInfo): unit =
+        EnterAttr(attr_info)
+        _sb_cool.Append(attr_info.ID.Value).Nop()
+        _sb_cool.Append(": ").Nop()
+        _sb_cool.Append(attr_info.TYPE_NAME.Value).Nop()
+
+        let node_body = attr_info.AttrBody
+        EnterAttrBody(node_body.Value)
+        
+        match attr_info.AttrBody.Value with
+        | AttrBody.Expr expr ->
+            walk_expr expr
+        | AttrBody.Native ->
+            _sb_cool.Append("native").Nop()
+
+        LeaveAttrBody(node_body.Value)
+        // LeaveAttr(attr_info)
+
+
+    // Class
+     and walk_extends (extends: Extends): unit =
+        _sb_cool.Append(" extends ").Nop()
+
+        match extends with
+        | Extends.Info extends_info ->
+            _sb_cool.Append(extends_info.PARENT_NAME.Value).Nop()
+            walk_actuals (extends_info.Actuals)
+        | Extends.Native ->
+            _sb_cool.Append("native").Nop()
+
+
+     and walk_features (features: Node<Feature> []): unit =
+        _sb_cool.Append(" {")
+                .AppendLine().Nop()
+        _indent.Increase()
+
+        let visit_feature (feature_node: Node<Feature>): unit =
+            match feature_node.Value with
+            | Feature.Method method_info ->
+                walk_method method_info
+            | Feature.Attr attr_info ->
+                walk_attr attr_info
+            | Feature.BracedBlock block_info_opt ->
+                _sb_cool.Append(_indent).Nop()
+                walk_braced_block block_info_opt
+
+        features |> Array.iter (fun it -> _sb_cool.AppendLine().Nop()
+                                          visit_feature it
+                                          _sb_cool.Append(";").AppendLine().Nop())
+        
+        _indent.Decrease()
+        _sb_cool.Append(_indent)
+                .Append("}").Nop()
+
+
+     and walk_class (klass: ClassDecl): unit =
+        _sb_cool
+            .Append(_indent)
+            .Append("class ")
+            .Nop()
+
+        _sb_cool.Append(klass.NAME.Value.Value).Nop()
+        walk_var_formals klass.VarFormals
+
+        match klass.Extends with
+        | ValueSome extends_node ->
+            walk_extends (extends_node.Value)
+        | ValueNone ->
+            ()
+
+        walk_features klass.ClassBody
+
+
+    // Program
+    and walk_program (program: Program): unit =
+        program.ClassDecls
+        |> Array.iter (fun it -> walk_class it.Value
+                                 _sb_cool.AppendLine().AppendLine().Nop())
+
+
+    // Ast
+    and walk_ast (ast: Ast): unit =
+        walk_program ast.Program.Value
+
+
+    // This function has to be declared as a member to support mutually recursive calls
+    and walk_expr (expr: Expr): unit =
+        match expr with
+        | Expr.Assign(left, right) ->
+            walk_assign (left, right)
+        | Expr.BoolNegation negated_expr ->
+            walk_bool_negation (negated_expr)
+        | Expr.UnaryMinus expr ->
+            walk_unary_minus (expr)
+        | Expr.If(condition, then_branch, else_branch) ->
+            walk_if (condition, then_branch, else_branch)
+        | Expr.While(condition, body) ->
+            walk_while (condition, body)
+        | Expr.LtEq(left, right) ->
+            walk_comparison (left, CompareOp.LtEq, right)
+        | Expr.GtEq(left, right) ->
+            walk_comparison (left, CompareOp.GtEq, right)
+        | Expr.Lt(left, right) ->
+            walk_comparison (left, CompareOp.Lt, right)
+        | Expr.Gt(left, right) ->
+            walk_comparison (left, CompareOp.Gt, right)
+        | Expr.EqEq(left, right) ->
+            walk_comparison (left, CompareOp.EqEq, right)
+        | Expr.NotEq(left, right) ->
+            walk_comparison (left, CompareOp.NotEq, right)
+        | Expr.Mul(left, right) ->
+            walk_arith (left, ArithOp.Mul, right)
+        | Expr.Div(left, right) ->
+            walk_arith (left, ArithOp.Div, right)
+        | Expr.Sum(left, right) ->
+            walk_arith (left, ArithOp.Sum, right)
+        | Expr.Sub(left, right) ->
+            walk_arith (left, ArithOp.Sub, right)
+        | Expr.Match(expr, cases_hd, cases_tl) ->
+            walk_match (expr, cases_hd, cases_tl)
+        | Expr.Dispatch(obj_expr, method_id, actuals) ->
+            walk_dispatch (obj_expr, method_id, actuals)
+        // Primary expressions
+        | Expr.ImplicitThisDispatch(method_id, actuals) ->
+            walk_implicit_this_dispatch (method_id, actuals)
+        | Expr.SuperDispatch(method_id, actuals) ->
+            walk_super_dispatch (method_id, actuals)
+        | Expr.New(class_name, actuals) ->
+            walk_object_creation (class_name, actuals)
+        | Expr.BracedBlock block_info_opt ->
+            walk_braced_block block_info_opt
+        | Expr.ParensExpr node_expr ->
+            walk_parens_expr node_expr
+        | Expr.Id value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.Int value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.Str value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.Bool value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.This ->
+            _sb_cool.Append("this").Nop()
+        | Expr.Null ->
+            _sb_cool.Append("null").Nop()
+        | Expr.Unit ->
+            _sb_cool.Append("()").Nop()
+
+    
+    member private this.Render(ast: Ast): unit = walk_ast (ast)
+
+    
+    override this.ToString() = _sb_cool.ToString()
+
+
+    static member Render(ast: Ast) =
+        let renderer = CoolRenderer()
+        renderer.Render(ast)
+        renderer.ToString()

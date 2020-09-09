@@ -28,10 +28,8 @@ type Node private () =
 
 
     static member Of<'TValue>(value: 'TValue, first: uint32, last: uint32): Node<'TValue> =
-        Node.Of
-            (span =
-                { First = first
-                  Last = last }, value = value)
+        Node.Of(span = { First = first; Last = last },
+                value = value)
 
 
 type Ast =
@@ -40,34 +38,36 @@ type Ast =
 
 type ID =
     | ID of value: string
-    member this.Value =
-        let (ID value) = this in value
+    member this.Value = let (ID value) = this in value
+    override this.ToString() = this.Value
 
 
 type TYPE_NAME =
     | TYPE_NAME of value: string
-    member this.Value =
-        let (TYPE_NAME value) = this in value
+    member this.Value = let (TYPE_NAME value) = this in value
+    override this.ToString() = this.Value
 
 
 type INT =
     | INT of value: int
-    member this.Value =
-        let (INT value) = this in value
+    member this.Value = let (INT value) = this in value
+    override this.ToString() = this.Value.ToString()
 
 
 type STRING =
     | STRING of value: string * is_qqq: bool
-    member this.Value =
-        let (STRING (value, _)) = this in value
-    member this.IsQqq =
-        let (STRING (_, is_qqq)) = this in is_qqq
+    member this.Value = let (STRING (value, _)) = this in value
+    member this.IsQqq = let (STRING (_, is_qqq)) = this in is_qqq
+    override this.ToString() = let quote = if this.IsQqq then "\"\"\"" else "\""
+                               quote + this.Value + quote
 
 
 [<RequireQualifiedAccess>]
 type BOOL =
     | True
     | False
+    member this.Value = this = BOOL.True
+    override this.ToString() = if this.Value then "true" else "false"
 
 
 type Program =

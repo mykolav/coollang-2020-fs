@@ -9,7 +9,6 @@ open LibCool.SourceParts
 open Tests.Support
 
 
-[<IsReadOnly; Struct>]
 type ParserTestCase =
     { Snippet: Snippet }
     with
@@ -21,7 +20,7 @@ type ParserTestCaseSource private () =
     
     
     static let map_parser_test_cases (snippets: string[]) =
-        snippets |> Array.map (fun it -> [| { Snippet = Snippet(it) } :> obj |])
+        snippets |> Array.map (fun it -> [| { ParserTestCase.Snippet = Snippet(it) } :> obj |])
 
     
     static member ParserTestCases = map_parser_test_cases [|
@@ -48,7 +47,7 @@ type ParserTests() =
         // Act
         let ast = parser.Parse()
         let diags = diagnostic_bag.ToReadOnlyList()
-        let rendered = if diags.Count = 0 then CoolRenderer1.Render(ast) else ""
+        let rendered = if diags.Count = 0 then CoolRenderer.Render(ast) else ""
         
         // Assert
         Assert.Empty(diags)

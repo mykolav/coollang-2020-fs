@@ -1,8 +1,9 @@
 namespace Tests.Parser
 
-module CoolSnippets =
-    [<Literal>]
-    let Fib =
+[<Sealed>]
+type CoolSnippets private () =
+    //[<Literal>]
+    static member Fib =
       "class Fib() extends IO() {\n" +
       "  def fib(x: Int): Int =\n" +
       "    if (x == 0) 0\n" +
@@ -22,8 +23,8 @@ module CoolSnippets =
 
     // This code snippet's origin is [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
     // from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao)
-    [<Literal>]
-    let QuickSort =
+    //[<Literal>]
+    static member QuickSort =
       "class QuickSort() extends IO() {\r\n" +
       "  def quicksort(array: ArrayAny, lo: Int, hi: Int): Unit = {\r\n" +
       "    if (lo < hi) {\r\n" +
@@ -92,8 +93,8 @@ module CoolSnippets =
 
     // This code snippet's origin is [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
     // from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao)
-    [<Literal>]
-    let InsertionSort =
+    //[<Literal>]
+    static member InsertionSort =
       "class List() {\r\n" +
       "    def isNil() : Boolean = abort();\r\n" +
       "    def head() : Int = abort();\r\n" +
