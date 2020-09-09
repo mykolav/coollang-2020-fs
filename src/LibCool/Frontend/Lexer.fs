@@ -22,7 +22,6 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
     
     let is_letter (ch: char): bool = Char.IsLetter(ch) || ch = '_'
     let is_digit (ch: char): bool = Char.IsDigit(ch)
-    let is_ws (ch: char): bool = Char.IsWhiteSpace(ch)
     
 
     let is_eof (): bool = _offset = _source.Size
@@ -228,7 +227,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         let sb_qqq_literal = StringBuilder()
         let mutable token_opt: Token option = None
         
-        while Option.isNone token_opt do
+        while token_opt.IsNone do
             if is_eof()
             then
                 _diags.Error("Unterminated string literal", span())
@@ -255,7 +254,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         let sb_literal = StringBuilder()
         let mutable token_opt: Token option = None
 
-        while Option.isNone token_opt do
+        while token_opt.IsNone do
             if is_eof()
             then
                 _diags.Error("Unterminated string literal", span())
@@ -280,7 +279,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                 // This is consistent with real compilers, AFAIK.
                 while not (is_eof()) &&
                       (let ch = peek_char()
-                       (is_ws ch) && ch <> '\r' && ch <> '\n') do
+                       Char.IsWhiteSpace(ch) && ch <> '\r' && ch <> '\n') do
                     eat_char()
                 
                 if is_eof()
@@ -405,7 +404,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             Token.Of(it, span()))
         
     
-    let lex_next_or_eat_ws_and_comments(): Token option =
+    let get_next_or_eat_comment(): Token option =
         if is_eof()
         then
             _offset <- _offset + 1u
@@ -413,12 +412,6 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         else
         
         let ch = peek_char()
-        
-        if is_ws ch
-        then
-            eat_ws_crlf()
-            None
-        else
         
         if is_letter ch
         then
@@ -451,17 +444,19 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         Some (Token.Invalid(span()))
     
     
-    let lex_next (): Token =
-        let mutable result: Token option = None
-        while Option.isNone result do
+    let get_next (): Token =
+        let mutable next_opt: Token option = None
+        while next_opt.IsNone do
             if _offset > _source.Size
             then
                 invalidOp (sprintf "_offset [%d] is > _source.Size [%d]" _offset _source.Size)
 
+            eat_ws_crlf()
+
             _token_start <- _offset
-            result <- lex_next_or_eat_ws_and_comments()
+            next_opt <- get_next_or_eat_comment()
             
-        result.Value
+        next_opt.Value
     
     
-    member _.LexNext(): Token = lex_next ()
+    member _.GetNext(): Token = get_next ()

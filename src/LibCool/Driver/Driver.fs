@@ -45,11 +45,11 @@ type Driver private () =
 
         let tokens = List<Token>()
 
-        let mutable token = lexer.LexNext()
+        let mutable token = lexer.GetNext()
         tokens.Add(token)
             
         while token.Kind <> TokenKind.EOF do
-            token <- lexer.LexNext()
+            token <- lexer.GetNext()
             tokens.Add(token)
     
         if diagnostic_bag.ErrorsCount = 0

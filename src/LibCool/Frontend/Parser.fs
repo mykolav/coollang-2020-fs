@@ -8,6 +8,41 @@ open LibCool.Ast
 open LibCool.DiagnosticParts
 
 
+[<RequireQualifiedAccess>]
+module private Prec =
+    let OfDot = 8uy
+    let OfExclaim = 7uy
+    let OfUnaryMinus = 7uy
+    let OfStar = 6uy
+    let OfSlash = 6uy
+    let OfPlus = 5uy
+    let OfMinus = 5uy
+    let OfEqualEqual = 4uy
+    let OfLessEqual = 3uy
+    let OfLess = 3uy
+    let OfMatch = 2uy
+    let OfIf = 1uy
+    let OfWhile = 1uy
+    let OfEqual = 0uy
+    
+    let Min = OfEqual
+    let Max = OfDot
+    let Invalid = 255uy
+
+    let Of: TokenKind -> byte = function
+        | TokenKind.LessEqual  -> OfLessEqual
+        | TokenKind.Less       -> OfLess
+        | TokenKind.EqualEqual -> OfEqualEqual
+        | TokenKind.Star       -> OfStar
+        | TokenKind.Slash      -> OfSlash
+        | TokenKind.Plus       -> OfPlus
+        | TokenKind.Minus      -> OfMinus
+        | TokenKind.KwMatch    -> OfMatch
+        | TokenKind.Dot        -> OfDot
+        // We've reached the end of the expr's postfix
+        | _                    -> Invalid
+
+
 type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
 
     
