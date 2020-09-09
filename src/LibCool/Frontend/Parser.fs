@@ -179,7 +179,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 // 'ID =' can be followed by:
                 // - expressions starting with an expression prefix;
                 // - a primary expression;
-                // - a primary expression (expression suffix)+.
+                // - a primary expression (infixop_rhs)+.
                 // In other words, by any expression.
                 let init_node_opt = required_expr ("An expression expected. When declaring a var," +
                                                    " '=' must be followed by an initializer expression")
@@ -509,8 +509,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     //     ;
     and infixop_rhs (lhs: Node<Expr>): Node<Expr> voption =
         let span_start = _token.Span.First
-        let first_token = _token
         
+        let token_op = _token
         if try_eat_when (_token.Is(TokenKind.LessEqual) || _token.Is(TokenKind.Less) ||
                          _token.Is(TokenKind.GreaterEqual) || _token.Is(TokenKind.Greater) ||
                          _token.Is(TokenKind.EqualEqual) ||
@@ -518,7 +518,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                          _token.Is(TokenKind.Plus) || _token.Is(TokenKind.Minus))
         then
             let rhs_opt = required_expr (sprintf "An expression expected. '%s' must be followed by an expression"
-                                                 first_token.InfixOpSpelling)
+                                                 token_op.InfixOpSpelling)
             if rhs_opt.IsNone
             then
                 ValueNone
@@ -534,7 +534,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             let expr_span = Span.Of(span_start, rhs.Span.Last)
             
             let expr_value =                
-                match first_token.Kind with
+                match token_op.Kind with
                 | TokenKind.LessEqual    -> Expr.LtEq (left=lhs, right=rhs)
                 | TokenKind.Less         -> Expr.Lt (left=lhs, right=rhs)
                 | TokenKind.GreaterEqual -> Expr.GtEq (left=lhs, right=rhs)

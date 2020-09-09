@@ -1,0 +1,12 @@
+class Main() {
+  {
+     var io: IO = new IO();
+     
+     io.out_string("`if (true) 1 else 2 * 100` = "); io.out_int(if (true) 1 else 2 * 100);
+     io.out_string("`if (true) 1 else 2 match { case it: Int => it * 100 }` = "); io.out_int(if (true) 1 else 2 match { case it: Int => it * 100 })
+  };
+}
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: `if (true) 1 else 2 * 100` = 1
+// OUT: `if (true) 1 else 2 match { case it: Int => it * 100 }` = 1 

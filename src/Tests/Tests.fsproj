@@ -32,6 +32,7 @@
         <Content Include="CoolPrograms\Valid\InsertionSort.cool" />
         <Content Include="CoolPrograms\Valid\Fibonacci.cool" />
         <Content Include="CoolPrograms\Valid\ArithExprPrecedence.cool" />
+        <Content Include="CoolPrograms\Valid\IfElseExprPrecedence.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />
