@@ -797,13 +797,20 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueSome (Node.Of(Stmt.VarDecl vardecl_value, vardecl_span))
         else
             
-        let expr_node_opt = expr()
-        if expr_node_opt.IsNone
+        let expr_node_result = expr()
+        if expr_node_result.IsError
         then
             ValueNone
         else
+            
+        if expr_node_result.IsNone
+        then
+            _diags.Error("'var' or an expression expected. Did you put ';' after the block's last expression?",
+                         Span.Of(_prev_token_span_last, _token.Span.First))
+            ValueNone
+        else
         
-        ValueSome (expr_node_opt.Value.Map(fun it -> Stmt.Expr it))
+        ValueSome (expr_node_result.Value.Map(fun it -> Stmt.Expr it))
 
 
     and block_info (terminators: seq<TokenKind>): ErrorOrOption<Node<BlockInfo>> =

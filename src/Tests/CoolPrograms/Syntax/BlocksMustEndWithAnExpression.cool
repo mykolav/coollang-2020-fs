@@ -1,6 +1,6 @@
 class A() {
     {
-        var it: Int = 9001;
+        var it: Int = 9001
     };
 } 
 

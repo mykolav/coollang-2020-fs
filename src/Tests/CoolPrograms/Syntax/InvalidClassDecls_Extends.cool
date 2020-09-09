@@ -10,8 +10,8 @@ class Child() extends object() {
 class Child() extends Parent {
 }
 
-// DIAG: Syntax/InvalidClassDecls_Extends.cool(1,15): Error: 'extends' or '{' expected. A class body must start with '{'
-// DIAG: Syntax/InvalidClassDecls_Extends.cool(4,23): Error: A parent class name expected. Parent class name must be an identifier
-// DIAG: Syntax/InvalidClassDecls_Extends.cool(7,23): Error: A parent class name expected. Parent class name must be an identifier; 'object' is a reserved keyword
-// DIAG: Syntax/InvalidClassDecls_Extends.cool(10,30): Error: '(' expected. An actuals list must start with '('; an empty one is denoted by '()'
+// DIAG: Syntax/InvalidClassDecls_Extends.cool(1,14): Error: 'extends' or '{' expected. A class body must start with '{'
+// DIAG: Syntax/InvalidClassDecls_Extends.cool(4,22): Error: A parent class name expected. Parent class name must be an identifier
+// DIAG: Syntax/InvalidClassDecls_Extends.cool(7,22): Error: A parent class name expected. Parent class name must be an identifier; 'object' is a reserved keyword
+// DIAG: Syntax/InvalidClassDecls_Extends.cool(10,29): Error: '(' expected. An actuals list must start with '('; an empty one is denoted by '()'
 // DIAG: Build failed: Errors: 4. Warnings: 0

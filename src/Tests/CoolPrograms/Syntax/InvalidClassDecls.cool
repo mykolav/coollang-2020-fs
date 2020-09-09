@@ -11,8 +11,8 @@ class object() {
 }
 
 // DIAG: Syntax/InvalidClassDecls.cool(1,1): Error: 'class' expected. Only classes can appear at the top level
-// DIAG: Syntax/InvalidClassDecls.cool(4,7): Error: A class name expected. Class name must be an identifier
-// DIAG: Syntax/InvalidClassDecls.cool(7,7): Error: A class name expected. Class name must be an identifier; 'class' is a keyword
+// DIAG: Syntax/InvalidClassDecls.cool(4,6): Error: A class name expected. Class name must be an identifier
+// DIAG: Syntax/InvalidClassDecls.cool(7,6): Error: A class name expected. Class name must be an identifier; 'class' is a keyword
 // DIAG: Syntax/InvalidClassDecls.cool(7,12): Error: A class name expected. Class name must be an identifier
-// DIAG: Syntax/InvalidClassDecls.cool(10,7): Error: A class name expected. Class name must be an identifier; 'object' is a reserved keyword
+// DIAG: Syntax/InvalidClassDecls.cool(10,6): Error: A class name expected. Class name must be an identifier; 'object' is a reserved keyword
 // DIAG: Build failed: Errors: 5. Warnings: 0

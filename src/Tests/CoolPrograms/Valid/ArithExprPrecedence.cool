@@ -1,0 +1,24 @@
+class Main() {
+  {
+     var io = new IO();
+     
+     io.out_string("2 * 2 - 3 / 3 = "); io.out_int(2 * 2 - 3 / 3);
+     io.out_string("2 + 2 * 3 - 3 = "); io.out_int(2 + 2 * 3 - 3);
+     io.out_string("1 + 2 * 3 / 4 = "); io.out_int(1 + 2 * 3 / 4);
+     io.out_string("1 + 2 * 3 = "); io.out_int(1 + 2 * 3);
+     io.out_string("(1 + 2) * 3 = "); io.out_int((1 + 2) * 3);
+     io.out_string("1 + (2 * 3) = "); io.out_int(1 + (2 * 3));
+     io.out_string("4 - 4 / 2 = "); io.out_int(4 - 4 / 2);
+     io.out_string("(4 - 4) / 2 = "); io.out_int((4 - 4) / 2)
+  };
+}
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: 2 * 2 - 3 / 3 = 3 
+// OUT: 2 + 2 * 3 - 3 = 5 
+// OUT: 1 + 2 * 3 / 4 = 2 
+// OUT: 1 + 2 * 3 = 7  
+// OUT: (1 + 2) * 3 = 9 
+// OUT: 1 + (2 * 3) = 7
+// OUT: 4 - 4 / 2 =  2
+// OUT: (4 - 4) / 2 = 0

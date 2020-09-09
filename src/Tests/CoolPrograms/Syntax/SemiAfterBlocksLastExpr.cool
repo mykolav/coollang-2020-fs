@@ -1,0 +1,11 @@
+class A() {
+    {
+        var it: Int = 9001;
+        it;
+    };
+} 
+
+class Main() {}
+
+// DIAG: Syntax/SemiAfterBlocksLastExpr.cool(4,12): Error: 'var' or an expression expected. Did you put ';' after the block's last expression?
+// DIAG: Build failed: Errors: 1. Warnings: 0

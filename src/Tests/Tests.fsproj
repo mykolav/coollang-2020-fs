@@ -31,6 +31,7 @@
         <Content Include="CoolPrograms\Valid\QuickSort.cool" />
         <Content Include="CoolPrograms\Valid\InsertionSort.cool" />
         <Content Include="CoolPrograms\Valid\Fibonacci.cool" />
+        <Content Include="CoolPrograms\Valid\ArithExprPrecedence.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />
@@ -40,6 +41,7 @@
         <Content Include="CoolPrograms\Syntax\InvalidStringLiteral2.cool" />
         <Content Include="CoolPrograms\Syntax\UnexpectedChar.cool" />
         <Content Include="CoolPrograms\Syntax\BlocksMustEndWithAnExpression.cool" />
+        <Content Include="CoolPrograms\Syntax\SemiAfterBlocksLastExpr.cool" />
         <Content Include="CoolPrograms\Syntax\FeaturesMustBeTerminatedByASemi.cool" />
         <Content Include="CoolPrograms\Syntax\AFeatureMustBeAMethodAttrOrBlock.cool" />
         <Content Include="CoolPrograms\Semantics\TypeNameCouldNotBeFound1.cool" />
