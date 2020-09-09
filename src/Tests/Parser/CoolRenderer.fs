@@ -63,49 +63,7 @@ type CoolRenderer private () =
     let _indent = Indent()
     let _sb_cool = StringBuilder()
 
-    // Method
-    let rec EnterFormals(_:Node<Formal>[]) : unit =
-        _sb_cool.Append("(") |> ignore
-    
-    and LeaveFormals(_:Node<Formal>[]) : unit =
-        _sb_cool.Append(")") |> ignore
-    
-    
-    and EnterFormal(_: Formal, index: int) : unit =
-        if index > 0
-        then do
-            _sb_cool.Append(", ") |> ignore
-        
-    
-    // Attribute
-    and EnterAttr(_: AttrInfo) : unit =
-        _sb_cool
-            .Append(_indent)
-            .Append("var ") |> ignore
-    
-    
-    and EnterAttrBody(attr_body: AttrBody) = 
-        _sb_cool.Append(" = ") |> ignore
-        match attr_body with
-        | AttrBody.Expr expr ->
-            match expr with
-            | Expr.BracedBlock _ -> ()
-            | _ ->
-                _sb_cool.AppendLine() |> ignore
-                _indent.Increase()
-        | _ -> ()
-    
-    and LeaveAttrBody(attr_body: AttrBody) = 
-        match attr_body with
-        | AttrBody.Expr expr ->
-            match expr with
-            | Expr.BracedBlock _ -> ()
-            | _ ->
-                _indent.Decrease()
-        | _ -> ()
-
-    
-    and before_braced_block_or_expr (it: Expr) : unit =
+    let rec before_braced_block_or_expr (it: Expr) : unit =
         match it with
         | Expr.BracedBlock _ ->
             ()
@@ -113,39 +71,15 @@ type CoolRenderer private () =
             _indent.Increase()
             _sb_cool.AppendLine().Append(_indent).Nop()
    
+
     and after_braced_block_or_expr (it: Expr) : unit =
         match it with
         | Expr.BracedBlock _ -> ()
         | _                  -> _indent.Decrease()
     
     
-    // Dispatch
-    // Implicit `this` dispatch
-    // Super dispatch
-     and EnterSuperDispatch(_: Node<ID>, _: Node<Expr>[]) : unit =
-        _sb_cool.Append("super.").Nop()
-    
-    
-    // Object creation
-     and EnterObjectCreation(_: Node<TYPE_NAME>, _: Node<Expr>[]) : unit =
-        _sb_cool.Append("new ") |> ignore
-
-    
-    // Bool negation
-     and EnterBoolNegation(_: Node<Expr>) : unit =
-        _sb_cool.Append("!") |> ignore
-    
-    
-    // Parenthesized expr
-     and EnterParensExpr(_:Node<Expr>) : unit =
-        _sb_cool.Append("(") |> ignore
-    
-     and LeaveParensExpr(_:Node<Expr>) : unit =
-        _sb_cool.Append(")") |> ignore
-
-    
     // Actuals
-     and walk_actual (actual: Expr, index: int): unit =
+    and walk_actual (actual: Expr, index: int): unit =
         if index > 0
         then
             _sb_cool.Append(", ").Nop()
@@ -153,7 +87,7 @@ type CoolRenderer private () =
         walk_expr actual
 
 
-     and walk_actuals (actuals: Node<Expr> []): unit =
+    and walk_actuals (actuals: Node<Expr> []): unit =
         _sb_cool.Append("(").Nop()
         actuals |> Array.iteri (fun i it -> walk_actual (it.Value, i))
         _sb_cool.Append(")").Nop()
@@ -161,7 +95,7 @@ type CoolRenderer private () =
 
     // Expressions
     // Block
-     and walk_var_decl (var_decl_info: VarDeclInfo): unit =
+    and walk_var_decl (var_decl_info: VarDeclInfo): unit =
         _sb_cool
             .Append("var ")
             .Append(var_decl_info.ID.Value)
@@ -197,7 +131,8 @@ type CoolRenderer private () =
     
         // If it's the only expression in the block,
         // it's also the first.
-        // We don't want to ident the first expression/stmt of the block.
+        // We don't want to ident the first expression/stmt of the block
+        // as the caller already added an indent.
         if block_info.Stmts.Length > 0
         then
             _sb_cool.Append(_indent).Nop()
@@ -229,10 +164,10 @@ type CoolRenderer private () =
 
     and walk_block (block: CaseBlock) =
        match block with
-       | (CaseBlock.Implicit block_info) ->
-           walk_block_info (block_info)
-       | (CaseBlock.Braced block_info_opt) ->
-           walk_braced_block (block_info_opt)
+       | CaseBlock.Implicit block_info ->
+           walk_block_info block_info
+       | CaseBlock.Braced block_info_opt ->
+           walk_braced_block block_info_opt
 
 
     // Assign
@@ -248,7 +183,7 @@ type CoolRenderer private () =
         walk_expr condition.Value
         _sb_cool.Append(") ").Nop()
         
-        // enter 'then' branch
+        // Enter 'then' branch.
         before_braced_block_or_expr then_branch.Value
         walk_expr then_branch.Value
 
@@ -261,7 +196,7 @@ type CoolRenderer private () =
         
         _sb_cool.Append("else ").Nop()
         
-        // enter 'else' branch        
+        // Enter 'else' branch.        
         before_braced_block_or_expr else_branch.Value
         walk_expr else_branch.Value
         after_braced_block_or_expr else_branch.Value
@@ -324,13 +259,11 @@ type CoolRenderer private () =
 
 
     // Dispatch
-     and walk_dispatch (obj_expr: Node<Expr>, method_id: Node<ID>, actuals: Node<Expr> []): unit =
-        // EnterDispatch(obj_expr, method_id, actuals)
+    and walk_dispatch (obj_expr: Node<Expr>, method_id: Node<ID>, actuals: Node<Expr> []): unit =
         walk_expr obj_expr.Value
-        _sb_cool.Append(".").Nop()
-        _sb_cool.Append(method_id.Value).Nop()
+        _sb_cool.Append(".")
+                .Append(method_id.Value).Nop()
         walk_actuals (actuals)
-        // LeaveDispatch(obj_expr, method_id, actuals)
 
 
     // Implicit `this` dispatch
@@ -347,22 +280,20 @@ type CoolRenderer private () =
 
 
     // Object creation
-     and walk_object_creation (type_name: Node<TYPE_NAME>, actuals: Node<Expr> []): unit =
-        EnterObjectCreation(type_name, actuals)
-        _sb_cool.Append(type_name.Value).Nop()
+    and walk_object_creation (type_name: Node<TYPE_NAME>, actuals: Node<Expr> []): unit =
+        _sb_cool.Append("new ")
+                .Append(type_name.Value).Nop()
         walk_actuals (actuals)
-        // LeaveObjectCreation(type_name, actuals)
 
 
     // Bool negation
-     and walk_bool_negation (expr: Node<Expr>): unit =
-        EnterBoolNegation(expr)
+    and walk_bool_negation (expr: Node<Expr>): unit =
+        _sb_cool.Append("!").Nop()
         walk_expr expr.Value
-        // LeaveBoolNegation(expr)
 
 
     // Compare
-     and walk_comparison (left: Node<Expr>, op: CompareOp, right: Node<Expr>): unit =
+    and walk_comparison (left: Node<Expr>, op: CompareOp, right: Node<Expr>): unit =
         walk_expr left.Value
 
         (match op with
@@ -398,10 +329,10 @@ type CoolRenderer private () =
 
 
     // Parenthesized expr
-     and walk_parens_expr (expr: Node<Expr>): unit =
-        EnterParensExpr(expr)
+    and walk_parens_expr (expr: Node<Expr>): unit =
+        _sb_cool.Append("(").Nop()
         walk_expr expr.Value
-        LeaveParensExpr(expr)
+        _sb_cool.Append(")").Nop()
 
 
     // Classes
@@ -421,16 +352,16 @@ type CoolRenderer private () =
 
     // Method
     and walk_formal (formal: Formal, index: int): unit =
-        EnterFormal(formal, index)
-        _sb_cool.Append(formal.ID.Value).Nop()
-        _sb_cool.Append(": ").Nop()
-        _sb_cool.Append(formal.TYPE_NAME.Value).Nop()
+         _sb_cool.Append(if index > 0 then ", " else "")
+                 .Append(formal.ID.Value)
+                 .Append(": ")
+                 .Append(formal.TYPE_NAME.Value).Nop()
 
 
     and walk_formals (formals: Node<Formal> []): unit =
-        EnterFormals(formals)
+        _sb_cool.Append("(").Nop()
         formals |> Array.iteri (fun i it -> walk_formal(it.Value, i))
-        LeaveFormals(formals)
+        _sb_cool.Append(")").Nop()
 
 
     and walk_method (method_info: MethodInfo): unit =
@@ -471,22 +402,23 @@ type CoolRenderer private () =
 
     // Attribute
      and walk_attr (attr_info: AttrInfo): unit =
-        EnterAttr(attr_info)
-        _sb_cool.Append(attr_info.ID.Value).Nop()
-        _sb_cool.Append(": ").Nop()
-        _sb_cool.Append(attr_info.TYPE_NAME.Value).Nop()
+        _sb_cool
+            .Append(_indent)
+            .Append("var ")
+            .Append(attr_info.ID.Value)
+            .Append(": ")
+            .Append(attr_info.TYPE_NAME.Value).Nop()
 
-        let node_body = attr_info.AttrBody
-        EnterAttrBody(node_body.Value)
+        let attr_body = attr_info.AttrBody.Value
+        _sb_cool.Append(" = ").Nop()
         
-        match attr_info.AttrBody.Value with
+        match attr_body with
         | AttrBody.Expr expr ->
+            before_braced_block_or_expr expr
             walk_expr expr
+            after_braced_block_or_expr expr            
         | AttrBody.Native ->
             _sb_cool.Append("native").Nop()
-
-        LeaveAttrBody(node_body.Value)
-        // LeaveAttr(attr_info)
 
 
     // Class
