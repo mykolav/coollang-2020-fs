@@ -1,6 +1,6 @@
 class Main() {
   {
-     var io = new IO();
+     var io: IO = new IO();
      
      io.out_string("2 * 2 - 3 / 3 = "); io.out_int(2 * 2 - 3 / 3);
      io.out_string("2 + 2 * 3 - 3 = "); io.out_int(2 + 2 * 3 - 3);
