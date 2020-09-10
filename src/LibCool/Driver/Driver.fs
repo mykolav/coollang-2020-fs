@@ -33,6 +33,14 @@ type Driver private () =
         let source = Source(source_parts)
         let diagnostic_bag = DiagnosticBag()
 
+        let ret_code = Driver.DoCompile(source, diagnostic_bag)
+        Driver.RenderDiags(diagnostic_bag, source)
+        ret_code
+
+
+    static member DoCompile(source: Source, diagnostic_bag: DiagnosticBag): int =
+        
+
         // ERROR HANDLING:
         // 1) If any lexical errors, report and stop
         // 2) If any syntax errors, report and stop
@@ -53,7 +61,6 @@ type Driver private () =
     
         if diagnostic_bag.ErrorsCount <> 0
         then
-            Driver.RenderDiags(diagnostic_bag, source)
             -1
         else
             
@@ -63,12 +70,10 @@ type Driver private () =
         
         if diagnostic_bag.ErrorsCount <> 0
         then
-            Driver.RenderDiags(diagnostic_bag, source)
             -1
         else
 
         ast |> ignore
-        Driver.RenderDiags(diagnostic_bag, source)
         0
 
 
