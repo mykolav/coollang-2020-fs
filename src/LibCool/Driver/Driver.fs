@@ -56,8 +56,9 @@ type Driver private () =
         then
             // Parse
             let parser = Parser(tokens.ToArray(), diagnostic_bag)
-
-            parser.Parse() |> ignore
+            let ast = parser.Parse()
+            
+            ast |> ignore
         
         // DIAG: SemiExpected.cool(3,35): Error: ';' expected
         // DIAG: Build failed: Errors: 1. Warnings: 0

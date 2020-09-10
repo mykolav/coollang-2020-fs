@@ -10,37 +10,41 @@ open LibCool.DiagnosticParts
 
 [<RequireQualifiedAccess>]
 module private Prec =
-    let OfDot = 8uy
-    let OfExclaim = 7uy
-    let OfUnaryMinus = 7uy
-    let OfStar = 6uy
-    let OfSlash = 6uy
-    let OfPlus = 5uy
-    let OfMinus = 5uy
-    let OfEqualEqual = 4uy
-    let OfLessEqual = 3uy
-    let OfLess = 3uy
-    let OfMatch = 2uy
-    let OfIf = 1uy
-    let OfWhile = 1uy
-    let OfEqual = 0uy
+    let OfDot = 8y
+    let OfExclaim = 7y
+    let OfUnaryMinus = 7y
+    let OfStar = 6y
+    let OfSlash = 6y
+    let OfPlus = 5y
+    let OfMinus = 5y
+    let OfEqualEqual = 4y
+    let OfLessEqual = 3y
+    let OfLess = 3y
+    let OfGreaterEqual = 3y
+    let OfGreater = 3y
+    let OfMatch = 2y
+    let OfIf = 1y
+    let OfWhile = 1y
+    let OfEqual = 0y
     
     let Min = OfEqual
     let Max = OfDot
-    let Invalid = 255uy
+    let Empty = -1y
 
-    let Of: TokenKind -> byte = function
-        | TokenKind.LessEqual  -> OfLessEqual
-        | TokenKind.Less       -> OfLess
-        | TokenKind.EqualEqual -> OfEqualEqual
-        | TokenKind.Star       -> OfStar
-        | TokenKind.Slash      -> OfSlash
-        | TokenKind.Plus       -> OfPlus
-        | TokenKind.Minus      -> OfMinus
-        | TokenKind.KwMatch    -> OfMatch
-        | TokenKind.Dot        -> OfDot
+    let Of: TokenKind -> sbyte = function
+        | TokenKind.LessEqual    -> OfLessEqual
+        | TokenKind.Less         -> OfLess
+        | TokenKind.GreaterEqual -> OfGreaterEqual
+        | TokenKind.Greater      -> OfGreater
+        | TokenKind.EqualEqual   -> OfEqualEqual
+        | TokenKind.Star         -> OfStar
+        | TokenKind.Slash        -> OfSlash
+        | TokenKind.Plus         -> OfPlus
+        | TokenKind.Minus        -> OfMinus
+        | TokenKind.KwMatch      -> OfMatch
+        | TokenKind.Dot          -> OfDot
         // We've reached the end of the expr's postfix
-        | _                    -> Invalid
+        | _                    -> Empty
 
 
 type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
@@ -164,7 +168,12 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     //     | 'match' cases infixop_rhs?
     //     | '.' ID actuals infixop_rhs?
     //     ;
-    let rec expr (): ErrorOrOption<Node<Expr>> =
+    let rec expr (prec_threshold: sbyte): ErrorOrOption<Node<Expr>> =
+        let optional_infixop_rhs (atom: Node<Expr>): ErrorOrOption<Node<Expr>> =
+            match infixop_rhs prec_threshold atom with
+            | ValueSome it -> Ok (ValueSome it)
+            | ValueNone -> Error
+        
         let span_start = _token.Span.First
         
         let first_token = _token
@@ -176,12 +185,11 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             // 'ID = ' is an expression prefix.
             if try_eat TokenKind.Equal
             then
-                // 'ID =' can be followed by:
-                // - expressions starting with an expression prefix;
-                // - a primary expression;
-                // - a primary expression (infixop_rhs)+.
-                // In other words, by any expression.
-                let init_node_opt = required_expr ("An expression expected. When declaring a var," +
+                // 'ID =' can be followed by any expression.
+                // Everything to the right of '=' is treated as a "standalone" expression.
+                // I.e., we pass prec_threshold=Prec.Empty
+                let init_node_opt = required_expr (*prec_threshold=*)Prec.Empty
+                                                  ("An expression expected. When declaring a var," +
                                                    " '=' must be followed by an initializer expression")
                 if init_node_opt.IsNone
                 then
@@ -203,7 +211,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             //
             // "ID actuals" is a primary expression.
             // A primary expression cannot be followed by another primary expression,
-            // only by an infix op, i.e.: (infixop rhs)*
+            // only by an infix op, i.e.: (infixop_rhs)*
             if _token.Is(TokenKind.LParen)
             then
                 let actual_nodes_opt = actuals()
@@ -219,25 +227,25 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 let expr_dispatch_value = Expr.ImplicitThisDispatch (method_id=id_node, actuals=actual_nodes.Value)
                 
                 // The 'ID actuals' dispatch can be followed by any infix op except '='.
-                match infixop_rhs (Node.Of(expr_dispatch_value, expr_dispatch_span)) with
-                | ValueSome it -> Ok (ValueSome it)
-                | ValueNone -> Error
+                optional_infixop_rhs (Node.Of(expr_dispatch_value, expr_dispatch_span))
             else
 
             // "ID" is a primary expression.
             // A primary expression cannot be followed by another primary expression,
-            // only by an infix op, i.e.: (infixop rhs)*
-            match infixop_rhs (Node.Of(Expr.Id (ID first_token.Id), first_token.Span)) with
-            | ValueSome it -> Ok (ValueSome it)
-            | ValueNone -> Error
+            // only by an infix op, i.e.: (infixop_rhs)*
+            optional_infixop_rhs (Node.Of(Expr.Id (ID first_token.Id), first_token.Span))
         else
         
         //
-        // Prefix ops.
+        // Prefix ops (Atom modifiers).
         //     
         if try_eat TokenKind.Exclaim
         then
-            let expr_node_opt = required_expr "An expression expected. '!' must be followed by an expression"
+            // Exclaim applies boolean negation to the following:
+            // - atom (e.g.: ID) or
+            // - dispatch op (e.g.: receiver.method(...))
+            let expr_node_opt = required_expr ((*prec_threshold=*)Prec.OfExclaim + 1y)
+                                              "An expression expected. '!' must be followed by an expression"
             if expr_node_opt.IsNone
             then
                 Error
@@ -247,12 +255,19 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             
             let expr_bool_neg_span = Span.Of(span_start, expr_node.Span.Last)
             let expr_bool_neg_value = Expr.BoolNegation expr_node 
-            Ok (ValueSome (Node.Of(expr_bool_neg_value, expr_bool_neg_span)))
+            
+            // Boolean negation applied to an atom or subexpression
+            // can then be followed by an infix op, i.e.: (infixop_rhs)*
+            optional_infixop_rhs (Node.Of(expr_bool_neg_value, expr_bool_neg_span))
         else
             
         if try_eat TokenKind.Minus
         then
-            let expr_node_opt = required_expr "An expression expected. '-' must be followed by an expression"
+            // Here, minus applies arithmetical negation to the following:
+            // - atom (e.g.: ID) or
+            // - dispatch op (e.g.: receiver.method(...))
+            let expr_node_opt = required_expr ((*prec_threshold=*)Prec.OfUnaryMinus + 1y)
+                                              "An expression expected. '-' must be followed by an expression"
             if expr_node_opt.IsNone
             then
                 Error
@@ -262,7 +277,10 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             
             let expr_unary_minus_span = Span.Of(span_start, expr_node.Span.Last)
             let expr_unary_minus_value = Expr.UnaryMinus expr_node
-            Ok (ValueSome (Node.Of(expr_unary_minus_value, expr_unary_minus_span)))
+
+            // Arithmetical negation applied to an atom or subexpression
+            // can then be followed by an infix op, i.e.: (infixop_rhs)*
+            optional_infixop_rhs (Node.Of(expr_unary_minus_value, expr_unary_minus_span))
         else
             
         if try_eat TokenKind.KwIf
@@ -272,7 +290,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 Error
             else
 
-            let condition_opt = required_expr "An expression expected. 'if (' must be followed by a boolean expression"
+            let condition_opt = required_expr (*prec_threshold=*)Prec.Empty
+                                              "An expression expected. 'if (' must be followed by a boolean expression"
             if condition_opt.IsNone
             then
                 Error
@@ -283,7 +302,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 Error
             else
                 
-            let then_branch_opt = required_expr "An expression expected. A conditional expression must have a then branch"
+            let then_branch_opt = required_expr (*prec_threshold=*)Prec.Empty
+                                                "An expression expected. A conditional expression must have a then branch"
             if then_branch_opt.IsNone
             then
                 Error
@@ -294,7 +314,11 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 Error
             else
                 
-            let else_branch_opt = required_expr "An expression required. A conditional expression must have an else branch"
+            // Everything to the right of 'else' is treated as a "standalone" expression.
+            // I.e., we pass prec_threshold=Prec.Empty
+            let else_branch_opt = required_expr
+                                    (*prec_threshold=*)Prec.Empty
+                                    "An expression required. A conditional expression must have an else branch"
             if else_branch_opt.IsNone
             then
                 Error
@@ -314,7 +338,9 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 Error
             else
 
-            let condition_opt = required_expr "An expression expected. 'while (' must be followed by a boolean expression"
+            let condition_opt = required_expr
+                                    (*prec_threshold=*)Prec.Empty
+                                    "An expression expected. 'while (' must be followed by a boolean expression"
             if condition_opt.IsNone
             then
                 Error
@@ -325,7 +351,11 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 Error
             else
                 
-            let body_opt = required_expr "An expression expected. A while loop must have a body"
+            // The while's body is treated as a "standalone" expression.
+            // I.e., we pass prec_threshold=Prec.Empty
+            let body_opt = required_expr
+                               (*prec_threshold=*)Prec.Empty
+                               "An expression expected. A while loop must have a body"
             if body_opt.IsNone
             then
                 Error
@@ -340,7 +370,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         //
         // No prefix op specified
         //
-        // primary infixop*
+        // primary infixop_rhs*
         match primary() with
         | Error ->
             Error
@@ -349,10 +379,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             // So, we know, we encountered a syntax error here.
             // But the caller can report a more specific error message, so we return control to the caller.
             Ok ValueNone
-        | Ok (ValueSome primary_node) ->            
-            match infixop_rhs(primary_node) with
-            | ValueSome it -> Ok (ValueSome it)
-            | ValueNone -> Error
+        | Ok (ValueSome primary_node) ->
+            optional_infixop_rhs primary_node
         
     
     // A primary expression cannot be followed by another primary expression,
@@ -439,7 +467,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 Ok (ValueSome (Node.Of(Expr.Unit, expr_unit_span)))
             else
                 
-            let expr_node_opt = required_expr "A parenthesized expression expected"
+            let expr_node_opt = required_expr ((*prec_threshold=*)Prec.Empty)
+                                              "A parenthesized expression expected"
             if expr_node_opt.IsNone
             then
                 Error
@@ -507,102 +536,108 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     //     | 'match' cases infixop_rhs?
     //     | '.' ID actuals infixop_rhs?
     //     ;
-    and infixop_rhs (lhs: Node<Expr>): Node<Expr> voption =
+    and infixop_rhs (prec_threshold: sbyte) (atom: Node<Expr>): Node<Expr> voption =
         let span_start = _token.Span.First
         
-        let token_op = _token
-        if try_eat_when (_token.Is(TokenKind.LessEqual) || _token.Is(TokenKind.Less) ||
-                         _token.Is(TokenKind.GreaterEqual) || _token.Is(TokenKind.Greater) ||
-                         _token.Is(TokenKind.EqualEqual) ||
-                         _token.Is(TokenKind.Star) || _token.Is(TokenKind.Slash) ||
-                         _token.Is(TokenKind.Plus) || _token.Is(TokenKind.Minus))
-        then
-            let rhs_opt = required_expr (sprintf "An expression expected. '%s' must be followed by an expression"
-                                                 token_op.InfixOpSpelling)
-            if rhs_opt.IsNone
+        let mutable have_errors = false
+        let mutable lhs = atom
+
+        let mutable infixop_expected = true
+        
+        while infixop_expected && Prec.Of(_token.Kind) >= prec_threshold do
+        
+            let token_op = _token
+            if try_eat_when (_token.Is(TokenKind.LessEqual) || _token.Is(TokenKind.Less) ||
+                             _token.Is(TokenKind.GreaterEqual) || _token.Is(TokenKind.Greater) ||
+                             _token.Is(TokenKind.EqualEqual) ||
+                             _token.Is(TokenKind.Star) || _token.Is(TokenKind.Slash) ||
+                             _token.Is(TokenKind.Plus) || _token.Is(TokenKind.Minus))
             then
-                ValueNone
+                let rhs_opt = required_expr ((*prec_threshold=*)Prec.Of(token_op.Kind) + 1y)
+                                            (sprintf "An expression expected. '%s' must be followed by an expression"
+                                                     token_op.InfixOpSpelling)
+                if rhs_opt.IsNone
+                then
+                    have_errors <- true
+                else
+
+                let rhs = rhs_opt.Value
+                let expr_span = Span.Of(span_start, rhs.Span.Last)
+                
+                let expr_value =                
+                    match token_op.Kind with
+                    | TokenKind.LessEqual    -> Expr.LtEq (left=lhs, right=rhs)
+                    | TokenKind.Less         -> Expr.Lt (left=lhs, right=rhs)
+                    | TokenKind.GreaterEqual -> Expr.GtEq (left=lhs, right=rhs)
+                    | TokenKind.Greater      -> Expr.Gt (left=lhs, right=rhs)
+                    | TokenKind.EqualEqual   -> Expr.EqEq (left=lhs, right=rhs)
+                    | TokenKind.Star         -> Expr.Mul (left=lhs, right=rhs)
+                    | TokenKind.Slash        -> Expr.Div (left=lhs, right=rhs)
+                    | TokenKind.Plus         -> Expr.Sum (left=lhs, right=rhs)
+                    | TokenKind.Minus        -> Expr.Sub (left=lhs, right=rhs)
+                    | _                      -> invalidOp "Unreachable"
+                        
+                lhs <- Node.Of(expr_value, expr_span)
             else
 
-            let rhs_opt = infixop_rhs (*lhs=*)rhs_opt.Value
-            if rhs_opt.IsNone
+            // 'match' cases infixop_rhs?
+            if try_eat TokenKind.KwMatch
             then
-                ValueNone
-            else
+                let case_nodes_opt = cases()
+                if case_nodes_opt.IsNone
+                then
+                    have_errors <- true
+                else
+                
+                let case_nodes = case_nodes_opt.Value
+                if case_nodes.Value.Length = 0
+                then
+                    _diags.Error("A match expression must contain at least one case",
+                                 Span.Of(span_start, _token.Span.First))
+                    have_errors <- true
+                else
 
-            let rhs = rhs_opt.Value
-            let expr_span = Span.Of(span_start, rhs.Span.Last)
-            
-            let expr_value =                
-                match token_op.Kind with
-                | TokenKind.LessEqual    -> Expr.LtEq (left=lhs, right=rhs)
-                | TokenKind.Less         -> Expr.Lt (left=lhs, right=rhs)
-                | TokenKind.GreaterEqual -> Expr.GtEq (left=lhs, right=rhs)
-                | TokenKind.Greater      -> Expr.Gt (left=lhs, right=rhs)
-                | TokenKind.EqualEqual   -> Expr.EqEq (left=lhs, right=rhs)
-                | TokenKind.Star         -> Expr.Mul (left=lhs, right=rhs)
-                | TokenKind.Slash        -> Expr.Div (left=lhs, right=rhs)
-                | TokenKind.Plus         -> Expr.Sum (left=lhs, right=rhs)
-                | TokenKind.Minus        -> Expr.Sub (left=lhs, right=rhs)
-                | _                      -> invalidOp "Unreachable"
-                    
-            ValueSome (Node.Of(expr_value, expr_span))
-        else
-
-        // 'match' cases infixop_rhs?
-        if try_eat TokenKind.KwMatch
-        then
-            let case_nodes_opt = cases()
-            if case_nodes_opt.IsNone
-            then
-                ValueNone
-            else
-            
-            let case_nodes = case_nodes_opt.Value
-            if case_nodes.Value.Length = 0
-            then
-                _diags.Error("A match expression must contain at least one case",
-                             Span.Of(span_start, _token.Span.First))
-                ValueNone
-            else
-
-            let expr_match_span = Span.Of(span_start, case_nodes.Span.Last)
-            let expr_match_value = Expr.Match (expr=lhs,
-                                               cases_hd=case_nodes.Value.[0],
-                                               cases_tl=case_nodes.Value.[1..])
-            
-            let expr_match_node = Node.Of(expr_match_value, expr_match_span)
-            infixop_rhs (*lhs=*)expr_match_node
-        else
-            
-        // '.' ID actuals infixop_rhs?
-        if try_eat TokenKind.Dot
-        then
-            let token_id = _token
-            if not (eat_when _token.IsId ("An identifier expected. '.' must be followed by a method name" +
-                                          _token.KwDescription))
-            then
-                ValueNone
+                let expr_match_span = Span.Of(span_start, case_nodes.Span.Last)
+                let expr_match_value = Expr.Match (expr=lhs,
+                                                   cases_hd=case_nodes.Value.[0],
+                                                   cases_tl=case_nodes.Value.[1..])
+                
+                lhs <- Node.Of(expr_match_value, expr_match_span)
             else
                 
-            let actual_nodes_opt = actuals()
-            if actual_nodes_opt.IsNone
+            // '.' ID actuals infixop_rhs?
+            if try_eat TokenKind.Dot
             then
-                ValueNone
+                let token_id = _token
+                if not (eat_when _token.IsId ("An identifier expected. '.' must be followed by a method name" +
+                                              _token.KwDescription))
+                then
+                    have_errors <- true
+                else
+                    
+                let actual_nodes_opt = actuals()
+                if actual_nodes_opt.IsNone
+                then
+                    have_errors <- true
+                else
+                
+                let actual_nodes = actual_nodes_opt.Value
+                
+                let expr_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
+                let expr_dispatch_value = Expr.Dispatch (receiver=lhs,
+                                                         method_id=Node.Of(ID token_id.Id, token_id.Span),
+                                                         actuals=actual_nodes.Value)
+               
+                lhs <- Node.Of(expr_dispatch_value, expr_dispatch_span) 
             else
             
-            let actual_nodes = actual_nodes_opt.Value
-            
-            let expr_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
-            let expr_dispatch_value = Expr.Dispatch (receiver=lhs,
-                                                     method_id=Node.Of(ID token_id.Id, token_id.Span),
-                                                     actuals=actual_nodes.Value)
-           
-            let expr_dispatch_node = Node.Of(expr_dispatch_value, expr_dispatch_span) 
-            infixop_rhs (*lhs=*)expr_dispatch_node
+            infixop_expected <- false
+
+        if have_errors
+        then
+            ValueNone
         else
-        
-        ValueSome lhs
+            ValueSome lhs
 
             
     // cases
@@ -766,8 +801,9 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         ValueSome (Node.Of(caseblock_value, caseblock_span))
     
     
-    and required_expr (expr_required_error_message: string): Node<Expr> voption =
-        let expr_node_result = expr()
+    and required_expr (prec_threshold: sbyte)
+                      (expr_required_error_message: string): Node<Expr> voption =
+        let expr_node_result = expr prec_threshold
         if expr_node_result.IsError
         then
             ValueNone
@@ -815,7 +851,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 ValueNone
             else
                 
-            let expr_node_opt = expr()
+            let expr_node_opt = expr (*prec_threshold=*)Prec.Empty
             if expr_node_opt.IsNone
             then
                 ValueNone
@@ -832,7 +868,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueSome (Node.Of(Stmt.VarDecl vardecl_value, vardecl_span))
         else
             
-        let expr_node_result = expr()
+        let expr_node_result = expr (*prec_threshold=*)Prec.Empty
         if expr_node_result.IsError
         then
             ValueNone
@@ -991,7 +1027,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         
         
     and actual (): Node<Expr> voption =
-        required_expr "An expression expected. Actuals must be an expression"
+        required_expr ((*prec_threshold=*)Prec.Empty)
+                      "An expression expected. Actuals must be an expression"
     
     
     and actuals (): Node<Node<Expr>[]> voption =
@@ -1142,7 +1179,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
             
-        let expr_node_opt = expr()
+        let expr_node_opt = expr (*prec_threshold=*)Prec.Empty
         if expr_node_opt.IsNone
         then
             ValueNone
@@ -1197,7 +1234,7 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
             
-        let expr_node_opt = expr()
+        let expr_node_opt = expr (*prec_threshold=*)Prec.Empty
         if expr_node_opt.IsNone
         then
             ValueNone
