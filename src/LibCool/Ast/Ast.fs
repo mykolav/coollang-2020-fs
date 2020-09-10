@@ -8,7 +8,7 @@ open LibCool.SourceParts
 
 [<IsReadOnly; Struct>]
 type Node<'TValue> =
-    { Key: Guid
+    { (*Key: Guid*)
       Span: Span
       Value: 'TValue }
     with
@@ -22,7 +22,7 @@ type Node private () =
 
 
     static member Of<'TValue>(value: 'TValue, span: Span): Node<'TValue> =
-        { Key = Guid.NewGuid()
+        { (*Key = Guid.NewGuid()*)
           Span = span
           Value = value }
 

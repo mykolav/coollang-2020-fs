@@ -8,6 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="Support\Indent.fs" />
+        <Compile Include="Support\StringBuilderExtensions.fs" />
+        <Compile Include="Support\AstRenderer.fs" />
         <Compile Include="Support\AssertFail.fs" />
         <Compile Include="Support\Mismatch.fs" />
         <Compile Include="Support\AssertStringSeq.fs" />
@@ -26,6 +29,7 @@
         <Compile Include="Compiler\CompilerTestCase.fs" />
         <Compile Include="Compiler\AssertCompilerOutput.fs" />
         <Compile Include="Compiler\CompilerTests.fs" />
+        <Compile Include="Compiler\Sandbox.fs" />
         <Compile Include="Program.fs" />
         <Content Include="CoolPrograms\Valid\QuickSort.cool" />
         <Content Include="CoolPrograms\Valid\InsertionSort.cool" />

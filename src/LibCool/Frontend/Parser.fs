@@ -188,9 +188,9 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 // 'ID =' can be followed by any expression.
                 // Everything to the right of '=' is treated as a "standalone" expression.
                 // I.e., we pass prec_threshold=Prec.Empty
-                let init_node_opt = required_expr (*prec_threshold=*)Prec.Empty
-                                                  ("An expression expected. When declaring a var," +
-                                                   " '=' must be followed by an initializer expression")
+                let init_node_opt = required_expr
+                                        (*prec_threshold=*)Prec.Empty
+                                        "An expression expected. '=' must be followed by an expression"
                 if init_node_opt.IsNone
                 then
                     Error
@@ -851,7 +851,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
                 ValueNone
             else
                 
-            let expr_node_opt = expr (*prec_threshold=*)Prec.Empty
+            let expr_node_opt = required_expr (*prec_threshold=*)Prec.Empty
+                                              "An expression expected. Variables must be initialized"
             if expr_node_opt.IsNone
             then
                 ValueNone
@@ -1234,7 +1235,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
             
-        let expr_node_opt = expr (*prec_threshold=*)Prec.Empty
+        let expr_node_opt = required_expr (*prec_threshold=*)Prec.Empty
+                                          "An expression expected. Attributes must be initialized"
         if expr_node_opt.IsNone
         then
             ValueNone

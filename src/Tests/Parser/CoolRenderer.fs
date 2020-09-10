@@ -1,15 +1,9 @@
 namespace Tests.Parser
 
 
-open System
-open System.Runtime.CompilerServices
 open System.Text
 open LibCool.Ast
-
-
-[<Extension>]
-type StringBuilderExtensions private () =
-    [<Extension>] static member Nop(_: StringBuilder): unit = ()
+open Tests.Support
 
 
 [<RequireQualifiedAccess>]
@@ -29,32 +23,6 @@ type ArithOp =
     | Sum
     | Sub
     
-
-[<Sealed>]
-type private Indent(?width: int) =
-    let _width = defaultArg width 2
-    let mutable _level = 0
-    
-    let mk_value () = String(' ', count = _level * _width)
-    let mutable _value = mk_value ()
-    
-    
-    member this.Increase() =
-        _level <- _level + 1
-        _value <- mk_value ()
-        
-    
-    member this.Decrease() =
-        if _level = 0
-        then
-            invalidOp "An indent's level cannot go less than 0"
-            
-        _level <- _level - 1
-        _value <- mk_value ()
-       
-    
-    override this.ToString() = _value
-
 
 [<Sealed>]
 type CoolRenderer private () =
