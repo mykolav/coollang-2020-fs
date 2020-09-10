@@ -9,8 +9,14 @@ open LibCool.Frontend
 open LibCool.SourceParts
 
 
+type IWriteLine =
+    abstract member WriteLine: format:string * [<ParamArray>] args:obj[] -> unit
+
+
 [<Sealed>]
 type Driver private () =
+    
+    
     static member Compile(args: seq<string>): int =
         
         let arg_array = Array.ofSeq args
@@ -34,7 +40,11 @@ type Driver private () =
         let diagnostic_bag = DiagnosticBag()
 
         let ret_code = Driver.DoCompile(source, diagnostic_bag)
-        Driver.RenderDiags(diagnostic_bag, source)
+        Driver.RenderDiags(diagnostic_bag,
+                           source,
+                           { new IWriteLine with
+                               member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
+                                   Console.WriteLine(format, args)})
         ret_code
 
 
@@ -77,14 +87,14 @@ type Driver private () =
         0
 
 
-    static member RenderDiags(diagnostic_bag: DiagnosticBag, source: Source): unit =
+    static member RenderDiags(diagnostic_bag: DiagnosticBag, source: Source, writer: IWriteLine): unit =
         // DIAG: SemiExpected.cool(3,35): Error: ';' expected
         // DIAG: Build failed: Errors: 1. Warnings: 0
         // DIAG: Build succeeded: Errors: 0. Warnings: 0
         
         for diag in diagnostic_bag.ToReadOnlyList() do
             let { FileName = file_name; Line = line; Col = col } = source.Map(diag.Span.First)
-            Console.WriteLine(
+            writer.WriteLine(
                 "{0}({1},{2}): {3}: {4}",
                 file_name,
                 line,
@@ -94,7 +104,7 @@ type Driver private () =
 
         if diagnostic_bag.ErrorsCount = 0
         then
-            Console.WriteLine("Build succeeded: Errors: 0. Warnings: {0}", diagnostic_bag.WarningsCount)
+            writer.WriteLine("Build succeeded: Errors: 0. Warnings: {0}", diagnostic_bag.WarningsCount)
         else
-            Console.WriteLine("Build failed: Errors: {0}. Warnings: {1}", diagnostic_bag.ErrorsCount,
+            writer.WriteLine("Build failed: Errors: {0}. Warnings: {1}", diagnostic_bag.ErrorsCount,
                                                                           diagnostic_bag.WarningsCount)
