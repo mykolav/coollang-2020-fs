@@ -13,17 +13,18 @@ open LibCool.SourceParts
 type Driver private () =
     static member Compile(args: seq<string>): int =
         
+        let arg_array = Array.ofSeq args
+
         let source_parts = List<SourcePart>()
         
-        let mutable minus_o_seen = false
+        let mutable source_file_expected = true
         let mutable i = 0
         
-        let arg_array = Array.ofSeq args
-        while not minus_o_seen && i < arg_array.Length do
+        while source_file_expected && i < arg_array.Length do
             let arg = arg_array.[i]
-            if (arg = "-o")
+            if arg = "-o"
             then
-                minus_o_seen <- true
+                source_file_expected <- false
             else
                 
             source_parts.Add({ FileName = arg; Content = File.ReadAllText(arg) })
@@ -42,24 +43,36 @@ type Driver private () =
 
         // Lex
         let lexer = Lexer(source, diagnostic_bag)
-
         let tokens = List<Token>()
 
-        let mutable token = lexer.GetNext()
-        tokens.Add(token)
-            
-        while token.Kind <> TokenKind.EOF do
-            token <- lexer.GetNext()
+        let mutable token_expected = true            
+        while token_expected do
+            let token = lexer.GetNext()
             tokens.Add(token)
+            token_expected <- not token.IsEof
     
-        if diagnostic_bag.ErrorsCount = 0
+        if diagnostic_bag.ErrorsCount <> 0
         then
-            // Parse
-            let parser = Parser(tokens.ToArray(), diagnostic_bag)
-            let ast = parser.Parse()
+            Driver.RenderDiags(diagnostic_bag, source)
+            -1
+        else
             
-            ast |> ignore
+        // Parse
+        let parser = Parser(tokens.ToArray(), diagnostic_bag)
+        let ast = parser.Parse()
         
+        if diagnostic_bag.ErrorsCount <> 0
+        then
+            Driver.RenderDiags(diagnostic_bag, source)
+            -1
+        else
+
+        ast |> ignore
+        Driver.RenderDiags(diagnostic_bag, source)
+        0
+
+
+    static member RenderDiags(diagnostic_bag: DiagnosticBag, source: Source): unit =
         // DIAG: SemiExpected.cool(3,35): Error: ';' expected
         // DIAG: Build failed: Errors: 1. Warnings: 0
         // DIAG: Build succeeded: Errors: 0. Warnings: 0
@@ -80,6 +93,3 @@ type Driver private () =
         else
             Console.WriteLine("Build failed: Errors: {0}. Warnings: {1}", diagnostic_bag.ErrorsCount,
                                                                           diagnostic_bag.WarningsCount)
-
-        0
-
