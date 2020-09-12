@@ -1422,14 +1422,9 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Node.Of(class_decl_nodes.ToArray(), class_decls_span)
         
         
-    and ast (): Ast =
-        let span_start = _token.Span.First
-        
+    and ast (): Program =
         let class_decl_nodes = class_decls()
-        let span = Span.Of((*first=*)span_start,
-                           (*last=*)class_decl_nodes.Span.Last)
-        
-        { Program = Node.Of({ Program.ClassDecls = class_decl_nodes.Value }, span) }
+        { Program.ClassDecls = class_decl_nodes.Value }
 
     
     member this.DelimitedList<'T>(element: unit -> Node<'T> voption,
@@ -1510,7 +1505,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         ValueSome (Node.Of(element_nodes, list_span))
 
 
-    member private _.Parse() : Ast =
+    member private _.Parse() : Program =
         ast()
         
         

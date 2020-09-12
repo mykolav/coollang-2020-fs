@@ -46,7 +46,68 @@ type CoolRenderer private () =
         | _                  -> _indent.Decrease()
     
     
-    // Actuals
+    and walk_expr (expr: Expr): unit =
+        match expr with
+        | Expr.Assign(left, right) ->
+            walk_assign (left, right)
+        | Expr.BoolNegation negated_expr ->
+            walk_bool_negation (negated_expr)
+        | Expr.UnaryMinus expr ->
+            walk_unary_minus (expr)
+        | Expr.If(condition, then_branch, else_branch) ->
+            walk_if (condition, then_branch, else_branch)
+        | Expr.While(condition, body) ->
+            walk_while (condition, body)
+        | Expr.LtEq(left, right) ->
+            walk_comparison (left, CompareOp.LtEq, right)
+        | Expr.GtEq(left, right) ->
+            walk_comparison (left, CompareOp.GtEq, right)
+        | Expr.Lt(left, right) ->
+            walk_comparison (left, CompareOp.Lt, right)
+        | Expr.Gt(left, right) ->
+            walk_comparison (left, CompareOp.Gt, right)
+        | Expr.EqEq(left, right) ->
+            walk_comparison (left, CompareOp.EqEq, right)
+        | Expr.NotEq(left, right) ->
+            walk_comparison (left, CompareOp.NotEq, right)
+        | Expr.Mul(left, right) ->
+            walk_arith (left, ArithOp.Mul, right)
+        | Expr.Div(left, right) ->
+            walk_arith (left, ArithOp.Div, right)
+        | Expr.Sum(left, right) ->
+            walk_arith (left, ArithOp.Sum, right)
+        | Expr.Sub(left, right) ->
+            walk_arith (left, ArithOp.Sub, right)
+        | Expr.Match(expr, cases_hd, cases_tl) ->
+            walk_match (expr, cases_hd, cases_tl)
+        | Expr.Dispatch(obj_expr, method_id, actuals) ->
+            walk_dispatch (obj_expr, method_id, actuals)
+        | Expr.ImplicitThisDispatch(method_id, actuals) ->
+            walk_implicit_this_dispatch (method_id, actuals)
+        | Expr.SuperDispatch(method_id, actuals) ->
+            walk_super_dispatch (method_id, actuals)
+        | Expr.New(class_name, actuals) ->
+            walk_object_creation (class_name, actuals)
+        | Expr.BracedBlock block_info_opt ->
+            walk_braced_block block_info_opt
+        | Expr.ParensExpr node_expr ->
+            walk_parens_expr node_expr
+        | Expr.Id value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.Int value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.Str value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.Bool value ->
+            _sb_cool.Append(value).Nop()
+        | Expr.This ->
+            _sb_cool.Append("this").Nop()
+        | Expr.Null ->
+            _sb_cool.Append("null").Nop()
+        | Expr.Unit ->
+            _sb_cool.Append("()").Nop()
+
+    
     and walk_actual (actual: Expr, index: int): unit =
         if index > 0
         then
@@ -443,89 +504,20 @@ type CoolRenderer private () =
         walk_features klass.ClassBody
 
 
-    // Program
     and walk_program (program: Program): unit =
         program.ClassDecls
         |> Array.iter (fun it -> walk_class it.Value
                                  _sb_cool.AppendLine().AppendLine().Nop())
 
 
-    // Ast
-    and walk_ast (ast: Ast): unit =
-        walk_program ast.Program.Value
-
-
-    // This function has to be declared as a member to support mutually recursive calls
-    and walk_expr (expr: Expr): unit =
-        match expr with
-        | Expr.Assign(left, right) ->
-            walk_assign (left, right)
-        | Expr.BoolNegation negated_expr ->
-            walk_bool_negation (negated_expr)
-        | Expr.UnaryMinus expr ->
-            walk_unary_minus (expr)
-        | Expr.If(condition, then_branch, else_branch) ->
-            walk_if (condition, then_branch, else_branch)
-        | Expr.While(condition, body) ->
-            walk_while (condition, body)
-        | Expr.LtEq(left, right) ->
-            walk_comparison (left, CompareOp.LtEq, right)
-        | Expr.GtEq(left, right) ->
-            walk_comparison (left, CompareOp.GtEq, right)
-        | Expr.Lt(left, right) ->
-            walk_comparison (left, CompareOp.Lt, right)
-        | Expr.Gt(left, right) ->
-            walk_comparison (left, CompareOp.Gt, right)
-        | Expr.EqEq(left, right) ->
-            walk_comparison (left, CompareOp.EqEq, right)
-        | Expr.NotEq(left, right) ->
-            walk_comparison (left, CompareOp.NotEq, right)
-        | Expr.Mul(left, right) ->
-            walk_arith (left, ArithOp.Mul, right)
-        | Expr.Div(left, right) ->
-            walk_arith (left, ArithOp.Div, right)
-        | Expr.Sum(left, right) ->
-            walk_arith (left, ArithOp.Sum, right)
-        | Expr.Sub(left, right) ->
-            walk_arith (left, ArithOp.Sub, right)
-        | Expr.Match(expr, cases_hd, cases_tl) ->
-            walk_match (expr, cases_hd, cases_tl)
-        | Expr.Dispatch(obj_expr, method_id, actuals) ->
-            walk_dispatch (obj_expr, method_id, actuals)
-        // Primary expressions
-        | Expr.ImplicitThisDispatch(method_id, actuals) ->
-            walk_implicit_this_dispatch (method_id, actuals)
-        | Expr.SuperDispatch(method_id, actuals) ->
-            walk_super_dispatch (method_id, actuals)
-        | Expr.New(class_name, actuals) ->
-            walk_object_creation (class_name, actuals)
-        | Expr.BracedBlock block_info_opt ->
-            walk_braced_block block_info_opt
-        | Expr.ParensExpr node_expr ->
-            walk_parens_expr node_expr
-        | Expr.Id value ->
-            _sb_cool.Append(value).Nop()
-        | Expr.Int value ->
-            _sb_cool.Append(value).Nop()
-        | Expr.Str value ->
-            _sb_cool.Append(value).Nop()
-        | Expr.Bool value ->
-            _sb_cool.Append(value).Nop()
-        | Expr.This ->
-            _sb_cool.Append("this").Nop()
-        | Expr.Null ->
-            _sb_cool.Append("null").Nop()
-        | Expr.Unit ->
-            _sb_cool.Append("()").Nop()
-
-    
-    member private this.Render(ast: Ast): unit = walk_ast (ast)
+    member private this.Render(ast: Program): unit =
+        walk_program ast
 
     
     override this.ToString() = _sb_cool.ToString()
 
 
-    static member Render(ast: Ast) =
+    static member Render(ast: Program) =
         let renderer = CoolRenderer()
         renderer.Render(ast)
         renderer.ToString()

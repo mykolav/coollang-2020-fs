@@ -34,10 +34,6 @@ module rec Ast =
                     value = value)
 
 
-    type Ast =
-        { Program: Node<Program> }
-
-
     type Program =
         { ClassDecls: Node<ClassDecl>[] }
 

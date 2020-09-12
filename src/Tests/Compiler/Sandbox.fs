@@ -2,9 +2,8 @@ namespace Tests.Compiler
 
 
 open System
-open System.Collections.Generic
 open System.IO
-open LibCool.AstParts.Ast
+open LibCool.AstParts
 open LibCool.DiagnosticParts
 open LibCool.Driver
 open LibCool.Frontend
@@ -17,7 +16,7 @@ open Xunit.Abstractions
 type Sandbox(_test_output: ITestOutputHelper) =
     
     
-    let parse (path: string): Ast voption =
+    let parse (path: string): Ast.Program voption =
         // Prepare
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
         let tc = CompilerTestCase.ReadFrom(path)

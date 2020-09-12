@@ -581,18 +581,14 @@ type AstRenderer private () =
         end_line_with "}"
 
 
-    // Ast
-    and walk_ast (ast: Ast): unit =
-        walk_program ast.Program.Value
-
-    
-    member private this.Render(ast: Ast): unit = walk_ast (ast)
+    member private this.Render(ast: Program): unit =
+        walk_program ast
 
     
     override this.ToString() = _sb_ast.ToString()
 
 
-    static member Render(ast: Ast) =
+    static member Render(ast: Program) =
         let renderer = AstRenderer()
         renderer.Render(ast)
         renderer.ToString()
