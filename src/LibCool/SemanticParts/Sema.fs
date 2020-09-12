@@ -21,12 +21,13 @@ module Sema =
 
     type MethodInfo =
         { Name: Ast.ID
-          ReturnType: Ast.TYPE_NAME
           Params: ParamInfo[]
+          ReturnType: Ast.TYPE_NAME
+          Override: bool
           Index: int }
 
 
     type ClassInfo =
-        { Name: string
-          Attributes: Map<string, AttrInfo>
-          Methods: Map<string, MethodInfo> }
+        { Name: Ast.TYPE_NAME
+          Attributes: Map<Ast.ID, AttrInfo>
+          Methods: Map<Ast.ID, MethodInfo> }
