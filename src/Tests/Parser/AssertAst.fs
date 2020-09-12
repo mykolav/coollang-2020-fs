@@ -1,6 +1,6 @@
 namespace Tests.Parser
 
-open LibCool.Ast
+open LibCool.AstParts.Ast
 
 [<RequireQualifiedAccess>]
 type AssertAst() =

@@ -4,7 +4,7 @@ namespace rec LibCool.Frontend
 open System.Collections.Generic
 open System.Linq
 open LibCool.SourceParts
-open LibCool.Ast
+open LibCool.AstParts.Ast
 open LibCool.DiagnosticParts
 
 

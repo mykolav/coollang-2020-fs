@@ -2,7 +2,7 @@ namespace Tests.Parser
 
 
 open System.Text
-open LibCool.Ast
+open LibCool.AstParts.Ast
 open Tests.Support
 
 

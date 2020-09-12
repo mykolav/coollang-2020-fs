@@ -4,7 +4,7 @@ namespace Tests.Compiler
 open System
 open System.Collections.Generic
 open System.IO
-open LibCool.Ast
+open LibCool.AstParts.Ast
 open LibCool.DiagnosticParts
 open LibCool.Driver
 open LibCool.Frontend

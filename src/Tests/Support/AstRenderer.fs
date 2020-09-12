@@ -2,7 +2,7 @@ namespace Tests.Parser
 
 
 open System.Text
-open LibCool.Ast
+open LibCool.AstParts.Ast
 open Tests.Support
 
 
@@ -139,7 +139,7 @@ type AstRenderer private () =
         begin_with "[ "
         
         block_info.Stmts
-        |> Array.iteri (fun i it ->
+        |> Array.iter (fun it ->
             match it.Value with
             | Stmt.VarDecl var_decl_info -> walk_var_decl var_decl_info
             | Stmt.Expr expr -> walk_stmt_expr expr
@@ -253,7 +253,7 @@ type AstRenderer private () =
         begin_with "["
        
         walk_match_case cases_hd.Value;
-        cases_tl |> Array.iteri (fun i it ->
+        cases_tl |> Array.iter (fun it ->
             end_line_with ","
             walk_match_case it.Value
         )
