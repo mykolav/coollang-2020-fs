@@ -6,12 +6,11 @@
 
 [CoolAid: The Cool 2020 Reference Manual](http://pabst.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)
 
-> This manual describes the programming language Cool: the Classroom Object-Oriented Language. Cool
-is a small language that can be implemented in a one semester course. Still, Cool retains many of
+> Cool 2020 is a subset of Scala; ...  
+
+> ... the Classroom Object-Oriented Language ... retains many of
 the features of modern programming languages including objects, static typing, and automatic memory
 management...  
-
-> Cool 2020 is a subset of Scala; ...  
 
 > Cool programs are sets of classes. A class encapsulates the variables and procedures of a data type.
 Instances of a class are objects. In Cool, classes and types are identified; i.e., every class defines a type.
