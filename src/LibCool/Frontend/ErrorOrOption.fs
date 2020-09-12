@@ -26,7 +26,7 @@ type ErrorOrOption<'TValue>
     member this.Option: 'TValue voption =
         match this with
         | Ok value_option -> value_option
-        | _ -> invalidOp "ErrorOrOption.Value"
+        | _ -> invalidOp "ErrorOrOption.Option"
         
     
     member this.Value: 'TValue =
