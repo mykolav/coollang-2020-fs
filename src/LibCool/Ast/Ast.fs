@@ -1,7 +1,6 @@
 namespace rec LibCool.Ast
 
 
-open System
 open System.Runtime.CompilerServices
 open LibCool.SourceParts
 
@@ -58,8 +57,11 @@ type STRING =
     | STRING of value: string * is_qqq: bool
     member this.Value = let (STRING (value, _)) = this in value
     member this.IsQqq = let (STRING (_, is_qqq)) = this in is_qqq
-    override this.ToString() = let quote = if this.IsQqq then "\"\"\"" else "\""
-                               quote + this.Value + quote
+    member this.ToString(escape_quotes: bool) =
+        let quote = if this.IsQqq then "\"\"\"" else "\""
+        let quote = if escape_quotes then quote.Replace("\"", "\\\"") else quote
+        quote + this.Value + quote
+    override this.ToString() = this.ToString(escape_quotes=false)
 
 
 [<RequireQualifiedAccess>]
