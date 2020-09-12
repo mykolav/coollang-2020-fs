@@ -13,8 +13,9 @@
         <Compile Include="Frontend\ErrorOrOption.fs" />
         <Compile Include="Frontend\TokenParts.fs" />
         <Compile Include="Frontend\Lexer.fs" />
+        <Compile Include="Frontend\TokenArray.fs" />
         <Compile Include="Frontend\Parser.fs" />
-        <Compile Include="Frontend\SemanticAnalyzer.fs" />
+        <Compile Include="Frontend\SemanticStage.fs" />
         <Compile Include="Driver\Driver.fs" />
     </ItemGroup>
 

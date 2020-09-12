@@ -44,10 +44,10 @@ module private Prec =
         | TokenKind.KwMatch      -> OfMatch
         | TokenKind.Dot          -> OfDot
         // We've reached the end of the expr's postfix
-        | _                    -> Empty
+        | _                      -> Empty
 
 
-type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
+type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
 
     
     let mutable _offset = 0
@@ -112,29 +112,20 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
             eat_token()
 
     
-    // To parse expressions we effectively use the recursive productions below.
-    // The recursive productions are in contrast with the iterative productions,
-    // defined in the grammar file, e.g.:
+    // To parse expressions we effectively use the productions below.
+    // They are somewhat different from the grammar's productions, e.g.:
     // ```
     // expr
     // : prefix* primary infixop_and_rhs*
     // ;
     // ```
     //
-    // The reason is, it's trivial to implement, if we can create partially initialized Ast nodes
-    // and later mutate them. E.g., in pseudocode:
+    // The reason is, the grammar's productions force us to use partially initialized Ast nodes.
+    // So to keep our Ast types immutable, we use the productions below.
+    // (Is there a way to use the grammar's productions and keep Ast types immutable at the same time?
+    //  I didn't come up with one in a reasonable amount of time...)
+    //
     // ```
-    // let assign = Assign (id=..., expr=NULL)
-    // ...
-    // assign.expr <- prefix()
-    // ```
-    //
-    // As we use immutable data structures to represent Ast,
-    // it's not immediately obvious how to go about implementing the iterative productions.
-    //
-    // So we resort to the "recursive" productions,
-    // as they make working with the immutable Ast data structures possible.
-    //
     // expr
     //     // Assign
     //     : ID '=' expr
@@ -143,8 +134,8 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     //     | ID infixop_rhs?
     //     | ID actuals infixop_rhs?
     //     // Prefix ops
-    //     | '!' expr
-    //     | '-' expr
+    //     | '!' expr infixop_rhs?
+    //     | '-' expr infixop_rhs?
     //     | 'if' '(' expr ')' expr 'else' expr
     //     | 'while' '(' expr ')' expr
     //     | primary infixop_rhs?
@@ -164,10 +155,11 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
     //     ;
     // 
     // infixop_rhs
-    //     : ('<=' | '<' | '>=' | '>' | '==' | '*' | '/' | '+' | '-') expr infixop_rhs?
-    //     | 'match' cases infixop_rhs?
-    //     | '.' ID actuals infixop_rhs?
+    //     : ('<=' | '<' | '>=' | '>' | '==' | '*' | '/' | '+' | '-') expr infixop_rhs*
+    //     | 'match' cases infixop_rhs*
+    //     | '.' ID actuals infixop_rhs*
     //     ;
+    // ```
     let rec expr (prec_threshold: sbyte): ErrorOrOption<Node<Expr>> =
         let optional_infixop_rhs (atom: Node<Expr>): ErrorOrOption<Node<Expr>> =
             match infixop_rhs prec_threshold atom with
@@ -1518,5 +1510,11 @@ type Parser(_tokens: Token[], _diags: DiagnosticBag) as this =
         ValueSome (Node.Of(element_nodes, list_span))
 
 
-    member _.Parse() : Ast =
+    member private _.Parse() : Ast =
         ast()
+        
+        
+    static member Parse(tokens: Token[], diags: DiagnosticBag) =
+        let parser = Parser(tokens, diags)
+        let ast = parser.Parse()
+        ast

@@ -15,7 +15,6 @@
         <Compile Include="Support\Mismatch.fs" />
         <Compile Include="Support\AssertStringSeq.fs" />
         <Compile Include="Support\Snippet.fs" />
-        <Compile Include="Support\TokenArray.fs" />
         <Compile Include="SourceTests.fs" />
         <Compile Include="Lexer\TokenFactory.fs" />
         <Compile Include="Lexer\AssertTokens.fs" />

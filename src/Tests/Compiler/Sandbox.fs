@@ -27,15 +27,9 @@ type Sandbox(_test_output: ITestOutputHelper) =
 
         // Lex
         let do_parse () =
-            let tokens = List<Token>()
 
             let lexer = Lexer(source, diagnostic_bag)
-            let mutable token = lexer.GetNext()
-            tokens.Add(token)
-                
-            while token.Kind <> TokenKind.EOF do
-                token <- lexer.GetNext()
-                tokens.Add(token)
+            let tokens = TokenArray.ofLexer lexer
 
             // Parse
             if diagnostic_bag.ErrorsCount <> 0
@@ -43,8 +37,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
                 ValueNone
             else
 
-            let parser = Parser(tokens.ToArray(), diagnostic_bag)
-            let ast = parser.Parse()
+            let ast = Parser.Parse(tokens, diagnostic_bag)
                 
             if diagnostic_bag.ErrorsCount <> 0
             then
@@ -66,6 +59,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
     [<Fact>]
     member _.PrintAst() =
         let ast = parse "Valid/ArithExprPrecedence.cool"
+        //let ast = parse "Valid/IfElseExprPrecedence.cool"
         let rendered = AstRenderer.Render(ast.Value)
         _test_output.WriteLine(rendered)
     

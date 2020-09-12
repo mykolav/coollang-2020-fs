@@ -61,13 +61,7 @@ type Driver private () =
 
         // Lex
         let lexer = Lexer(source, diagnostic_bag)
-        let tokens = List<Token>()
-
-        let mutable token_expected = true            
-        while token_expected do
-            let token = lexer.GetNext()
-            tokens.Add(token)
-            token_expected <- not token.IsEof
+        let tokens = TokenArray.ofLexer lexer
     
         if diagnostic_bag.ErrorsCount <> 0
         then
@@ -75,15 +69,15 @@ type Driver private () =
         else
             
         // Parse
-        let parser = Parser(tokens.ToArray(), diagnostic_bag)
-        let ast = parser.Parse()
+        let ast = Parser.Parse(tokens, diagnostic_bag)
         
         if diagnostic_bag.ErrorsCount <> 0
         then
             -1
         else
 
-        ast |> ignore
+        let asm = SemanticStage.Translate(ast, diagnostic_bag)
+        asm |> ignore
         0
 
 

@@ -6,10 +6,21 @@ open System
 
 [<Sealed>]
 type Indent(?width: int) =
+    
+    
     let _width = defaultArg width 2
     let mutable _level = 0
     
-    let mk_value () = String(' ', count = _level * _width)
+    
+    let mk_value () =
+        let count = _level * _width
+        if count = 0
+        then
+            ""
+        else
+            String(' ', count = _level * _width)
+            
+            
     let mutable _value = mk_value ()
     
     

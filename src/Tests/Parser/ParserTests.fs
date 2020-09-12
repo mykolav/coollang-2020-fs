@@ -42,10 +42,9 @@ type ParserTests() =
         let diagnostic_bag = DiagnosticBag()
 
         let lexer = Lexer(source, diagnostic_bag)
-        let parser = Parser(TokenArray.ofLexer lexer, diagnostic_bag)
 
         // Act
-        let ast = parser.Parse()
+        let ast = Parser.Parse(TokenArray.ofLexer lexer, diagnostic_bag)
         let diags = diagnostic_bag.ToReadOnlyList()
         let rendered = if diags.Count = 0 then CoolRenderer.Render(ast) else ""
         
