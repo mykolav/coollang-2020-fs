@@ -61,11 +61,36 @@ module rec Ast =
           TYPE_NAME: Node<TYPE_NAME> }
 
 
-    [<RequireQualifiedAccess>]
+    [<RequireQualifiedAccess; DefaultAugmentation(false)>]
     type Feature =
         | Method of MethodInfo
         | Attr of AttrInfo
-        | BracedBlock of Node<BlockInfo voption>
+        | BracedBlock of BlockInfo voption
+        with
+        member this.IsMethod: bool =
+            match this with
+            | Method _ -> true
+            | _        -> false
+        member this.MethodInfo: MethodInfo =
+            match this with
+            | Method it -> it 
+            | _         -> invalidOp "Feature.MethodInfo"
+        member this.IsAttr: bool =
+            match this with
+            | Attr _ -> true
+            | _      -> false
+        member this.AttrInfo: AttrInfo =
+            match this with
+            | Attr it -> it
+            | _       -> invalidOp "Feature.AttrInfo"
+        member this.IsBracedBlock: bool =
+            match this with
+            | BracedBlock _ -> true
+            | _             -> false
+        member this.BlockInfo: BlockInfo voption =
+            match this with
+            | BracedBlock it -> it 
+            | _              -> invalidOp "Feature.BracedInfo"
 
 
     type MethodInfo =
@@ -140,7 +165,7 @@ module rec Ast =
         | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
         | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []
         | New of type_name: Node<TYPE_NAME> * actuals: Node<Expr> []
-        | BracedBlock of Node<BlockInfo voption>
+        | BracedBlock of BlockInfo voption
         | ParensExpr of Node<Expr>
         | Id of ID
         | Int of INT
@@ -159,7 +184,7 @@ module rec Ast =
     [<RequireQualifiedAccess>]
     type CaseBlock =
         | Implicit of BlockInfo
-        | Braced of Node<BlockInfo voption>
+        | Braced of BlockInfo voption
 
 
     [<RequireQualifiedAccess>]

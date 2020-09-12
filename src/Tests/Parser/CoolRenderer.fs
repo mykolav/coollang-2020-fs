@@ -170,13 +170,12 @@ type CoolRenderer private () =
         _sb_cool.AppendLine().Nop()
 
 
-    // Braced block
-     and walk_braced_block (block_node: Node<BlockInfo voption>): unit =
+     and walk_braced_block (block_info: BlockInfo voption): unit =
         _sb_cool.Append("{").Nop()
         _indent.Increase()
 
         let indent = 
-            match block_node.Value with
+            match block_info with
             | ValueSome block_info ->
                 _sb_cool.AppendLine().Append(_indent).Nop()
                 walk_block_info block_info

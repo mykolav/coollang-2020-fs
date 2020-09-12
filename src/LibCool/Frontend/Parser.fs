@@ -445,7 +445,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let block_node = block_node_opt.Value
-            Ok (ValueSome (Node.Of(Expr.BracedBlock block_node, block_node.Span)))
+            Ok (ValueSome (Node.Of(Expr.BracedBlock block_node.Value, block_node.Span)))
         else
             
         // '(' expr ')'
@@ -768,7 +768,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let braced_block = braced_block_opt.Value
-            ValueSome (Node.Of(CaseBlock.Braced braced_block, braced_block.Span))
+            ValueSome (Node.Of(CaseBlock.Braced braced_block.Value, braced_block.Span))
         else
         
         let span_start = _token.Span.First
@@ -1278,7 +1278,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let block_node = block_node_opt.Value
-            ValueSome (Node.Of(Feature.BracedBlock block_node, block_node.Span))
+            ValueSome (Node.Of(Feature.BracedBlock block_node.Value, block_node.Span))
         else
             
         _diags.Error(

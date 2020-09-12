@@ -158,8 +158,8 @@ type AstRenderer private () =
 
 
     // Braced block
-    and walk_braced_block (block_node: Node<BlockInfo voption>): unit =
-        match block_node.Value with
+    and walk_braced_block (block_info: BlockInfo voption): unit =
+        match block_info with
         | ValueSome block_info ->
             walk_block_info block_info
         | ValueNone ->
