@@ -428,7 +428,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
             
             let actual_nodes = actual_nodes_opt.Value
-            let type_name_node = Node.Of(TYPE_NAME token_id.Id, token_id.Span)
+            let type_name_node = Node.Of(TYPENAME token_id.Id, token_id.Span)
             
             let expr_new_span = Span.Of(span_start, actual_nodes.Span.Last)
             let expr_new_value = Expr.New (type_name=type_name_node, actuals=actual_nodes.Value)
@@ -740,7 +740,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             
             let pattern_span = Span.Of(span_start, token_type.Span.Last)
             let pattern_value = Pattern.IdType (id=Node.Of(ID first_token.Id, first_token.Span),
-                                                pattern_type=Node.Of(TYPE_NAME token_type.Id, token_type.Span))
+                                                pattern_type=Node.Of(TYPENAME token_type.Id, token_type.Span))
             
             ValueSome (Node.Of(pattern_value, pattern_span))
         else
@@ -761,14 +761,13 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     and caseblock (): Node<CaseBlock> voption =
         if _token.Is(TokenKind.LBrace)
         then
-            let braced_block_opt = braced_block()
-            if braced_block_opt.IsNone
+            let braced_block_node_opt = braced_block()
+            if braced_block_node_opt.IsNone
             then
                 ValueNone
             else
                 
-            let braced_block = braced_block_opt.Value
-            ValueSome (Node.Of(CaseBlock.Braced braced_block.Value, braced_block.Span))
+            ValueSome (braced_block_node_opt.Value.Map(fun it -> CaseBlock.BracedBlock it))
         else
         
         let span_start = _token.Span.First
@@ -855,7 +854,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let vardecl_span = Span.Of(span_start, expr_node.Span.Last)
             let vardecl_value: VarDeclInfo =
                 { ID = Node.Of(ID token_id.Id, token_id.Span)
-                  TYPE_NAME = Node.Of(TYPE_NAME token_type.Id, token_type.Span)
+                  TYPE_NAME = Node.Of(TYPENAME token_type.Id, token_type.Span)
                   Expr = expr_node }
             
             ValueSome (Node.Of(Stmt.VarDecl vardecl_value, vardecl_span))
@@ -877,7 +876,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         ValueSome (expr_node_result.Value.Map(fun it -> Stmt.Expr it))
 
 
-    and block_info (terminators: seq<TokenKind>): ErrorOrOption<Node<BlockInfo>> =
+    and block_info (terminators: seq<TokenKind>): ErrorOrOption<Node<Block>> =
         let ts_set = Set.ofSeq terminators
         
         let recover (): unit =
@@ -913,13 +912,13 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             Error
         | Stmt.Expr expr ->
             let block_info_span = Span.Of(span_start, last_stmt.Span.Last)
-            let block_info_value: BlockInfo = { Stmts = stmts
-                                                Expr = Node.Of(expr, last_stmt.Span) }
+            let block_info_value: Block = { Stmts = stmts
+                                            Expr = Node.Of(expr, last_stmt.Span) }
             
             Ok (ValueSome (Node.Of(block_info_value, block_info_span)))
 
     
-    and braced_block (): Node<BlockInfo voption> voption =
+    and braced_block (): Node<Block voption> voption =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.LBrace
@@ -990,12 +989,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
 
         let id_node = Node.Of(ID token_id.Id, token_id.Span)
-        let type_node = Node.Of(TYPE_NAME token_type.Id, token_type.Span)
+        let type_node = Node.Of(TYPENAME token_type.Id, token_type.Span)
         
         let varformal_span = Span.Of(span_start, type_node.Span.Last)
         let varformal_value =
             { VarFormal.ID = id_node
-              TYPE_NAME = type_node }
+              TYPE = type_node }
             
         ValueSome (Node.Of(varformal_value, varformal_span))
     
@@ -1072,7 +1071,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let actual_nodes = actual_nodes_opt.Value
         let extends_span = Span.Of(span_start, actual_nodes.Span.Last)
         let extends_info: ExtendsInfo =
-            { PARENT_NAME = Node.Of(TYPE_NAME token_id.Id, token_id.Span)
+            { SUPER = Node.Of(TYPENAME token_id.Id, token_id.Span)
               Actuals = actual_nodes.Value }
               
         Ok (ValueSome (Node.Of(Extends.Info extends_info, extends_span)))
@@ -1104,12 +1103,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
         
         let id_node = Node.Of(ID token_id.Id, token_id.Span)
-        let type_node = Node.Of(TYPE_NAME token_type.Id, token_type.Span)
+        let type_node = Node.Of(TYPENAME token_type.Id, token_type.Span)
         
         let formal_span = Span.Of(span_start, type_node.Span.Last)
         let formal_value =
             { Formal.ID = id_node
-              TYPE_NAME = type_node }
+              TYPE = type_node }
         
         ValueSome (Node.Of(formal_value, formal_span))
     
@@ -1185,8 +1184,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             { Override = is_override
               ID = Node.Of(ID token_id.Id, token_id.Span)
               Formals = formal_nodes_opt.Value.Value
-              TYPE_NAME =  Node.Of(TYPE_NAME token_type.Id, token_type.Span)
-              MethodBody = expr_node.Map(fun it -> MethodBody.Expr it) }
+              RETURN =  Node.Of(TYPENAME token_type.Id, token_type.Span)
+              Body = expr_node.Map(fun it -> MethodBody.Expr it) }
         
         ValueSome (Node.Of(Feature.Method method_info_value, method_info_span))
         
@@ -1239,8 +1238,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let attribute_span = Span.Of(span_start, expr_node.Span.Last)
         let attribute_value: AttrInfo =
             { ID = Node.Of(ID token_id.Id, token_id.Span)
-              TYPE_NAME = Node.Of(TYPE_NAME token_type.Id, token_type.Span)
-              AttrBody = expr_node.Map(fun it -> AttrBody.Expr it) }
+              TYPE = Node.Of(TYPENAME token_type.Id, token_type.Span)
+              Initial = expr_node.Map(fun it -> AttrInitial.Expr it) }
         
         ValueSome (Node.Of(Feature.Attr attribute_value, attribute_span))
         
@@ -1390,7 +1389,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         // classbody() eats '}'        
             
         let feature_nodes = feature_nodes_opt.Value
-        let name_node = Node.Of(TYPE_NAME token_id.Id, token_id.Span)
+        let name_node = Node.Of(TYPENAME token_id.Id, token_id.Span)
         
         let class_decl_span = Span.Of(span_start, feature_nodes.Span.Last)
         let class_decl_value =

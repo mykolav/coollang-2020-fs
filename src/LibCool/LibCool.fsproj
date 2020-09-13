@@ -10,13 +10,12 @@
         <Compile Include="DiagnosticParts\DiagnosticParts.fs" />
         <Compile Include="DiagnosticParts\DiagnosticBag.fs" />
         <Compile Include="AstParts\Ast.fs" />
-        <Compile Include="SemanticParts\Sema.fs" />
         <Compile Include="Frontend\ErrorOrOption.fs" />
         <Compile Include="Frontend\TokenParts.fs" />
         <Compile Include="Frontend\Lexer.fs" />
         <Compile Include="Frontend\TokenArray.fs" />
         <Compile Include="Frontend\Parser.fs" />
-        <Compile Include="Frontend\SemanticStage.fs" />
+        <Compile Include="Frontend\SemanticParts\SemanticStage.fs" />
         <Compile Include="Driver\Driver.fs" />
     </ItemGroup>
 

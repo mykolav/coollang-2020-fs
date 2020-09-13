@@ -5,8 +5,9 @@ open System
 open System.Collections.Generic
 open System.IO
 open LibCool.DiagnosticParts
-open LibCool.Frontend
 open LibCool.SourceParts
+open LibCool.Frontend
+open LibCool.Frontend.SemanticParts
 
 
 type IWriteLine =
@@ -37,10 +38,10 @@ type Driver private () =
             i <- i + 1
             
         let source = Source(source_parts)
-        let diagnostic_bag = DiagnosticBag()
+        let diags = DiagnosticBag()
 
-        let ret_code = Driver.DoCompile(source, diagnostic_bag)
-        Driver.RenderDiags(diagnostic_bag,
+        let ret_code = Driver.DoCompile(source, diags)
+        Driver.RenderDiags(diags,
                            source,
                            { new IWriteLine with
                                member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
@@ -48,7 +49,7 @@ type Driver private () =
         ret_code
 
 
-    static member DoCompile(source: Source, diagnostic_bag: DiagnosticBag): int =
+    static member DoCompile(source: Source, diags: DiagnosticBag): int =
         
 
         // ERROR HANDLING:
@@ -60,23 +61,28 @@ type Driver private () =
         //    ...
 
         // Lex
-        let lexer = Lexer(source, diagnostic_bag)
+        let lexer = Lexer(source, diags)
         let tokens = TokenArray.ofLexer lexer
     
-        if diagnostic_bag.ErrorsCount <> 0
+        if diags.ErrorsCount <> 0
         then
             -1
         else
             
         // Parse
-        let ast = Parser.Parse(tokens, diagnostic_bag)
+        let ast = Parser.Parse(tokens, diags)
         
-        if diagnostic_bag.ErrorsCount <> 0
+        if diags.ErrorsCount <> 0
         then
             -1
         else
 
-        let asm = SemanticStage.Translate(ast, diagnostic_bag)
+        let asm = SemanticStage.Translate(ast, diags, source)
+        if diags.ErrorsCount <> 0
+        then
+            -1
+        else
+
         asm |> ignore
         0
 
@@ -87,12 +93,10 @@ type Driver private () =
         // DIAG: Build succeeded: Errors: 0. Warnings: 0
         
         for diag in diagnostic_bag.ToReadOnlyList() do
-            let { FileName = file_name; Line = line; Col = col } = source.Map(diag.Span.First)
+            let location = source.Map(diag.Span.First)
             writer.WriteLine(
-                "{0}({1},{2}): {3}: {4}",
-                file_name,
-                line,
-                col,
+                "{0}: {1}: {2}",
+                location,
                 (diag.Severity.ToString().Replace("Severity.", "")),
                 diag.Message)
 

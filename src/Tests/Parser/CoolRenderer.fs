@@ -145,7 +145,7 @@ type CoolRenderer private () =
                 .AppendLine().Nop()
 
 
-     and walk_block_info (block_info: BlockInfo): unit =
+     and walk_block_info (block_info: Block): unit =
         block_info.Stmts
         |> Array.iteri (fun i it ->
             if i > 0
@@ -170,7 +170,7 @@ type CoolRenderer private () =
         _sb_cool.AppendLine().Nop()
 
 
-     and walk_braced_block (block_info: BlockInfo voption): unit =
+     and walk_braced_block (block_info: Block voption): unit =
         _sb_cool.Append("{").Nop()
         _indent.Increase()
 
@@ -194,7 +194,7 @@ type CoolRenderer private () =
        match block with
        | CaseBlock.Implicit block_info ->
            walk_block_info block_info
-       | CaseBlock.Braced block_info_opt ->
+       | CaseBlock.BracedBlock block_info_opt ->
            walk_braced_block block_info_opt
 
 
@@ -308,7 +308,7 @@ type CoolRenderer private () =
 
 
     // Object creation
-    and walk_object_creation (type_name: Node<TYPE_NAME>, actuals: Node<Expr> []): unit =
+    and walk_object_creation (type_name: Node<TYPENAME>, actuals: Node<Expr> []): unit =
         _sb_cool.Append("new ")
                 .Append(type_name.Value).Nop()
         walk_actuals (actuals)
@@ -369,7 +369,7 @@ type CoolRenderer private () =
                 .Append("var ")
                 .Append(var_formal.ID.Value)
                 .Append(": ")
-                .Append(var_formal.TYPE_NAME.Value).Nop()
+                .Append(var_formal.TYPE.Value).Nop()
 
 
     and walk_var_formals (var_formals: Node<VarFormal> []): unit =
@@ -383,7 +383,7 @@ type CoolRenderer private () =
          _sb_cool.Append(if index > 0 then ", " else "")
                  .Append(formal.ID.Value)
                  .Append(": ")
-                 .Append(formal.TYPE_NAME.Value).Nop()
+                 .Append(formal.TYPE.Value).Nop()
 
 
     and walk_formals (formals: Node<Formal> []): unit =
@@ -401,11 +401,11 @@ type CoolRenderer private () =
         walk_formals method_info.Formals
         
         _sb_cool.Append(": ")
-                .Append(method_info.TYPE_NAME.Value)
+                .Append(method_info.RETURN.Value)
                 .Append(" = ")
                 .Nop()
         
-        let method_body = method_info.MethodBody.Value
+        let method_body = method_info.Body.Value
         
         match method_body with
         | MethodBody.Expr expr ->
@@ -435,17 +435,17 @@ type CoolRenderer private () =
             .Append("var ")
             .Append(attr_info.ID.Value)
             .Append(": ")
-            .Append(attr_info.TYPE_NAME.Value).Nop()
+            .Append(attr_info.TYPE.Value).Nop()
 
-        let attr_body = attr_info.AttrBody.Value
+        let attr_body = attr_info.Initial.Value
         _sb_cool.Append(" = ").Nop()
         
         match attr_body with
-        | AttrBody.Expr expr ->
+        | AttrInitial.Expr expr ->
             before_braced_block_or_expr expr
             walk_expr expr
             after_braced_block_or_expr expr            
-        | AttrBody.Native ->
+        | AttrInitial.Native ->
             _sb_cool.Append("native").Nop()
 
 
@@ -455,7 +455,7 @@ type CoolRenderer private () =
 
         match extends with
         | Extends.Info extends_info ->
-            _sb_cool.Append(extends_info.PARENT_NAME.Value).Nop()
+            _sb_cool.Append(extends_info.SUPER.Value).Nop()
             walk_actuals (extends_info.Actuals)
         | Extends.Native ->
             _sb_cool.Append("native").Nop()

@@ -2,5 +2,5 @@ class A() {}
 class A() {} 
 class Main() {}
 
-// DIAG: ProgramAlreadyContainsADefinition1.cool(1,7): Error: The program already contains a definition for 'A'
+// DIAG: Semantics/ProgramAlreadyContainsADefinition1.cool(2,7): Error: The program already contains a class 'A' at Semantics/ProgramAlreadyContainsADefinition1.cool(1,7)
 // DIAG: Build failed: Errors: 1. Warnings: 0

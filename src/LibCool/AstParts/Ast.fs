@@ -10,8 +10,7 @@ module rec Ast =
 
     [<IsReadOnly; Struct>]
     type Node<'TValue> =
-        { (*Key: Guid*)
-          Span: Span
+        { Span: Span
           Value: 'TValue }
         with
         member this.Map<'TMapped>(mapping: 'TValue -> 'TMapped): Node<'TMapped> =
@@ -24,8 +23,7 @@ module rec Ast =
 
 
         static member Of<'TValue>(value: 'TValue, span: Span): Node<'TValue> =
-            { (*Key = Guid.NewGuid()*)
-              Span = span
+            { Span = span
               Value = value }
 
 
@@ -39,7 +37,7 @@ module rec Ast =
 
 
     type ClassDecl =
-        { NAME: Node<TYPE_NAME>
+        { NAME: Node<TYPENAME>
           VarFormals: Node<VarFormal>[]
           Extends: Node<Extends> voption
           ClassBody: Node<Feature>[] }
@@ -52,53 +50,28 @@ module rec Ast =
 
 
     type ExtendsInfo =
-        { PARENT_NAME: Node<TYPE_NAME>
+        { SUPER: Node<TYPENAME>
           Actuals: Node<Expr> [] }
 
 
     type VarFormal =
         { ID: Node<ID>
-          TYPE_NAME: Node<TYPE_NAME> }
+          TYPE: Node<TYPENAME> }
 
 
     [<RequireQualifiedAccess; DefaultAugmentation(false)>]
     type Feature =
         | Method of MethodInfo
         | Attr of AttrInfo
-        | BracedBlock of BlockInfo voption
-        with
-        member this.IsMethod: bool =
-            match this with
-            | Method _ -> true
-            | _        -> false
-        member this.MethodInfo: MethodInfo =
-            match this with
-            | Method it -> it 
-            | _         -> invalidOp "Feature.MethodInfo"
-        member this.IsAttr: bool =
-            match this with
-            | Attr _ -> true
-            | _      -> false
-        member this.AttrInfo: AttrInfo =
-            match this with
-            | Attr it -> it
-            | _       -> invalidOp "Feature.AttrInfo"
-        member this.IsBracedBlock: bool =
-            match this with
-            | BracedBlock _ -> true
-            | _             -> false
-        member this.BlockInfo: BlockInfo voption =
-            match this with
-            | BracedBlock it -> it 
-            | _              -> invalidOp "Feature.BracedInfo"
+        | BracedBlock of Block voption
 
 
     type MethodInfo =
         { Override: bool
           ID: Node<ID>
           Formals: Node<Formal> []
-          TYPE_NAME: Node<TYPE_NAME>
-          MethodBody: Node<MethodBody> }
+          RETURN: Node<TYPENAME>
+          Body: Node<MethodBody> }
 
 
     [<RequireQualifiedAccess>]
@@ -109,23 +82,23 @@ module rec Ast =
 
     type Formal =
         { ID: Node<ID>
-          TYPE_NAME: Node<TYPE_NAME> }
+          TYPE: Node<TYPENAME> }
 
 
     [<RequireQualifiedAccess>]
     type AttrInfo =
         { ID: Node<ID>
-          TYPE_NAME: Node<TYPE_NAME>
-          AttrBody: Node<AttrBody> }
+          TYPE: Node<TYPENAME>
+          Initial: Node<AttrInitial> }
 
 
     [<RequireQualifiedAccess>]
-    type AttrBody =
+    type AttrInitial =
         | Expr of Expr
         | Native
 
 
-    type BlockInfo =
+    type Block =
         { Stmts: Node<Stmt> []
           Expr: Node<Expr> }
 
@@ -138,7 +111,7 @@ module rec Ast =
 
     type VarDeclInfo =
         { ID: Node<ID>
-          TYPE_NAME: Node<TYPE_NAME>
+          TYPE_NAME: Node<TYPENAME>
           Expr: Node<Expr> }
 
 
@@ -164,8 +137,8 @@ module rec Ast =
         // Primary
         | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
         | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []
-        | New of type_name: Node<TYPE_NAME> * actuals: Node<Expr> []
-        | BracedBlock of BlockInfo voption
+        | New of type_name: Node<TYPENAME> * actuals: Node<Expr> []
+        | BracedBlock of Block voption
         | ParensExpr of Node<Expr>
         | Id of ID
         | Int of INT
@@ -183,13 +156,13 @@ module rec Ast =
 
     [<RequireQualifiedAccess>]
     type CaseBlock =
-        | Implicit of BlockInfo
-        | Braced of BlockInfo voption
+        | Implicit of Block
+        | BracedBlock of Block voption
 
 
     [<RequireQualifiedAccess>]
     type Pattern =
-        | IdType of id:Node<ID> * pattern_type:Node<TYPE_NAME>
+        | IdType of id:Node<ID> * pattern_type:Node<TYPENAME>
         | Null
 
 
@@ -199,9 +172,9 @@ module rec Ast =
         override this.ToString() = this.Value
 
 
-    type TYPE_NAME =
-        | TYPE_NAME of value: string
-        member this.Value = let (TYPE_NAME value) = this in value
+    type TYPENAME =
+        | TYPENAME of value: string
+        member this.Value = let (TYPENAME value) = this in value
         override this.ToString() = this.Value
 
 

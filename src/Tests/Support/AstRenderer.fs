@@ -135,7 +135,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-     and walk_block_info (block_info: BlockInfo): unit =
+     and walk_block_info (block_info: Block): unit =
         begin_with "[ "
         
         block_info.Stmts
@@ -158,7 +158,7 @@ type AstRenderer private () =
 
 
     // Braced block
-    and walk_braced_block (block_info: BlockInfo voption): unit =
+    and walk_braced_block (block_info: Block voption): unit =
         match block_info with
         | ValueSome block_info ->
             walk_block_info block_info
@@ -174,7 +174,7 @@ type AstRenderer private () =
             end_line_with "\"kind\": \"implicit\", "
             text "\"statements\": "
             walk_block_info block_info; end_line()
-        | CaseBlock.Braced block_info_opt ->
+        | CaseBlock.BracedBlock block_info_opt ->
             end_line_with "\"kind\": \"braced\", "
             text "\"statements\": "
             walk_braced_block block_info_opt; end_line()
@@ -338,7 +338,7 @@ type AstRenderer private () =
 
 
     // Object creation
-    and walk_object_creation (type_name: Node<TYPE_NAME>, actuals: Node<Expr> []): unit =
+    and walk_object_creation (type_name: Node<TYPENAME>, actuals: Node<Expr> []): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"new\", "
@@ -424,7 +424,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with (sprintf "\"name\": \"%s\", " var_formal.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\"" var_formal.TYPE_NAME.Value.Value)
+        end_line_with (sprintf "\"type\": \"%s\"" var_formal.TYPE.Value.Value)
 
         end_with "}"
 
@@ -447,7 +447,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with (sprintf "\"name\": \"%s\", " formal.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\"" formal.TYPE_NAME.Value.Value)
+        end_line_with (sprintf "\"type\": \"%s\"" formal.TYPE.Value.Value)
         
         end_with "}"
 
@@ -467,14 +467,14 @@ type AstRenderer private () =
         
         end_line_with "\"kind\": \"method\", "
         end_line_with (sprintf "\"name\": \"%s\", " method_info.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " method_info.TYPE_NAME.Value.Value)
+        end_line_with (sprintf "\"type\": \"%s\", " method_info.RETURN.Value.Value)
         end_line_with (sprintf "\"overriden\": %b, " method_info.Override)
         
         end_line_with "\"formals\": "
         walk_formals method_info.Formals; end_line_with ", "
         
         text "\"body\": "
-        match method_info.MethodBody.Value with
+        match method_info.Body.Value with
         | MethodBody.Expr expr ->
             walk_expr expr
         | MethodBody.Native ->
@@ -489,13 +489,13 @@ type AstRenderer private () =
            
         end_line_with "\"kind\": \"attribute\", " 
         end_line_with (sprintf "\"name\": \"%s\", " attr_info.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " attr_info.TYPE_NAME.Value.Value)
+        end_line_with (sprintf "\"type\": \"%s\", " attr_info.TYPE.Value.Value)
 
         text "\"value\": "
-        match attr_info.AttrBody.Value with
-        | AttrBody.Expr expr ->
+        match attr_info.Initial.Value with
+        | AttrInitial.Expr expr ->
             walk_expr expr
-        | AttrBody.Native ->
+        | AttrInitial.Native ->
             end_line_with ("\"native\"")
         end_line()
         
@@ -506,7 +506,7 @@ type AstRenderer private () =
         match extends with
         | ValueSome (Extends.Info extends_info) ->
             begin_with "{"
-            end_line_with (sprintf "\"type\": \"%s\", " extends_info.PARENT_NAME.Value.Value)
+            end_line_with (sprintf "\"type\": \"%s\", " extends_info.SUPER.Value.Value)
             text "\"actuals\": "
             walk_actuals (extends_info.Actuals); end_line()
             end_with "}"
