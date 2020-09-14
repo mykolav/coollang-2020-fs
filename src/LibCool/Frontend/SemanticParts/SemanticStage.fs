@@ -45,13 +45,15 @@ module private AstExtensions =
             
     type ClassDecl
         with
-        member this.Super: TYPENAME =
+        member this.ExtendsInfo: ExtendsInfo =
             match this.Extends with
-            | ValueNone -> TYPENAME "Any"
+            | ValueNone ->
+                { ExtendsInfo.SUPER = Node.Of(TYPENAME "Any", Span.Invalid)
+                  Actuals = Array.empty }
             | ValueSome extends_node ->
                 match extends_node.Value with
-                | Extends.Info it -> it.SUPER.Value
-                | Extends.Native  -> invalidOp "Extends.Native"
+                | Extends.Info it -> it
+                | Extends.Native  -> invalidOp "ClassDecl.Extends is Extends.Native"
 
 
 module Sema =
@@ -104,6 +106,8 @@ module Sema =
             if this.Syntax.IsSome
             then this.Syntax.Value.Span
             else Span.Invalid
+        member this.IsError =
+            this.Name = Ast.TYPENAME ".error"
 
 
 [<RequireQualifiedAccess>]
@@ -257,9 +261,58 @@ module private BasicClassSymbols =
         }
 
     
+    let Error: ClassSymbol =
+        { Name = Ast.TYPENAME ".error"
+          Super = Ast.TYPENAME ""
+          Ctor =
+            { MethodSymbol.Name = Ast.ID ""
+              Params = [||] 
+              ReturnType = Ast.TYPENAME ""  
+              Override = false
+              DeclaringClass = Ast.TYPENAME "" 
+              Index = -1
+              Syntax = ValueNone
+            }
+          Attrs = Map.empty
+          Methods = Map.empty
+          Syntax = ValueNone
+        }
+
+    
 open AstExtensions
 open Sema
     
+
+[<Sealed>]
+type private InheritanceChain() =
+    let _super_map = Dictionary<
+                        Ast.TYPENAME,
+                        struct {| Syntax: Ast.ClassDecl; Distance: int |}>()
+                        
+                        
+    member this.AddSuper(super_syntax: Ast.ClassDecl): bool =
+        if _super_map.ContainsKey(super_syntax.NAME.Value)
+        then
+            false
+        else
+        
+        let distance = _super_map.Count + 1
+        _super_map.Add(super_syntax.NAME.Value,
+                       struct {| Syntax = super_syntax; Distance = distance |})
+        
+        true
+        
+        
+    member this.Subchain(start: Ast.ClassDecl) =
+        let start_distance = _super_map.[start.NAME.Value].Distance
+        
+        let subchain =
+            _super_map.Values
+            |> Seq.where (fun it -> it.Distance >= start_distance)
+            |> Seq.sortBy (fun it -> it.Distance)
+            |> Seq.map (fun it -> it.Syntax)
+        Array.ofSeq subchain
+
 
 [<Sealed>]
 type private ClassDeclCollector(_program_syntax: Ast.Program, _diags: DiagnosticBag, _source: Source) =
@@ -293,7 +346,7 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
                                   _diags: DiagnosticBag) =
 
     
-    let _classsym_map = Dictionary<Ast.TYPENAME, ClassSymbol>() 
+    let _class_sym_map = Dictionary<Ast.TYPENAME, ClassSymbol>() 
     
 
     let mk_attr_sym (classdecl_syntax: Ast.ClassDecl)
@@ -476,21 +529,74 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
         
         
     let add_class_sym (classsym: ClassSymbol): unit =
-        _classsym_map.Add(classsym.Name, classsym)
+        _class_sym_map.Add(classsym.Name, classsym)
 
 
-    let rec add_classsym_of (classname: Ast.TYPENAME): ClassSymbol =
-        if _classsym_map.ContainsKey(classname)
-        then
-            _classsym_map.[classname]
-        else
-            
-        let classdecl_node = _classdecl_node_map.[classname]
-        let supersym = add_classsym_of classdecl_node.Value.Super
-        let classsym = mk_class_sym classdecl_node supersym
+    let add_classsym_of (class_name_node: Ast.Node<Ast.TYPENAME>): unit =
+        let inheritance_chain = InheritanceChain()
         
-        add_class_sym classsym
-        classsym
+        let rec do_add_classsym_of (class_name_node: Ast.Node<Ast.TYPENAME>)
+                                   (is_super: bool): ClassSymbol voption =
+            let class_name = class_name_node.Value
+     
+            if _class_sym_map.ContainsKey(class_name)
+            then
+                ValueSome _class_sym_map.[class_name]
+            else
+            
+            if not (_classdecl_node_map.ContainsKey(class_name))
+            then 
+                _class_sym_map.Add(class_name, BasicClassSymbols.Error)
+                
+                _diags.Error(
+                    sprintf "The type name '%s' could not be found (is an input file missing?)" class_name.Value,
+                    class_name_node.Span)
+                ValueNone
+            else
+                
+            let classdecl_node = _classdecl_node_map.[class_name]
+            
+            let cycle_detected =
+                if not is_super
+                then
+                    false
+                else
+                
+                let classdecl_syntax = classdecl_node.Value
+                if inheritance_chain.AddSuper(classdecl_syntax)
+                then
+                    false
+                else
+
+                // An inheritance cycle detected
+                let sb_message =
+                    StringBuilder("A circular superclass dependency detected: '")
+
+                let cycle = inheritance_chain.Subchain(classdecl_syntax)
+                
+                cycle |> Seq.iter (fun it -> sb_message.AppendFormat("{0} -> ", it.NAME.Value) |> ignore)
+                sb_message.AppendFormat("{0}'", cycle.[0].NAME.Value) |> ignore
+
+                _diags.Error(sb_message.ToString(), classdecl_syntax.ExtendsInfo.SUPER.Span)
+                true
+            
+            if cycle_detected
+            then
+                ValueNone
+            else
+
+            let super_sym_opt = do_add_classsym_of classdecl_node.Value.ExtendsInfo.SUPER ((*is_super=*)true)
+            if super_sym_opt.IsNone || super_sym_opt.Value.IsError
+            then
+                ValueNone
+            else
+
+            let class_sym = mk_class_sym classdecl_node super_sym_opt.Value
+            
+            add_class_sym class_sym
+            ValueSome class_sym
+            
+        do_add_classsym_of class_name_node ((*is_super=*)false) |> ignore
     
     
     member this.Collect(): IReadOnlyDictionary<Ast.TYPENAME, ClassSymbol> =
@@ -504,10 +610,10 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
         add_class_sym BasicClassSymbols.Symbol
         
         _program_syntax.ClassDecls |> Array.iter (fun classdecl_node ->
-            let classdecl = classdecl_node.Value
-            add_classsym_of classdecl.NAME.Value |> ignore)
+            let classdecl_syntax = classdecl_node.Value
+            add_classsym_of classdecl_syntax.NAME)
         
-        _classsym_map :> IReadOnlyDictionary<_, _>
+        _class_sym_map :> IReadOnlyDictionary<_, _>
 
 
 [<Sealed>]
@@ -521,6 +627,8 @@ type SemanticStage private () =
             ""
         else
             
+        // TODO: VarFormals are the ctor's formals and the class's attrs
+        // TODO: A method declared in a superclass can be overriden
         let classsym_map = ClassSymbolCollector(
                                program_syntax,
                                classdecl_node_map,

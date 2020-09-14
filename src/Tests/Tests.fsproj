@@ -54,7 +54,7 @@
         <Content Include="CoolPrograms\Semantics\ProgramAlreadyContainsADefinition1.cool" />
         <Content Include="CoolPrograms\Semantics\OverrideKeywordRequired.cool" />
         <Content Include="CoolPrograms\Semantics\MethodArgumentNumberMismatch1.cool" />
-        <Content Include="CoolPrograms\Semantics\CircularBaseClass.cool" />
+        <Content Include="CoolPrograms\Semantics\CircularSuperClass.cool" />
     </ItemGroup>
 
     <ItemGroup>

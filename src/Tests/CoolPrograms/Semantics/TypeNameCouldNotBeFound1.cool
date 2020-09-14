@@ -1,4 +1,10 @@
 class B() extends A() {} 
+
+class C() extends B() {}
+class D() extends C() {}
+class E() extends D() {}
+
 class Main() {}
-// DIAG: TypeNameCouldNotBeFound1.cool(1,19): Error: The type name 'A' could not be found (is an input file missing?)
+
+// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(1,19): Error: The type name 'A' could not be found (is an input file missing?)
 // DIAG: Build failed: Errors: 1. Warnings: 0

@@ -1,0 +1,23 @@
+class A() extends B() {}
+class B() extends A() {}
+
+class C() extends D() {}
+class D() extends E() {}
+class E() extends F() {}
+class F() extends C() {}
+
+class G() extends F() {}
+class H() extends G() {}
+
+
+class Main() {}
+
+// DIAG: Semantics/CircularSuperClass.cool(2,19): Error: A circular superclass dependency detected: 'B -> A -> B'
+// DIAG: Semantics/CircularSuperClass.cool(1,19): Error: A circular superclass dependency detected: 'A -> B -> A'
+// DIAG: Semantics/CircularSuperClass.cool(5,19): Error: A circular superclass dependency detected: 'D -> E -> F -> C -> D'
+// DIAG: Semantics/CircularSuperClass.cool(6,19): Error: A circular superclass dependency detected: 'E -> F -> C -> D -> E'
+// DIAG: Semantics/CircularSuperClass.cool(7,19): Error: A circular superclass dependency detected: 'F -> C -> D -> E -> F'
+// DIAG: Semantics/CircularSuperClass.cool(4,19): Error: A circular superclass dependency detected: 'C -> D -> E -> F -> C'
+// DIAG: Semantics/CircularSuperClass.cool(7,19): Error: A circular superclass dependency detected: 'F -> C -> D -> E -> F'
+// DIAG: Semantics/CircularSuperClass.cool(7,19): Error: A circular superclass dependency detected: 'F -> C -> D -> E -> F'
+// DIAG: Build failed: Errors: 8. Warnings: 0
