@@ -1,7 +1,6 @@
 namespace LibCool.Frontend.SemanticParts
 
 
-open System
 open System.Collections.Generic
 open System.Text
 open LibCool.AstParts
@@ -64,12 +63,7 @@ module Sema =
           Type: Ast.TYPENAME
           DeclaringClass: Ast.TYPENAME
           Index: int
-          Syntax: Ast.Node<Ast.AttrInfo> voption }
-        with
-        member this.SyntaxSpan =
-            if this.Syntax.IsSome
-            then this.Syntax.Value.Span
-            else Span.Invalid
+          SyntaxSpan: Span }
 
 
     type ParamSymbol =
@@ -86,12 +80,7 @@ module Sema =
           Override: bool
           DeclaringClass: Ast.TYPENAME
           Index: int
-          Syntax: Ast.Node<Ast.MethodInfo> voption }
-        with
-        member this.SyntaxSpan =
-            if this.Syntax.IsSome
-            then this.Syntax.Value.Span
-            else Span.Invalid
+          SyntaxSpan: Span }
 
 
     type ClassSymbol =
@@ -100,12 +89,7 @@ module Sema =
           Ctor: MethodSymbol
           Attrs: IReadOnlyDictionary<Ast.ID, AttrSymbol>
           Methods: IReadOnlyDictionary<Ast.ID, MethodSymbol>
-          Syntax: Ast.Node<Ast.ClassDecl> voption }
-        with
-        member this.SyntaxSpan =
-            if this.Syntax.IsSome
-            then this.Syntax.Value.Span
-            else Span.Invalid
+          SyntaxSpan: Span }
         member this.IsError =
             this.Name = Ast.TYPENAME ".error"
 
@@ -127,11 +111,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "Any" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -145,11 +129,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "Unit" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -163,11 +147,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "Int" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -181,11 +165,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "String" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -199,11 +183,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "Boolean" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -217,11 +201,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "ArrayAny" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -235,11 +219,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "IO" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -253,11 +237,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "Symbol" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -271,11 +255,11 @@ module private BasicClassSymbols =
               Override = false
               DeclaringClass = Ast.TYPENAME "" 
               Index = -1
-              Syntax = ValueNone
+              SyntaxSpan = Span.Invalid
             }
           Attrs = Map.empty
           Methods = Map.empty
-          Syntax = ValueNone
+          SyntaxSpan = Span.Invalid
         }
 
     
@@ -314,6 +298,12 @@ type private InheritanceChain() =
         Array.ofSeq subchain
 
 
+type VarFormalOrAttrSyntax =
+    { ID: Ast.Node<Ast.ID>
+      TYPE: Ast.Node<Ast.TYPENAME>
+      Initial: Ast.Node<Ast.AttrInitial> voption }
+
+
 [<Sealed>]
 type private ClassDeclCollector(_program_syntax: Ast.Program, _diags: DiagnosticBag, _source: Source) =
     
@@ -349,86 +339,120 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
     let _class_sym_map = Dictionary<Ast.TYPENAME, ClassSymbol>() 
     
 
+    let resolve_to_class_syntax (class_name_node: Ast.Node<Ast.TYPENAME>)
+                                : Ast.Node<Ast.ClassDecl> voption =
+        let class_name = class_name_node.Value
+        
+        if _classdecl_node_map.ContainsKey(class_name)
+        then
+            ValueSome (_classdecl_node_map.[class_name])
+        else
+
+        if not (_class_sym_map.ContainsKey(class_name))
+        then
+            _class_sym_map.Add(class_name, BasicClassSymbols.Error)
+            _diags.Error(
+                sprintf "The type name '%O' could not be found (is an input file missing?)" class_name,
+                class_name_node.Span)
+
+        ValueNone
+
+
     let mk_attr_sym (classdecl_syntax: Ast.ClassDecl)
-                    (attr_node: Ast.Node<Ast.AttrInfo>)
+                    (attr_node: Ast.Node<VarFormalOrAttrSyntax>)
                     (index: int): AttrSymbol =
         let attr_syntax = attr_node.Value
         { AttrSymbol.Name = attr_syntax.ID.Value
           Type = attr_syntax.TYPE.Value
           DeclaringClass = classdecl_syntax.NAME.Value
           Index = index
-          Syntax = ValueSome attr_node }
+          SyntaxSpan = attr_node.Span }
     
 
     let mk_attr_syms (classdecl_syntax: Ast.ClassDecl)
                      (super: ClassSymbol) =
         let attr_syms = Dictionary<Ast.ID, AttrSymbol>(super.Attrs)
 
-        let add_attr_sym i (feature_node: Ast.Node<Ast.Feature>) =
-            let attr_node = feature_node.Map(fun it -> it.AsAttrInfo)
+        let add_attr_sym (attr_node: Ast.Node<VarFormalOrAttrSyntax>) =
             let attr_syntax = attr_node.Value
             
             if attr_syms.ContainsKey(attr_syntax.ID.Value)
             then
                 let prev_attr_sym = attr_syms.[attr_syntax.ID.Value]
-                let sb_message =
-                    StringBuilder().AppendFormat("The class '{0}' already contains an attribute '{1}' " +
-                                                 "declared in the class '{2}'",
-                                                 classdecl_syntax.NAME.Value,
-                                                 attr_syntax.ID.Value,
-                                                 prev_attr_sym.DeclaringClass)
-                if prev_attr_sym.Syntax.IsSome
-                then
-                    sb_message.AppendFormat(" at {0}",
-                                            _source.Map(prev_attr_sym.SyntaxSpan.First)) |> ignore
+                let message =
+                    sprintf "The class '%O' already contains an attribute '%O' [declared in '%O' at %O]"
+                            classdecl_syntax.NAME.Value
+                            attr_syntax.ID.Value
+                            prev_attr_sym.DeclaringClass
+                            (_source.Map(prev_attr_sym.SyntaxSpan.First))
                     
-                _diags.Error(sb_message.ToString(), feature_node.Span)
+                _diags.Error(message, attr_node.Span)
             else
                 
+            resolve_to_class_syntax attr_syntax.TYPE |> ignore
+
             let ai = mk_attr_sym classdecl_syntax
                                  attr_node
-                                 (super.Attrs.Count + i)
+                                 (*index=*)attr_syms.Count
             attr_syms.Add(ai.Name, ai)
+            
+        classdecl_syntax.VarFormals
+        |> Seq.iter (fun varformal_node ->
+            add_attr_sym (varformal_node.Map(fun it -> { VarFormalOrAttrSyntax.ID=it.ID
+                                                         TYPE=it.TYPE
+                                                         Initial = ValueNone })))
         
         classdecl_syntax.ClassBody
         |> Seq.where (fun it -> it.Value.IsAttr)
-        |> Seq.iteri add_attr_sym
+        |> Seq.iter (fun feature_node ->
+            add_attr_sym (feature_node.Map(fun it -> let attr_syntax = it.AsAttrInfo
+                                                     { VarFormalOrAttrSyntax.ID=attr_syntax.ID
+                                                       TYPE=attr_syntax.TYPE
+                                                       Initial=ValueSome attr_syntax.Initial })))
         
         attr_syms :> IReadOnlyDictionary<_, _>
     
     
-    let mk_param_syms (method_syntax: Ast.MethodInfo) =
+    let mk_param_syms (formal_syntaxes: Ast.Node<Ast.Formal>[])
+                      (get_message: (*formal:*)Ast.Node<Ast.Formal> -> (*prev_formal:*)Ast.Node<Ast.Formal> -> string)
+                      : ParamSymbol[] =
         let formal_node_map = Dictionary<Ast.ID, Ast.Node<Ast.Formal>>()
 
-        method_syntax.Formals
-        |> Array.iter (fun it ->
-            let formal_syntax = it.Value
+        formal_syntaxes
+        |> Array.iter (fun formal_node ->
+            let formal_syntax = formal_node.Value
             if formal_node_map.ContainsKey(formal_syntax.ID.Value)
             then
                 let prev_formal_node = formal_node_map.[formal_syntax.ID.Value]
-                let message = String.Format("The method '{0}' already contains a formal '{1}' at {2}",
-                                            method_syntax.ID.Value,
-                                            formal_syntax.ID.Value,
-                                            prev_formal_node.Span)
-                _diags.Error(message, it.Span)
+                _diags.Error(get_message formal_node prev_formal_node, formal_node.Span)
             else
                 
-            formal_node_map.Add(formal_syntax.ID.Value, it)
+            resolve_to_class_syntax formal_syntax.TYPE |> ignore
+            formal_node_map.Add(formal_syntax.ID.Value, formal_node)
         )
 
-        let param_syms = method_syntax.Formals
-                          |> Array.mapi (fun i it -> { ParamSymbol.Name = it.Value.ID.Value
-                                                       Type = it.Value.TYPE.Value
-                                                       Index = i
-                                                       SyntaxSpan = it.Span })
-        param_syms
+        let param_syms = formal_node_map.Values
+                         |> Seq.mapi (fun i it -> { ParamSymbol.Name = it.Value.ID.Value
+                                                    Type = it.Value.TYPE.Value
+                                                    Index = i
+                                                    SyntaxSpan = it.Span })
+        Array.ofSeq param_syms
+    
+    
+    let mk_method_param_syms (method_syntax: Ast.MethodInfo) =
+        mk_param_syms ((*formal_syntaxes=*)method_syntax.Formals)
+                      ((*get_message=*)fun formal prev_formal ->
+                          sprintf "The method '%O' already contains a formal '%O' at %O"
+                                   method_syntax.ID.Value
+                                   formal.Value.ID.Value
+                                   prev_formal.Span)
 
 
     let mk_method_sym (classdecl_syntax: Ast.ClassDecl)
                       (method_node: Ast.Node<Ast.MethodInfo>)
                       (index: int): MethodSymbol =
         let method_syntax = method_node.Value
-        let param_syms = mk_param_syms method_syntax
+        let param_syms = mk_method_param_syms method_syntax
 
         { MethodSymbol.Name = method_syntax.ID.Value
           Params = param_syms
@@ -436,70 +460,62 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
           Override = method_syntax.Override
           DeclaringClass = classdecl_syntax.NAME.Value
           Index = index
-          Syntax = ValueSome method_node }
+          SyntaxSpan = method_node.Span }
         
         
     let mk_method_syms (classdecl_syntax: Ast.ClassDecl)
                        (super: ClassSymbol) =
         let method_syms = Dictionary<Ast.ID, MethodSymbol>(super.Methods)
         
-        let add_method_sym i (feature_node: Ast.Node<Ast.Feature>) =
-            let method_node = feature_node.Map(fun it -> it.AsMethodInfo)
+        let add_method_sym (method_node: Ast.Node<Ast.MethodInfo>): unit =
             let method_syntax = method_node.Value
-            if method_syms.ContainsKey(method_syntax.ID.Value)
+            
+            if not method_syntax.Override && method_syms.ContainsKey(method_syntax.ID.Value)
             then
                 let prev_method_sym = method_syms.[method_syntax.ID.Value]
-                let sb_message =
-                    StringBuilder().AppendFormat("The class '{0}' already contains a method '{1}' " +
-                                                 "declared in the class '{2}'",
-                                                 classdecl_syntax.NAME.Value,
-                                                 method_syntax.ID.Value,
-                                                 prev_method_sym.DeclaringClass)
-                if prev_method_sym.Syntax.IsSome
-                then
-                    sb_message.AppendFormat(" at {0}",
-                                            _source.Map(prev_method_sym.SyntaxSpan.First)) |> ignore
-                    
-                _diags.Error(sb_message.ToString(), feature_node.Span)
+                let message =
+                    sprintf ("The class '%O' already contains a method '%O' [declared in '%O' at %O]. Use 'override def' to override it")
+                            classdecl_syntax.NAME.Value
+                            method_syntax.ID.Value
+                            prev_method_sym.DeclaringClass
+                            (_source.Map(prev_method_sym.SyntaxSpan.First))
+                _diags.Error(message, method_node.Span)
             else
+                
+            if method_syntax.Override && not (method_syms.ContainsKey(method_syntax.ID.Value))
+            then
+                _diags.Error(
+                    sprintf "Cannot override a method '%O' because it was not previously defined" method_syntax.ID.Value,
+                    method_node.Span)
+            else
+                
+            resolve_to_class_syntax method_syntax.RETURN |> ignore
             
-            let mi = mk_method_sym classdecl_syntax
-                                   method_node
-                                   (super.Methods.Count + i)
+            let index = if method_syms.ContainsKey(method_syntax.ID.Value)
+                        then method_syms.[method_syntax.ID.Value].Index
+                        else method_syms.Count
+            let mi = mk_method_sym classdecl_syntax method_node index
+            
             method_syms.Add(mi.Name, mi)
 
         classdecl_syntax.ClassBody
-        |> Seq.where (fun it -> it.Value.IsMethod)
-        |> Seq.iteri (fun i it -> add_method_sym i it) 
+        |> Seq.where (fun feature_node -> feature_node.Value.IsMethod)
+        |> Seq.iter (fun feature_node -> add_method_sym (feature_node.Map(fun it -> it.AsMethodInfo))) 
 
         method_syms :> IReadOnlyDictionary<_, _>
 
 
     let mk_ctor_param_syms (classdecl_syntax: Ast.ClassDecl) =
-        let varformal_node_map = Dictionary<Ast.ID, Ast.Node<Ast.VarFormal>>()
-
-        classdecl_syntax.VarFormals
-        |> Array.iter (fun it ->
-            let varformal_syntax = it.Value
-            if varformal_node_map.ContainsKey(varformal_syntax.ID.Value)
-            then
-                let prev_varformal_node = varformal_node_map.[varformal_syntax.ID.Value]
-                let message = String.Format("The constructor of class '{0}' already contains a var formal '{1}' at {2}",
-                                            classdecl_syntax.NAME.Value,
-                                            varformal_syntax.ID.Value,
-                                            prev_varformal_node.Span)
-                _diags.Error(message, it.Span)
-            else
-                
-            varformal_node_map.Add(varformal_syntax.ID.Value, it)
-        )
-
-        let param_syms = classdecl_syntax.VarFormals
-                         |> Array.mapi (fun i it -> { ParamSymbol.Name = it.Value.ID.Value
-                                                      Type = it.Value.TYPE.Value
-                                                      Index = i
-                                                      SyntaxSpan = it.Span })
-        param_syms
+        let formal_syntaxes = classdecl_syntax.VarFormals
+                              |> Array.map (fun vf_node ->
+                                  vf_node.Map(fun vf -> { Ast.Formal.ID = vf.ID
+                                                          Ast.Formal.TYPE = vf.TYPE }))
+        mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
+                      ((*get_message=*)fun formal prev_formal ->
+                          sprintf "The constructor of class '%O' already contains a var formal '%O' at %O"
+                                   classdecl_syntax.NAME.Value
+                                   formal.Value.ID.Value
+                                   prev_formal.Span)
 
 
     let mk_ctor_sym (classdecl_syntax: Ast.ClassDecl): MethodSymbol =
@@ -511,7 +527,7 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
           Override = false
           DeclaringClass = classdecl_syntax.NAME.Value
           Index = -1
-          Syntax = ValueNone }
+          SyntaxSpan = Span.Invalid }
     
 
     let mk_class_sym (classdecl_node: Ast.Node<Ast.ClassDecl>)
@@ -525,36 +541,32 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
           Ctor = mk_ctor_sym classdecl_syntax
           Attrs = attr_syms
           Methods = method_syms
-          Syntax = ValueSome classdecl_node }
+          SyntaxSpan = classdecl_node.Span }
         
         
-    let add_class_sym (classsym: ClassSymbol): unit =
+    let add_class_sym_to_map (classsym: ClassSymbol): unit =
         _class_sym_map.Add(classsym.Name, classsym)
 
 
-    let add_classsym_of (class_name_node: Ast.Node<Ast.TYPENAME>): unit =
+    let collect_class_sym (class_name_node: Ast.Node<Ast.TYPENAME>): unit =
         let inheritance_chain = InheritanceChain()
         
-        let rec do_add_classsym_of (class_name_node: Ast.Node<Ast.TYPENAME>)
-                                   (is_super: bool): ClassSymbol voption =
+        let rec do_collect_class_sym (class_name_node: Ast.Node<Ast.TYPENAME>)
+                                     (is_super: bool): ClassSymbol =
             let class_name = class_name_node.Value
      
             if _class_sym_map.ContainsKey(class_name)
             then
-                ValueSome _class_sym_map.[class_name]
+                _class_sym_map.[class_name]
             else
             
-            if not (_classdecl_node_map.ContainsKey(class_name))
+            let classdecl_node_opt = resolve_to_class_syntax class_name_node
+            if classdecl_node_opt.IsNone
             then 
-                _class_sym_map.Add(class_name, BasicClassSymbols.Error)
-                
-                _diags.Error(
-                    sprintf "The type name '%s' could not be found (is an input file missing?)" class_name.Value,
-                    class_name_node.Span)
-                ValueNone
+                BasicClassSymbols.Error
             else
                 
-            let classdecl_node = _classdecl_node_map.[class_name]
+            let classdecl_node = classdecl_node_opt.Value 
             
             let cycle_detected =
                 if not is_super
@@ -582,36 +594,36 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
             
             if cycle_detected
             then
-                ValueNone
+                BasicClassSymbols.Error
             else
 
-            let super_sym_opt = do_add_classsym_of classdecl_node.Value.ExtendsInfo.SUPER ((*is_super=*)true)
-            if super_sym_opt.IsNone || super_sym_opt.Value.IsError
+            let super_sym = do_collect_class_sym classdecl_node.Value.ExtendsInfo.SUPER ((*is_super=*)true)
+            if super_sym.IsError
             then
-                ValueNone
+                BasicClassSymbols.Error
             else
 
-            let class_sym = mk_class_sym classdecl_node super_sym_opt.Value
+            let class_sym = mk_class_sym classdecl_node super_sym
             
-            add_class_sym class_sym
-            ValueSome class_sym
+            add_class_sym_to_map class_sym
+            class_sym
             
-        do_add_classsym_of class_name_node ((*is_super=*)false) |> ignore
+        do_collect_class_sym class_name_node ((*is_super=*)false) |> ignore
     
     
     member this.Collect(): IReadOnlyDictionary<Ast.TYPENAME, ClassSymbol> =
-        add_class_sym BasicClassSymbols.Any
-        add_class_sym BasicClassSymbols.Unit
-        add_class_sym BasicClassSymbols.Int
-        add_class_sym BasicClassSymbols.String
-        add_class_sym BasicClassSymbols.Boolean
-        add_class_sym BasicClassSymbols.ArrayAny
-        add_class_sym BasicClassSymbols.IO
-        add_class_sym BasicClassSymbols.Symbol
+        add_class_sym_to_map BasicClassSymbols.Any
+        add_class_sym_to_map BasicClassSymbols.Unit
+        add_class_sym_to_map BasicClassSymbols.Int
+        add_class_sym_to_map BasicClassSymbols.String
+        add_class_sym_to_map BasicClassSymbols.Boolean
+        add_class_sym_to_map BasicClassSymbols.ArrayAny
+        add_class_sym_to_map BasicClassSymbols.IO
+        add_class_sym_to_map BasicClassSymbols.Symbol
         
         _program_syntax.ClassDecls |> Array.iter (fun classdecl_node ->
             let classdecl_syntax = classdecl_node.Value
-            add_classsym_of classdecl_syntax.NAME)
+            collect_class_sym classdecl_syntax.NAME)
         
         _class_sym_map :> IReadOnlyDictionary<_, _>
 
@@ -627,9 +639,7 @@ type SemanticStage private () =
             ""
         else
             
-        // TODO: VarFormals are the ctor's formals and the class's attrs
-        // TODO: A method declared in a superclass can be overriden
-        let classsym_map = ClassSymbolCollector(
+        let class_sym_map = ClassSymbolCollector(
                                program_syntax,
                                classdecl_node_map,
                                source,
@@ -639,5 +649,5 @@ type SemanticStage private () =
             ""
         else
         
-        classsym_map |> ignore
+        class_sym_map |> ignore
         ""

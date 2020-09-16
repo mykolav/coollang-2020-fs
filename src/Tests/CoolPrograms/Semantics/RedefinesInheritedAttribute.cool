@@ -2,5 +2,5 @@ class A() { var i: Int = 0; }
 class B() extends A() { var i: Int = 0; } 
 
 class Main() {}
-// DIAG: Semantics/RedefinesInheritedAttribute.cool(2,25): Error: The class 'B' already contains an attribute 'i' declared in the class 'A' at Semantics/RedefinesInheritedAttribute.cool(1,13)
+// DIAG: Semantics/RedefinesInheritedAttribute.cool(2,25): Error: The class 'B' already contains an attribute 'i' [declared in 'A' at Semantics/RedefinesInheritedAttribute.cool(1,13)]
 // DIAG: Build failed: Errors: 1. Warnings: 0

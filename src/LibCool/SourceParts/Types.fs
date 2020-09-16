@@ -16,6 +16,7 @@ type Span =
     with
     static member Invalid = { First = 0u; Last = 0u }
     static member Of(first, last) = { First = first; Last = last }
+    member this.IsValid: bool = this <> Span.Invalid
 
 
 [<IsReadOnly; Struct>]

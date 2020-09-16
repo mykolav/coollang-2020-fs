@@ -5,6 +5,6 @@ class A() {
     def foo() : Int = 0;
 }
 class Main() {}
-// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(4,5): Error: The class 'A' already contains an attribute 'i' declared in the class 'A' at Semantics/TypeAlreadyContainsADefinition1.cool(2,5)
-// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(5,5): Error: The class 'A' already contains a method 'foo' declared in the class 'A' at Semantics/TypeAlreadyContainsADefinition1.cool(3,5)
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(4,5): Error: The class 'A' already contains an attribute 'i' [declared in 'A' at Semantics/TypeAlreadyContainsADefinition1.cool(2,5)]
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(5,5): Error: The class 'A' already contains a method 'foo' [declared in 'A' at Semantics/TypeAlreadyContainsADefinition1.cool(3,5)]. Use 'override def' to override it
 // DIAG: Build failed: Errors: 2. Warnings: 0

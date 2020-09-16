@@ -2,5 +2,5 @@ class A() { def foo() : Int = 0; }
 class B() extends A() { def foo() : Int = 0; } 
 
 class Main() {}
-// DIAG: OverrideKeywordRequired.cool(2,29): Error: 'B.foo' redefines 'A.foo'. Use the 'override' keyword if redefinition was intended.
+// DIAG: Semantics/OverrideKeywordRequired.cool(2,25): Error: The class 'B' already contains a method 'foo' [declared in 'A' at Semantics/OverrideKeywordRequired.cool(1,13)]. Use 'override def' to override it
 // DIAG: Build failed: Errors: 1. Warnings: 0
