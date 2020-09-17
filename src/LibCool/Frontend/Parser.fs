@@ -8,6 +8,18 @@ open LibCool.AstParts.Ast
 open LibCool.DiagnosticParts
 
 
+[<AutoOpen>]
+module private TokenExtensions =
+    type Token
+        with
+        member this.KwDescription: string =
+            if this.IsKw || this.IsReservedKw
+            then
+                sprintf "; '%s' is a %s" (this.KwSpelling) (this.KwKindSpelling)
+            else
+                ""
+
+
 [<RequireQualifiedAccess>]
 module private Prec =
     let OfDot = 8y

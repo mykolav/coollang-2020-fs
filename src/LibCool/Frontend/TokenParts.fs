@@ -303,14 +303,6 @@ type Token =
             
         if (this.IsKw) then "keyword" else "reserved keyword"
 
-        
-    member this.KwDescription: string =
-        if this.IsKw || this.IsReservedKw
-        then
-            sprintf "; '%s' is a %s" (this.KwSpelling) (this.KwKindSpelling)
-        else
-            ""
-
 
     member this.InfixOpSpelling: string =
         if not this.IsInfixOp

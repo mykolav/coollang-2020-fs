@@ -15,6 +15,10 @@
         <Compile Include="Frontend\Lexer.fs" />
         <Compile Include="Frontend\TokenArray.fs" />
         <Compile Include="Frontend\Parser.fs" />
+        <Compile Include="Frontend\SemanticParts\AstExtensions.fs" />
+        <Compile Include="Frontend\SemanticParts\Symbols.fs" />
+        <Compile Include="Frontend\SemanticParts\ClassSyntaxCollector.fs" />
+        <Compile Include="Frontend\SemanticParts\ClassSymbolCollector.fs" />
         <Compile Include="Frontend\SemanticParts\SemanticStage.fs" />
         <Compile Include="Driver\Driver.fs" />
     </ItemGroup>
