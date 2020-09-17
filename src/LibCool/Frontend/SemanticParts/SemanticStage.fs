@@ -473,13 +473,19 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
             if not method_syntax.Override && method_syms.ContainsKey(method_syntax.ID.Value)
             then
                 let prev_method_sym = method_syms.[method_syntax.ID.Value]
-                let message =
-                    sprintf ("The class '%O' already contains a method '%O' [declared in '%O' at %O]. Use 'override def' to override it")
-                            classdecl_syntax.NAME.Value
-                            method_syntax.ID.Value
-                            prev_method_sym.DeclaringClass
-                            (_source.Map(prev_method_sym.SyntaxSpan.First))
-                _diags.Error(message, method_node.Span)
+                let sb_message =
+                    StringBuilder().AppendFormat(
+                                        "The class '{0}' already contains a method '{1}' [declared in '{2}' at {3}]",
+                                        classdecl_syntax.NAME.Value,
+                                        method_syntax.ID.Value,
+                                        prev_method_sym.DeclaringClass,
+                                        (_source.Map(prev_method_sym.SyntaxSpan.First)))
+                
+                if classdecl_syntax.NAME.Value <> prev_method_sym.DeclaringClass
+                then
+                    sb_message.Append(". Use 'override def' to override it") |> ignore
+                
+                _diags.Error(sb_message.ToString(), method_node.Span)
             else
                 
             if method_syntax.Override && not (method_syms.ContainsKey(method_syntax.ID.Value))
@@ -496,7 +502,7 @@ type private ClassSymbolCollector(_program_syntax: Ast.Program,
                         else method_syms.Count
             let mi = mk_method_sym classdecl_syntax method_node index
             
-            method_syms.Add(mi.Name, mi)
+            method_syms.[mi.Name] <- mi
 
         classdecl_syntax.ClassBody
         |> Seq.where (fun feature_node -> feature_node.Value.IsMethod)

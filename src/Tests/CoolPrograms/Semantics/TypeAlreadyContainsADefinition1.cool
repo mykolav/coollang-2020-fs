@@ -4,7 +4,39 @@ class A() {
     var i: Int = 0;
     def foo() : Int = 0;
 }
+
+class B(var i: Int) {
+    var i: Int = 9001;
+}
+
+class C(var i: Int) {
+}
+class D(var i: Int) extends C(9001) {
+}
+
+class E() extends C(9001) {
+    var i: Int = 9002;
+}
+
+class F() {
+    def bar(): Int = 9001;
+}
+class G() extends F() {
+    def bar(): Int = 9002;
+}
+class H() extends F() {
+    override def bar(): Int = 9003;
+}
+class I() extends F() {
+    override def baz(): Int = 9004;
+}
+
 class Main() {}
 // DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(4,5): Error: The class 'A' already contains an attribute 'i' [declared in 'A' at Semantics/TypeAlreadyContainsADefinition1.cool(2,5)]
-// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(5,5): Error: The class 'A' already contains a method 'foo' [declared in 'A' at Semantics/TypeAlreadyContainsADefinition1.cool(3,5)]. Use 'override def' to override it
-// DIAG: Build failed: Errors: 2. Warnings: 0
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(5,5): Error: The class 'A' already contains a method 'foo' [declared in 'A' at Semantics/TypeAlreadyContainsADefinition1.cool(3,5)]
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(9,5): Error: The class 'B' already contains an attribute 'i' [declared in 'B' at Semantics/TypeAlreadyContainsADefinition1.cool(8,9)]
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(14,9): Error: The class 'D' already contains an attribute 'i' [declared in 'C' at Semantics/TypeAlreadyContainsADefinition1.cool(12,9)]
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(18,5): Error: The class 'E' already contains an attribute 'i' [declared in 'C' at Semantics/TypeAlreadyContainsADefinition1.cool(12,9)]
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(25,5): Error: The class 'G' already contains a method 'bar' [declared in 'F' at Semantics/TypeAlreadyContainsADefinition1.cool(22,5)]. Use 'override def' to override it
+// DIAG: Semantics/TypeAlreadyContainsADefinition1.cool(31,5): Error: Cannot override a method 'baz' because it was not previously defined
+// DIAG: Build failed: Errors: 7. Warnings: 0

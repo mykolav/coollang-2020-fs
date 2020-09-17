@@ -4,7 +4,17 @@ class C() extends B() {}
 class D() extends C() {}
 class E() extends D() {}
 
+class F(var a: TypeNotFound1) {
+    var b: TypeNotFound2 = new TypeNotFound2();
+    def foo(): TypeNotFound3 = new TypeNotFound3();
+    def bar(c: String, d: TypeNotFound4, e: Int): String = "";
+}
+
 class Main() {}
 
 // DIAG: Semantics/TypeNameCouldNotBeFound1.cool(1,19): Error: The type name 'A' could not be found (is an input file missing?)
-// DIAG: Build failed: Errors: 1. Warnings: 0
+// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(7,16): Error: The type name 'TypeNotFound1' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(8,12): Error: The type name 'TypeNotFound2' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(9,16): Error: The type name 'TypeNotFound3' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(10,27): Error: The type name 'TypeNotFound4' could not be found (is an input file missing?)
+// DIAG: Build failed: Errors: 5. Warnings: 0
