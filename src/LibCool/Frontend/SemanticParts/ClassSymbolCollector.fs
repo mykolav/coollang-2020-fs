@@ -12,12 +12,11 @@ open Symbols
 
 [<Sealed>]
 type private InheritanceChain() =
-    let _super_map = Dictionary<
-                        Ast.TYPENAME,
-                        struct {| Syntax: Ast.ClassDecl; Distance: int |}>()
+    let _super_map = Dictionary<TYPENAME,
+                                struct {| Syntax: ClassSyntax; Distance: int |}>()
                         
                         
-    member this.AddSuper(super_syntax: Ast.ClassDecl): bool =
+    member this.AddSuper(super_syntax: ClassSyntax): bool =
         if _super_map.ContainsKey(super_syntax.NAME.Value)
         then
             false
@@ -30,7 +29,7 @@ type private InheritanceChain() =
         true
         
         
-    member this.Subchain(start: Ast.ClassDecl) =
+    member this.Subchain(start: ClassSyntax) =
         let start_distance = _super_map.[start.NAME.Value].Distance
         
         let subchain =
@@ -42,23 +41,23 @@ type private InheritanceChain() =
 
 
 type VarFormalOrAttrSyntax =
-    { ID: Ast.Node<Ast.ID>
-      TYPE: Ast.Node<Ast.TYPENAME>
-      Initial: Ast.Node<Ast.AttrInitial> voption }
+    { ID: AstNode<ID>
+      TYPE: AstNode<TYPENAME>
+      Initial: AstNode<AttrInitialSyntax> voption }
 
 
 [<Sealed>]
-type ClassSymbolCollector(_program_syntax: Ast.Program,
-                                  _classdecl_node_map: IReadOnlyDictionary<Ast.TYPENAME, Ast.Node<Ast.ClassDecl>>,
+type ClassSymbolCollector(_program_syntax: ProgramSyntax,
+                                  _classdecl_node_map: IReadOnlyDictionary<TYPENAME, AstNode<ClassSyntax>>,
                                   _source: Source,
                                   _diags: DiagnosticBag) =
 
     
-    let _class_sym_map = Dictionary<Ast.TYPENAME, ClassSymbol>() 
+    let _class_sym_map = Dictionary<TYPENAME, ClassSymbol>() 
     
 
-    let resolve_to_class_syntax (class_name_node: Ast.Node<Ast.TYPENAME>)
-                                : Ast.Node<Ast.ClassDecl> voption =
+    let resolve_to_class_syntax (class_name_node: AstNode<TYPENAME>)
+                                : AstNode<ClassSyntax> voption =
         let class_name = class_name_node.Value
         
         if _classdecl_node_map.ContainsKey(class_name)
@@ -76,8 +75,8 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
         ValueNone
 
 
-    let mk_attr_sym (classdecl_syntax: Ast.ClassDecl)
-                    (attr_node: Ast.Node<VarFormalOrAttrSyntax>)
+    let mk_attr_sym (classdecl_syntax: ClassSyntax)
+                    (attr_node: AstNode<VarFormalOrAttrSyntax>)
                     (index: int): AttrSymbol =
         let attr_syntax = attr_node.Value
         { AttrSymbol.Name = attr_syntax.ID.Value
@@ -87,11 +86,11 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
           SyntaxSpan = attr_node.Span }
     
 
-    let mk_attr_syms (classdecl_syntax: Ast.ClassDecl)
+    let mk_attr_syms (classdecl_syntax: ClassSyntax)
                      (super: ClassSymbol) =
-        let attr_syms = Dictionary<Ast.ID, AttrSymbol>(super.Attrs)
+        let attr_syms = Dictionary<ID, AttrSymbol>(super.Attrs)
 
-        let add_attr_sym (attr_node: Ast.Node<VarFormalOrAttrSyntax>) =
+        let add_attr_sym (attr_node: AstNode<VarFormalOrAttrSyntax>) =
             let attr_syntax = attr_node.Value
             
             if attr_syms.ContainsKey(attr_syntax.ID.Value)
@@ -131,10 +130,10 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
         attr_syms :> IReadOnlyDictionary<_, _>
     
     
-    let mk_param_syms (formal_syntaxes: Ast.Node<Ast.Formal>[])
-                      (get_message: (*formal:*)Ast.Node<Ast.Formal> -> (*prev_formal:*)Ast.Node<Ast.Formal> -> string)
+    let mk_param_syms (formal_syntaxes: AstNode<FormalSyntax>[])
+                      (get_message: (*formal:*)AstNode<FormalSyntax> -> (*prev_formal:*)AstNode<FormalSyntax> -> string)
                       : ParamSymbol[] =
-        let formal_node_map = Dictionary<Ast.ID, Ast.Node<Ast.Formal>>()
+        let formal_node_map = Dictionary<ID, AstNode<FormalSyntax>>()
 
         formal_syntaxes
         |> Array.iter (fun formal_node ->
@@ -157,7 +156,7 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
         Array.ofSeq param_syms
     
     
-    let mk_method_param_syms (method_syntax: Ast.MethodInfo) =
+    let mk_method_param_syms (method_syntax: MethodSyntax) =
         mk_param_syms ((*formal_syntaxes=*)method_syntax.Formals)
                       ((*get_message=*)fun formal prev_formal ->
                           sprintf "The method '%O' already contains a formal '%O' at %O"
@@ -166,8 +165,8 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
                                    prev_formal.Span)
 
 
-    let mk_method_sym (classdecl_syntax: Ast.ClassDecl)
-                      (method_node: Ast.Node<Ast.MethodInfo>)
+    let mk_method_sym (classdecl_syntax: ClassSyntax)
+                      (method_node: AstNode<MethodSyntax>)
                       (index: int): MethodSymbol =
         let method_syntax = method_node.Value
         let param_syms = mk_method_param_syms method_syntax
@@ -181,11 +180,11 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
           SyntaxSpan = method_node.Span }
         
         
-    let mk_method_syms (classdecl_syntax: Ast.ClassDecl)
+    let mk_method_syms (classdecl_syntax: ClassSyntax)
                        (super: ClassSymbol) =
-        let method_syms = Dictionary<Ast.ID, MethodSymbol>(super.Methods)
+        let method_syms = Dictionary<ID, MethodSymbol>(super.Methods)
         
-        let add_method_sym (method_node: Ast.Node<Ast.MethodInfo>): unit =
+        let add_method_sym (method_node: AstNode<MethodSyntax>): unit =
             let method_syntax = method_node.Value
             
             if not method_syntax.Override && method_syms.ContainsKey(method_syntax.ID.Value)
@@ -229,11 +228,11 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
         method_syms :> IReadOnlyDictionary<_, _>
 
 
-    let mk_ctor_param_syms (classdecl_syntax: Ast.ClassDecl) =
+    let mk_ctor_param_syms (classdecl_syntax: ClassSyntax) =
         let formal_syntaxes = classdecl_syntax.VarFormals
                               |> Array.map (fun vf_node ->
-                                  vf_node.Map(fun vf -> { Ast.Formal.ID = vf.ID
-                                                          Ast.Formal.TYPE = vf.TYPE }))
+                                  vf_node.Map(fun vf -> { FormalSyntax.ID = vf.ID
+                                                          FormalSyntax.TYPE = vf.TYPE }))
         mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
                       ((*get_message=*)fun formal prev_formal ->
                           sprintf "The constructor of class '%O' already contains a var formal '%O' at %O"
@@ -242,10 +241,10 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
                                    prev_formal.Span)
 
 
-    let mk_ctor_sym (classdecl_syntax: Ast.ClassDecl): MethodSymbol =
+    let mk_ctor_sym (classdecl_syntax: ClassSyntax): MethodSymbol =
         let param_syms = mk_ctor_param_syms classdecl_syntax
         
-        { MethodSymbol.Name = Ast.ID ".ctor"
+        { MethodSymbol.Name = ID ".ctor"
           Params = param_syms
           ReturnType = classdecl_syntax.NAME.Value
           Override = false
@@ -254,7 +253,7 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
           SyntaxSpan = Span.Invalid }
     
 
-    let mk_class_sym (classdecl_node: Ast.Node<Ast.ClassDecl>)
+    let mk_class_sym (classdecl_node: AstNode<ClassSyntax>)
                      (super: ClassSymbol) : ClassSymbol =
         let classdecl_syntax = classdecl_node.Value
         let attr_syms = mk_attr_syms classdecl_syntax super 
@@ -272,10 +271,10 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
         _class_sym_map.Add(classsym.Name, classsym)
 
 
-    let collect_class_sym (class_name_node: Ast.Node<Ast.TYPENAME>): unit =
+    let collect_class_sym (class_name_node: AstNode<TYPENAME>): unit =
         let inheritance_chain = InheritanceChain()
         
-        let rec do_collect_class_sym (class_name_node: Ast.Node<Ast.TYPENAME>)
+        let rec do_collect_class_sym (class_name_node: AstNode<TYPENAME>)
                                      (is_super: bool): ClassSymbol =
             let class_name = class_name_node.Value
      
@@ -334,7 +333,7 @@ type ClassSymbolCollector(_program_syntax: Ast.Program,
         do_collect_class_sym class_name_node ((*is_super=*)false) |> ignore
     
     
-    member this.Collect(): IReadOnlyDictionary<Ast.TYPENAME, ClassSymbol> =
+    member this.Collect(): IReadOnlyDictionary<TYPENAME, ClassSymbol> =
         add_class_sym_to_map BasicClassSymbols.Any
         add_class_sym_to_map BasicClassSymbols.Unit
         add_class_sym_to_map BasicClassSymbols.Int

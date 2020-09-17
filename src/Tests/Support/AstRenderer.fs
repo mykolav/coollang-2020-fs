@@ -2,7 +2,7 @@ namespace Tests.Parser
 
 
 open System.Text
-open LibCool.AstParts.Ast
+open LibCool.AstParts
 open Tests.Support
 
 
@@ -49,71 +49,71 @@ type AstRenderer private () =
 
 
     // Expressions
-    let rec walk_expr (expr: Expr): unit =
+    let rec walk_expr (expr: ExprSyntax): unit =
         match expr with
-        | Expr.Assign(left, right) ->
+        | ExprSyntax.Assign(left, right) ->
             walk_assign (left, right)
-        | Expr.BoolNegation negated_expr ->
+        | ExprSyntax.BoolNegation negated_expr ->
             walk_bool_negation (negated_expr)
-        | Expr.UnaryMinus expr ->
+        | ExprSyntax.UnaryMinus expr ->
             walk_unary_minus (expr)
-        | Expr.If(condition, then_branch, else_branch) ->
+        | ExprSyntax.If(condition, then_branch, else_branch) ->
             walk_if (condition, then_branch, else_branch)
-        | Expr.While(condition, body) ->
+        | ExprSyntax.While(condition, body) ->
             walk_while (condition, body)
-        | Expr.LtEq(left, right) ->
+        | ExprSyntax.LtEq(left, right) ->
             walk_comparison (left, "<=", right)
-        | Expr.GtEq(left, right) ->
+        | ExprSyntax.GtEq(left, right) ->
             walk_comparison (left, ">=", right)
-        | Expr.Lt(left, right) ->
+        | ExprSyntax.Lt(left, right) ->
             walk_comparison (left, "<", right)
-        | Expr.Gt(left, right) ->
+        | ExprSyntax.Gt(left, right) ->
             walk_comparison (left, ">", right)
-        | Expr.EqEq(left, right) ->
+        | ExprSyntax.EqEq(left, right) ->
             walk_comparison (left, "==", right)
-        | Expr.NotEq(left, right) ->
+        | ExprSyntax.NotEq(left, right) ->
             walk_comparison (left, "!=", right)
-        | Expr.Mul(left, right) ->
+        | ExprSyntax.Mul(left, right) ->
             walk_arith (left, "*", right)
-        | Expr.Div(left, right) ->
+        | ExprSyntax.Div(left, right) ->
             walk_arith (left, "/", right)
-        | Expr.Sum(left, right) ->
+        | ExprSyntax.Sum(left, right) ->
             walk_arith (left, "+", right)
-        | Expr.Sub(left, right) ->
+        | ExprSyntax.Sub(left, right) ->
             walk_arith (left, "-", right)
-        | Expr.Match(expr, cases_hd, cases_tl) ->
+        | ExprSyntax.Match(expr, cases_hd, cases_tl) ->
             walk_match (expr, cases_hd, cases_tl)
-        | Expr.Dispatch(obj_expr, method_id, actuals) ->
+        | ExprSyntax.Dispatch(obj_expr, method_id, actuals) ->
             walk_dispatch (obj_expr, method_id, actuals)
         // Primary expressions
-        | Expr.ImplicitThisDispatch(method_id, actuals) ->
+        | ExprSyntax.ImplicitThisDispatch(method_id, actuals) ->
             walk_implicit_this_dispatch (method_id, actuals)
-        | Expr.SuperDispatch(method_id, actuals) ->
+        | ExprSyntax.SuperDispatch(method_id, actuals) ->
             walk_super_dispatch (method_id, actuals)
-        | Expr.New(class_name, actuals) ->
+        | ExprSyntax.New(class_name, actuals) ->
             walk_object_creation (class_name, actuals)
-        | Expr.BracedBlock block_info_opt ->
+        | ExprSyntax.BracedBlock block_info_opt ->
             walk_braced_block block_info_opt
-        | Expr.ParensExpr node_expr ->
+        | ExprSyntax.ParensExpr node_expr ->
             walk_parens_expr node_expr
-        | Expr.Id value ->
+        | ExprSyntax.Id value ->
             text (sprintf "\"%s\"" (value.ToString()))
-        | Expr.Int value ->
+        | ExprSyntax.Int value ->
             text (value.ToString())
-        | Expr.Str value ->
+        | ExprSyntax.Str value ->
             text (sprintf "\"%s\"" (value.ToString(escape_quotes=true)))
-        | Expr.Bool value ->
+        | ExprSyntax.Bool value ->
             text (sprintf "%s" (value.ToString()))
-        | Expr.This ->
+        | ExprSyntax.This ->
             text ("\"this\"")
-        | Expr.Null ->
+        | ExprSyntax.Null ->
             text ("\"null\"")
-        | Expr.Unit ->
+        | ExprSyntax.Unit ->
             text ("\"()\"")
         
     
     // Block
-    and walk_var_decl (var_decl_info: VarDeclInfo): unit =
+    and walk_var_decl (var_decl_info: VarDeclSyntax): unit =
         begin_with "{"
         
         end_line_with "\"kind\": \"var\", "
@@ -126,7 +126,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-     and walk_stmt_expr (expr: Expr): unit =
+     and walk_stmt_expr (expr: ExprSyntax): unit =
         begin_with "{"
         
         end_line_with "\"kind\": \"stmt\", "
@@ -135,14 +135,14 @@ type AstRenderer private () =
         end_with "}"
 
 
-     and walk_block_info (block_info: Block): unit =
+     and walk_block_info (block_info: BlockSyntax): unit =
         begin_with "[ "
         
         block_info.Stmts
         |> Array.iter (fun it ->
             match it.Value with
-            | Stmt.VarDecl var_decl_info -> walk_var_decl var_decl_info
-            | Stmt.Expr expr -> walk_stmt_expr expr
+            | StmtSyntax.VarDecl var_decl_info -> walk_var_decl var_decl_info
+            | StmtSyntax.Expr expr -> walk_stmt_expr expr
             end_line_with ", ")
 
         begin_with "{" 
@@ -158,7 +158,7 @@ type AstRenderer private () =
 
 
     // Braced block
-    and walk_braced_block (block_info: Block voption): unit =
+    and walk_braced_block (block_info: BlockSyntax voption): unit =
         match block_info with
         | ValueSome block_info ->
             walk_block_info block_info
@@ -166,15 +166,15 @@ type AstRenderer private () =
             text ("[]")
 
 
-    and walk_block (block: CaseBlock) =
+    and walk_block (block: CaseBlockSyntax) =
         begin_with "{"
         
         match block with
-        | CaseBlock.Implicit block_info ->
+        | CaseBlockSyntax.Implicit block_info ->
             end_line_with "\"kind\": \"implicit\", "
             text "\"statements\": "
             walk_block_info block_info; end_line()
-        | CaseBlock.BracedBlock block_info_opt ->
+        | CaseBlockSyntax.BracedBlock block_info_opt ->
             end_line_with "\"kind\": \"braced\", "
             text "\"statements\": "
             walk_braced_block block_info_opt; end_line()
@@ -183,7 +183,7 @@ type AstRenderer private () =
 
 
     // Assign
-    and walk_assign (lvalue: Node<ID>, rvalue: Node<Expr>): unit =
+    and walk_assign (lvalue: AstNode<ID>, rvalue: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"=\", "
@@ -197,7 +197,7 @@ type AstRenderer private () =
 
 
     // If
-    and walk_if (condition: Node<Expr>, then_branch: Node<Expr>, else_branch: Node<Expr>): unit =
+    and walk_if (condition: AstNode<ExprSyntax>, then_branch: AstNode<ExprSyntax>, else_branch: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"if\", "
@@ -215,7 +215,7 @@ type AstRenderer private () =
 
 
     // While
-    and walk_while (condition: Node<Expr>, body: Node<Expr>): unit =
+    and walk_while (condition: AstNode<ExprSyntax>, body: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"while\", "
@@ -230,15 +230,15 @@ type AstRenderer private () =
 
 
     // Match/case
-    and stringify_match_case_pattern (pattern: Pattern): string =
+    and stringify_match_case_pattern (pattern: PatternSyntax): string =
         match pattern with
-        | Pattern.IdType(node_id, node_type_name) ->
+        | PatternSyntax.IdType(node_id, node_type_name) ->
             sprintf "%s: %s" node_id.Value.Value node_type_name.Value.Value 
-        | Pattern.Null ->
+        | PatternSyntax.Null ->
             "null"
 
 
-    and walk_match_case (case: Case): unit =
+    and walk_match_case (case: CaseSyntax): unit =
         begin_with "{"
 
         end_line_with (sprintf "\"pattern\": \"%s\", " (stringify_match_case_pattern case.Pattern.Value))
@@ -249,7 +249,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-    and walk_match_cases (cases_hd: Node<Case>, cases_tl: Node<Case> []): unit =
+    and walk_match_cases (cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
         begin_with "["
        
         walk_match_case cases_hd.Value;
@@ -263,7 +263,7 @@ type AstRenderer private () =
 
 
     // Match
-    and walk_match (expr: Node<Expr>, cases_hd: Node<Case>, cases_tl: Node<Case> []): unit =
+    and walk_match (expr: AstNode<ExprSyntax>, cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"match\", "
@@ -279,7 +279,7 @@ type AstRenderer private () =
 
     // Dispatch
     // Actuals
-    and walk_actual (actual: Expr, index: int): unit =
+    and walk_actual (actual: ExprSyntax, index: int): unit =
         if index > 0
         then
             end_line_with ", "
@@ -287,7 +287,7 @@ type AstRenderer private () =
         walk_expr actual
 
 
-    and walk_actuals (actuals: Node<Expr> []): unit =
+    and walk_actuals (actuals: AstNode<ExprSyntax> []): unit =
         if actuals.Length = 0
         then
             text "[]"
@@ -297,7 +297,7 @@ type AstRenderer private () =
             end_with "]"
 
 
-    and walk_dispatch (receiver: Node<Expr>, method_id: Node<ID>, actuals: Node<Expr> []): unit =
+    and walk_dispatch (receiver: AstNode<ExprSyntax>, method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"dispatch\", "
@@ -313,7 +313,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-    and walk_implicit_this_dispatch (method_id: Node<ID>, actuals: Node<Expr> []): unit =
+    and walk_implicit_this_dispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"implicit_this_dispatch\", "
@@ -325,7 +325,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-    and walk_super_dispatch (method_id: Node<ID>, actuals: Node<Expr> []): unit =
+    and walk_super_dispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"super_dispatch\", "
@@ -338,7 +338,7 @@ type AstRenderer private () =
 
 
     // Object creation
-    and walk_object_creation (type_name: Node<TYPENAME>, actuals: Node<Expr> []): unit =
+    and walk_object_creation (type_name: AstNode<TYPENAME>, actuals: AstNode<ExprSyntax> []): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"new\", "
@@ -351,7 +351,7 @@ type AstRenderer private () =
 
 
     // Bool negation
-    and walk_bool_negation (expr: Node<Expr>): unit =
+    and walk_bool_negation (expr: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"!\", "
@@ -363,7 +363,7 @@ type AstRenderer private () =
 
 
     // Compare
-    and walk_comparison (left: Node<Expr>, op: string, right: Node<Expr>): unit =
+    and walk_comparison (left: AstNode<ExprSyntax>, op: string, right: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with (sprintf "\"kind\": \"%s\", " op)
@@ -378,7 +378,7 @@ type AstRenderer private () =
 
 
     // Unary minus
-    and walk_unary_minus (expr: Node<Expr>): unit =
+    and walk_unary_minus (expr: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"-\", "
@@ -390,7 +390,7 @@ type AstRenderer private () =
 
 
     // Arith
-    and walk_arith (left: Node<Expr>, op: string, right: Node<Expr>): unit =
+    and walk_arith (left: AstNode<ExprSyntax>, op: string, right: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with (sprintf "\"kind\": \"%s\", " op)
@@ -405,7 +405,7 @@ type AstRenderer private () =
 
 
     // Parenthesized expr
-    and walk_parens_expr (expr: Node<Expr>): unit =
+    and walk_parens_expr (expr: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
         end_line_with "\"kind\": \"parenthesized\", "
@@ -416,7 +416,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-    and walk_var_formal (var_formal: VarFormal, index: int): unit =
+    and walk_var_formal (var_formal: VarFormalSyntax, index: int): unit =
         if index > 0
         then
             end_line_with ", "
@@ -429,7 +429,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-    and walk_var_formals (var_formals: Node<VarFormal> []): unit =
+    and walk_var_formals (var_formals: AstNode<VarFormalSyntax> []): unit =
         if var_formals.Length = 0
         then
             text "[]"
@@ -439,7 +439,7 @@ type AstRenderer private () =
             end_with "]"
 
 
-    and walk_formal (formal: Formal, index: int): unit =
+    and walk_formal (formal: FormalSyntax, index: int): unit =
         if index > 0
         then
             end_line_with ", "
@@ -452,7 +452,7 @@ type AstRenderer private () =
         end_with "}"
 
 
-    and walk_formals (formals: Node<Formal> []): unit =
+    and walk_formals (formals: AstNode<FormalSyntax> []): unit =
         if formals.Length = 0
         then
             text "[]"
@@ -462,7 +462,7 @@ type AstRenderer private () =
             end_with "]"
 
 
-    and walk_method (method_info: MethodInfo): unit =
+    and walk_method (method_info: MethodSyntax): unit =
         begin_with "{"
         
         end_line_with "\"kind\": \"method\", "
@@ -475,16 +475,16 @@ type AstRenderer private () =
         
         text "\"body\": "
         match method_info.Body.Value with
-        | MethodBody.Expr expr ->
+        | MethodBodySyntax.Expr expr ->
             walk_expr expr
-        | MethodBody.Native ->
+        | MethodBodySyntax.Native ->
             text ("\"native\"")
         end_line()
         
         end_with "}"
 
 
-    and walk_attr (attr_info: AttrInfo): unit =
+    and walk_attr (attr_info: AttrSyntax): unit =
         begin_with "{"
            
         end_line_with "\"kind\": \"attribute\", " 
@@ -493,18 +493,18 @@ type AstRenderer private () =
 
         text "\"value\": "
         match attr_info.Initial.Value with
-        | AttrInitial.Expr expr ->
+        | AttrInitialSyntax.Expr expr ->
             walk_expr expr
-        | AttrInitial.Native ->
+        | AttrInitialSyntax.Native ->
             end_line_with ("\"native\"")
         end_line()
         
         end_with "}"
 
 
-    and walk_extends (extends: Extends voption): unit =
+    and walk_extends (extends: InheritanceSyntax voption): unit =
         match extends with
-        | ValueSome (Extends.Info extends_info) ->
+        | ValueSome (InheritanceSyntax.Info extends_info) ->
             begin_with "{"
             end_line_with (sprintf "\"type\": \"%s\", " extends_info.SUPER.Value.Value)
             text "\"actuals\": "
@@ -516,22 +516,22 @@ type AstRenderer private () =
             end_line_with "\"actuals\": []"
             end_line()
             end_with "}"
-        | ValueSome Extends.Native ->
+        | ValueSome InheritanceSyntax.Native ->
             end_line_with "\"native\""
 
 
-     and walk_features (features: Node<Feature> []): unit =
-        let visit_feature (feature_node: Node<Feature>) (index: int): unit =
+     and walk_features (features: AstNode<FeatureSyntax> []): unit =
+        let visit_feature (feature_node: AstNode<FeatureSyntax>) (index: int): unit =
             if index > 0
             then
                 end_line_with ", "
                 
             match feature_node.Value with
-            | Feature.Method method_info ->
+            | FeatureSyntax.Method method_info ->
                 walk_method method_info
-            | Feature.Attr attr_info ->
+            | FeatureSyntax.Attr attr_info ->
                 walk_attr attr_info
-            | Feature.BracedBlock block_info_opt ->
+            | FeatureSyntax.BracedBlock block_info_opt ->
                 begin_with "{"
                 
                 end_line_with "\"kind\": \"block\", "
@@ -545,7 +545,7 @@ type AstRenderer private () =
         end_with "]"
 
 
-     and walk_class (klass: ClassDecl): unit =
+     and walk_class (klass: ClassSyntax): unit =
         begin_with "{"
         
         end_line_with (sprintf "\"name\": \"%s\", " klass.NAME.Value.Value)
@@ -563,7 +563,7 @@ type AstRenderer private () =
 
 
     // Program
-    and walk_program (program: Program): unit =
+    and walk_program (program: ProgramSyntax): unit =
         end_line_with "{"
         end_line_with "\"classes\": ["
         
@@ -581,14 +581,14 @@ type AstRenderer private () =
         end_line_with "}"
 
 
-    member private this.Render(ast: Program): unit =
+    member private this.Render(ast: ProgramSyntax): unit =
         walk_program ast
 
     
     override this.ToString() = _sb_ast.ToString()
 
 
-    static member Render(ast: Program) =
+    static member Render(ast: ProgramSyntax) =
         let renderer = AstRenderer()
         renderer.Render(ast)
         renderer.ToString()

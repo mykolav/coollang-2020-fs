@@ -16,7 +16,7 @@ open Xunit.Abstractions
 type Sandbox(_test_output: ITestOutputHelper) =
     
     
-    let parse (path: string): Ast.Program voption =
+    let parse (path: string): ProgramSyntax voption =
         // Prepare
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
         let tc = CompilerTestCase.ReadFrom(path)

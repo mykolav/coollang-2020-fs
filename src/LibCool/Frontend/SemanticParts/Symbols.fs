@@ -10,39 +10,39 @@ module Symbols =
 
 
     type AttrSymbol =
-        { Name: Ast.ID
-          Type: Ast.TYPENAME
-          DeclaringClass: Ast.TYPENAME
+        { Name: ID
+          Type: TYPENAME
+          DeclaringClass: TYPENAME
           Index: int
           SyntaxSpan: Span }
 
 
     type ParamSymbol =
-        { Name: Ast.ID
-          Type: Ast.TYPENAME
+        { Name: ID
+          Type: TYPENAME
           Index: int
           SyntaxSpan: Span }
 
 
     type MethodSymbol =
-        { Name: Ast.ID
+        { Name: ID
           Params: ParamSymbol[]
-          ReturnType: Ast.TYPENAME
+          ReturnType: TYPENAME
           Override: bool
-          DeclaringClass: Ast.TYPENAME
+          DeclaringClass: TYPENAME
           Index: int
           SyntaxSpan: Span }
 
 
     type ClassSymbol =
-        { Name: Ast.TYPENAME
-          Super: Ast.TYPENAME
+        { Name: TYPENAME
+          Super: TYPENAME
           Ctor: MethodSymbol
-          Attrs: IReadOnlyDictionary<Ast.ID, AttrSymbol>
-          Methods: IReadOnlyDictionary<Ast.ID, MethodSymbol>
+          Attrs: IReadOnlyDictionary<ID, AttrSymbol>
+          Methods: IReadOnlyDictionary<ID, MethodSymbol>
           SyntaxSpan: Span }
         member this.IsError =
-            this.Name = Ast.TYPENAME ".error"
+            this.Name = TYPENAME ".error"
 
 
 [<RequireQualifiedAccess>]
@@ -52,11 +52,11 @@ module BasicClassSymbols =
     open Symbols
     
     
-    let private mk_class_sym (name: Ast.TYPENAME) (super: Ast.TYPENAME) =
+    let private mk_class_sym (name: TYPENAME) (super: TYPENAME) =
         { Name = name
           Super = super
           Ctor =
-            { MethodSymbol.Name = Ast.ID ".ctor"
+            { MethodSymbol.Name = ID ".ctor"
               Params = [||] 
               ReturnType = name  
               Override = false
@@ -70,13 +70,13 @@ module BasicClassSymbols =
         }
         
     
-    let Any: ClassSymbol = mk_class_sym (Ast.TYPENAME "Any") (Ast.TYPENAME "") 
-    let Unit: ClassSymbol = mk_class_sym (Ast.TYPENAME "Unit") (Ast.TYPENAME "Any") 
-    let Int: ClassSymbol = mk_class_sym (Ast.TYPENAME "Int") (Ast.TYPENAME "Any")
-    let String: ClassSymbol = mk_class_sym (Ast.TYPENAME "String") (Ast.TYPENAME "Any")
-    let Boolean: ClassSymbol = mk_class_sym (Ast.TYPENAME "Boolean") (Ast.TYPENAME "Any")
-    let ArrayAny: ClassSymbol = mk_class_sym (Ast.TYPENAME "ArrayAny") (Ast.TYPENAME "Any")
-    let IO: ClassSymbol = mk_class_sym (Ast.TYPENAME "IO") (Ast.TYPENAME "Any")
-    let Symbol: ClassSymbol = mk_class_sym (Ast.TYPENAME "Symbol") (Ast.TYPENAME "Any")
+    let Any: ClassSymbol = mk_class_sym (TYPENAME "Any") (TYPENAME "") 
+    let Unit: ClassSymbol = mk_class_sym (TYPENAME "Unit") (TYPENAME "Any") 
+    let Int: ClassSymbol = mk_class_sym (TYPENAME "Int") (TYPENAME "Any")
+    let String: ClassSymbol = mk_class_sym (TYPENAME "String") (TYPENAME "Any")
+    let Boolean: ClassSymbol = mk_class_sym (TYPENAME "Boolean") (TYPENAME "Any")
+    let ArrayAny: ClassSymbol = mk_class_sym (TYPENAME "ArrayAny") (TYPENAME "Any")
+    let IO: ClassSymbol = mk_class_sym (TYPENAME "IO") (TYPENAME "Any")
+    let Symbol: ClassSymbol = mk_class_sym (TYPENAME "Symbol") (TYPENAME "Any")
 
-    let Error: ClassSymbol = mk_class_sym (Ast.TYPENAME ".error") (Ast.TYPENAME "")
+    let Error: ClassSymbol = mk_class_sym (TYPENAME ".error") (TYPENAME "")

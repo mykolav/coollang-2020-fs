@@ -1,203 +1,200 @@
-namespace LibCool.AstParts
+namespace rec LibCool.AstParts
 
 
 open System.Runtime.CompilerServices
 open LibCool.SourceParts
 
 
-module rec Ast =
+[<IsReadOnly; Struct>]
+type AstNode<'TValue> =
+    { Span: Span
+      Value: 'TValue }
+    with
+    member this.Map<'TMapped>(mapping: 'TValue -> 'TMapped): AstNode<'TMapped> =
+        AstNode.Of(mapping this.Value, this.Span)
+        
 
 
-    [<IsReadOnly; Struct>]
-    type Node<'TValue> =
-        { Span: Span
-          Value: 'TValue }
-        with
-        member this.Map<'TMapped>(mapping: 'TValue -> 'TMapped): Node<'TMapped> =
-            Node.Of(mapping this.Value, this.Span)
-            
+[<AbstractClass; Sealed; RequireQualifiedAccess>]
+type AstNode private () =
 
 
-    [<AbstractClass; Sealed; RequireQualifiedAccess>]
-    type Node private () =
+    static member Of<'TValue>(value: 'TValue, span: Span): AstNode<'TValue> =
+        { Span = span
+          Value = value }
 
 
-        static member Of<'TValue>(value: 'TValue, span: Span): Node<'TValue> =
-            { Span = span
-              Value = value }
+    static member Of<'TValue>(value: 'TValue, first: uint32, last: uint32): AstNode<'TValue> =
+        AstNode.Of(span = { First = first; Last = last },
+                value = value)
 
 
-        static member Of<'TValue>(value: 'TValue, first: uint32, last: uint32): Node<'TValue> =
-            Node.Of(span = { First = first; Last = last },
-                    value = value)
+type ProgramSyntax =
+    { ClassDecls: AstNode<ClassSyntax>[] }
 
 
-    type Program =
-        { ClassDecls: Node<ClassDecl>[] }
+type ClassSyntax =
+    { NAME: AstNode<TYPENAME>
+      VarFormals: AstNode<VarFormalSyntax>[]
+      Extends: AstNode<InheritanceSyntax> voption
+      ClassBody: AstNode<FeatureSyntax>[] }
 
 
-    type ClassDecl =
-        { NAME: Node<TYPENAME>
-          VarFormals: Node<VarFormal>[]
-          Extends: Node<Extends> voption
-          ClassBody: Node<Feature>[] }
+[<RequireQualifiedAccess>]
+type InheritanceSyntax =
+    | Info of ExtendsSyntax
+    | Native
 
 
-    [<RequireQualifiedAccess>]
-    type Extends =
-        | Info of ExtendsInfo
-        | Native
+type ExtendsSyntax =
+    { SUPER: AstNode<TYPENAME>
+      Actuals: AstNode<ExprSyntax> [] }
 
 
-    type ExtendsInfo =
-        { SUPER: Node<TYPENAME>
-          Actuals: Node<Expr> [] }
+type VarFormalSyntax =
+    { ID: AstNode<ID>
+      TYPE: AstNode<TYPENAME> }
 
 
-    type VarFormal =
-        { ID: Node<ID>
-          TYPE: Node<TYPENAME> }
+[<RequireQualifiedAccess; DefaultAugmentation(false)>]
+type FeatureSyntax =
+    | Method of MethodSyntax
+    | Attr of AttrSyntax
+    | BracedBlock of BlockSyntax voption
 
 
-    [<RequireQualifiedAccess; DefaultAugmentation(false)>]
-    type Feature =
-        | Method of MethodInfo
-        | Attr of AttrInfo
-        | BracedBlock of Block voption
+type MethodSyntax =
+    { Override: bool
+      ID: AstNode<ID>
+      Formals: AstNode<FormalSyntax> []
+      RETURN: AstNode<TYPENAME>
+      Body: AstNode<MethodBodySyntax> }
 
 
-    type MethodInfo =
-        { Override: bool
-          ID: Node<ID>
-          Formals: Node<Formal> []
-          RETURN: Node<TYPENAME>
-          Body: Node<MethodBody> }
+[<RequireQualifiedAccess>]
+type MethodBodySyntax =
+    | Expr of ExprSyntax
+    | Native
 
 
-    [<RequireQualifiedAccess>]
-    type MethodBody =
-        | Expr of Expr
-        | Native
+type FormalSyntax =
+    { ID: AstNode<ID>
+      TYPE: AstNode<TYPENAME> }
 
 
-    type Formal =
-        { ID: Node<ID>
-          TYPE: Node<TYPENAME> }
+[<RequireQualifiedAccess>]
+type AttrSyntax =
+    { ID: AstNode<ID>
+      TYPE: AstNode<TYPENAME>
+      Initial: AstNode<AttrInitialSyntax> }
 
 
-    [<RequireQualifiedAccess>]
-    type AttrInfo =
-        { ID: Node<ID>
-          TYPE: Node<TYPENAME>
-          Initial: Node<AttrInitial> }
+[<RequireQualifiedAccess>]
+type AttrInitialSyntax =
+    | Expr of ExprSyntax
+    | Native
 
 
-    [<RequireQualifiedAccess>]
-    type AttrInitial =
-        | Expr of Expr
-        | Native
+type BlockSyntax =
+    { Stmts: AstNode<StmtSyntax> []
+      Expr: AstNode<ExprSyntax> }
 
 
-    type Block =
-        { Stmts: Node<Stmt> []
-          Expr: Node<Expr> }
+[<RequireQualifiedAccess>]
+type StmtSyntax =
+    | VarDecl of VarDeclSyntax
+    | Expr of ExprSyntax
 
 
-    [<RequireQualifiedAccess>]
-    type Stmt =
-        | VarDecl of VarDeclInfo
-        | Expr of Expr
+type VarDeclSyntax =
+    { ID: AstNode<ID>
+      TYPE_NAME: AstNode<TYPENAME>
+      Expr: AstNode<ExprSyntax> }
 
 
-    type VarDeclInfo =
-        { ID: Node<ID>
-          TYPE_NAME: Node<TYPENAME>
-          Expr: Node<Expr> }
+[<RequireQualifiedAccess>]
+type ExprSyntax =
+    | Assign of id: AstNode<ID> * expr: AstNode<ExprSyntax>
+    | BoolNegation of AstNode<ExprSyntax>
+    | UnaryMinus of AstNode<ExprSyntax>
+    | If of condition: AstNode<ExprSyntax> * then_branch: AstNode<ExprSyntax> * else_branch: AstNode<ExprSyntax>
+    | While of condition: AstNode<ExprSyntax> * body: AstNode<ExprSyntax>
+    | LtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | GtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | Lt of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | Gt of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | EqEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | NotEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | Mul of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | Div of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | Sum of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | Sub of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+    | Match of expr: AstNode<ExprSyntax> * cases_hd: AstNode<CaseSyntax> * cases_tl: AstNode<CaseSyntax> []
+    | Dispatch of receiver: AstNode<ExprSyntax> * method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
+    // Primary
+    | ImplicitThisDispatch of method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
+    | SuperDispatch of method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
+    | New of type_name: AstNode<TYPENAME> * actuals: AstNode<ExprSyntax> []
+    | BracedBlock of BlockSyntax voption
+    | ParensExpr of AstNode<ExprSyntax>
+    | Id of ID
+    | Int of INT
+    | Str of STRING
+    | Bool of BOOL
+    | This
+    | Null
+    | Unit
 
 
-    [<RequireQualifiedAccess>]
-    type Expr =
-        | Assign of id: Node<ID> * expr: Node<Expr>
-        | BoolNegation of Node<Expr>
-        | UnaryMinus of Node<Expr>
-        | If of condition: Node<Expr> * then_branch: Node<Expr> * else_branch: Node<Expr>
-        | While of condition: Node<Expr> * body: Node<Expr>
-        | LtEq of left: Node<Expr> * right: Node<Expr>
-        | GtEq of left: Node<Expr> * right: Node<Expr>
-        | Lt of left: Node<Expr> * right: Node<Expr>
-        | Gt of left: Node<Expr> * right: Node<Expr>
-        | EqEq of left: Node<Expr> * right: Node<Expr>
-        | NotEq of left: Node<Expr> * right: Node<Expr>
-        | Mul of left: Node<Expr> * right: Node<Expr>
-        | Div of left: Node<Expr> * right: Node<Expr>
-        | Sum of left: Node<Expr> * right: Node<Expr>
-        | Sub of left: Node<Expr> * right: Node<Expr>
-        | Match of expr: Node<Expr> * cases_hd: Node<Case> * cases_tl: Node<Case> []
-        | Dispatch of receiver: Node<Expr> * method_id: Node<ID> * actuals: Node<Expr> []
-        // Primary
-        | ImplicitThisDispatch of method_id: Node<ID> * actuals: Node<Expr> []
-        | SuperDispatch of method_id: Node<ID> * actuals: Node<Expr> []
-        | New of type_name: Node<TYPENAME> * actuals: Node<Expr> []
-        | BracedBlock of Block voption
-        | ParensExpr of Node<Expr>
-        | Id of ID
-        | Int of INT
-        | Str of STRING
-        | Bool of BOOL
-        | This
-        | Null
-        | Unit
+type CaseSyntax =
+    { Pattern: AstNode<PatternSyntax>
+      Block: AstNode<CaseBlockSyntax> }
 
 
-    type Case =
-        { Pattern: Node<Pattern>
-          Block: Node<CaseBlock> }
+[<RequireQualifiedAccess>]
+type CaseBlockSyntax =
+    | Implicit of BlockSyntax
+    | BracedBlock of BlockSyntax voption
 
 
-    [<RequireQualifiedAccess>]
-    type CaseBlock =
-        | Implicit of Block
-        | BracedBlock of Block voption
+[<RequireQualifiedAccess>]
+type PatternSyntax =
+    | IdType of id:AstNode<ID> * pattern_type:AstNode<TYPENAME>
+    | Null
 
 
-    [<RequireQualifiedAccess>]
-    type Pattern =
-        | IdType of id:Node<ID> * pattern_type:Node<TYPENAME>
-        | Null
+type ID =
+    | ID of value: string
+    member this.Value = let (ID value) = this in value
+    override this.ToString() = this.Value
 
 
-    type ID =
-        | ID of value: string
-        member this.Value = let (ID value) = this in value
-        override this.ToString() = this.Value
+type TYPENAME =
+    | TYPENAME of value: string
+    member this.Value = let (TYPENAME value) = this in value
+    override this.ToString() = this.Value
 
 
-    type TYPENAME =
-        | TYPENAME of value: string
-        member this.Value = let (TYPENAME value) = this in value
-        override this.ToString() = this.Value
+type INT =
+    | INT of value: int
+    member this.Value = let (INT value) = this in value
+    override this.ToString() = this.Value.ToString()
 
 
-    type INT =
-        | INT of value: int
-        member this.Value = let (INT value) = this in value
-        override this.ToString() = this.Value.ToString()
+type STRING =
+    | STRING of value: string * is_qqq: bool
+    member this.Value = let (STRING (value, _)) = this in value
+    member this.IsQqq = let (STRING (_, is_qqq)) = this in is_qqq
+    member this.ToString(escape_quotes: bool) =
+        let quote = if this.IsQqq then "\"\"\"" else "\""
+        let quote = if escape_quotes then quote.Replace("\"", "\\\"") else quote
+        quote + this.Value + quote
+    override this.ToString() = this.ToString(escape_quotes=false)
 
 
-    type STRING =
-        | STRING of value: string * is_qqq: bool
-        member this.Value = let (STRING (value, _)) = this in value
-        member this.IsQqq = let (STRING (_, is_qqq)) = this in is_qqq
-        member this.ToString(escape_quotes: bool) =
-            let quote = if this.IsQqq then "\"\"\"" else "\""
-            let quote = if escape_quotes then quote.Replace("\"", "\\\"") else quote
-            quote + this.Value + quote
-        override this.ToString() = this.ToString(escape_quotes=false)
-
-
-    [<RequireQualifiedAccess>]
-    type BOOL =
-        | True
-        | False
-        member this.Value = this = BOOL.True
-        override this.ToString() = if this.Value then "true" else "false"
+[<RequireQualifiedAccess>]
+type BOOL =
+    | True
+    | False
+    member this.Value = this = BOOL.True
+    override this.ToString() = if this.Value then "true" else "false"

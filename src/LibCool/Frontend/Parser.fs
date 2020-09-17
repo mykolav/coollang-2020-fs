@@ -4,7 +4,7 @@ namespace rec LibCool.Frontend
 open System.Collections.Generic
 open System.Linq
 open LibCool.SourceParts
-open LibCool.AstParts.Ast
+open LibCool.AstParts
 open LibCool.DiagnosticParts
 
 
@@ -70,7 +70,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     let eat_token (): unit =
         if _offset + 1 >= _tokens.Length
         then
-            invalidOp (sprintf "_offset [%d] + 1 is >=f _tokens.Length [%d]" _offset _tokens.Length)
+            invalidOp (sprintf "_offset [%d] + 1 is >= _tokens.Length [%d]" _offset _tokens.Length)
         
         _prev_token_span_last <- _token.Span.Last
         _offset <- _offset + 1
@@ -172,8 +172,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     | '.' ID actuals infixop_rhs*
     //     ;
     // ```
-    let rec expr (prec_threshold: sbyte): ErrorOrOption<Node<Expr>> =
-        let optional_infixop_rhs (atom: Node<Expr>): ErrorOrOption<Node<Expr>> =
+    let rec expr (prec_threshold: sbyte): ErrorOrOption<AstNode<ExprSyntax>> =
+        let optional_infixop_rhs (atom: AstNode<ExprSyntax>): ErrorOrOption<AstNode<ExprSyntax>> =
             match infixop_rhs prec_threshold atom with
             | ValueSome it -> Ok (ValueSome it)
             | ValueNone -> Error
@@ -200,13 +200,13 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                     Error
                 else
                     
-                let id_node = Node.Of(ID first_token.Id, first_token.Span)
+                let id_node = AstNode.Of(ID first_token.Id, first_token.Span)
                 let init_node = init_node_opt.Value
 
-                let assign_value = Expr.Assign (id=id_node, expr=init_node)
+                let assign_value = ExprSyntax.Assign (id=id_node, expr=init_node)
                 let assing_span = Span.Of(span_start, init_node.Span.Last)
                 
-                let assign_node = Node.Of(assign_value, assing_span)
+                let assign_node = AstNode.Of(assign_value, assing_span)
                 Ok (ValueSome assign_node)
             else
                 
@@ -225,19 +225,19 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 else
                 
                 let actual_nodes = actual_nodes_opt.Value
-                let id_node = Node.Of(ID first_token.Id, first_token.Span)
+                let id_node = AstNode.Of(ID first_token.Id, first_token.Span)
                 
                 let expr_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
-                let expr_dispatch_value = Expr.ImplicitThisDispatch (method_id=id_node, actuals=actual_nodes.Value)
+                let expr_dispatch_value = ExprSyntax.ImplicitThisDispatch (method_id=id_node, actuals=actual_nodes.Value)
                 
                 // The 'ID actuals' dispatch can be followed by any infix op except '='.
-                optional_infixop_rhs (Node.Of(expr_dispatch_value, expr_dispatch_span))
+                optional_infixop_rhs (AstNode.Of(expr_dispatch_value, expr_dispatch_span))
             else
 
             // "ID" is a primary expression.
             // A primary expression cannot be followed by another primary expression,
             // only by an infix op, i.e.: (infixop_rhs)*
-            optional_infixop_rhs (Node.Of(Expr.Id (ID first_token.Id), first_token.Span))
+            optional_infixop_rhs (AstNode.Of(ExprSyntax.Id (ID first_token.Id), first_token.Span))
         else
         
         //
@@ -258,11 +258,11 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let expr_node = expr_node_opt.Value
             
             let expr_bool_neg_span = Span.Of(span_start, expr_node.Span.Last)
-            let expr_bool_neg_value = Expr.BoolNegation expr_node 
+            let expr_bool_neg_value = ExprSyntax.BoolNegation expr_node 
             
             // Boolean negation applied to an atom or subexpression
             // can then be followed by an infix op, i.e.: (infixop_rhs)*
-            optional_infixop_rhs (Node.Of(expr_bool_neg_value, expr_bool_neg_span))
+            optional_infixop_rhs (AstNode.Of(expr_bool_neg_value, expr_bool_neg_span))
         else
             
         if try_eat TokenKind.Minus
@@ -280,11 +280,11 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let expr_node = expr_node_opt.Value
             
             let expr_unary_minus_span = Span.Of(span_start, expr_node.Span.Last)
-            let expr_unary_minus_value = Expr.UnaryMinus expr_node
+            let expr_unary_minus_value = ExprSyntax.UnaryMinus expr_node
 
             // Arithmetical negation applied to an atom or subexpression
             // can then be followed by an infix op, i.e.: (infixop_rhs)*
-            optional_infixop_rhs (Node.Of(expr_unary_minus_value, expr_unary_minus_span))
+            optional_infixop_rhs (AstNode.Of(expr_unary_minus_value, expr_unary_minus_span))
         else
             
         if try_eat TokenKind.KwIf
@@ -329,10 +329,10 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let expr_if_span = Span.Of(span_start, else_branch_opt.Value.Span.Last)
-            let expr_if_value = Expr.If (condition=condition_opt.Value,
+            let expr_if_value = ExprSyntax.If (condition=condition_opt.Value,
                                          then_branch=then_branch_opt.Value,
                                          else_branch=else_branch_opt.Value)
-            Ok (ValueSome (Node.Of(expr_if_value, expr_if_span)))
+            Ok (ValueSome (AstNode.Of(expr_if_value, expr_if_span)))
         else
         
         if try_eat TokenKind.KwWhile
@@ -366,9 +366,9 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let expr_while_span = Span.Of(span_start, body_opt.Value.Span.Last)
-            let expr_while_value = Expr.While (condition=condition_opt.Value,
+            let expr_while_value = ExprSyntax.While (condition=condition_opt.Value,
                                                body=body_opt.Value)
-            Ok (ValueSome (Node.Of(expr_while_value, expr_while_span)))
+            Ok (ValueSome (AstNode.Of(expr_while_value, expr_while_span)))
         else
 
         //
@@ -389,7 +389,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     
     // A primary expression cannot be followed by another primary expression,
     // only by an infix op, i.e.: (expression suffix)*    
-    and primary (): ErrorOrOption<Node<Expr>> =
+    and primary (): ErrorOrOption<AstNode<ExprSyntax>> =
         let span_start = _token.Span.First
         let first_token = _token
 
@@ -415,12 +415,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
             
             let actual_nodes = actual_nodes_opt.Value
-            let id_node = Node.Of(ID token_id.Id, token_id.Span)
+            let id_node = AstNode.Of(ID token_id.Id, token_id.Span)
             
             let expr_super_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
-            let expr_super_dispatch_value = Expr.SuperDispatch (method_id=id_node, actuals=actual_nodes.Value)
+            let expr_super_dispatch_value = ExprSyntax.SuperDispatch (method_id=id_node, actuals=actual_nodes.Value)
             
-            Ok (ValueSome (Node.Of(expr_super_dispatch_value, expr_super_dispatch_span)))
+            Ok (ValueSome (AstNode.Of(expr_super_dispatch_value, expr_super_dispatch_span)))
         else
 
         // 'new' ID actuals
@@ -440,11 +440,11 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
             
             let actual_nodes = actual_nodes_opt.Value
-            let type_name_node = Node.Of(TYPENAME token_id.Id, token_id.Span)
+            let type_name_node = AstNode.Of(TYPENAME token_id.Id, token_id.Span)
             
             let expr_new_span = Span.Of(span_start, actual_nodes.Span.Last)
-            let expr_new_value = Expr.New (type_name=type_name_node, actuals=actual_nodes.Value)
-            Ok (ValueSome (Node.Of(expr_new_value, expr_new_span)))
+            let expr_new_value = ExprSyntax.New (type_name=type_name_node, actuals=actual_nodes.Value)
+            Ok (ValueSome (AstNode.Of(expr_new_value, expr_new_span)))
         else
             
         // '{' block '}'
@@ -457,7 +457,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let block_node = block_node_opt.Value
-            Ok (ValueSome (Node.Of(Expr.BracedBlock block_node.Value, block_node.Span)))
+            Ok (ValueSome (AstNode.Of(ExprSyntax.BracedBlock block_node.Value, block_node.Span)))
         else
             
         // '(' expr ')'
@@ -468,7 +468,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             if try_eat TokenKind.RParen
             then
                 let expr_unit_span = Span.Of(span_start, token_rparen.Span.Last)
-                Ok (ValueSome (Node.Of(Expr.Unit, expr_unit_span)))
+                Ok (ValueSome (AstNode.Of(ExprSyntax.Unit, expr_unit_span)))
             else
                 
             let expr_node_opt = required_expr ((*prec_threshold=*)Prec.Empty)
@@ -486,47 +486,47 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 
             let expr_node = expr_node_opt.Value
             
-            let expr_parens_value = Expr.ParensExpr expr_node
+            let expr_parens_value = ExprSyntax.ParensExpr expr_node
             let expr_parens_span = Span.Of(span_start, token_rparen.Span.Last)
             
-            Ok (ValueSome (Node.Of(expr_parens_value, expr_parens_span)))
+            Ok (ValueSome (AstNode.Of(expr_parens_value, expr_parens_span)))
         else
             
         // 'null'
         if try_eat TokenKind.KwNull
         then
-            Ok (ValueSome (Node.Of(Expr.Null, first_token.Span)))
+            Ok (ValueSome (AstNode.Of(ExprSyntax.Null, first_token.Span)))
         else
             
         if try_eat TokenKind.KwThis
         then
-            Ok (ValueSome (Node.Of(Expr.This, first_token.Span)))
+            Ok (ValueSome (AstNode.Of(ExprSyntax.This, first_token.Span)))
         else
 
         // INTEGER
         if try_eat_when _token.IsInt
         then
-            Ok (ValueSome (Node.Of(Expr.Int (INT first_token.Int), first_token.Span)))
+            Ok (ValueSome (AstNode.Of(ExprSyntax.Int (INT first_token.Int), first_token.Span)))
         else
 
         // STRING
         if try_eat_when (_token.IsString || _token.IsQqqString)
         then
-            Ok (ValueSome (Node.Of(Expr.Str (STRING (value=first_token.String,
-                                                     is_qqq=first_token.IsQqqString)),
-                                   first_token.Span)))
+            Ok (ValueSome (AstNode.Of(ExprSyntax.Str (STRING (value=first_token.String,
+                                                              is_qqq=first_token.IsQqqString)),
+                                      first_token.Span)))
         else
 
         // BOOLEAN
         if try_eat TokenKind.KwTrue || try_eat TokenKind.KwFalse
         then
             let expr_bool_value =
-                Expr.Bool (match first_token.Kind with
-                           | TokenKind.KwTrue -> BOOL.True
-                           | TokenKind.KwFalse -> BOOL.False
-                           | _ -> invalidOp "Unreachable")
+                ExprSyntax.Bool (match first_token.Kind with
+                                 | TokenKind.KwTrue -> BOOL.True
+                                 | TokenKind.KwFalse -> BOOL.False
+                                 | _ -> invalidOp "Unreachable")
             
-            Ok (ValueSome (Node.Of(expr_bool_value, first_token.Span)))
+            Ok (ValueSome (AstNode.Of(expr_bool_value, first_token.Span)))
         else
         
         // Actually, the syntax doesn't contain any productions with an optional expression.
@@ -540,7 +540,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     | 'match' cases infixop_rhs?
     //     | '.' ID actuals infixop_rhs?
     //     ;
-    and infixop_rhs (prec_threshold: sbyte) (atom: Node<Expr>): Node<Expr> voption =
+    and infixop_rhs (prec_threshold: sbyte) (atom: AstNode<ExprSyntax>): AstNode<ExprSyntax> voption =
         let span_start = _token.Span.First
         
         let mutable have_errors = false
@@ -570,18 +570,18 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 
                 let expr_value =                
                     match token_op.Kind with
-                    | TokenKind.LessEqual    -> Expr.LtEq (left=lhs, right=rhs)
-                    | TokenKind.Less         -> Expr.Lt (left=lhs, right=rhs)
-                    | TokenKind.GreaterEqual -> Expr.GtEq (left=lhs, right=rhs)
-                    | TokenKind.Greater      -> Expr.Gt (left=lhs, right=rhs)
-                    | TokenKind.EqualEqual   -> Expr.EqEq (left=lhs, right=rhs)
-                    | TokenKind.Star         -> Expr.Mul (left=lhs, right=rhs)
-                    | TokenKind.Slash        -> Expr.Div (left=lhs, right=rhs)
-                    | TokenKind.Plus         -> Expr.Sum (left=lhs, right=rhs)
-                    | TokenKind.Minus        -> Expr.Sub (left=lhs, right=rhs)
+                    | TokenKind.LessEqual    -> ExprSyntax.LtEq (left=lhs, right=rhs)
+                    | TokenKind.Less         -> ExprSyntax.Lt (left=lhs, right=rhs)
+                    | TokenKind.GreaterEqual -> ExprSyntax.GtEq (left=lhs, right=rhs)
+                    | TokenKind.Greater      -> ExprSyntax.Gt (left=lhs, right=rhs)
+                    | TokenKind.EqualEqual   -> ExprSyntax.EqEq (left=lhs, right=rhs)
+                    | TokenKind.Star         -> ExprSyntax.Mul (left=lhs, right=rhs)
+                    | TokenKind.Slash        -> ExprSyntax.Div (left=lhs, right=rhs)
+                    | TokenKind.Plus         -> ExprSyntax.Sum (left=lhs, right=rhs)
+                    | TokenKind.Minus        -> ExprSyntax.Sub (left=lhs, right=rhs)
                     | _                      -> invalidOp "Unreachable"
                         
-                lhs <- Node.Of(expr_value, expr_span)
+                lhs <- AstNode.Of(expr_value, expr_span)
             else
 
             // 'match' cases infixop_rhs?
@@ -602,11 +602,11 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 else
 
                 let expr_match_span = Span.Of(span_start, case_nodes.Span.Last)
-                let expr_match_value = Expr.Match (expr=lhs,
+                let expr_match_value = ExprSyntax.Match (expr=lhs,
                                                    cases_hd=case_nodes.Value.[0],
                                                    cases_tl=case_nodes.Value.[1..])
                 
-                lhs <- Node.Of(expr_match_value, expr_match_span)
+                lhs <- AstNode.Of(expr_match_value, expr_match_span)
             else
                 
             // '.' ID actuals infixop_rhs?
@@ -628,11 +628,11 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 let actual_nodes = actual_nodes_opt.Value
                 
                 let expr_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
-                let expr_dispatch_value = Expr.Dispatch (receiver=lhs,
-                                                         method_id=Node.Of(ID token_id.Id, token_id.Span),
+                let expr_dispatch_value = ExprSyntax.Dispatch (receiver=lhs,
+                                                         method_id=AstNode.Of(ID token_id.Id, token_id.Span),
                                                          actuals=actual_nodes.Value)
                
-                lhs <- Node.Of(expr_dispatch_value, expr_dispatch_span) 
+                lhs <- AstNode.Of(expr_dispatch_value, expr_dispatch_span) 
             else
             
             infixop_expected <- false
@@ -647,7 +647,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     // cases
     //     : '{' ('case' casepattern '=>' caseblock)+ '}'
     //     ;
-    and cases (): Node<Node<Case>[]> voption =
+    and cases (): AstNode<AstNode<CaseSyntax>[]> voption =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.LBrace
@@ -656,7 +656,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
             
-        let case_nodes = List<Node<Case>>()
+        let case_nodes = List<AstNode<CaseSyntax>>()
 
         let recover (): unit = 
             // Recover from a syntactic error by eating tokens
@@ -688,10 +688,10 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
         let case_nodes_span = Span.Of(span_start, token_rbrace.Span.Last)
         
-        ValueSome (Node.Of(case_nodes.ToArray(), case_nodes_span))
+        ValueSome (AstNode.Of(case_nodes.ToArray(), case_nodes_span))
     
     
-    and case (): Node<Case> voption =
+    and case (): AstNode<CaseSyntax> voption =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.KwCase
@@ -721,16 +721,16 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let block_node = block_node_opt.Value
         
         let case_span = Span.Of(span_start, block_node.Span.Last)
-        let case_value: Case = { Pattern = pattern_node_opt.Value; Block = block_node }
+        let case_value: CaseSyntax = { Pattern = pattern_node_opt.Value; Block = block_node }
         
-        ValueSome (Node.Of(case_value, case_span))
+        ValueSome (AstNode.Of(case_value, case_span))
     
     
     // casepattern
     //     : ID ':' ID
     //     | 'null'
     //     ;
-    and casepattern (): Node<Pattern> voption =
+    and casepattern (): AstNode<PatternSyntax> voption =
         let span_start = _token.Span.First
         let first_token = _token
         
@@ -751,15 +751,15 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
             
             let pattern_span = Span.Of(span_start, token_type.Span.Last)
-            let pattern_value = Pattern.IdType (id=Node.Of(ID first_token.Id, first_token.Span),
-                                                pattern_type=Node.Of(TYPENAME token_type.Id, token_type.Span))
+            let pattern_value = PatternSyntax.IdType (id=AstNode.Of(ID first_token.Id, first_token.Span),
+                                                pattern_type=AstNode.Of(TYPENAME token_type.Id, token_type.Span))
             
-            ValueSome (Node.Of(pattern_value, pattern_span))
+            ValueSome (AstNode.Of(pattern_value, pattern_span))
         else
             
         if try_eat TokenKind.KwNull
         then
-            ValueSome (Node.Of(Pattern.Null, first_token.Span))
+            ValueSome (AstNode.Of(PatternSyntax.Null, first_token.Span))
         else
             
         _diags.Error("An identifier or 'null' expected. A pattern must start from an identifier or 'null'", _token.Span)
@@ -770,7 +770,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     : block
     //     | '{' block? '}'
     //     ;
-    and caseblock (): Node<CaseBlock> voption =
+    and caseblock (): AstNode<CaseBlockSyntax> voption =
         if _token.Is(TokenKind.LBrace)
         then
             let braced_block_node_opt = braced_block()
@@ -779,7 +779,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 ValueNone
             else
                 
-            ValueSome (braced_block_node_opt.Value.Map(fun it -> CaseBlock.BracedBlock it))
+            ValueSome (braced_block_node_opt.Value.Map(fun it -> CaseBlockSyntax.BracedBlock it))
         else
         
         let span_start = _token.Span.First
@@ -800,12 +800,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let block_info_node = block_info_result.Value
             
         let caseblock_span = Span.Of(span_start, block_info_node.Span.Last)
-        let caseblock_value = CaseBlock.Implicit block_info_node.Value
-        ValueSome (Node.Of(caseblock_value, caseblock_span))
+        let caseblock_value = CaseBlockSyntax.Implicit block_info_node.Value
+        ValueSome (AstNode.Of(caseblock_value, caseblock_span))
     
     
     and required_expr (prec_threshold: sbyte)
-                      (expr_required_error_message: string): Node<Expr> voption =
+                      (expr_required_error_message: string): AstNode<ExprSyntax> voption =
         let expr_node_result = expr prec_threshold
         if expr_node_result.IsError
         then
@@ -820,7 +820,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueSome expr_node_result.Value
 
 
-    and stmt (): Node<Stmt> voption =
+    and stmt (): AstNode<StmtSyntax> voption =
         let span_start = _token.Span.First
 
         if try_eat TokenKind.KwVar
@@ -864,12 +864,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let expr_node = expr_node_opt.Value
             
             let vardecl_span = Span.Of(span_start, expr_node.Span.Last)
-            let vardecl_value: VarDeclInfo =
-                { ID = Node.Of(ID token_id.Id, token_id.Span)
-                  TYPE_NAME = Node.Of(TYPENAME token_type.Id, token_type.Span)
+            let vardecl_value: VarDeclSyntax =
+                { ID = AstNode.Of(ID token_id.Id, token_id.Span)
+                  TYPE_NAME = AstNode.Of(TYPENAME token_type.Id, token_type.Span)
                   Expr = expr_node }
             
-            ValueSome (Node.Of(Stmt.VarDecl vardecl_value, vardecl_span))
+            ValueSome (AstNode.Of(StmtSyntax.VarDecl vardecl_value, vardecl_span))
         else
             
         let expr_node_result = expr (*prec_threshold=*)Prec.Empty
@@ -885,10 +885,10 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
         
-        ValueSome (expr_node_result.Value.Map(fun it -> Stmt.Expr it))
+        ValueSome (expr_node_result.Value.Map(fun it -> StmtSyntax.Expr it))
 
 
-    and block_info (terminators: seq<TokenKind>): ErrorOrOption<Node<Block>> =
+    and block_info (terminators: seq<TokenKind>): ErrorOrOption<AstNode<BlockSyntax>> =
         let ts_set = Set.ofSeq terminators
         
         let recover (): unit =
@@ -919,18 +919,18 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
         let last_stmt = stmt_nodes.[stmt_nodes.Length - 1]
         match last_stmt.Value with
-        | Stmt.VarDecl _ ->
+        | StmtSyntax.VarDecl _ ->
             _diags.Error("Blocks must end with an expression", last_stmt.Span)
             Error
-        | Stmt.Expr expr ->
+        | StmtSyntax.Expr expr ->
             let block_info_span = Span.Of(span_start, last_stmt.Span.Last)
-            let block_info_value: Block = { Stmts = stmts
-                                            Expr = Node.Of(expr, last_stmt.Span) }
+            let block_info_value: BlockSyntax = { Stmts = stmts
+                                                  Expr = AstNode.Of(expr, last_stmt.Span) }
             
-            Ok (ValueSome (Node.Of(block_info_value, block_info_span)))
+            Ok (ValueSome (AstNode.Of(block_info_value, block_info_span)))
 
     
-    and braced_block (): Node<Block voption> voption =
+    and braced_block (): AstNode<BlockSyntax voption> voption =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.LBrace
@@ -966,10 +966,10 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let block_span = Span.Of(span_start, token_rbrace.Span.Last)
         let block_value = block_info_result.Option |> ValueOption.map (fun it -> it.Value)
         
-        ValueSome (Node.Of(block_value, block_span))
+        ValueSome (AstNode.Of(block_value, block_span))
 
 
-    and varformal (): Node<VarFormal> voption =
+    and varformal (): AstNode<VarFormalSyntax> voption =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.KwVar
@@ -1000,18 +1000,18 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
 
-        let id_node = Node.Of(ID token_id.Id, token_id.Span)
-        let type_node = Node.Of(TYPENAME token_type.Id, token_type.Span)
+        let id_node = AstNode.Of(ID token_id.Id, token_id.Span)
+        let type_node = AstNode.Of(TYPENAME token_type.Id, token_type.Span)
         
         let varformal_span = Span.Of(span_start, type_node.Span.Last)
         let varformal_value =
-            { VarFormal.ID = id_node
+            { VarFormalSyntax.ID = id_node
               TYPE = type_node }
             
-        ValueSome (Node.Of(varformal_value, varformal_span))
+        ValueSome (AstNode.Of(varformal_value, varformal_span))
     
     
-    and varformals (): Node<Node<VarFormal>[]> voption =
+    and varformals (): AstNode<AstNode<VarFormalSyntax>[]> voption =
         let recover (): unit =
             // Recover from a syntactic error by eating tokens
             // until we find 'var' -- the start of another varformal.
@@ -1030,12 +1030,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             is_list_end=is_varformals_end)
         
         
-    and actual (): Node<Expr> voption =
+    and actual (): AstNode<ExprSyntax> voption =
         required_expr ((*prec_threshold=*)Prec.Empty)
                       "An expression expected. Actuals must be an expression"
     
     
-    and actuals (): Node<Node<Expr>[]> voption =
+    and actuals (): AstNode<AstNode<ExprSyntax>[]> voption =
         let recover (): unit =
             // Recover from a syntactic error by eating tokens
             // until we find ','
@@ -1058,7 +1058,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             is_list_end=is_actuals_end)
     
     
-    and extends (): ErrorOrOption<Node<Extends>> =
+    and extends (): ErrorOrOption<AstNode<InheritanceSyntax>> =
         let span_start = _token.Span.First
         
         if not (try_eat TokenKind.KwExtends)
@@ -1082,14 +1082,14 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
         let actual_nodes = actual_nodes_opt.Value
         let extends_span = Span.Of(span_start, actual_nodes.Span.Last)
-        let extends_info: ExtendsInfo =
-            { SUPER = Node.Of(TYPENAME token_id.Id, token_id.Span)
+        let extends_info: ExtendsSyntax =
+            { SUPER = AstNode.Of(TYPENAME token_id.Id, token_id.Span)
               Actuals = actual_nodes.Value }
               
-        Ok (ValueSome (Node.Of(Extends.Info extends_info, extends_span)))
+        Ok (ValueSome (AstNode.Of(InheritanceSyntax.Info extends_info, extends_span)))
         
         
-    and formal (): Node<Formal> voption =
+    and formal (): AstNode<FormalSyntax> voption =
         let span_start = _token.Span.First
         
         let token_id = _token
@@ -1114,18 +1114,18 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             ValueNone
         else
         
-        let id_node = Node.Of(ID token_id.Id, token_id.Span)
-        let type_node = Node.Of(TYPENAME token_type.Id, token_type.Span)
+        let id_node = AstNode.Of(ID token_id.Id, token_id.Span)
+        let type_node = AstNode.Of(TYPENAME token_type.Id, token_type.Span)
         
         let formal_span = Span.Of(span_start, type_node.Span.Last)
         let formal_value =
-            { Formal.ID = id_node
+            { FormalSyntax.ID = id_node
               TYPE = type_node }
         
-        ValueSome (Node.Of(formal_value, formal_span))
+        ValueSome (AstNode.Of(formal_value, formal_span))
     
     
-    and formals (): Node<Node<Formal>[]> voption =
+    and formals (): AstNode<AstNode<FormalSyntax>[]> voption =
         let recover (): unit =
             // Recover from a syntactic error by eating tokens
             // until we find ','
@@ -1148,7 +1148,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             is_list_end=is_formals_end)
     
     
-    and method (span_start: uint32, is_override: bool) : Node<Feature> voption =
+    and method (span_start: uint32, is_override: bool) : AstNode<FeatureSyntax> voption =
         let token_id = _token
         if not (eat_when _token.IsId
                          ("A method name expected. Method name must be an identifier" +
@@ -1194,15 +1194,15 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let method_info_span = Span.Of(span_start, expr_node.Span.Last)
         let method_info_value =
             { Override = is_override
-              ID = Node.Of(ID token_id.Id, token_id.Span)
+              ID = AstNode.Of(ID token_id.Id, token_id.Span)
               Formals = formal_nodes_opt.Value.Value
-              RETURN =  Node.Of(TYPENAME token_type.Id, token_type.Span)
-              Body = expr_node.Map(fun it -> MethodBody.Expr it) }
+              RETURN =  AstNode.Of(TYPENAME token_type.Id, token_type.Span)
+              Body = expr_node.Map(fun it -> MethodBodySyntax.Expr it) }
         
-        ValueSome (Node.Of(Feature.Method method_info_value, method_info_span))
+        ValueSome (AstNode.Of(FeatureSyntax.Method method_info_value, method_info_span))
         
         
-    and attribute (): Node<Feature> voption =
+    and attribute (): AstNode<FeatureSyntax> voption =
         let span_start = _token.Span.First
         
         if not (try_eat TokenKind.KwVar)
@@ -1248,15 +1248,15 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let expr_node = expr_node_opt.Value
         
         let attribute_span = Span.Of(span_start, expr_node.Span.Last)
-        let attribute_value: AttrInfo =
-            { ID = Node.Of(ID token_id.Id, token_id.Span)
-              TYPE = Node.Of(TYPENAME token_type.Id, token_type.Span)
-              Initial = expr_node.Map(fun it -> AttrInitial.Expr it) }
+        let attribute_value: AttrSyntax =
+            { ID = AstNode.Of(ID token_id.Id, token_id.Span)
+              TYPE = AstNode.Of(TYPENAME token_type.Id, token_type.Span)
+              Initial = expr_node.Map(fun it -> AttrInitialSyntax.Expr it) }
         
-        ValueSome (Node.Of(Feature.Attr attribute_value, attribute_span))
+        ValueSome (AstNode.Of(FeatureSyntax.Attr attribute_value, attribute_span))
         
         
-    and feature (): Node<Feature> voption =
+    and feature (): AstNode<FeatureSyntax> voption =
         let span_start = _token.Span.First
         
         if try_eat TokenKind.KwOverride
@@ -1289,7 +1289,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let block_node = block_node_opt.Value
-            ValueSome (Node.Of(Feature.BracedBlock block_node.Value, block_node.Span))
+            ValueSome (AstNode.Of(FeatureSyntax.BracedBlock block_node.Value, block_node.Span))
         else
             
         _diags.Error(
@@ -1298,10 +1298,10 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         ValueNone
 
 
-    and classbody (span_start: uint): Node<Node<Feature>[]> voption =
+    and classbody (span_start: uint): AstNode<AstNode<FeatureSyntax>[]> voption =
         // The caller must eat '{' or emit a diagnostic if it's empty
         
-        let feature_nodes = List<Node<Feature>>()
+        let feature_nodes = List<AstNode<FeatureSyntax>>()
 
         let recover (): unit = 
             // Recover from a syntactic error by eating tokens
@@ -1347,10 +1347,10 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
         let classbody_span = Span.Of(span_start, token_rbrace.Span.Last)
         
-        ValueSome (Node.Of(feature_nodes.ToArray(), classbody_span))
+        ValueSome (AstNode.Of(feature_nodes.ToArray(), classbody_span))
         
     
-    and class_decl (): Node<ClassDecl> voption =
+    and class_decl (): AstNode<ClassSyntax> voption =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.KwClass
@@ -1401,22 +1401,22 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         // classbody() eats '}'        
             
         let feature_nodes = feature_nodes_opt.Value
-        let name_node = Node.Of(TYPENAME token_id.Id, token_id.Span)
+        let name_node = AstNode.Of(TYPENAME token_id.Id, token_id.Span)
         
         let class_decl_span = Span.Of(span_start, feature_nodes.Span.Last)
         let class_decl_value =
-            { ClassDecl.NAME = name_node
+            { ClassSyntax.NAME = name_node
               VarFormals = varformals_node_opt.Value.Value
               Extends = extends_node_result.Option
               ClassBody = feature_nodes.Value }
 
-        ValueSome (Node.Of(class_decl_value, class_decl_span))
+        ValueSome (AstNode.Of(class_decl_value, class_decl_span))
     
     
-    and class_decls (): Node<Node<ClassDecl>[]> =
+    and class_decls (): AstNode<AstNode<ClassSyntax>[]> =
         let span_start = _token.Span.First
         
-        let class_decl_nodes = List<Node<ClassDecl>>()
+        let class_decl_nodes = List<AstNode<ClassSyntax>>()
         while not _token.IsEof do
             match class_decl() with
             | ValueSome class_decl_node ->
@@ -1430,22 +1430,22 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 eat_until [TokenKind.KwClass]
 
         let class_decls_span = Span.Of(span_start, _token.Span.Last)
-        Node.Of(class_decl_nodes.ToArray(), class_decls_span)
+        AstNode.Of(class_decl_nodes.ToArray(), class_decls_span)
         
         
-    and ast (): Program =
+    and ast (): ProgramSyntax =
         let class_decl_nodes = class_decls()
-        { Program.ClassDecls = class_decl_nodes.Value }
+        { ProgramSyntax.ClassDecls = class_decl_nodes.Value }
 
     
-    member this.DelimitedList<'T>(element: unit -> Node<'T> voption,
+    member this.DelimitedList<'T>(element: unit -> AstNode<'T> voption,
                                   delimiter: TokenKind,
                                   delimiter_error_message: string,
                                   recover: unit -> unit,
                                   is_list_end: unit -> bool)
-                                  : Node<'T>[] =
+                                  : AstNode<'T>[] =
         
-        let element_nodes = List<Node<'T>>()
+        let element_nodes = List<AstNode<'T>>()
         
         let mutable is_element_expected = not (is_list_end())
         while is_element_expected do
@@ -1484,12 +1484,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     member this.EnclosedDelimitedList<'T>(list_start: TokenKind,
                                           list_start_error_message: string,
                                           list_end_error_message: string,
-                                          element: unit -> Node<'T> voption,
+                                          element: unit -> AstNode<'T> voption,
                                           delimiter: TokenKind,
                                           delimiter_error_message: string,
                                           recover: unit -> unit,
                                           is_list_end: unit -> bool)
-                                          : Node<Node<'T>[]> voption =
+                                          : AstNode<AstNode<'T>[]> voption =
         
         let span_start = _token.Span.First
         
@@ -1513,10 +1513,10 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
         let list_span = Span.Of(span_start, span_end)
         
-        ValueSome (Node.Of(element_nodes, list_span))
+        ValueSome (AstNode.Of(element_nodes, list_span))
 
 
-    member private _.Parse() : Program =
+    member private _.Parse() : ProgramSyntax =
         ast()
         
         

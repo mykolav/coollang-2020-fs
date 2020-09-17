@@ -8,13 +8,13 @@ open LibCool.SourceParts
 
 
 [<Sealed>]
-type ClassDeclCollector(_program_syntax: Ast.Program, _diags: DiagnosticBag, _source: Source) =
+type ClassDeclCollector(_program_syntax: ProgramSyntax, _diags: DiagnosticBag, _source: Source) =
     
     
     member this.Collect() =
-        let map = Dictionary<Ast.TYPENAME, Ast.Node<Ast.ClassDecl>>()
+        let map = Dictionary<TYPENAME, AstNode<ClassSyntax>>()
         
-        let add_classdecl_syntax (classdecl_node: Ast.Node<Ast.ClassDecl>): unit =
+        let add_classdecl_syntax (classdecl_node: AstNode<ClassSyntax>): unit =
             let classdecl_syntax = classdecl_node.Value
             if map.ContainsKey(classdecl_syntax.NAME.Value)
             then
