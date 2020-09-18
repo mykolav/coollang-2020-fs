@@ -22,7 +22,7 @@ value and a type. Cool is type safe: procedures are guaranteed to be applied to 
 While static typing imposes a strong discipline on programming in Cool, it guarantees that no runtime
 type errors can arise in the execution of Cool programs.
 
-## A code example
+## A code sample
 
 ```scala
 class Fib() extends IO() {
@@ -175,6 +175,26 @@ WS
     ;
 ```
 
+# Implementation details
+
+The implementation language is F#, but the code is imperative/OO.
+That said, the code is, hopefully, consistent with the recommendations from ["F# Code I Love" by Don Syme](https://www.youtube.com/watch?v=1AZA1zoP-II).
+
+Initially it was my ambition to practice writing functional code while learning about compilers. But trying to do both at the same time was biting off more than I could chew.
+
+Used as an imperative/OO language, F# has many and many nice features that more mainstream languages started to catch up with only not that long ago. E.g., no null values by default, records, discriminated unions, pattern matching, primary constructors, etc.
+
+Plus, F# is a low ceremony, low syntactic noise language. In this respect, you can think of F# as Python but statically typed.
+
+# References
+
+- [Douglas Thain,
+Introduction to Compilers and Language Design](https://www3.nd.edu/~dthain/compilerbook/)
+- [Bob Nystrom, Crafting Interpreters](https://craftinginterpreters.com/)
+- [Alex Aiken, Compilers](https://www.edx.org/course/compilers)
+- [nicebyte, Let's Learn x86-64 Assembly!](https://gpfault.net/posts/asm-tut-0.txt.html)
+- Lots and lots of blog posts and github repos
+
 # Acknowledgements
 
  The original Cool language was designed by [Alex Aiken](https://theory.stanford.edu/~aiken/).  
@@ -186,5 +206,5 @@ WS
 
 # License
 
-The [fs-coollang](https://github.com/mykolav/fs-coollang) project is licensed under the MIT license.  
+This [project](https://github.com/mykolav/coollang-2020-fs) is licensed under the MIT license.  
 See [LICENSE](./LICENSE) for details.
