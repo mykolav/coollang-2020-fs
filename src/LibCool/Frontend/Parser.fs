@@ -228,7 +228,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 let id_node = AstNode.Of(ID first_token.Id, first_token.Span)
                 
                 let expr_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
-                let expr_dispatch_value = ExprSyntax.ImplicitThisDispatch (method_id=id_node, actuals=actual_nodes.Value)
+                let expr_dispatch_value = ExprSyntax.ImplicitThisDispatch (method_id=id_node, actuals=actual_nodes.Syntax)
                 
                 // The 'ID actuals' dispatch can be followed by any infix op except '='.
                 optional_infixop_rhs (AstNode.Of(expr_dispatch_value, expr_dispatch_span))
@@ -418,7 +418,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let id_node = AstNode.Of(ID token_id.Id, token_id.Span)
             
             let expr_super_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
-            let expr_super_dispatch_value = ExprSyntax.SuperDispatch (method_id=id_node, actuals=actual_nodes.Value)
+            let expr_super_dispatch_value = ExprSyntax.SuperDispatch (method_id=id_node, actuals=actual_nodes.Syntax)
             
             Ok (ValueSome (AstNode.Of(expr_super_dispatch_value, expr_super_dispatch_span)))
         else
@@ -443,7 +443,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let type_name_node = AstNode.Of(TYPENAME token_id.Id, token_id.Span)
             
             let expr_new_span = Span.Of(span_start, actual_nodes.Span.Last)
-            let expr_new_value = ExprSyntax.New (type_name=type_name_node, actuals=actual_nodes.Value)
+            let expr_new_value = ExprSyntax.New (type_name=type_name_node, actuals=actual_nodes.Syntax)
             Ok (ValueSome (AstNode.Of(expr_new_value, expr_new_span)))
         else
             
@@ -457,7 +457,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let block_node = block_node_opt.Value
-            Ok (ValueSome (AstNode.Of(ExprSyntax.BracedBlock block_node.Value, block_node.Span)))
+            Ok (ValueSome (AstNode.Of(ExprSyntax.BracedBlock block_node.Syntax, block_node.Span)))
         else
             
         // '(' expr ')'
@@ -594,7 +594,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 else
                 
                 let case_nodes = case_nodes_opt.Value
-                if case_nodes.Value.Length = 0
+                if case_nodes.Syntax.Length = 0
                 then
                     _diags.Error("A match expression must contain at least one case",
                                  Span.Of(span_start, _token.Span.First))
@@ -603,8 +603,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
 
                 let expr_match_span = Span.Of(span_start, case_nodes.Span.Last)
                 let expr_match_value = ExprSyntax.Match (expr=lhs,
-                                                   cases_hd=case_nodes.Value.[0],
-                                                   cases_tl=case_nodes.Value.[1..])
+                                                   cases_hd=case_nodes.Syntax.[0],
+                                                   cases_tl=case_nodes.Syntax.[1..])
                 
                 lhs <- AstNode.Of(expr_match_value, expr_match_span)
             else
@@ -630,7 +630,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 let expr_dispatch_span = Span.Of(span_start, actual_nodes.Span.Last)
                 let expr_dispatch_value = ExprSyntax.Dispatch (receiver=lhs,
                                                          method_id=AstNode.Of(ID token_id.Id, token_id.Span),
-                                                         actuals=actual_nodes.Value)
+                                                         actuals=actual_nodes.Syntax)
                
                 lhs <- AstNode.Of(expr_dispatch_value, expr_dispatch_span) 
             else
@@ -800,7 +800,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let block_info_node = block_info_result.Value
             
         let caseblock_span = Span.Of(span_start, block_info_node.Span.Last)
-        let caseblock_value = CaseBlockSyntax.Implicit block_info_node.Value
+        let caseblock_value = CaseBlockSyntax.Implicit block_info_node.Syntax
         ValueSome (AstNode.Of(caseblock_value, caseblock_span))
     
     
@@ -918,7 +918,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let stmts = stmt_nodes |> Seq.take (stmt_nodes.Length - 1) |> Array.ofSeq
         
         let last_stmt = stmt_nodes.[stmt_nodes.Length - 1]
-        match last_stmt.Value with
+        match last_stmt.Syntax with
         | StmtSyntax.VarDecl _ ->
             _diags.Error("Blocks must end with an expression", last_stmt.Span)
             Error
@@ -964,7 +964,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         eat_token()
         
         let block_span = Span.Of(span_start, token_rbrace.Span.Last)
-        let block_value = block_info_result.Option |> ValueOption.map (fun it -> it.Value)
+        let block_value = block_info_result.Option |> ValueOption.map (fun it -> it.Syntax)
         
         ValueSome (AstNode.Of(block_value, block_span))
 
@@ -1084,7 +1084,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let extends_span = Span.Of(span_start, actual_nodes.Span.Last)
         let extends_info: ExtendsSyntax =
             { SUPER = AstNode.Of(TYPENAME token_id.Id, token_id.Span)
-              Actuals = actual_nodes.Value }
+              Actuals = actual_nodes.Syntax }
               
         Ok (ValueSome (AstNode.Of(InheritanceSyntax.Info extends_info, extends_span)))
         
@@ -1195,7 +1195,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let method_info_value =
             { Override = is_override
               ID = AstNode.Of(ID token_id.Id, token_id.Span)
-              Formals = formal_nodes_opt.Value.Value
+              Formals = formal_nodes_opt.Value.Syntax
               RETURN =  AstNode.Of(TYPENAME token_type.Id, token_type.Span)
               Body = expr_node.Map(fun it -> MethodBodySyntax.Expr it) }
         
@@ -1289,7 +1289,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let block_node = block_node_opt.Value
-            ValueSome (AstNode.Of(FeatureSyntax.BracedBlock block_node.Value, block_node.Span))
+            ValueSome (AstNode.Of(FeatureSyntax.BracedBlock block_node.Syntax, block_node.Span))
         else
             
         _diags.Error(
@@ -1406,9 +1406,9 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let class_decl_span = Span.Of(span_start, feature_nodes.Span.Last)
         let class_decl_value =
             { ClassSyntax.NAME = name_node
-              VarFormals = varformals_node_opt.Value.Value
+              VarFormals = varformals_node_opt.Value.Syntax
               Extends = extends_node_result.Option
-              ClassBody = feature_nodes.Value }
+              Features = feature_nodes.Syntax }
 
         ValueSome (AstNode.Of(class_decl_value, class_decl_span))
     
@@ -1435,7 +1435,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
     and ast (): ProgramSyntax =
         let class_decl_nodes = class_decls()
-        { ProgramSyntax.ClassDecls = class_decl_nodes.Value }
+        { ProgramSyntax.Classes = class_decl_nodes.Syntax }
 
     
     member this.DelimitedList<'T>(element: unit -> AstNode<'T> voption,

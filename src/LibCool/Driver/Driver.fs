@@ -77,7 +77,7 @@ type Driver private () =
             -1
         else
 
-        let asm = SemanticStage.Translate(ast, diags, source)
+        let asm = SemanticStageDriver.Translate(ast, diags, source)
         if diags.ErrorsCount <> 0
         then
             -1

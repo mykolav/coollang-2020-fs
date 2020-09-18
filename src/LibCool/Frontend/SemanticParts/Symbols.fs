@@ -6,50 +6,44 @@ open LibCool.AstParts
 open LibCool.SourceParts
 
 
-module Symbols =
+type AttrSymbol =
+    { Name: ID
+      Type: TYPENAME
+      DeclaringClass: TYPENAME
+      Index: int
+      SyntaxSpan: Span }
 
 
-    type AttrSymbol =
-        { Name: ID
-          Type: TYPENAME
-          DeclaringClass: TYPENAME
-          Index: int
-          SyntaxSpan: Span }
+type ParamSymbol =
+    { Name: ID
+      Type: TYPENAME
+      Index: int
+      SyntaxSpan: Span }
 
 
-    type ParamSymbol =
-        { Name: ID
-          Type: TYPENAME
-          Index: int
-          SyntaxSpan: Span }
+type MethodSymbol =
+    { Name: ID
+      Params: ParamSymbol[]
+      ReturnType: TYPENAME
+      Override: bool
+      DeclaringClass: TYPENAME
+      Index: int
+      SyntaxSpan: Span }
 
 
-    type MethodSymbol =
-        { Name: ID
-          Params: ParamSymbol[]
-          ReturnType: TYPENAME
-          Override: bool
-          DeclaringClass: TYPENAME
-          Index: int
-          SyntaxSpan: Span }
-
-
-    type ClassSymbol =
-        { Name: TYPENAME
-          Super: TYPENAME
-          Ctor: MethodSymbol
-          Attrs: IReadOnlyDictionary<ID, AttrSymbol>
-          Methods: IReadOnlyDictionary<ID, MethodSymbol>
-          SyntaxSpan: Span }
-        member this.IsError =
-            this.Name = TYPENAME ".error"
+type ClassSymbol =
+    { Name: TYPENAME
+      Super: TYPENAME
+      Ctor: MethodSymbol
+      Attrs: IReadOnlyDictionary<ID, AttrSymbol>
+      Methods: IReadOnlyDictionary<ID, MethodSymbol>
+      SyntaxSpan: Span }
+    member this.IsError =
+        this.Name = TYPENAME ".error"
 
 
 [<RequireQualifiedAccess>]
 module BasicClassSymbols =
-    
-    
-    open Symbols
     
     
     let private mk_class_sym (name: TYPENAME) (super: TYPENAME) =

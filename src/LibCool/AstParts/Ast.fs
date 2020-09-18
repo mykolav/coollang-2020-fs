@@ -6,12 +6,12 @@ open LibCool.SourceParts
 
 
 [<IsReadOnly; Struct>]
-type AstNode<'TValue> =
+type AstNode<'TSyntax> =
     { Span: Span
-      Value: 'TValue }
+      Syntax: 'TSyntax }
     with
-    member this.Map<'TMapped>(mapping: 'TValue -> 'TMapped): AstNode<'TMapped> =
-        AstNode.Of(mapping this.Value, this.Span)
+    member this.Map<'TMapped>(mapping: 'TSyntax -> 'TMapped): AstNode<'TMapped> =
+        AstNode.Of(mapping this.Syntax, this.Span)
         
 
 
@@ -19,25 +19,25 @@ type AstNode<'TValue> =
 type AstNode private () =
 
 
-    static member Of<'TValue>(value: 'TValue, span: Span): AstNode<'TValue> =
-        { Span = span
-          Value = value }
+    static member Of<'TSyntax>(syntax: 'TSyntax, span: Span): AstNode<'TSyntax> =
+        { Span=span
+          Syntax=syntax }
 
 
-    static member Of<'TValue>(value: 'TValue, first: uint32, last: uint32): AstNode<'TValue> =
-        AstNode.Of(span = { First = first; Last = last },
-                value = value)
+    static member Of<'TSyntax>(value: 'TSyntax, first: uint32, last: uint32): AstNode<'TSyntax> =
+        AstNode.Of(span=Span.Of(first, last),
+                   syntax=value)
 
 
 type ProgramSyntax =
-    { ClassDecls: AstNode<ClassSyntax>[] }
+    { Classes: AstNode<ClassSyntax>[] }
 
 
 type ClassSyntax =
     { NAME: AstNode<TYPENAME>
       VarFormals: AstNode<VarFormalSyntax>[]
       Extends: AstNode<InheritanceSyntax> voption
-      ClassBody: AstNode<FeatureSyntax>[] }
+      Features: AstNode<FeatureSyntax>[] }
 
 
 [<RequireQualifiedAccess>]

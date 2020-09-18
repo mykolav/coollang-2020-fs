@@ -118,10 +118,10 @@ type AstRenderer private () =
         
         end_line_with "\"kind\": \"var\", "
            
-        end_line_with (sprintf "\"name\": \"%s\", " var_decl_info.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " var_decl_info.TYPE_NAME.Value.Value)
+        end_line_with (sprintf "\"name\": \"%s\", " var_decl_info.ID.Syntax.Value)
+        end_line_with (sprintf "\"type\": \"%s\", " var_decl_info.TYPE_NAME.Syntax.Value)
         
-        text "\"value\": "; walk_expr var_decl_info.Expr.Value; end_line()
+        text "\"value\": "; walk_expr var_decl_info.Expr.Syntax; end_line()
         
         end_with "}"
 
@@ -140,7 +140,7 @@ type AstRenderer private () =
         
         block_info.Stmts
         |> Array.iter (fun it ->
-            match it.Value with
+            match it.Syntax with
             | StmtSyntax.VarDecl var_decl_info -> walk_var_decl var_decl_info
             | StmtSyntax.Expr expr -> walk_stmt_expr expr
             end_line_with ", ")
@@ -150,7 +150,7 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"expr\", "
 
         text "\"expr\": "
-        walk_expr block_info.Expr.Value; end_line()
+        walk_expr block_info.Expr.Syntax; end_line()
 
         end_with "}"; end_line()
         
@@ -188,10 +188,10 @@ type AstRenderer private () =
 
         end_line_with "\"kind\": \"=\", "
            
-        end_line_with (sprintf "\"left\": \"%s\", " lvalue.Value.Value)
+        end_line_with (sprintf "\"left\": \"%s\", " lvalue.Syntax.Value)
         
         text "\"right\": "
-        walk_expr rvalue.Value; end_line ()
+        walk_expr rvalue.Syntax; end_line ()
 
         end_with "}"
 
@@ -203,13 +203,13 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"if\", "
            
         text "\"cond\": "
-        walk_expr condition.Value; end_line_with ", "
+        walk_expr condition.Syntax; end_line_with ", "
         
         text "\"then\": "
-        walk_expr then_branch.Value; end_line_with ", "
+        walk_expr then_branch.Syntax; end_line_with ", "
 
         text "\"else\": "
-        walk_expr else_branch.Value; end_line()
+        walk_expr else_branch.Syntax; end_line()
 
         end_with "}"
 
@@ -221,10 +221,10 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"while\", "
            
         text "\"cond\": "
-        walk_expr condition.Value; end_line_with ", "
+        walk_expr condition.Syntax; end_line_with ", "
         
         text "\"body\": "
-        walk_expr body.Value; end_line()
+        walk_expr body.Syntax; end_line()
 
         end_with "}"
 
@@ -233,7 +233,7 @@ type AstRenderer private () =
     and stringify_match_case_pattern (pattern: PatternSyntax): string =
         match pattern with
         | PatternSyntax.IdType(node_id, node_type_name) ->
-            sprintf "%s: %s" node_id.Value.Value node_type_name.Value.Value 
+            sprintf "%s: %s" node_id.Syntax.Value node_type_name.Syntax.Value 
         | PatternSyntax.Null ->
             "null"
 
@@ -241,10 +241,10 @@ type AstRenderer private () =
     and walk_match_case (case: CaseSyntax): unit =
         begin_with "{"
 
-        end_line_with (sprintf "\"pattern\": \"%s\", " (stringify_match_case_pattern case.Pattern.Value))
+        end_line_with (sprintf "\"pattern\": \"%s\", " (stringify_match_case_pattern case.Pattern.Syntax))
         
         text "\"block\": "
-        walk_block case.Block.Value; end_line()
+        walk_block case.Block.Syntax; end_line()
         
         end_with "}"
 
@@ -252,10 +252,10 @@ type AstRenderer private () =
     and walk_match_cases (cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
         begin_with "["
        
-        walk_match_case cases_hd.Value;
+        walk_match_case cases_hd.Syntax;
         cases_tl |> Array.iter (fun it ->
             end_line_with ","
-            walk_match_case it.Value
+            walk_match_case it.Syntax
         )
         end_line()
        
@@ -269,7 +269,7 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"match\", "
            
         text "\"expr\": "
-        walk_expr expr.Value; end_line_with ", "
+        walk_expr expr.Syntax; end_line_with ", "
         
         text "\"cases\": "
         walk_match_cases (cases_hd, cases_tl); end_line()
@@ -293,7 +293,7 @@ type AstRenderer private () =
             text "[]"
         else
             begin_with "[ "
-            actuals |> Array.iteri (fun i it -> walk_actual (it.Value, i)); end_line()
+            actuals |> Array.iteri (fun i it -> walk_actual (it.Syntax, i)); end_line()
             end_with "]"
 
 
@@ -303,9 +303,9 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"dispatch\", "
            
         text "\"receiver\": "
-        walk_expr receiver.Value; end_line_with ", "
+        walk_expr receiver.Syntax; end_line_with ", "
         
-        end_line_with (sprintf "\"method\": \"%s\", " method_id.Value.Value)
+        end_line_with (sprintf "\"method\": \"%s\", " method_id.Syntax.Value)
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -317,7 +317,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with "\"kind\": \"implicit_this_dispatch\", "
-        end_line_with (sprintf "\"method\": \"%s\", " method_id.Value.Value)
+        end_line_with (sprintf "\"method\": \"%s\", " method_id.Syntax.Value)
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -329,7 +329,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with "\"kind\": \"super_dispatch\", "
-        end_line_with (sprintf "\"method\": \"%s\", " method_id.Value.Value)
+        end_line_with (sprintf "\"method\": \"%s\", " method_id.Syntax.Value)
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -342,7 +342,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with "\"kind\": \"new\", "
-        end_line_with (sprintf "\"type\": \"%s\", " type_name.Value.Value)
+        end_line_with (sprintf "\"type\": \"%s\", " type_name.Syntax.Value)
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -357,7 +357,7 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"!\", "
            
         text "\"expr\": "
-        walk_expr expr.Value; end_line()
+        walk_expr expr.Syntax; end_line()
 
         end_with "}"
 
@@ -369,10 +369,10 @@ type AstRenderer private () =
         end_line_with (sprintf "\"kind\": \"%s\", " op)
            
         end_line_with "\"left\": "
-        walk_expr left.Value; end_line_with ", "
+        walk_expr left.Syntax; end_line_with ", "
 
         end_line_with "\"right\": "
-        walk_expr right.Value; end_line()
+        walk_expr right.Syntax; end_line()
 
         end_with "}"
 
@@ -384,7 +384,7 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"-\", "
            
         text "\"expr\": "
-        walk_expr expr.Value; end_line()
+        walk_expr expr.Syntax; end_line()
 
         end_with "}"
 
@@ -396,10 +396,10 @@ type AstRenderer private () =
         end_line_with (sprintf "\"kind\": \"%s\", " op)
            
         text "\"left\": "
-        walk_expr left.Value; end_line_with ", "
+        walk_expr left.Syntax; end_line_with ", "
 
         text "\"right\": "
-        walk_expr right.Value; end_line()
+        walk_expr right.Syntax; end_line()
 
         end_with "}"
 
@@ -411,7 +411,7 @@ type AstRenderer private () =
         end_line_with "\"kind\": \"parenthesized\", "
            
         text "\"expr\": "
-        walk_expr expr.Value; end_line()
+        walk_expr expr.Syntax; end_line()
 
         end_with "}"
 
@@ -423,8 +423,8 @@ type AstRenderer private () =
             
         begin_with "{"
 
-        end_line_with (sprintf "\"name\": \"%s\", " var_formal.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\"" var_formal.TYPE.Value.Value)
+        end_line_with (sprintf "\"name\": \"%s\", " var_formal.ID.Syntax.Value)
+        end_line_with (sprintf "\"type\": \"%s\"" var_formal.TYPE.Syntax.Value)
 
         end_with "}"
 
@@ -435,7 +435,7 @@ type AstRenderer private () =
             text "[]"
         else
             begin_with "[ "
-            var_formals |> Array.iteri (fun i it -> walk_var_formal(it.Value, i)); end_line()
+            var_formals |> Array.iteri (fun i it -> walk_var_formal(it.Syntax, i)); end_line()
             end_with "]"
 
 
@@ -446,8 +446,8 @@ type AstRenderer private () =
             
         begin_with "{"
 
-        end_line_with (sprintf "\"name\": \"%s\", " formal.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\"" formal.TYPE.Value.Value)
+        end_line_with (sprintf "\"name\": \"%s\", " formal.ID.Syntax.Value)
+        end_line_with (sprintf "\"type\": \"%s\"" formal.TYPE.Syntax.Value)
         
         end_with "}"
 
@@ -458,7 +458,7 @@ type AstRenderer private () =
             text "[]"
         else
             begin_with "[ "
-            formals |> Array.iteri (fun i it -> walk_formal(it.Value, i)); end_line()
+            formals |> Array.iteri (fun i it -> walk_formal(it.Syntax, i)); end_line()
             end_with "]"
 
 
@@ -466,15 +466,15 @@ type AstRenderer private () =
         begin_with "{"
         
         end_line_with "\"kind\": \"method\", "
-        end_line_with (sprintf "\"name\": \"%s\", " method_info.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " method_info.RETURN.Value.Value)
+        end_line_with (sprintf "\"name\": \"%s\", " method_info.ID.Syntax.Value)
+        end_line_with (sprintf "\"type\": \"%s\", " method_info.RETURN.Syntax.Value)
         end_line_with (sprintf "\"overriden\": %b, " method_info.Override)
         
         end_line_with "\"formals\": "
         walk_formals method_info.Formals; end_line_with ", "
         
         text "\"body\": "
-        match method_info.Body.Value with
+        match method_info.Body.Syntax with
         | MethodBodySyntax.Expr expr ->
             walk_expr expr
         | MethodBodySyntax.Native ->
@@ -488,11 +488,11 @@ type AstRenderer private () =
         begin_with "{"
            
         end_line_with "\"kind\": \"attribute\", " 
-        end_line_with (sprintf "\"name\": \"%s\", " attr_info.ID.Value.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " attr_info.TYPE.Value.Value)
+        end_line_with (sprintf "\"name\": \"%s\", " attr_info.ID.Syntax.Value)
+        end_line_with (sprintf "\"type\": \"%s\", " attr_info.TYPE.Syntax.Value)
 
         text "\"value\": "
-        match attr_info.Initial.Value with
+        match attr_info.Initial.Syntax with
         | AttrInitialSyntax.Expr expr ->
             walk_expr expr
         | AttrInitialSyntax.Native ->
@@ -506,7 +506,7 @@ type AstRenderer private () =
         match extends with
         | ValueSome (InheritanceSyntax.Info extends_info) ->
             begin_with "{"
-            end_line_with (sprintf "\"type\": \"%s\", " extends_info.SUPER.Value.Value)
+            end_line_with (sprintf "\"type\": \"%s\", " extends_info.SUPER.Syntax.Value)
             text "\"actuals\": "
             walk_actuals (extends_info.Actuals); end_line()
             end_with "}"
@@ -526,7 +526,7 @@ type AstRenderer private () =
             then
                 end_line_with ", "
                 
-            match feature_node.Value with
+            match feature_node.Syntax with
             | FeatureSyntax.Method method_info ->
                 walk_method method_info
             | FeatureSyntax.Attr attr_info ->
@@ -548,16 +548,16 @@ type AstRenderer private () =
      and walk_class (klass: ClassSyntax): unit =
         begin_with "{"
         
-        end_line_with (sprintf "\"name\": \"%s\", " klass.NAME.Value.Value)
+        end_line_with (sprintf "\"name\": \"%s\", " klass.NAME.Syntax.Value)
         
         text "\"varformals\": "
         walk_var_formals klass.VarFormals; end_line_with ", "
 
         text "\"extends\": "
-        walk_extends (klass.Extends |> ValueOption.map (fun it -> it.Value)); end_line_with ", "
+        walk_extends (klass.Extends |> ValueOption.map (fun it -> it.Syntax)); end_line_with ", "
 
         text "\"body\": "
-        walk_features klass.ClassBody; end_line()
+        walk_features klass.Features; end_line()
 
         end_with "}"
 
@@ -567,13 +567,13 @@ type AstRenderer private () =
         end_line_with "{"
         end_line_with "\"classes\": ["
         
-        program.ClassDecls
+        program.Classes
         |> Array.iteri (fun i it ->
             if i > 0
             then
                 end_line_with ", "; end_line()
                 
-            walk_class it.Value
+            walk_class it.Syntax
         )
         end_line()
         
