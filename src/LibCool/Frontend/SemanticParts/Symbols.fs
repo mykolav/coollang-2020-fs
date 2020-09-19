@@ -6,6 +6,13 @@ open LibCool.AstParts
 open LibCool.SourceParts
 
 
+type VarSymbol =
+    { Name: ID
+      Type: TYPENAME
+      Index: int
+      SyntaxSpan: Span }
+
+
 type AttrSymbol =
     { Name: ID
       Type: TYPENAME

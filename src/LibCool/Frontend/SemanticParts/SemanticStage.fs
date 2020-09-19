@@ -1,6 +1,7 @@
-namespace LibCool.Frontend
+namespace rec LibCool.Frontend
 
 
+open System
 open System.Collections.Generic
 open System.Text
 open LibCool.SourceParts
@@ -8,6 +9,61 @@ open LibCool.AstParts
 open LibCool.DiagnosticParts
 open LibCool.Frontend.SemanticParts
 open AstExtensions
+
+
+[<Sealed>]
+type private Scope() =    
+    
+    
+    let _visible_vars = Dictionary<ID, VarSymbol>()
+    
+    
+    member this.AddVisible(var_node: AstNode<VarSyntax>): unit =
+        _visible_vars.Add(var_node.Syntax.ID.Syntax,
+                          { VarSymbol.Name = var_node.Syntax.ID.Syntax
+                            Type = var_node.Syntax.TYPE.Syntax
+                            Index = _visible_vars.Count
+                            SyntaxSpan = var_node.Span })
+    
+    
+    member this.IsVisible(name: ID): bool = _visible_vars.ContainsKey(name)
+    
+    
+    member this.Get(name: ID): VarSymbol = _visible_vars.[name]
+    member this.TryGet(name: ID): VarSymbol voption =
+        if _visible_vars.ContainsKey(name)
+        then ValueSome (_visible_vars.[name])
+        else ValueNone
+
+
+[<Sealed>]
+type private SymbolTableScopeGuard(_symbol_table: SymbolTable) =
+    interface IDisposable with
+        member this.Dispose() =
+            _symbol_table.LeaveScope()
+
+
+[<Sealed>]
+type private SymbolTable(_class_sym: ClassSymbol) as this =
+
+
+    let _scopes = Stack<Scope>()
+    
+    
+    member private this.CurrentScope = _scopes.Peek()
+    
+    
+    member this.CreateScope(): IDisposable =
+        _scopes.Push(Scope())
+        new SymbolTableScopeGuard(this) :> IDisposable
+    
+    
+    member this.LeaveScope(): unit =
+        _scopes.Pop() |> ignore
+    
+    
+    member this.Resolve(name: ID): VarSymbol = raise (NotImplementedException())
+    member this.TryResolve(name: ID): VarSymbol voption = ValueNone
 
 
 [<Sealed>]

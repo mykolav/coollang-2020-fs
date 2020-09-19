@@ -113,13 +113,13 @@ type AstRenderer private () =
         
     
     // Block
-    and walk_var_decl (var_decl_info: VarDeclSyntax): unit =
+    and walk_var_decl (var_decl_info: VarSyntax): unit =
         begin_with "{"
         
         end_line_with "\"kind\": \"var\", "
            
         end_line_with (sprintf "\"name\": \"%s\", " var_decl_info.ID.Syntax.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " var_decl_info.TYPE_NAME.Syntax.Value)
+        end_line_with (sprintf "\"type\": \"%s\", " var_decl_info.TYPE.Syntax.Value)
         
         text "\"value\": "; walk_expr var_decl_info.Expr.Syntax; end_line()
         

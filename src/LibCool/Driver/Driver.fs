@@ -7,7 +7,6 @@ open System.IO
 open LibCool.DiagnosticParts
 open LibCool.SourceParts
 open LibCool.Frontend
-open LibCool.Frontend.SemanticParts
 
 
 type IWriteLine =

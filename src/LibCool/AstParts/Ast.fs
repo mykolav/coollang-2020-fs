@@ -102,13 +102,13 @@ type BlockSyntax =
 
 [<RequireQualifiedAccess>]
 type StmtSyntax =
-    | VarDecl of VarDeclSyntax
+    | VarDecl of VarSyntax
     | Expr of ExprSyntax
 
 
-type VarDeclSyntax =
+type VarSyntax =
     { ID: AstNode<ID>
-      TYPE_NAME: AstNode<TYPENAME>
+      TYPE: AstNode<TYPENAME>
       Expr: AstNode<ExprSyntax> }
 
 

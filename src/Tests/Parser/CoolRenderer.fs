@@ -124,12 +124,12 @@ type CoolRenderer private () =
 
     // Expressions
     // Block
-    and walk_var_decl (var_decl_info: VarDeclSyntax): unit =
+    and walk_var_decl (var_decl_info: VarSyntax): unit =
         _sb_cool
             .Append("var ")
             .Append(var_decl_info.ID.Syntax)
             .Append(": ")
-            .Append(var_decl_info.TYPE_NAME.Syntax)
+            .Append(var_decl_info.TYPE.Syntax)
             .Append(" = ")
             .Nop()
         

@@ -864,9 +864,9 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let expr_node = expr_node_opt.Value
             
             let vardecl_span = Span.Of(span_start, expr_node.Span.Last)
-            let vardecl_value: VarDeclSyntax =
+            let vardecl_value: VarSyntax =
                 { ID = AstNode.Of(ID token_id.Id, token_id.Span)
-                  TYPE_NAME = AstNode.Of(TYPENAME token_type.Id, token_type.Span)
+                  TYPE = AstNode.Of(TYPENAME token_type.Id, token_type.Span)
                   Expr = expr_node }
             
             ValueSome (AstNode.Of(StmtSyntax.VarDecl vardecl_value, vardecl_span))
