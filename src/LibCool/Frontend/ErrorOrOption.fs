@@ -20,7 +20,10 @@ type ErrorOrOption<'TValue>
         | _ -> false
         
     
-    member this.IsNone: bool = not this.IsSome 
+    member this.IsNone: bool =
+        match this with
+        | Ok ValueNone -> true
+        | _ -> false
         
     
     member this.Option: 'TValue voption =

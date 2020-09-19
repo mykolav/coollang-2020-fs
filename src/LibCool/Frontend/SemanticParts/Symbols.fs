@@ -6,13 +6,6 @@ open LibCool.AstParts
 open LibCool.SourceParts
 
 
-type VarSymbol =
-    { Name: ID
-      Type: TYPENAME
-      Index: int
-      SyntaxSpan: Span }
-
-
 type AttrSymbol =
     { Name: ID
       Type: TYPENAME
@@ -21,7 +14,7 @@ type AttrSymbol =
       SyntaxSpan: Span }
 
 
-type ParamSymbol =
+type FormalSymbol =
     { Name: ID
       Type: TYPENAME
       Index: int
@@ -30,7 +23,7 @@ type ParamSymbol =
 
 type MethodSymbol =
     { Name: ID
-      Params: ParamSymbol[]
+      Formals: FormalSymbol[]
       ReturnType: TYPENAME
       Override: bool
       DeclaringClass: TYPENAME
@@ -58,7 +51,7 @@ module BasicClassSymbols =
           Super = super
           Ctor =
             { MethodSymbol.Name = ID ".ctor"
-              Params = [||] 
+              Formals = [||] 
               ReturnType = name  
               Override = false
               DeclaringClass = name 

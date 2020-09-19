@@ -7,7 +7,7 @@ open LibCool.AstParts
 open LibCool.DiagnosticParts
 open LibCool.SourceParts
 open AstExtensions
-    
+
 
 [<Sealed>]
 type private InheritanceChain() =
@@ -42,14 +42,14 @@ type private InheritanceChain() =
 type VarFormalOrAttrSyntax =
     { ID: AstNode<ID>
       TYPE: AstNode<TYPENAME>
-      Initial: AstNode<AttrInitialSyntax> voption }
+      (*Initial: AstNode<AttrInitialSyntax> voption*) }
 
 
 [<Sealed>]
 type ClassSymbolCollector(_program_syntax: ProgramSyntax,
-                                  _classdecl_node_map: IReadOnlyDictionary<TYPENAME, AstNode<ClassSyntax>>,
-                                  _source: Source,
-                                  _diags: DiagnosticBag) =
+                          _classdecl_node_map: IReadOnlyDictionary<TYPENAME, AstNode<ClassSyntax>>,
+                          _source: Source,
+                          _diags: DiagnosticBag) =
 
     
     let _class_sym_map = Dictionary<TYPENAME, ClassSymbol>() 
@@ -116,7 +116,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         |> Seq.iter (fun varformal_node ->
             add_attr_sym (varformal_node.Map(fun it -> { VarFormalOrAttrSyntax.ID=it.ID
                                                          TYPE=it.TYPE
-                                                         Initial = ValueNone })))
+                                                         (*Initial=ValueNone*) })))
         
         classdecl_syntax.Features
         |> Seq.where (fun it -> it.Syntax.IsAttr)
@@ -124,14 +124,14 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             add_attr_sym (feature_node.Map(fun it -> let attr_syntax = it.AsAttrSyntax
                                                      { VarFormalOrAttrSyntax.ID=attr_syntax.ID
                                                        TYPE=attr_syntax.TYPE
-                                                       Initial=ValueSome attr_syntax.Initial })))
+                                                       (*Initial=ValueSome attr_syntax.Initial*) })))
         
         attr_syms :> IReadOnlyDictionary<_, _>
     
     
     let mk_param_syms (formal_syntaxes: AstNode<FormalSyntax>[])
                       (get_message: (*formal:*)AstNode<FormalSyntax> -> (*prev_formal:*)AstNode<FormalSyntax> -> string)
-                      : ParamSymbol[] =
+                      : FormalSymbol[] =
         let formal_node_map = Dictionary<ID, AstNode<FormalSyntax>>()
 
         formal_syntaxes
@@ -148,7 +148,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         )
 
         let param_syms = formal_node_map.Values
-                         |> Seq.mapi (fun i it -> { ParamSymbol.Name = it.Syntax.ID.Syntax
+                         |> Seq.mapi (fun i it -> { FormalSymbol.Name = it.Syntax.ID.Syntax
                                                     Type = it.Syntax.TYPE.Syntax
                                                     Index = i
                                                     SyntaxSpan = it.Span })
@@ -171,7 +171,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         let param_syms = mk_method_param_syms method_syntax
 
         { MethodSymbol.Name = method_syntax.ID.Syntax
-          Params = param_syms
+          Formals = param_syms
           ReturnType = method_syntax.RETURN.Syntax
           Override = method_syntax.Override
           DeclaringClass = classdecl_syntax.NAME.Syntax
@@ -229,9 +229,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
     let mk_ctor_param_syms (classdecl_syntax: ClassSyntax) =
         let formal_syntaxes = classdecl_syntax.VarFormals
-                              |> Array.map (fun vf_node ->
-                                  vf_node.Map(fun vf -> { FormalSyntax.ID = vf.ID
-                                                          FormalSyntax.TYPE = vf.TYPE }))
+                              |> Array.map (fun vf_node -> vf_node.Map(fun vf -> vf.AsFormalSyntax))
         mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
                       ((*get_message=*)fun formal prev_formal ->
                           sprintf "The constructor of class '%O' already contains a var formal '%O' at %O"
@@ -244,7 +242,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         let param_syms = mk_ctor_param_syms classdecl_syntax
         
         { MethodSymbol.Name = ID ".ctor"
-          Params = param_syms
+          Formals = param_syms
           ReturnType = classdecl_syntax.NAME.Syntax
           Override = false
           DeclaringClass = classdecl_syntax.NAME.Syntax

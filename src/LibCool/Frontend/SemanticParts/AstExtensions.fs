@@ -8,6 +8,13 @@ open LibCool.SourceParts
 module AstExtensions =
     
     
+    type VarFormalSyntax
+        with
+        member this.AsFormalSyntax: FormalSyntax =
+            { FormalSyntax.ID = this.ID
+              TYPE = this.TYPE }
+    
+    
     type FeatureSyntax
         with
         member this.IsMethod: bool =
