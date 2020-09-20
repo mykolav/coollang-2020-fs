@@ -19,7 +19,7 @@
         <Compile Include="Frontend\SemanticParts\Symbols.fs" />
         <Compile Include="Frontend\SemanticParts\ClassSyntaxCollector.fs" />
         <Compile Include="Frontend\SemanticParts\ClassSymbolCollector.fs" />
-        <Compile Include="Frontend\SemanticParts\Tables.fs" />
+        <Compile Include="Frontend\SemanticParts\SymbolTable.fs" />
         <Compile Include="Frontend\SemanticParts\Translator.fs" />
         <Compile Include="Driver\Driver.fs" />
     </ItemGroup>

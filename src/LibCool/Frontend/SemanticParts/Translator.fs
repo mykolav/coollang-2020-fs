@@ -1,6 +1,7 @@
 namespace rec LibCool.Frontend
 
 
+open System.Collections.Generic
 open System.Text
 open LibCool.SourceParts
 open LibCool.DiagnosticParts
@@ -10,18 +11,74 @@ open AstExtensions
 
 
 [<Sealed>]
+type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
+
+
+    member private this.Resolve(typename: TYPENAME): ClassSymbol =
+        _class_sym_map.[typename]
+
+
+    member private this.TryResolve(typename: TYPENAME): ClassSymbol voption =
+        if _class_sym_map.ContainsKey(typename)
+        then ValueSome (_class_sym_map.[typename])
+        else ValueNone
+        
+        
+    member this.Conforms(ancestor: ClassSymbol, descendant: ClassSymbol): bool =
+        if ancestor.Name = BasicClasses.Any.Name
+        then
+            true
+        else
+        
+        // let mutable super = descendant
+        // let mutable conforms = ValueNone
+        // while conforms.IsNone do
+        //     if super.Name = BasicClassSymbols.Any.Name
+        //     then
+        //         conforms <- ValueSome false
+        //     else
+        //         
+        //     if ancestor.Name = super.Name
+        //     then
+        //         conforms <- ValueSome true
+        //     else
+        //         
+        //     super <- this.Resolve(super.Super)
+        // 
+        // conforms.Value
+        
+        let rec conforms (descendant: ClassSymbol): bool =
+            if descendant.Name = BasicClasses.Any.Name
+            then
+                false
+            else
+            
+            if ancestor.Name = descendant.Name
+            then
+                true
+            else
+                
+            conforms (this.Resolve(descendant.Super))
+            
+        conforms descendant
+
+
+[<Sealed>]
 type private ProgramTranslator(_program_syntax: ProgramSyntax,
-                               _type_table: TypeTable,
+                               _class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>,
                                _diags: DiagnosticBag,
                                _source: Source) =
     
     
-    let sb_data = StringBuilder()
-    let sb_code = StringBuilder()
+    let _type_cmp = TypeComparer(_class_sym_map)
+    
+    
+    let _sb_data = StringBuilder()
+    let _sb_code = StringBuilder()
     
     
     let translate_expr (expr_node: AstNode<ExprSyntax>): (*type:*)ClassSymbol * (*reg:*)string =
-        BasicClassSymbols.Error, ""
+        BasicClasses.Error, ""
     
     
     let translate_ctor (class_node: AstNode<ClassSyntax>) (sym_table: SymbolTable) =
@@ -38,8 +95,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             let initial_ty, _ = translate_expr expr_node
             if not initial_ty.IsError
             then
-                let attr_ty = _type_table.Resolve(attr_node.Syntax.TYPE.Syntax)
-                if not (_type_table.Conforms(ancestor=attr_ty, descendant=initial_ty))
+                let attr_ty = _class_sym_map.[attr_node.Syntax.TYPE.Syntax]
+                if not (_type_cmp.Conforms(ancestor=attr_ty, descendant=initial_ty))
                 then
                     _diags.Error(
                         sprintf "The initial expression's type '%O' must conform to the attribute's type '%O'"
@@ -80,7 +137,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     let translate_class (class_node: AstNode<ClassSyntax>) =
-        let sym_table = SymbolTable(_type_table.Resolve(class_node.Syntax.NAME.Syntax))
+        let sym_table = SymbolTable(_class_sym_map.[class_node.Syntax.NAME.Syntax])
         translate_ctor class_node sym_table
         class_node.Syntax.Features
             |> Seq.where (fun feature_node -> feature_node.Syntax.IsMethod)
@@ -113,5 +170,5 @@ type Translator private () =
             ""
         else
         
-        let asm = ProgramTranslator(program_syntax, TypeTable(class_sym_map), diags, source).Translate()
+        let asm = ProgramTranslator(program_syntax, class_sym_map, diags, source).Translate()
         asm

@@ -11,28 +11,27 @@ open AstExtensions
 
 [<Sealed>]
 type private InheritanceChain() =
-    let _super_map = Dictionary<TYPENAME,
-                                struct {| Syntax: ClassSyntax; Distance: int |}>()
+    let _ancestry_map = Dictionary<TYPENAME, struct {| Syntax: ClassSyntax; Distance: int |}>()
                         
                         
-    member this.AddSuper(super_syntax: ClassSyntax): bool =
-        if _super_map.ContainsKey(super_syntax.NAME.Syntax)
+    member this.Add(class_syntax: ClassSyntax): bool =
+        if _ancestry_map.ContainsKey(class_syntax.NAME.Syntax)
         then
             false
         else
         
-        let distance = _super_map.Count + 1
-        _super_map.Add(super_syntax.NAME.Syntax,
-                       struct {| Syntax = super_syntax; Distance = distance |})
+        let distance = _ancestry_map.Count + 1
+        _ancestry_map.Add(class_syntax.NAME.Syntax,
+                       struct {| Syntax = class_syntax; Distance = distance |})
         
         true
         
         
     member this.Subchain(start: ClassSyntax) =
-        let start_distance = _super_map.[start.NAME.Syntax].Distance
+        let start_distance = _ancestry_map.[start.NAME.Syntax].Distance
         
         let subchain =
-            _super_map.Values
+            _ancestry_map.Values
             |> Seq.where (fun it -> it.Distance >= start_distance)
             |> Seq.sortBy (fun it -> it.Distance)
             |> Seq.map (fun it -> it.Syntax)
@@ -41,8 +40,7 @@ type private InheritanceChain() =
 
 type VarFormalOrAttrSyntax =
     { ID: AstNode<ID>
-      TYPE: AstNode<TYPENAME>
-      (*Initial: AstNode<AttrInitialSyntax> voption*) }
+      TYPE: AstNode<TYPENAME> }
 
 
 [<Sealed>]
@@ -66,7 +64,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
         if not (_class_sym_map.ContainsKey(class_name))
         then
-            _class_sym_map.Add(class_name, BasicClassSymbols.Error)
+            _class_sym_map.Add(class_name, BasicClasses.Error)
             _diags.Error(
                 sprintf "The type name '%O' could not be found (is an input file missing?)" class_name,
                 class_name_node.Span)
@@ -271,77 +269,90 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
     let collect_class_sym (class_name_node: AstNode<TYPENAME>): unit =
         let inheritance_chain = InheritanceChain()
         
-        let rec do_collect_class_sym (class_name_node: AstNode<TYPENAME>)
-                                     (is_super: bool): ClassSymbol =
+        let rec do_collect_class_sym (class_name_node: AstNode<TYPENAME>): ClassSymbol =
             let class_name = class_name_node.Syntax
      
+            // See if we collected a symbol for this class earlier.
+            // If we did, don't try to collect again.
             if _class_sym_map.ContainsKey(class_name)
             then
                 _class_sym_map.[class_name]
             else
             
-            let classdecl_node_opt = resolve_to_class_syntax class_name_node
-            if classdecl_node_opt.IsNone
+            // See if a class with the name supplied to us exists.
+            let class_node_opt = resolve_to_class_syntax class_name_node
+            if class_node_opt.IsNone
             then 
-                BasicClassSymbols.Error
+                BasicClasses.Error
             else
                 
-            let classdecl_node = classdecl_node_opt.Value 
+            let class_node = class_node_opt.Value 
             
+            // See if we're in an inheritance cycle.
             let cycle_detected =
-                if not is_super
-                then
-                    false
-                else
-                
-                let classdecl_syntax = classdecl_node.Syntax
-                if inheritance_chain.AddSuper(classdecl_syntax)
+                let class_syntax = class_node.Syntax
+                if inheritance_chain.Add(class_syntax)
                 then
                     false
                 else
 
                 // An inheritance cycle detected
+                
                 let sb_message = StringBuilder("A circular superclass dependency detected: '")
 
-                let cycle = inheritance_chain.Subchain(classdecl_syntax)
+                let cycle = inheritance_chain.Subchain(class_syntax)
                 
                 cycle |> Seq.iter (fun it -> sb_message.AppendFormat("{0} -> ", it.NAME.Syntax) |> ignore)
                 sb_message.AppendFormat("{0}'", cycle.[0].NAME.Syntax) |> ignore
 
-                _diags.Error(sb_message.ToString(), classdecl_syntax.ExtendsSyntax.SUPER.Span)
+                _diags.Error(sb_message.ToString(), class_syntax.ExtendsSyntax.SUPER.Span)
                 true
             
             if cycle_detected
             then
-                BasicClassSymbols.Error
+                BasicClasses.Error
             else
 
-            let super_sym = do_collect_class_sym classdecl_node.Syntax.ExtendsSyntax.SUPER ((*is_super=*)true)
+            // We didn't collect a symbol for this class previously.
+            // And we aren't in an inheritance cycle.
+            // To collect a symbol for this class we need to merge the class' syntax and its super's symbol.
+            
+            // Collect the super's symbol.
+            let super_sym = do_collect_class_sym class_node.Syntax.ExtendsSyntax.SUPER
             if super_sym.IsError
             then
-                BasicClassSymbols.Error
+                // Remember we failed to collect a symbol for the current class.
+                // So the next time we need it, we don't try to collect it again
+                // and don't emit duplicate diags.
+                _class_sym_map.Add(class_name, BasicClasses.Error)
+                BasicClasses.Error
             else
 
-            let class_sym = mk_class_sym classdecl_node super_sym
+            // Merge the current class' syntax and its super's symbol.
+            let class_sym = mk_class_sym class_node super_sym
             
+            // Add the collected symbol to the map,
+            // so the next time we need it, we can reuse it instead of collecting from scratch.
             add_class_sym_to_map class_sym
             class_sym
             
-        do_collect_class_sym class_name_node ((*is_super=*)false) |> ignore
+        do_collect_class_sym class_name_node |> ignore
     
     
     member this.Collect(): IReadOnlyDictionary<TYPENAME, ClassSymbol> =
-        add_class_sym_to_map BasicClassSymbols.Any
-        add_class_sym_to_map BasicClassSymbols.Unit
-        add_class_sym_to_map BasicClassSymbols.Int
-        add_class_sym_to_map BasicClassSymbols.String
-        add_class_sym_to_map BasicClassSymbols.Boolean
-        add_class_sym_to_map BasicClassSymbols.ArrayAny
-        add_class_sym_to_map BasicClassSymbols.IO
-        add_class_sym_to_map BasicClassSymbols.Symbol
+        add_class_sym_to_map BasicClasses.Any
+        add_class_sym_to_map BasicClasses.Unit
+        add_class_sym_to_map BasicClasses.Int
+        add_class_sym_to_map BasicClasses.String
+        add_class_sym_to_map BasicClasses.Boolean
+        add_class_sym_to_map BasicClasses.ArrayAny
+        add_class_sym_to_map BasicClasses.IO
         
-        _program_syntax.Classes |> Array.iter (fun classdecl_node ->
-            let classdecl_syntax = classdecl_node.Syntax
-            collect_class_sym classdecl_syntax.NAME)
+        // User code cannot directly reference the class Null.
+        // So we don't add it to the map before collecting class symbols from the program's ast. 
+        
+        _program_syntax.Classes |> Array.iter (fun class_node ->
+            let class_syntax = class_node.Syntax
+            collect_class_sym class_syntax.NAME)
         
         _class_sym_map :> IReadOnlyDictionary<_, _>

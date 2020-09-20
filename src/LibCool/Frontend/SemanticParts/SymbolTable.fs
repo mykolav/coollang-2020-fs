@@ -7,59 +7,6 @@ open LibCool.AstParts
 open LibCool.Frontend.SemanticParts
 
 
-[<Sealed>]
-type TypeTable(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
-
-
-    member this.Resolve(typename: TYPENAME): ClassSymbol =
-        _class_sym_map.[typename]
-
-
-    member this.TryResolve(typename: TYPENAME): ClassSymbol voption =
-        if _class_sym_map.ContainsKey(typename)
-        then ValueSome (_class_sym_map.[typename])
-        else ValueNone
-        
-        
-    member this.Conforms(ancestor: ClassSymbol, descendant: ClassSymbol): bool =
-        if ancestor.Name = BasicClassSymbols.Any.Name
-        then
-            true
-        else
-        
-        // let mutable super = descendant
-        // let mutable conforms = ValueNone
-        // while conforms.IsNone do
-        //     if super.Name = BasicClassSymbols.Any.Name
-        //     then
-        //         conforms <- ValueSome false
-        //     else
-        //         
-        //     if ancestor.Name = super.Name
-        //     then
-        //         conforms <- ValueSome true
-        //     else
-        //         
-        //     super <- this.Resolve(super.Super)
-        // 
-        // conforms.Value
-        
-        let rec conforms (descendant: ClassSymbol): bool =
-            if descendant.Name = BasicClassSymbols.Any.Name
-            then
-                false
-            else
-            
-            if ancestor.Name = descendant.Name
-            then
-                true
-            else
-                
-            conforms (this.Resolve(descendant.Super))
-            
-        conforms descendant
-
-
 type SymbolKind
     = Attr
     | Formal
@@ -122,8 +69,9 @@ type SymbolTable(_class_sym: ClassSymbol) =
 
     let _scopes = List<Scope>()
     
-    member private this.LastScopeIndex = _scopes.Count - 1
-    member this.CurrentScope = _scopes.[this.LastScopeIndex]
+    
+    member private this.CurrentScopeLevel = _scopes.Count - 1
+    member this.CurrentScope = _scopes.[this.CurrentScopeLevel]
     
     
     member this.EnterScope(): unit =
@@ -131,7 +79,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.LeaveScope(): unit =
-        _scopes.RemoveAt(this.LastScopeIndex)
+        _scopes.RemoveAt(this.CurrentScopeLevel)
     
     
     member this.Resolve(name: ID): Symbol =
@@ -158,7 +106,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
             try_resolve (scope_level - 1)
             
             
-        let sym_opt = try_resolve ((*scope_level=*)this.LastScopeIndex)
+        let sym_opt = try_resolve ((*scope_level=*)this.CurrentScopeLevel)
         if sym_opt.IsSome
         then
             sym_opt
