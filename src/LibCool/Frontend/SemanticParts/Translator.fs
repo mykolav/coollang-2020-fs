@@ -2,6 +2,7 @@ namespace rec LibCool.Frontend
 
 
 open System.Collections.Generic
+open System.Runtime.CompilerServices
 open System.Text
 open LibCool.SourceParts
 open LibCool.DiagnosticParts
@@ -48,6 +49,18 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
         conforms descendant
 
 
+[<IsReadOnly; Struct>]
+type AsmFragment =
+    { Type: ClassSymbol
+      Asm: string
+      Reg: string }
+    with
+    member this.IsError: bool = this.Type.IsError
+    member this.IsOk: bool = not (this.Type.IsError)
+    static member Error =
+        { Type=BasicClasses.Error; Asm=""; Reg="" }
+
+
 [<Sealed>]
 type private ProgramTranslator(_program_syntax: ProgramSyntax,
                                _class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>,
@@ -62,10 +75,14 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     let _sb_code = StringBuilder()
     
     
-    let translate_expr (expr_node: AstNode<ExprSyntax>): (*type:*)ClassSymbol * (*reg:*)string =
-        BasicClasses.Error, ""
+    let translate_expr (expr_node: AstNode<ExprSyntax>): AsmFragment =
+        AsmFragment.Error
     
-        
+    
+    let translate_block (block_syntax_opt: BlockSyntax voption): AsmFragment =
+        AsmFragment.Error
+
+
     let translate_attr (attr_node: AstNode<AttrSyntax>): string =
         let initial_node = attr_node.Syntax.Initial
         let expr_node =
@@ -75,18 +92,18 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             | AttrInitialSyntax.Native ->
                 invalidOp "AttrInitialSyntax.Native"
                 
-        let initial_ty, _ = translate_expr expr_node
-        if initial_ty.IsError
+        let initial_frag = translate_expr expr_node
+        if initial_frag.IsError
         then
             ""
         else
             
         let attr_ty = _class_sym_map.[attr_node.Syntax.TYPE.Syntax]
-        if not (_type_cmp.Conforms(ancestor=attr_ty, descendant=initial_ty))
+        if not (_type_cmp.Conforms(ancestor=attr_ty, descendant=initial_frag.Type))
         then
             _diags.Error(
                 sprintf "The initial expression's type '%O' must conform to the attribute's type '%O'"
-                        initial_ty.Name
+                        initial_frag.Type.Name
                         attr_ty.Name,
                 initial_node.Span)
             ""
@@ -114,10 +131,11 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         
         sym_table.EnterScope()
 
-        sym_table.CurrentScope.AddVisible(Symbol.ThisOf(class_node.Syntax))
+        sym_table.CurrentScope.AddVisible(Symbol.This(class_node.Syntax))
         
         // By a cruel twist of fate, you can't say `this.ID = ...` in Cool2020.
-        // Gotta be creative to avoid shadowing attr names by the ctor's param names.
+        // Gotta be creative and prefix formal names with "."
+        // to avoid shadowing attr names by the ctor's param names.
         class_node.Syntax.VarFormals
         |> Seq.iter (fun vf_node ->
             let sym = Symbol.Of(formal_node=vf_node.Map(fun vf -> vf.AsFormalSyntax(id_prefix=".")),
@@ -127,24 +145,60 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         
         sym_table.EnterScope()
         
-        // TODO: the invocation of the super's .ctor with actuals from the extends syntax
+        // Invoke the super's .ctor with actuals from the extends syntax
+        // SuperDispatch of method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
+        let extends_syntax = class_node.Syntax.ExtendsSyntax
+        let super_dispatch_syntax = ExprSyntax.SuperDispatch (
+                                        method_id=AstNode.Virtual(ID ".ctor"),
+                                        actuals=extends_syntax.Actuals)
         
-        // Assign values passed as formals to attrs derived from varformals
-        // class_node.Syntax.VarFormals
-        // |> Seq.iter (fun vf_node ->
-        //     let attr_name = vf_node.Syntax.ID.Syntax.Value
-        //     let expr_assign_syntax =
-        //         ExprSyntax.Assign(id=AstNode.Of(ID attr_name, Span.Invalid),
-        //                           expr=AstNode.Of(ExprSyntax.Id(ID ("." + attr_name)), Span.Invalid))
-        //     let attr_assign_asm = translate_expr (AstNode.Of(expr_assign_syntax, Span.Invalid))
-        //     sb_ctor_body.AppendLine(attr_assign_asm) |> ignore)
+        let super_dispatch_frag = translate_expr (AstNode.Virtual(super_dispatch_syntax))
+        if super_dispatch_frag.IsOk
+        then
+            sb_ctor_body.AppendLine(super_dispatch_frag.Asm) |> ignore
+            
+        // Assign values passed as formals to attrs derived from varformals.
+        class_node.Syntax.VarFormals
+        |> Seq.iter (fun vf_node ->
+            let attr_name = vf_node.Syntax.ID.Syntax.Value
+            let assign_syntax =
+                ExprSyntax.Assign(id=AstNode.Virtual(ID attr_name),
+                                  expr=AstNode.Virtual(ExprSyntax.Id (ID ("." + attr_name))))
+            let assign_frag = translate_expr (AstNode.Virtual(assign_syntax))
+
+            if assign_frag.IsOk
+            then
+                sb_ctor_body.AppendLine(assign_frag.Asm) |> ignore)
         
-        // Assign initial values to attributes.
+        // Assign initial values to attributes declared in the class.
         class_node.Syntax.Features
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsAttr)
         |> Seq.iter (fun feature_node ->
             let attr_assign_initial_asm = translate_attr (feature_node.Map(fun it -> it.AsAttrSyntax))
             sb_ctor_body.AppendLine(attr_assign_initial_asm) |> ignore)
+        
+        // Translate blocks.
+        class_node.Syntax.Features
+        |> Seq.where (fun feature_node -> feature_node.Syntax.IsBracedBlock)
+        |> Seq.iter (fun feature_node ->
+            let block_frag = translate_block feature_node.Syntax.AsBlockSyntax
+            if block_frag.IsOk
+            then
+                sb_ctor_body.AppendLine(block_frag.Asm) |> ignore)
+        
+        // Append ExprSyntax.This to the .ctor's end.
+        // (As a result, the last block's last expr's type doesn't have to match the class' type.)
+        let this_syntax = ExprSyntax.This
+        let this_frag = translate_expr (AstNode.Virtual(this_syntax))
+        if this_frag.IsOk
+        then
+            // TODO: Here we need to emit assembly moving this_frag.Reg into the return value register
+            //       Keep in mind, returning a value is more relevant for regular method
+            //       as a ctor return value is the one we passed it in `this`.
+            //       So, maybe, we aren't going to return anything at all from ctors.
+            this_frag.Reg |> ignore
+            
+        // TODO: Generate the method header and footer, insert `sb_ctor_body` in between them.
 
         sym_table.LeaveScope()
         sym_table.LeaveScope()

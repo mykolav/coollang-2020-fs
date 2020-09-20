@@ -40,7 +40,7 @@ type Symbol =
           Index = attr_sym.Index
           SyntaxSpan = attr_sym.SyntaxSpan
           Kind = SymbolKind.Attr }
-    static member ThisOf(class_syntax: ClassSyntax) =
+    static member This(class_syntax: ClassSyntax) =
         { Symbol.Name = ID "this"
           Type = class_syntax.NAME.Syntax
           Index = 0
@@ -79,11 +79,34 @@ type SymbolTable(_class_sym: ClassSymbol) =
     member this.CurrentScope = _scopes.[this.CurrentScopeLevel]
     
     
+    member this.EnterMethod(): unit =
+        // TODO: ...
+        // TODO: Formals + vars count...
+        _scopes.Add(Scope())
+    
+    
+    member this.EnterBlock(): unit =
+        // TODO: ...
+        _scopes.Add(Scope())
+    
+
+    // TODO: Probably, should be private    
     member this.EnterScope(): unit =
         _scopes.Add(Scope())
     
     
+    // TODO: Probably, should be private    
     member this.LeaveScope(): unit =
+        _scopes.RemoveAt(this.CurrentScopeLevel)
+    
+    
+    member this.LeaveBlock(): unit =
+        // TODO: ...
+        _scopes.RemoveAt(this.CurrentScopeLevel)
+    
+    
+    member this.LeaveMethod(): unit =
+        // TODO: ...
         _scopes.RemoveAt(this.CurrentScopeLevel)
     
     

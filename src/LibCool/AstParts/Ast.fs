@@ -24,9 +24,9 @@ type AstNode private () =
           Syntax=syntax }
 
 
-    static member Of<'TSyntax>(value: 'TSyntax, first: uint32, last: uint32): AstNode<'TSyntax> =
-        AstNode.Of(span=Span.Of(first, last),
-                   syntax=value)
+    static member Virtual<'TSyntax>(syntax: 'TSyntax): AstNode<'TSyntax> =
+        { Span=Span.Invalid
+          Syntax=syntax }
 
 
 type ProgramSyntax =
