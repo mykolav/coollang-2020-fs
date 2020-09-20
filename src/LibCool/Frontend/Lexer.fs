@@ -60,16 +60,22 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             
             
     let try_eat_linebreak(): Span =
-        if is_ahead "\r\n"
-        then
-            eat_chars 2u
-            Span.Of(_offset - 2u, _offset)
-        else if (let ch = peek_char() in ch = '\r' || ch = '\n')
+        let ch = peek_char()
+        if ch = '\r' || ch = '\n'
         then
             eat_char()
-            Span.Of(_offset - 1u, _offset)
+            let linebreak_len = 
+                if ch = '\r' && peek_char() = '\n'
+                then
+                    eat_char()
+                    2u
+                else
+                    1u
+                
+            Span.Of(_offset - linebreak_len, _offset)
         else
-            Span.Invalid
+            
+        Span.Invalid
         
         
     let id_kind (id: string): TokenKind =
@@ -197,7 +203,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         then
             // line comment
             eat_char()
-            while not (is_eof()) && (try_eat_linebreak() = Span.Invalid) do
+            while not (is_eof()) && try_eat_linebreak().IsInvalid do
                 eat_char()
             
             None
@@ -290,7 +296,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                 else
 
                 let ch2 = peek_char()
-                let is_linebreak = is_ahead "\r\n" || ch2 = '\r' || ch2 = '\n'
+                let is_linebreak = ch2 = '\r' || ch2 = '\n'
 
                 // If a line-break is ahead of us, we do nothing.
                 // A dedicated branch outside of the escaped chars processing code will deal with it.                         
@@ -306,7 +312,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             else
                 
             let linebreak_span = try_eat_linebreak()
-            if linebreak_span <> Span.Invalid
+            if linebreak_span.IsValid
             then
                 _diags.Error("String literals cannot contain line breaks", linebreak_span)
             else
