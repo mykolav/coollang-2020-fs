@@ -1,4 +1,4 @@
-namespace LibCool.Frontend.SemanticParts
+namespace rec LibCool.Frontend.SemanticParts
 
 
 open System.Collections.Generic
@@ -38,8 +38,8 @@ type ClassSymbol =
       Attrs: IReadOnlyDictionary<ID, AttrSymbol>
       Methods: IReadOnlyDictionary<ID, MethodSymbol>
       SyntaxSpan: Span }
-    member this.IsError =
-        this.Name = TYPENAME ".error"
+    member this.Is(class_sym: ClassSymbol): bool = this.Name = class_sym.Name
+    member this.IsError: bool = this.Is(BasicClasses.Error)
 
 
 [<RequireQualifiedAccess>]

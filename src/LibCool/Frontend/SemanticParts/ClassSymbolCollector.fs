@@ -227,7 +227,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
     let mk_ctor_param_syms (class_syntax: ClassSyntax) =
         let formal_syntaxes = class_syntax.VarFormals
-                              |> Array.map (fun vf_node -> vf_node.Map(fun vf -> vf.AsFormalSyntax))
+                              |> Array.map (fun vf_node -> vf_node.Map(fun vf -> vf.AsFormalSyntax()))
         mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
                       ((*get_message=*)fun formal prev_formal ->
                           sprintf "The constructor of class '%O' already contains a var formal '%O' at %O"
@@ -237,10 +237,10 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
 
     let mk_ctor_sym (class_syntax: ClassSyntax): MethodSymbol =
-        let param_syms = mk_ctor_param_syms class_syntax
+        let formal_syms = mk_ctor_param_syms class_syntax
         
         { MethodSymbol.Name = ID ".ctor"
-          Formals = param_syms
+          Formals = formal_syms
           ReturnType = class_syntax.NAME.Syntax
           Override = false
           DeclaringClass = class_syntax.NAME.Syntax

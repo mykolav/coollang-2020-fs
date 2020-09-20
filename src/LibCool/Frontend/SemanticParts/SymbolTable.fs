@@ -40,7 +40,12 @@ type Symbol =
           Index = attr_sym.Index
           SyntaxSpan = attr_sym.SyntaxSpan
           Kind = SymbolKind.Attr }
-        
+    static member ThisOf(class_syntax: ClassSyntax) =
+        { Symbol.Name = ID "this"
+          Type = class_syntax.NAME.Syntax
+          Index = 0
+          SyntaxSpan = Span.Invalid
+          Kind = SymbolKind.Formal }        
 
 [<Sealed>]
 type Scope() =    

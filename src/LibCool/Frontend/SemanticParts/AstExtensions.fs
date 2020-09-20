@@ -10,8 +10,9 @@ module AstExtensions =
     
     type VarFormalSyntax
         with
-        member this.AsFormalSyntax: FormalSyntax =
-            { FormalSyntax.ID = this.ID
+        member this.AsFormalSyntax(?id_prefix: string): FormalSyntax =
+            let id_prefix = defaultArg id_prefix "" 
+            { FormalSyntax.ID = this.ID.Map(fun it -> ID (id_prefix + it.Value))
               TYPE = this.TYPE }
     
     
