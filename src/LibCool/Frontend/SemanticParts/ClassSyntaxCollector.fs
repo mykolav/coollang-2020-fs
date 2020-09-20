@@ -14,19 +14,19 @@ type ClassDeclCollector(_program_syntax: ProgramSyntax, _diags: DiagnosticBag, _
     member this.Collect() =
         let map = Dictionary<TYPENAME, AstNode<ClassSyntax>>()
         
-        let add_classdecl_syntax (classdecl_node: AstNode<ClassSyntax>): unit =
-            let classdecl_syntax = classdecl_node.Syntax
-            if map.ContainsKey(classdecl_syntax.NAME.Syntax)
+        let add_class_syntax (class_node: AstNode<ClassSyntax>): unit =
+            let class_syntax = class_node.Syntax
+            if map.ContainsKey(class_syntax.NAME.Syntax)
             then
-                let prev_classdecl_syntax = map.[classdecl_syntax.NAME.Syntax].Syntax
+                let prev_class_syntax = map.[class_syntax.NAME.Syntax].Syntax
                 let message = sprintf "The program already contains a class '%O' at %O"
-                                      classdecl_syntax.NAME.Syntax
-                                      (_source.Map(prev_classdecl_syntax.NAME.Span.First))
+                                      class_syntax.NAME.Syntax
+                                      (_source.Map(prev_class_syntax.NAME.Span.First))
                                       
-                _diags.Error(message, classdecl_syntax.NAME.Span)
+                _diags.Error(message, class_syntax.NAME.Span)
             else
-                map.Add(classdecl_syntax.NAME.Syntax, classdecl_node)
+                map.Add(class_syntax.NAME.Syntax, class_node)
         
-        _program_syntax.Classes |> Seq.iter (fun it -> add_classdecl_syntax it)
+        _program_syntax.Classes |> Seq.iter (fun it -> add_class_syntax it)
         
         map :> IReadOnlyDictionary<_, _>

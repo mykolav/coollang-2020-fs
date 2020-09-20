@@ -45,7 +45,7 @@ type VarFormalOrAttrSyntax =
 
 [<Sealed>]
 type ClassSymbolCollector(_program_syntax: ProgramSyntax,
-                          _classdecl_node_map: IReadOnlyDictionary<TYPENAME, AstNode<ClassSyntax>>,
+                          _class_node_map: IReadOnlyDictionary<TYPENAME, AstNode<ClassSyntax>>,
                           _source: Source,
                           _diags: DiagnosticBag) =
 
@@ -57,9 +57,9 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                                 : AstNode<ClassSyntax> voption =
         let class_name = class_name_node.Syntax
         
-        if _classdecl_node_map.ContainsKey(class_name)
+        if _class_node_map.ContainsKey(class_name)
         then
-            ValueSome (_classdecl_node_map.[class_name])
+            ValueSome (_class_node_map.[class_name])
         else
 
         if not (_class_sym_map.ContainsKey(class_name))
@@ -72,18 +72,18 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         ValueNone
 
 
-    let mk_attr_sym (classdecl_syntax: ClassSyntax)
+    let mk_attr_sym (class_syntax: ClassSyntax)
                     (attr_node: AstNode<VarFormalOrAttrSyntax>)
                     (index: int): AttrSymbol =
         let attr_syntax = attr_node.Syntax
         { AttrSymbol.Name = attr_syntax.ID.Syntax
           Type = attr_syntax.TYPE.Syntax
-          DeclaringClass = classdecl_syntax.NAME.Syntax
+          DeclaringClass = class_syntax.NAME.Syntax
           Index = index
           SyntaxSpan = attr_node.Span }
     
 
-    let mk_attr_syms (classdecl_syntax: ClassSyntax)
+    let mk_attr_syms (class_syntax: ClassSyntax)
                      (super: ClassSymbol) =
         let attr_syms = Dictionary<ID, AttrSymbol>(super.Attrs)
 
@@ -95,7 +95,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 let prev_attr_sym = attr_syms.[attr_syntax.ID.Syntax]
                 let message =
                     sprintf "The class '%O' already contains an attribute '%O' [declared in '%O' at %O]"
-                            classdecl_syntax.NAME.Syntax
+                            class_syntax.NAME.Syntax
                             attr_syntax.ID.Syntax
                             prev_attr_sym.DeclaringClass
                             (_source.Map(prev_attr_sym.SyntaxSpan.First))
@@ -105,18 +105,18 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 
             resolve_to_class_syntax attr_syntax.TYPE |> ignore
 
-            let ai = mk_attr_sym classdecl_syntax
+            let ai = mk_attr_sym class_syntax
                                  attr_node
                                  (*index=*)attr_syms.Count
             attr_syms.Add(ai.Name, ai)
             
-        classdecl_syntax.VarFormals
+        class_syntax.VarFormals
         |> Seq.iter (fun varformal_node ->
             add_attr_sym (varformal_node.Map(fun it -> { VarFormalOrAttrSyntax.ID=it.ID
                                                          TYPE=it.TYPE
                                                          (*Initial=ValueNone*) })))
         
-        classdecl_syntax.Features
+        class_syntax.Features
         |> Seq.where (fun it -> it.Syntax.IsAttr)
         |> Seq.iter (fun feature_node ->
             add_attr_sym (feature_node.Map(fun it -> let attr_syntax = it.AsAttrSyntax
@@ -162,7 +162,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                                    prev_formal.Span)
 
 
-    let mk_method_sym (classdecl_syntax: ClassSyntax)
+    let mk_method_sym (class_syntax: ClassSyntax)
                       (method_node: AstNode<MethodSyntax>)
                       (index: int): MethodSymbol =
         let method_syntax = method_node.Syntax
@@ -172,12 +172,12 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
           Formals = param_syms
           ReturnType = method_syntax.RETURN.Syntax
           Override = method_syntax.Override
-          DeclaringClass = classdecl_syntax.NAME.Syntax
+          DeclaringClass = class_syntax.NAME.Syntax
           Index = index
           SyntaxSpan = method_node.Span }
         
         
-    let mk_method_syms (classdecl_syntax: ClassSyntax)
+    let mk_method_syms (class_syntax: ClassSyntax)
                        (super: ClassSymbol) =
         let method_syms = Dictionary<ID, MethodSymbol>(super.Methods)
         
@@ -190,12 +190,12 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 let sb_message =
                     StringBuilder().AppendFormat(
                                         "The class '{0}' already contains a method '{1}' [declared in '{2}' at {3}]",
-                                        classdecl_syntax.NAME.Syntax,
+                                        class_syntax.NAME.Syntax,
                                         method_syntax.ID.Syntax,
                                         prev_method_sym.DeclaringClass,
                                         (_source.Map(prev_method_sym.SyntaxSpan.First)))
                 
-                if classdecl_syntax.NAME.Syntax <> prev_method_sym.DeclaringClass
+                if class_syntax.NAME.Syntax <> prev_method_sym.DeclaringClass
                 then
                     sb_message.Append(". Use 'override def' to override it") |> ignore
                 
@@ -214,52 +214,52 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             let index = if method_syms.ContainsKey(method_syntax.ID.Syntax)
                         then method_syms.[method_syntax.ID.Syntax].Index
                         else method_syms.Count
-            let mi = mk_method_sym classdecl_syntax method_node index
+            let mi = mk_method_sym class_syntax method_node index
             
             method_syms.[mi.Name] <- mi
 
-        classdecl_syntax.Features
+        class_syntax.Features
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsMethod)
         |> Seq.iter (fun feature_node -> add_method_sym (feature_node.Map(fun it -> it.AsMethodSyntax))) 
 
         method_syms :> IReadOnlyDictionary<_, _>
 
 
-    let mk_ctor_param_syms (classdecl_syntax: ClassSyntax) =
-        let formal_syntaxes = classdecl_syntax.VarFormals
+    let mk_ctor_param_syms (class_syntax: ClassSyntax) =
+        let formal_syntaxes = class_syntax.VarFormals
                               |> Array.map (fun vf_node -> vf_node.Map(fun vf -> vf.AsFormalSyntax))
         mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
                       ((*get_message=*)fun formal prev_formal ->
                           sprintf "The constructor of class '%O' already contains a var formal '%O' at %O"
-                                   classdecl_syntax.NAME.Syntax
+                                   class_syntax.NAME.Syntax
                                    formal.Syntax.ID.Syntax
                                    prev_formal.Span)
 
 
-    let mk_ctor_sym (classdecl_syntax: ClassSyntax): MethodSymbol =
-        let param_syms = mk_ctor_param_syms classdecl_syntax
+    let mk_ctor_sym (class_syntax: ClassSyntax): MethodSymbol =
+        let param_syms = mk_ctor_param_syms class_syntax
         
         { MethodSymbol.Name = ID ".ctor"
           Formals = param_syms
-          ReturnType = classdecl_syntax.NAME.Syntax
+          ReturnType = class_syntax.NAME.Syntax
           Override = false
-          DeclaringClass = classdecl_syntax.NAME.Syntax
+          DeclaringClass = class_syntax.NAME.Syntax
           Index = -1
           SyntaxSpan = Span.Invalid }
     
 
-    let mk_class_sym (classdecl_node: AstNode<ClassSyntax>)
+    let mk_class_sym (class_node: AstNode<ClassSyntax>)
                      (super: ClassSymbol) : ClassSymbol =
-        let classdecl_syntax = classdecl_node.Syntax
-        let attr_syms = mk_attr_syms classdecl_syntax super 
-        let method_syms = mk_method_syms classdecl_syntax super
+        let class_syntax = class_node.Syntax
+        let attr_syms = mk_attr_syms class_syntax super 
+        let method_syms = mk_method_syms class_syntax super
         
-        { ClassSymbol.Name = classdecl_syntax.NAME.Syntax
+        { ClassSymbol.Name = class_syntax.NAME.Syntax
           Super = super.Name
-          Ctor = mk_ctor_sym classdecl_syntax
+          Ctor = mk_ctor_sym class_syntax
           Attrs = attr_syms
           Methods = method_syms
-          SyntaxSpan = classdecl_node.Span }
+          SyntaxSpan = class_node.Span }
         
         
     let add_class_sym_to_map (classsym: ClassSymbol): unit =
