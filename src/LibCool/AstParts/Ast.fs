@@ -102,7 +102,7 @@ type BlockSyntax =
 
 [<RequireQualifiedAccess>]
 type StmtSyntax =
-    | VarDecl of VarSyntax
+    | Var of VarSyntax
     | Expr of ExprSyntax
 
 

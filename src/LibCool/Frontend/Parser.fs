@@ -869,7 +869,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                   TYPE = AstNode.Of(TYPENAME token_type.Id, token_type.Span)
                   Expr = expr_node }
             
-            ValueSome (AstNode.Of(StmtSyntax.VarDecl var_syntax, var_span))
+            ValueSome (AstNode.Of(StmtSyntax.Var var_syntax, var_span))
         else
             
         let expr_node_result = expr (*prec_threshold=*)Prec.Empty
@@ -919,7 +919,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
         let last_stmt = stmt_nodes.[stmt_nodes.Length - 1]
         match last_stmt.Syntax with
-        | StmtSyntax.VarDecl _ ->
+        | StmtSyntax.Var _ ->
             _diags.Error("Blocks must end with an expression", last_stmt.Span)
             Error
         | StmtSyntax.Expr expr ->
