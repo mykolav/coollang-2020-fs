@@ -1,0 +1,37 @@
+class Main() {
+  {
+      var x: Int = 1 + a.b.c().d * 10;
+
+      it = --b.c() * a + b.c().d.e() * a - f.g;
+
+      a.b = --b.c() * a + b.c().d.e() * a - f.g;
+
+      a.b = c.d = --b.c() * a + b.c().d.e() * a - f.g;
+
+      a.b().c = c.d = --b.c() * a + b.c().d.e() * a - f.g;
+
+      // -a.b = --b.c() * a + b.c().d.e() * a - f.g;
+
+      // if (a < b) c else d = e.f;
+      // if (a < b) c else d.e = f.g;
+      
+      e.f = if (a < b) c else d;
+
+      // a.b().c match { case d: Int => e } = g + 100;
+      a + b match { case d: Int => e };
+      a.b().c match { case d: Int => e }.f = g + 100;
+      a + b match { case d: Int => e }.f = g + 100;
+      a.b + c.d match { case d: Int => e }.f = g + 100;
+      -a + b.c match { case d: Int => e }.f = g + 100;
+
+      g = a.b().c match { case d: Int => e } + 100;
+      g = a.b().c match { case d: Int => e }.f + 100;
+
+      //if (a > b) c else d match { case e: Int => f }.g = h + 100;
+      if (a > b) c else d match { case e: Int => f }.g;
+
+      -a + b.c match { case d: Int => e }.f match { case g: Int => h }.i.j().k = l + 100;
+
+      --b.c() * a + b.c().d.e() * a - f.g
+  };
+}
