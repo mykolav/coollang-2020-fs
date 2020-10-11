@@ -10,17 +10,17 @@
         <Compile Include="DiagnosticParts\DiagnosticParts.fs" />
         <Compile Include="DiagnosticParts\DiagnosticBag.fs" />
         <Compile Include="AstParts\Ast.fs" />
-        <Compile Include="Frontend\ErrorOrOption.fs" />
-        <Compile Include="Frontend\TokenParts.fs" />
-        <Compile Include="Frontend\Lexer.fs" />
-        <Compile Include="Frontend\TokenArray.fs" />
-        <Compile Include="Frontend\Parser.fs" />
-        <Compile Include="Frontend\SemanticParts\AstExtensions.fs" />
-        <Compile Include="Frontend\SemanticParts\Symbols.fs" />
-        <Compile Include="Frontend\SemanticParts\ClassSyntaxCollector.fs" />
-        <Compile Include="Frontend\SemanticParts\ClassSymbolCollector.fs" />
-        <Compile Include="Frontend\SemanticParts\SymbolTable.fs" />
-        <Compile Include="Frontend\SemanticParts\Translator.fs" />
+        <Compile Include="ParserParts\ErrorOrOption.fs" />
+        <Compile Include="ParserParts\TokenParts.fs" />
+        <Compile Include="ParserParts\Lexer.fs" />
+        <Compile Include="ParserParts\TokenArray.fs" />
+        <Compile Include="ParserParts\Parser.fs" />
+        <Compile Include="SemanticParts\AstExtensions.fs" />
+        <Compile Include="SemanticParts\Symbols.fs" />
+        <Compile Include="SemanticParts\ClassSyntaxCollector.fs" />
+        <Compile Include="SemanticParts\ClassSymbolCollector.fs" />
+        <Compile Include="SemanticParts\SymbolTable.fs" />
+        <Compile Include="SemanticParts\Translator.fs" />
         <Compile Include="Driver\Driver.fs" />
     </ItemGroup>
 
