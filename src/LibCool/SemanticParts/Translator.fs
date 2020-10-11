@@ -1,4 +1,4 @@
-namespace rec LibCool.Frontend
+namespace rec LibCool.SemanticParts
 
 
 open System.Collections.Generic
@@ -7,7 +7,7 @@ open System.Text
 open LibCool.SourceParts
 open LibCool.DiagnosticParts
 open LibCool.AstParts
-open LibCool.Frontend.SemanticParts
+open LibCool.SemanticParts.SemanticParts
 open AstExtensions
 
 

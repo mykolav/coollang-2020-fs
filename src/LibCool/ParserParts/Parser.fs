@@ -1,4 +1,4 @@
-namespace rec LibCool.Frontend
+namespace rec LibCool.ParserParts
 
 
 open System.Collections.Generic

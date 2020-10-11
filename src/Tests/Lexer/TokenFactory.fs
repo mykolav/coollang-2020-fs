@@ -1,7 +1,7 @@
 namespace Tests
 
 open LibCool.SourceParts
-open LibCool.Frontend
+open LibCool.ParserParts
 
 [<RequireQualifiedAccess>]
 module T = 

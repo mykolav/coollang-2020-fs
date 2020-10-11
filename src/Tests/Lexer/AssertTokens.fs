@@ -3,7 +3,7 @@ namespace Tests.Lexer
 
 open System
 open System.Text
-open LibCool.Frontend
+open LibCool.ParserParts
 open Tests.Support
 
 

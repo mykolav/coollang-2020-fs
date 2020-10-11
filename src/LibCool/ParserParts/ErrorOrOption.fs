@@ -1,4 +1,4 @@
-namespace LibCool.Frontend
+namespace LibCool.ParserParts
 
 
 [<Struct; DefaultAugmentation(false)>]

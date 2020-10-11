@@ -2,8 +2,8 @@ namespace Tests.Lexer
 
 
 open LibCool.DiagnosticParts
-open LibCool.Frontend
 open LibCool.SourceParts
+open LibCool.ParserParts
 open Tests
 open Tests.Support
 

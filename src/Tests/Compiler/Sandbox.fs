@@ -6,8 +6,8 @@ open System.IO
 open LibCool.AstParts
 open LibCool.DiagnosticParts
 open LibCool.Driver
-open LibCool.Frontend
 open LibCool.SourceParts
+open LibCool.ParserParts
 open Tests.Parser
 open Xunit
 open Xunit.Abstractions

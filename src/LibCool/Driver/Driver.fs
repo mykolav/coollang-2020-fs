@@ -6,7 +6,8 @@ open System.Collections.Generic
 open System.IO
 open LibCool.DiagnosticParts
 open LibCool.SourceParts
-open LibCool.Frontend
+open LibCool.ParserParts
+open LibCool.SemanticParts
 
 
 type IWriteLine =
