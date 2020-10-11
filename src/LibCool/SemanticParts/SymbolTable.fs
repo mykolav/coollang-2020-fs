@@ -77,8 +77,8 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.MethodSymCount
-        with get() = _method_sym_counts.[this.CurrentScopeLevel]
-        and private set count = _method_sym_counts.[this.CurrentScopeLevel] <- count
+        with get() = _method_sym_counts.[_method_sym_counts.Count - 1]
+        and private set count = _method_sym_counts.[_method_sym_counts.Count - 1] <- count
 
 
     member private this.CurrentScopeLevel = _scopes.Count - 1
