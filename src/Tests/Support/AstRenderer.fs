@@ -167,11 +167,11 @@ type AstRenderer private () =
         begin_with "{"
         
         match block with
-        | CaseBlockSyntax.Implicit block_syntax ->
+        | CaseBlockSyntax.Free block_syntax ->
             end_line_with "\"kind\": \"implicit\", "
             text "\"statements\": "
             walk_block_syntax block_syntax; end_line()
-        | CaseBlockSyntax.BracedBlock block_syntax_opt ->
+        | CaseBlockSyntax.Braced block_syntax_opt ->
             end_line_with "\"kind\": \"braced\", "
             text "\"statements\": "
             walk_braced_block block_syntax_opt; end_line()

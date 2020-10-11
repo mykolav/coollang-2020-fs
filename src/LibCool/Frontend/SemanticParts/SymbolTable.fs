@@ -51,20 +51,20 @@ type Symbol =
 type Scope() =    
     
     
-    let _visible_syms = Dictionary<ID, Symbol>()
+    let _syms = Dictionary<ID, Symbol>()
     
     
-    member this.AddVisible(sym: Symbol): unit =
-        _visible_syms.Add(sym.Name, sym)
+    member this.Add(sym: Symbol): unit =
+        _syms.Add(sym.Name, sym)
     
     
-    member this.IsVisible(name: ID): bool = _visible_syms.ContainsKey(name)
+    member this.Contains(name: ID): bool = _syms.ContainsKey(name)
     
     
-    member this.Resolve(name: ID): Symbol = _visible_syms.[name]
+    member this.Resolve(name: ID): Symbol = _syms.[name]
     member this.TryResolve(name: ID): Symbol voption =
-        if _visible_syms.ContainsKey(name)
-        then ValueSome (_visible_syms.[name])
+        if _syms.ContainsKey(name)
+        then ValueSome (_syms.[name])
         else ValueNone
 
 
@@ -72,42 +72,48 @@ type Scope() =
 type SymbolTable(_class_sym: ClassSymbol) =
 
 
+    let _method_sym_counts = List<int>()
     let _scopes = List<Scope>()
     
     
+    member this.MethodSymCount
+        with get() = _method_sym_counts.[this.CurrentScopeLevel]
+        and private set count = _method_sym_counts.[this.CurrentScopeLevel] <- count
+
+
     member private this.CurrentScopeLevel = _scopes.Count - 1
     member this.CurrentScope = _scopes.[this.CurrentScopeLevel]
     
     
     member this.EnterMethod(): unit =
-        // TODO: ...
-        // TODO: Formals + vars count...
+        _method_sym_counts.Add(0)
         _scopes.Add(Scope())
     
     
     member this.EnterBlock(): unit =
-        // TODO: ...
         _scopes.Add(Scope())
     
 
-    // TODO: Probably, should be private    
-    member this.EnterScope(): unit =
+    member private this.EnterScope(): unit =
         _scopes.Add(Scope())
     
     
-    // TODO: Probably, should be private    
-    member this.LeaveScope(): unit =
+    member private this.LeaveScope(): unit =
         _scopes.RemoveAt(this.CurrentScopeLevel)
     
     
     member this.LeaveBlock(): unit =
-        // TODO: ...
         _scopes.RemoveAt(this.CurrentScopeLevel)
     
     
     member this.LeaveMethod(): unit =
-        // TODO: ...
+        _method_sym_counts.RemoveAt(this.CurrentScopeLevel)
         _scopes.RemoveAt(this.CurrentScopeLevel)
+        
+        
+    member this.Add(sym: Symbol): unit =
+        this.CurrentScope.Add(sym)
+        this.MethodSymCount <- this.MethodSymCount + 1
     
     
     member this.Resolve(name: ID): Symbol =

@@ -190,9 +190,9 @@ type CoolRenderer private () =
 
     and walk_caseblock (caseblock_syntax: CaseBlockSyntax) =
        match caseblock_syntax with
-       | CaseBlockSyntax.Implicit block_syntax ->
+       | CaseBlockSyntax.Free block_syntax ->
            walk_block_syntax block_syntax
-       | CaseBlockSyntax.BracedBlock block_syntax_opt ->
+       | CaseBlockSyntax.Braced block_syntax_opt ->
            walk_braced_block block_syntax_opt
 
 

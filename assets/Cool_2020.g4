@@ -42,7 +42,7 @@ block
     : (('var' ID ':' ID '=')? expr ';')* expr
     ;
 
-// The expresson's syntax is split in `expr`, `assign_or_prefixop`, `primary`, and `infixop_rhs` to avoid left recursion.
+// The expresson's syntax is split in `expr`, `prefix`, `primary`, and `infixop_rhs` to avoid left recursion.
 expr
     : prefix* primary infixop_rhs*
     ;

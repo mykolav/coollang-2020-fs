@@ -779,7 +779,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 ValueNone
             else
                 
-            ValueSome (braced_block_node_opt.Value.Map(fun it -> CaseBlockSyntax.BracedBlock it))
+            ValueSome (braced_block_node_opt.Value.Map(fun it -> CaseBlockSyntax.Braced it))
         else
         
         let span_start = _token.Span.First
@@ -800,7 +800,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let block_node = block_syntax_result.Value
             
         let caseblock_span = Span.Of(span_start, block_node.Span.Last)
-        let caseblock_syntax = CaseBlockSyntax.Implicit block_node.Syntax
+        let caseblock_syntax = CaseBlockSyntax.Free block_node.Syntax
         ValueSome (AstNode.Of(caseblock_syntax, caseblock_span))
     
     

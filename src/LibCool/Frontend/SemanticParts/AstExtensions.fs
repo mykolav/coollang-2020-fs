@@ -25,7 +25,7 @@ module AstExtensions =
         member this.AsMethodSyntax: MethodSyntax =
             match this with
             | FeatureSyntax.Method it -> it 
-            | _         -> invalidOp "Feature.MethodInfo"
+            | _         -> invalidOp "FeatureSyntax.AsMethodSyntax"
         member this.IsAttr: bool =
             match this with
             | FeatureSyntax.Attr _ -> true
@@ -33,7 +33,7 @@ module AstExtensions =
         member this.AsAttrSyntax: AttrSyntax =
             match this with
             | FeatureSyntax.Attr it -> it
-            | _       -> invalidOp "Feature.AttrInfo"
+            | _       -> invalidOp "FeatureSyntax.AsAttrSyntax"
         member this.IsBracedBlock: bool =
             match this with
             | FeatureSyntax.BracedBlock _ -> true
@@ -41,7 +41,7 @@ module AstExtensions =
         member this.AsBlockSyntax: BlockSyntax voption =
             match this with
             | FeatureSyntax.BracedBlock it -> it 
-            | _              -> invalidOp "Feature.BracedInfo"
+            | _              -> invalidOp "FeatureSyntax.AsBlockSyntax"
             
             
     type ClassSyntax
@@ -54,4 +54,12 @@ module AstExtensions =
             | ValueSome extends_node ->
                 match extends_node.Syntax with
                 | InheritanceSyntax.Info it -> it
-                | InheritanceSyntax.Native  -> invalidOp "ClassDecl.Extends is Extends.Native"
+                | InheritanceSyntax.Native  -> invalidOp "ClassSyntax.ExtendsSyntax"
+                
+                
+    type MethodBodySyntax
+        with
+        member this.AsExprSyntax: ExprSyntax =
+            match this with
+            | MethodBodySyntax.Expr it -> it
+            | MethodBodySyntax.Native -> invalidOp "MethodBodySyntax.AsExprSyntax"

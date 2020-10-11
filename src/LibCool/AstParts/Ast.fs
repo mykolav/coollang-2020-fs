@@ -153,8 +153,8 @@ type CaseSyntax =
 
 [<RequireQualifiedAccess>]
 type CaseBlockSyntax =
-    | Implicit of BlockSyntax
-    | BracedBlock of BlockSyntax voption
+    | Free of BlockSyntax
+    | Braced of BlockSyntax voption
 
 
 [<RequireQualifiedAccess>]
