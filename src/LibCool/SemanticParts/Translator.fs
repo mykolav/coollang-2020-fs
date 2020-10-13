@@ -47,16 +47,12 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
             conforms (this.Resolve(descendant.Super))
             
         conforms descendant
-
-
-[<IsReadOnly; Struct>]
-type AsmFragment =
-    { Type: ClassSymbol
-      Asm: string
-      Reg: string }
-    with
-    static member Unit =
-        { Type=BasicClasses.Unit; Asm=""; Reg="" }
+        
+        
+    member this.LeastUpperBound(type1: ClassSymbol, type2: ClassSymbol): ClassSymbol =
+        if this.Conforms(ancestor=type1, descendant=type2)
+        then type1
+        else this.LeastUpperBound(type1=this.Resolve(type1.Super), type2=type2)
         
         
 [<IsReadOnly; Struct; DefaultAugmentation(false)>]
@@ -75,6 +71,16 @@ type Result<'T>
         | _ -> invalidOp "Result<'T>.Value"
 
 
+[<IsReadOnly; Struct>]
+type AsmFragment =
+    { Type: ClassSymbol
+      Asm: string
+      Reg: Reg }
+    with
+    static member Unit =
+        { Type=BasicClasses.Unit; Asm=""; Reg=Reg.Null }
+
+
 [<Sealed>]
 type private ClassTranslator(_class_syntax: ClassSyntax,
                              _class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>,
@@ -83,6 +89,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     
     
     let _type_cmp = TypeComparer(_class_sym_map)
+    let _reg_set = RegisterSet()
+    let _label_gen = LabelGenerator()
     
     
     // Make _sb_data, _sb_code the ctor's parameters?
@@ -96,7 +104,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     let addr_of (sym: Symbol): AsmFragment =
         { AsmFragment.Asm = ""
           Type = _class_sym_map.[sym.Type]
-          Reg = "" }
+          Reg = Reg.Null }
     
     
     let rec translate_expr: (*expr_syntax:*) ExprSyntax -> Result<AsmFragment> = function
@@ -113,14 +121,14 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (expr_frag.Value.Type.Is(BasicClasses.Int))
             then
                 _diags.Error(
-                    sprintf "Bool negation must be applied to an 'Int' expression but here applied to '%O'"
+                    sprintf "Expected an 'Int' expression but found '%O'"
                             expr_frag.Value.Type.Name,
                     expr.Span)
                 
                 Error
             else
                 
-            Ok { AsmFragment.Asm = sprintf "xorq $0xFFFFFFFFFFFFFFFF %%%s" expr_frag.Value.Reg
+            Ok { AsmFragment.Asm = sprintf "xorq $0xFFFFFFFFFFFFFFFF %s" (_reg_set.NameOf(expr_frag.Value.Reg))
                  Type = expr_frag.Value.Type
                  Reg = expr_frag.Value.Reg }
         
@@ -134,18 +142,59 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (expr_frag.Value.Type.Is(BasicClasses.Int))
             then
                 _diags.Error(
-                    sprintf "Unary minus must be applied to an 'Int' expression but here applied to '%O'"
+                    sprintf "Expected an 'Int' expression but found '%O'"
                             expr_frag.Value.Type.Name,
                     expr.Span)
                 
                 Error
             else
                 
-            Ok { AsmFragment.Asm = sprintf "negq %%%s" expr_frag.Value.Reg
+            Ok { AsmFragment.Asm = sprintf "negq %s" (_reg_set.NameOf(expr_frag.Value.Reg))
                  Type = expr_frag.Value.Type
                  Reg = expr_frag.Value.Reg }
             
-        // | ExprSyntax.If of condition: AstNode<ExprSyntax> * then_branch: AstNode<ExprSyntax> * else_branch: AstNode<ExprSyntax>
+        | ExprSyntax.If (condition, then_branch, else_branch) ->
+            let condition_frag = translate_expr condition.Syntax
+            if condition_frag.IsError
+            then
+                Error
+            else
+                
+            if not (condition_frag.Value.Type.Is(BasicClasses.Boolean))
+            then
+                _diags.Error(
+                    sprintf "Expected a 'Boolean' expression bug found '%O'"
+                            condition_frag.Value.Type.Name,
+                    condition.Span)
+                
+                Error
+            else
+            
+            let sb_asm = StringBuilder()
+            
+            // TODO: Emit comparison asm
+
+            _reg_set.Free(condition_frag.Value.Reg)
+            
+            let then_frag = translate_expr then_branch.Syntax
+            let else_frag = translate_expr else_branch.Syntax
+
+            if then_frag.IsError || else_frag.IsError
+            then
+                Error
+            else
+                
+            let reg = _reg_set.Allocate()
+            
+            // TODO: Emit branches asm, move each branch result into `reg`
+            
+            _reg_set.Free(then_frag.Value.Reg)
+            _reg_set.Free(else_frag.Value.Reg)
+                
+            Ok { AsmFragment.Asm = sb_asm.ToString()
+                 Type = _type_cmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
+                 Reg = reg }
+        
         // | ExprSyntax.While of condition: AstNode<ExprSyntax> * body: AstNode<ExprSyntax>
         // | ExprSyntax.LtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
         // | ExprSyntax.GtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
@@ -179,14 +228,14 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         let expr_frag = translate_expr expr.Syntax
         if expr_frag.IsError
         then
-            // TODO: Release addr_frag.Reg
+            _reg_set.Free(addr_frag.Reg)
             Error
         else
         
         if not (_type_cmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Value.Type))
         then
-            // TODO: Release addr_frag.Reg
-            // TODO: Release expr_frag.Value.Reg
+            _reg_set.Free(addr_frag.Reg)
+            _reg_set.Free(expr_frag.Value.Reg)
 
             _diags.Error(
                 sprintf "The expression's type '%O' does not conform to the type '%O' of '%O'"
@@ -198,10 +247,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             Error
         else
 
-        // TODO: Release expr_frag.Value.Reg
         let asm = sprintf "movq %s, %s" expr_frag.Value.Asm addr_frag.Asm
+
+        _reg_set.Free(addr_frag.Reg)
+        _reg_set.Free(expr_frag.Value.Reg)
+
         Ok { AsmFragment.Asm = asm
-             Reg = addr_frag.Reg
+             Reg = Reg.Null
              Type = addr_frag.Type }
         
         
@@ -225,13 +277,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     let var_frag = translate_var (stmt_node.Map(fun _ -> var_syntax))
                     if var_frag.IsOk
                     then
-                        // TODO: Release var_frag.Value.Reg
+                        _reg_set.Free(var_frag.Value.Reg)
                         sb_asm.AppendLine(var_frag.Value.Asm) |> ignore
                 | StmtSyntax.Expr expr_syntax ->
                     let expr_frag = translate_expr expr_syntax
                     if expr_frag.IsOk
                     then
-                        // TODO: Release expr_frag.Value.Reg
+                        _reg_set.Free(expr_frag.Value.Reg)
                         sb_asm.AppendLine(expr_frag.Value.Asm) |> ignore)
             
             let expr_frag = translate_expr block_syntax.Expr.Syntax
@@ -240,7 +292,6 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if expr_frag.IsError
             then
-                // TODO: Release expr_frag.Value.Reg
                 Error
             else
                 
