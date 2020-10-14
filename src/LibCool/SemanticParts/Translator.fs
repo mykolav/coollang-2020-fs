@@ -195,7 +195,44 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Type = _type_cmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
                  Reg = reg }
         
-        // | ExprSyntax.While of condition: AstNode<ExprSyntax> * body: AstNode<ExprSyntax>
+        | ExprSyntax.While (condition, body) ->
+            let condition_frag = translate_expr condition.Syntax
+            if condition_frag.IsError
+            then
+                Error
+            else
+                
+            if not (condition_frag.Value.Type.Is(BasicClasses.Boolean))
+            then
+                _diags.Error(
+                    sprintf "Expected a 'Boolean' expression bug found '%O'"
+                            condition_frag.Value.Type.Name,
+                    condition.Span)
+                
+                Error
+            else
+            
+            let sb_asm = StringBuilder()
+            
+            // TODO: Emit comparison asm
+
+            _reg_set.Free(condition_frag.Value.Reg)
+            
+            let body_frag = translate_expr body.Syntax
+            if body_frag.IsError
+            then
+                Error
+            else
+                
+            // TODO: Emit the body asm
+            
+            // The loop's type is always Unit, so we free up `body_frag.Value.Reg`
+            _reg_set.Free(body_frag.Value.Reg)
+                
+            Ok { AsmFragment.Asm = sb_asm.ToString()
+                 Type = BasicClasses.Unit
+                 Reg = Reg.Null }
+
         // | ExprSyntax.LtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
         // | ExprSyntax.GtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
         // | ExprSyntax.Lt of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
@@ -247,19 +284,30 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             Error
         else
 
-        let asm = sprintf "movq %s, %s" expr_frag.Value.Asm addr_frag.Asm
+        let asm = sprintf "movq %s, %s" (_reg_set.NameOf(expr_frag.Value.Reg)) addr_frag.Asm
 
         _reg_set.Free(addr_frag.Reg)
-        _reg_set.Free(expr_frag.Value.Reg)
+
+        // We do not free up expr_frag.Value.Reg,
+        // to support assignments of the form `ID = ID = ...`
 
         Ok { AsmFragment.Asm = asm
-             Reg = Reg.Null
+             Reg = expr_frag.Value.Reg
              Type = addr_frag.Type }
         
         
     let translate_var (var_node: AstNode<VarSyntax>): Result<AsmFragment> =
         _sym_table.Add (Symbol.Of(var_node, _sym_table.MethodSymCount))
-        translate_assign var_node.Syntax.ID var_node.Syntax.Expr
+        let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
+        if assign_frag.IsError
+        then
+            Error
+        else
+            
+        _reg_set.Free(assign_frag.Value.Reg)
+        
+        // The var declaration is not an expression, so `Reg = Reg.Null` 
+        Ok { assign_frag.Value with Reg = Reg.Null }
 
     
     let translate_block (block_syntax_opt: BlockSyntax voption): Result<AsmFragment> =
@@ -277,7 +325,6 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     let var_frag = translate_var (stmt_node.Map(fun _ -> var_syntax))
                     if var_frag.IsOk
                     then
-                        _reg_set.Free(var_frag.Value.Reg)
                         sb_asm.AppendLine(var_frag.Value.Asm) |> ignore
                 | StmtSyntax.Expr expr_syntax ->
                     let expr_frag = translate_expr expr_syntax
