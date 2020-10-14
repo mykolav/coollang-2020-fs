@@ -74,11 +74,11 @@ type Result<'T>
 [<IsReadOnly; Struct>]
 type AsmFragment =
     { Type: ClassSymbol
-      Asm: string
+      Asm: StringBuilder
       Reg: Reg }
     with
     static member Unit =
-        { Type=BasicClasses.Unit; Asm=""; Reg=Reg.Null }
+        { Type=BasicClasses.Unit; Asm=StringBuilder(); Reg=Reg.Null }
 
 
 [<Sealed>]
@@ -102,7 +102,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     
     
     let addr_of (sym: Symbol): AsmFragment =
-        { AsmFragment.Asm = ""
+        { AsmFragment.Asm = StringBuilder()
           Type = _class_sym_map.[sym.Type]
           Reg = Reg.Null }
     
@@ -128,9 +128,9 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
                 
-            Ok { AsmFragment.Asm = sprintf "xorq $0xFFFFFFFFFFFFFFFF %s" (_reg_set.NameOf(expr_frag.Value.Reg))
-                 Type = expr_frag.Value.Type
-                 Reg = expr_frag.Value.Reg }
+            let asm = sprintf "xorq $0xFFFFFFFFFFFFFFFF %s" (_reg_set.NameOf(expr_frag.Value.Reg))
+            Ok { expr_frag.Value with
+                    Asm = expr_frag.Value.Asm.AppendLine(asm) }
         
         | ExprSyntax.UnaryMinus expr ->
             let expr_frag = translate_expr expr.Syntax
@@ -148,10 +148,10 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 
                 Error
             else
-                
-            Ok { AsmFragment.Asm = sprintf "negq %s" (_reg_set.NameOf(expr_frag.Value.Reg))
-                 Type = expr_frag.Value.Type
-                 Reg = expr_frag.Value.Reg }
+            
+            let asm = sprintf "negq %s" (_reg_set.NameOf(expr_frag.Value.Reg))
+            Ok { expr_frag.Value with
+                    Asm = expr_frag.Value.Asm.AppendLine(asm) }
             
         | ExprSyntax.If (condition, then_branch, else_branch) ->
             let condition_frag = translate_expr condition.Syntax
@@ -170,7 +170,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
             
-            let sb_asm = StringBuilder()
+            let sb_asm = condition_frag.Value.Asm
             
             // TODO: Emit comparison asm
 
@@ -191,7 +191,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             _reg_set.Free(then_frag.Value.Reg)
             _reg_set.Free(else_frag.Value.Reg)
                 
-            Ok { AsmFragment.Asm = sb_asm.ToString()
+            Ok { AsmFragment.Asm = sb_asm
                  Type = _type_cmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
                  Reg = reg }
         
@@ -212,7 +212,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
             
-            let sb_asm = StringBuilder()
+            let sb_asm = condition_frag.Value.Asm
             
             // TODO: Emit comparison asm
 
@@ -229,11 +229,46 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             // The loop's type is always Unit, so we free up `body_frag.Value.Reg`
             _reg_set.Free(body_frag.Value.Reg)
                 
-            Ok { AsmFragment.Asm = sb_asm.ToString()
+            Ok { AsmFragment.Asm = sb_asm
                  Type = BasicClasses.Unit
                  Reg = Reg.Null }
 
-        // | ExprSyntax.LtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
+        | ExprSyntax.LtEq (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable have_type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'<=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                have_type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'<=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                have_type_error <- true
+            
+            if have_type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
         // | ExprSyntax.GtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
         // | ExprSyntax.Lt of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
         // | ExprSyntax.Gt of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
@@ -284,14 +319,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             Error
         else
 
-        let asm = sprintf "movq %s, %s" (_reg_set.NameOf(expr_frag.Value.Reg)) addr_frag.Asm
-
+        let asm = sprintf "movq %s, %s" (_reg_set.NameOf(expr_frag.Value.Reg)) (addr_frag.Asm.ToString())
         _reg_set.Free(addr_frag.Reg)
 
         // We do not free up expr_frag.Value.Reg,
         // to support assignments of the form `ID = ID = ...`
 
-        Ok { AsmFragment.Asm = asm
+        Ok { AsmFragment.Asm = expr_frag.Value.Asm.AppendLine(asm)
              Reg = expr_frag.Value.Reg
              Type = addr_frag.Type }
         
@@ -318,6 +352,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             _sym_table.EnterBlock()
         
             let sb_asm = StringBuilder()
+            
             block_syntax.Stmts
             |> Seq.iter (fun stmt_node ->
                 match stmt_node.Syntax with
@@ -325,13 +360,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     let var_frag = translate_var (stmt_node.Map(fun _ -> var_syntax))
                     if var_frag.IsOk
                     then
-                        sb_asm.AppendLine(var_frag.Value.Asm) |> ignore
+                        sb_asm.Append(var_frag.Value.Asm) |> ignore
                 | StmtSyntax.Expr expr_syntax ->
                     let expr_frag = translate_expr expr_syntax
                     if expr_frag.IsOk
                     then
                         _reg_set.Free(expr_frag.Value.Reg)
-                        sb_asm.AppendLine(expr_frag.Value.Asm) |> ignore)
+                        sb_asm.Append(expr_frag.Value.Asm) |> ignore)
             
             let expr_frag = translate_expr block_syntax.Expr.Syntax
             
@@ -342,8 +377,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
                 
-            sb_asm.AppendLine(expr_frag.Value.Asm) |> ignore
-            Ok { AsmFragment.Asm = sb_asm.ToString()
+            sb_asm.Append(expr_frag.Value.Asm) |> ignore
+            Ok { AsmFragment.Asm = sb_asm
                  Type = expr_frag.Value.Type
                  Reg = expr_frag.Value.Reg }
 
@@ -363,18 +398,27 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             Error
         else
             
-        let attr_ty = _class_sym_map.[attr_node.Syntax.TYPE.Syntax]
-        if not (_type_cmp.Conforms(ancestor=attr_ty, descendant=initial_frag.Value.Type))
+        let attr_sym = _sym_table.Resolve(attr_node.Syntax.ID.Syntax)
+        let addr_frag = addr_of attr_sym
+        if not (_type_cmp.Conforms(ancestor=addr_frag.Type, descendant=initial_frag.Value.Type))
         then
             _diags.Error(
-                sprintf "The initial expression's type '%O' does not conform to the attribute's type '%O'"
+                sprintf "The initial expression's type '%O' does not conform to the '%O' attribute's type '%O'"
                         initial_frag.Value.Type.Name
-                        attr_ty.Name,
+                        attr_sym.Name
+                        attr_sym.Type,
                 initial_node.Span)
             Error
         else
             
-        let asm = ""
+        let asm =
+            initial_frag.Value.Asm
+                .AppendLine(sprintf "movq %s, %s" (_reg_set.NameOf(initial_frag.Value.Reg)) (addr_frag.Asm.ToString()))
+                .ToString()
+            
+        _reg_set.Free(initial_frag.Value.Reg)
+        _reg_set.Free(addr_frag.Reg)
+
         Ok asm
 
 
@@ -416,7 +460,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         let super_dispatch_frag = translate_expr super_dispatch_syntax
         if super_dispatch_frag.IsOk
         then
-            sb_ctor_body.AppendLine(super_dispatch_frag.Value.Asm) |> ignore
+            sb_ctor_body.Append(super_dispatch_frag.Value.Asm) |> ignore
             
         // Assign values passed as formals to attrs derived from varformals.
         _class_syntax.VarFormals
@@ -429,7 +473,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             let assign_frag = translate_expr assign_syntax
             if assign_frag.IsOk
             then
-                sb_ctor_body.AppendLine(assign_frag.Value.Asm) |> ignore)
+                sb_ctor_body.Append(assign_frag.Value.Asm) |> ignore)
         
         // Assign initial values to attributes declared in the class.
         _class_syntax.Features
@@ -438,7 +482,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             let attr_frag = translate_attr (feature_node.Map(fun it -> it.AsAttrSyntax))
             if attr_frag.IsOk
             then
-                sb_ctor_body.AppendLine(attr_frag.Value) |> ignore)
+                sb_ctor_body.Append(attr_frag.Value) |> ignore)
         
         // Translate blocks.
         _class_syntax.Features
@@ -447,7 +491,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             let block_frag = translate_block feature_node.Syntax.AsBlockSyntax
             if block_frag.IsOk
             then
-                sb_ctor_body.AppendLine(block_frag.Value.Asm) |> ignore)
+                sb_ctor_body.Append(block_frag.Value.Asm) |> ignore)
         
         // Append ExprSyntax.This to the .ctor's end.
         // (As a result, the last block's last expr's type doesn't have to match the class' type.)
