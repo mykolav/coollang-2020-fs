@@ -595,6 +595,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         
         // | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
         
+        
         | ExprSyntax.Dispatch (receiver, method_id, actuals) ->
             let receiver_frag = translate_expr receiver.Syntax
             let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
@@ -649,7 +650,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if method_sym.Formals.Length <> actual_frags.Length
             then
-                // TODO: We need the span of `(actuals...)`
+                // TODO: We need but don't have the span of `(actuals...)`
                 _diags.Error("", method_id.Span)
                 Error
             else
@@ -688,7 +689,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if method_sym.Formals.Length <> actual_frags.Length
             then
-                // TODO: We need the span of `(actuals...)`
+                // TODO: We need but don't have the span of `(actuals...)`
                 _diags.Error("", method_id.Span)
                 Error
             else
@@ -708,7 +709,53 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Type = _class_sym_map.[method_sym.ReturnType]
                  Reg = Reg.Null }
             
-        // | ExprSyntax.New (type_name, actuals) ->
+        | ExprSyntax.New (type_name, actuals) ->
+            // Any, Int, Unit, Boolean, Symbol
+            if not (_class_sym_map.ContainsKey(type_name.Syntax))
+            then
+                _diags.Error(
+                    sprintf "The type name '%O' could not be found (is an input file missing?)" type_name.Syntax,
+                    type_name.Span)
+                Error
+            else
+               
+            let ty = _class_sym_map.[type_name.Syntax]
+            
+            if ty.Is(BasicClasses.Any) || ty.Is(BasicClasses.Int) ||
+               ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean) ||
+               ty.Is(BasicClasses.Symbol) 
+            then
+                _diags.Error("", type_name.Span)
+                Error
+            else
+            
+            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
+            if (actual_frags |> Array.exists (fun it -> it.IsError))
+            then
+                Error
+            else
+
+            if ty.Ctor.Formals.Length <> actual_frags.Length
+            then
+                // TODO: We need but don't have the span of `(actuals...)`
+                _diags.Error("", type_name.Span)
+                Error
+            else
+                
+            let mutable formal_actual_mismatch = false
+            
+            for i in 0 .. ty.Ctor.Formals.Length - 1 do
+                let formal = ty.Ctor.Formals.[i]
+                let formal_ty = _class_sym_map.[formal.Type]
+                let actual = actual_frags.[i].Value
+                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
+                then
+                    formal_actual_mismatch <- true
+                    _diags.Error("", actuals.[i].Span)
+
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = ty
+                 Reg = Reg.Null }
                 
         | ExprSyntax.BracedBlock block ->
             translate_block block
