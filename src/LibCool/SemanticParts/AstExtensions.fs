@@ -49,7 +49,7 @@ module AstExtensions =
         member this.ExtendsSyntax: ExtendsSyntax =
             match this.Extends with
             | ValueNone ->
-                { ExtendsSyntax.SUPER = AstNode.Of(TYPENAME "Any", Span.Invalid)
+                { ExtendsSyntax.SUPER = AstNode.Virtual(TYPENAME "Any")
                   Actuals = Array.empty }
             | ValueSome extends_node ->
                 match extends_node.Syntax with

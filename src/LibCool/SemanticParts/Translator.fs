@@ -242,22 +242,22 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
 
-            let mutable have_type_error = false
+            let mutable type_error = false
             if not (left_frag.Value.Type.Is(BasicClasses.Int))
             then
                 _diags.Error(
                     sprintf "'<=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
                     left.Span)
-                have_type_error <- true
+                type_error <- true
                 
             if not (right_frag.Value.Type.Is(BasicClasses.Int))
             then
                 _diags.Error(
                     sprintf "'<=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
                     left.Span)
-                have_type_error <- true
+                type_error <- true
             
-            if have_type_error
+            if type_error
             then
                 Error
             else
@@ -269,30 +269,489 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Type = BasicClasses.Boolean
                  Reg = Reg.Null }
         
-        // | ExprSyntax.GtEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.Lt of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.Gt of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.EqEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.NotEq of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.Mul of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.Div of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.Sum of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.Sub of left: AstNode<ExprSyntax> * right: AstNode<ExprSyntax>
-        // | ExprSyntax.Match of expr: AstNode<ExprSyntax> * cases_hd: AstNode<CaseSyntax> * cases_tl: AstNode<CaseSyntax> []
-        // | ExprSyntax.Dispatch of receiver: AstNode<ExprSyntax> * method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
-        // | ExprSyntax.ImplicitThisDispatch of method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
-        // | ExprSyntax.SuperDispatch of method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
-        // | ExprSyntax.New of type_name: AstNode<TYPENAME> * actuals: AstNode<ExprSyntax> []
-        // | ExprSyntax.BracedBlock of BlockSyntax voption
-        // | ExprSyntax.ParensExpr of AstNode<ExprSyntax>
-        // | ExprSyntax.Id of ID
-        // | ExprSyntax.Int of INT
-        // | ExprSyntax.Str of STRING
-        // | ExprSyntax.Bool of BOOL
-        // | ExprSyntax.This
-        // | ExprSyntax.Null
-        // | ExprSyntax.Unit
-        | _ ->  Error
+        | ExprSyntax.GtEq (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'>=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'>=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.Lt (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'<' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'<' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.Gt (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'>' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'>' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.EqEq (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'==' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'==' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.NotEq (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'!=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'!=' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.Mul (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'*' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'*' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.Div (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'/' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'/' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.Sum (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'+' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'+' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        | ExprSyntax.Sub (left, right) ->
+            let left_frag = translate_expr left.Syntax
+            let right_frag = translate_expr right.Syntax
+            
+            if left_frag.IsError || right_frag.IsError
+            then
+                Error
+            else
+
+            let mutable type_error = false
+            if not (left_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'-' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+                
+            if not (right_frag.Value.Type.Is(BasicClasses.Int))
+            then
+                _diags.Error(
+                    sprintf "'-' expects 'Int' arguments but found '%O'" left_frag.Value.Type.Name,
+                    left.Span)
+                type_error <- true
+            
+            if type_error
+            then
+                Error
+            else
+                
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
+            
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+        
+        // | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
+        
+        | ExprSyntax.Dispatch (receiver, method_id, actuals) ->
+            let receiver_frag = translate_expr receiver.Syntax
+            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
+            if receiver_frag.IsError || (actual_frags |> Array.exists (fun it -> it.IsError))
+            then
+                Error
+            else
+            
+            if not (receiver_frag.Value.Type.Methods.ContainsKey(method_id.Syntax))
+            then
+                _diags.Error("", method_id.Span)
+                Error
+            else
+                
+            let method_sym = receiver_frag.Value.Type.Methods.[method_id.Syntax]
+            
+            if method_sym.Formals.Length <> actual_frags.Length
+            then
+                Error
+            else
+                
+            let mutable formal_actual_mismatch = false
+            
+            for i in 0 .. method_sym.Formals.Length - 1 do
+                let formal = method_sym.Formals.[i]
+                let formal_ty = _class_sym_map.[formal.Type]
+                let actual = actual_frags.[i].Value
+                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
+                then
+                    formal_actual_mismatch <- true
+                    _diags.Error("", actuals.[i].Span)
+
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = _class_sym_map.[method_sym.ReturnType]
+                 Reg = Reg.Null }
+            
+        | ExprSyntax.ImplicitThisDispatch (method_id, actuals) ->
+            let this_frag = translate_expr ExprSyntax.This
+            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
+            if this_frag.IsError || (actual_frags |> Array.exists (fun it -> it.IsError))
+            then
+                Error
+            else
+            
+            if not (this_frag.Value.Type.Methods.ContainsKey(method_id.Syntax))
+            then
+                _diags.Error("", method_id.Span)
+                Error
+            else
+                
+            let method_sym = this_frag.Value.Type.Methods.[method_id.Syntax]
+            
+            if method_sym.Formals.Length <> actual_frags.Length
+            then
+                // TODO: We need the span of `(actuals...)`
+                _diags.Error("", method_id.Span)
+                Error
+            else
+                
+            let mutable formal_actual_mismatch = false
+            
+            for i in 0 .. method_sym.Formals.Length - 1 do
+                let formal = method_sym.Formals.[i]
+                let formal_ty = _class_sym_map.[formal.Type]
+                let actual = actual_frags.[i].Value
+                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
+                then
+                    formal_actual_mismatch <- true
+                    _diags.Error("", actuals.[i].Span)
+
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = _class_sym_map.[method_sym.ReturnType]
+                 Reg = Reg.Null }
+            
+        | ExprSyntax.SuperDispatch (method_id, actuals) ->
+            let this_frag = translate_expr ExprSyntax.This
+            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
+            if this_frag.IsError || (actual_frags |> Array.exists (fun it -> it.IsError))
+            then
+                Error
+            else
+            
+            let super_sym = _class_sym_map.[_class_syntax.ExtendsSyntax.SUPER.Syntax] 
+            if not (super_sym.Methods.ContainsKey(method_id.Syntax))
+            then
+                _diags.Error("", method_id.Span)
+                Error
+            else
+                
+            let method_sym = super_sym.Methods.[method_id.Syntax]
+            
+            if method_sym.Formals.Length <> actual_frags.Length
+            then
+                // TODO: We need the span of `(actuals...)`
+                _diags.Error("", method_id.Span)
+                Error
+            else
+                
+            let mutable formal_actual_mismatch = false
+            
+            for i in 0 .. method_sym.Formals.Length - 1 do
+                let formal = method_sym.Formals.[i]
+                let formal_ty = _class_sym_map.[formal.Type]
+                let actual = actual_frags.[i].Value
+                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
+                then
+                    formal_actual_mismatch <- true
+                    _diags.Error("", actuals.[i].Span)
+
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = _class_sym_map.[method_sym.ReturnType]
+                 Reg = Reg.Null }
+            
+        // | ExprSyntax.New (type_name, actuals) ->
+                
+        | ExprSyntax.BracedBlock block ->
+            translate_block block
+                
+        | ExprSyntax.ParensExpr expr ->
+            translate_expr expr.Syntax
+
+        | ExprSyntax.Id id ->
+            let sym = _sym_table.Resolve(id)
+            let ty = _class_sym_map.[sym.Type]
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = ty
+                 Reg = Reg.Null }
+            
+        | ExprSyntax.Int value ->
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Int
+                 Reg = Reg.Null }
+            
+        | ExprSyntax.Str value ->
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.String
+                 Reg = Reg.Null }
+
+        | ExprSyntax.Bool value ->
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Boolean
+                 Reg = Reg.Null }
+
+        | ExprSyntax.This ->
+            let sym = _sym_table.Resolve(ID "this")
+            let ty = _class_sym_map.[sym.Type]
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = ty 
+                 Reg = Reg.Null }
+
+        | ExprSyntax.Null ->
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = BasicClasses.Null 
+                 Reg = Reg.Null }
+
+        | ExprSyntax.Unit ->
+            Ok AsmFragment.Unit
         
         
     and translate_assign (id: AstNode<ID>) (expr: AstNode<ExprSyntax>): Result<AsmFragment> =
@@ -330,7 +789,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
              Type = addr_frag.Type }
         
         
-    let translate_var (var_node: AstNode<VarSyntax>): Result<AsmFragment> =
+    and translate_var (var_node: AstNode<VarSyntax>): Result<AsmFragment> =
         _sym_table.Add (Symbol.Of(var_node, _sym_table.MethodSymCount))
         let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
@@ -344,7 +803,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         Ok { assign_frag.Value with Reg = Reg.Null }
 
     
-    let translate_block (block_syntax_opt: BlockSyntax voption): Result<AsmFragment> =
+    and translate_block (block_syntax_opt: BlockSyntax voption): Result<AsmFragment> =
         match block_syntax_opt with
         | ValueNone ->
             Ok AsmFragment.Unit
