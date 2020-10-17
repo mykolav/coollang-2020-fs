@@ -55,6 +55,10 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
         else this.LeastUpperBound(type1=this.Resolve(type1.Super), type2=type2)
         
         
+    member this.LeastUpperBound(types: seq<ClassSymbol>): ClassSymbol =
+        BasicClasses.Any
+        
+        
 [<IsReadOnly; Struct; DefaultAugmentation(false)>]
 type Result<'T>
     = Error
@@ -593,9 +597,68 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Type = BasicClasses.Boolean
                  Reg = Reg.Null }
         
-        // | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
-        
-        
+        | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
+            let expr_frag = translate_expr expr.Syntax
+            if expr_frag.IsError
+            then
+                Error
+            else
+            
+            let cases = Array.concat [[| cases_hd |]; cases_tl]    
+            let patterns = cases |> Array.map (fun case ->
+                match case.Syntax.Pattern.Syntax with
+                | PatternSyntax.IdType (_, ty) -> _class_sym_map.[ty.Syntax], ty.Span
+                | PatternSyntax.Null -> BasicClasses.Null, case.Syntax.Pattern.Span)
+            
+            let mutable pattern_error = false
+            for i in 0 .. patterns.Length-1 do
+                let (pattern_ty, span) = patterns.[i]
+                if not (_type_cmp.Conforms(pattern_ty, expr_frag.Value.Type) ||
+                        _type_cmp.Conforms(expr_frag.Value.Type, pattern_ty))
+                then
+                    _diags.Error("", span)
+                    pattern_error <- true
+                else
+                
+                // if `i` = 0, we'll have `for j in 0 .. -1 do`
+                // that will not perform a single iteration.
+                for j in 0 .. i-1 do
+                    let (prev_pattern_ty, prev_span) = patterns.[j]
+                    if _type_cmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
+                    then
+                        _diags.Error("", prev_span)
+                        pattern_error <- true
+            
+            let sym_index = _sym_table.MethodSymCount
+            let block_frags =
+                cases |> Array.map (fun case ->
+                    _sym_table.EnterBlock()
+                    
+                    match case.Syntax.Pattern.Syntax with
+                    | PatternSyntax.IdType (id, ty) ->
+                        _sym_table.Add({ Symbol.Name = id.Syntax
+                                         Type = ty.Syntax
+                                         Index = sym_index
+                                         SyntaxSpan = case.Syntax.Pattern.Span
+                                         Kind = SymbolKind.Var })
+                    | PatternSyntax.Null ->
+                        ()
+                        
+                    let block_frag = translate_block case.Syntax.Block.Syntax.AsBlockSyntax
+                    _sym_table.LeaveBlock()
+                    
+                    block_frag)
+            
+            if pattern_error || (block_frags |> Seq.exists (fun it -> it.IsError))
+            then
+                Error
+            else
+                
+            let block_types = block_frags |> Seq.map (fun it -> it.Value.Type)
+            Ok { AsmFragment.Asm = StringBuilder()
+                 Type = _type_cmp.LeastUpperBound(block_types)
+                 Reg = Reg.Null }
+
         | ExprSyntax.Dispatch (receiver, method_id, actuals) ->
             let receiver_frag = translate_expr receiver.Syntax
             let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)

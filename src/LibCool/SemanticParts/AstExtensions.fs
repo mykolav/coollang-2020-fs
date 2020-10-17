@@ -63,3 +63,11 @@ module AstExtensions =
             match this with
             | MethodBodySyntax.Expr it -> it
             | MethodBodySyntax.Native -> invalidOp "MethodBodySyntax.AsExprSyntax"
+            
+            
+    type CaseBlockSyntax
+        with
+        member this.AsBlockSyntax: BlockSyntax voption =
+            match this with
+            | CaseBlockSyntax.Free block_syntax -> ValueSome block_syntax
+            | CaseBlockSyntax.Braced block_syntax_opt -> block_syntax_opt

@@ -113,6 +113,8 @@ type SymbolTable(_class_sym: ClassSymbol) =
         
     member this.Add(sym: Symbol): unit =
         this.CurrentScope.Add(sym)
+        // TODO: if sym.Index < this.MethodSymCount,
+        // TODO: we're "overriding" an existing symbol, not adding one.
         this.MethodSymCount <- this.MethodSymCount + 1
     
     
