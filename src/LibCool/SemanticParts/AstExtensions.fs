@@ -53,7 +53,7 @@ module AstExtensions =
                   Actuals = Array.empty }
             | ValueSome extends_node ->
                 match extends_node.Syntax with
-                | InheritanceSyntax.Info it -> it
+                | InheritanceSyntax.Extends it -> it
                 | InheritanceSyntax.Native  -> invalidOp "ClassSyntax.ExtendsSyntax"
                 
                 

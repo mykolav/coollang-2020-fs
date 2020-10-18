@@ -42,7 +42,7 @@ type ClassSyntax =
 
 [<RequireQualifiedAccess>]
 type InheritanceSyntax =
-    | Info of ExtendsSyntax
+    | Extends of ExtendsSyntax
     | Native
 
 

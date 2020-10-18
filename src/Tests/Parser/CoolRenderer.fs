@@ -434,7 +434,7 @@ type CoolRenderer private () =
         _sb_cool.Append(" extends ").Nop()
 
         match extends with
-        | InheritanceSyntax.Info extends_syntax ->
+        | InheritanceSyntax.Extends extends_syntax ->
             _sb_cool.Append(extends_syntax.SUPER.Syntax).Nop()
             walk_actuals (extends_syntax.Actuals)
         | InheritanceSyntax.Native ->

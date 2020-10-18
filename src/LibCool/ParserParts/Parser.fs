@@ -1086,7 +1086,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             { SUPER = AstNode.Of(TYPENAME token_id.Id, token_id.Span)
               Actuals = actual_nodes.Syntax }
               
-        Ok (ValueSome (AstNode.Of(InheritanceSyntax.Info extends_syntax, extends_span)))
+        Ok (ValueSome (AstNode.Of(InheritanceSyntax.Extends extends_syntax, extends_span)))
         
         
     and formal (): AstNode<FormalSyntax> voption =

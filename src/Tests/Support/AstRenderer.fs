@@ -494,7 +494,7 @@ type AstRenderer private () =
 
     and walk_extends (inheritance_syntax: InheritanceSyntax voption): unit =
         match inheritance_syntax with
-        | ValueSome (InheritanceSyntax.Info extends_syntax) ->
+        | ValueSome (InheritanceSyntax.Extends extends_syntax) ->
             begin_with "{"
             end_line_with (sprintf "\"type\": \"%s\", " extends_syntax.SUPER.Syntax.Value)
             text "\"actuals\": "

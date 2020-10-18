@@ -113,9 +113,15 @@ type SymbolTable(_class_sym: ClassSymbol) =
         
     member this.Add(sym: Symbol): unit =
         this.CurrentScope.Add(sym)
-        // TODO: if sym.Index < this.MethodSymCount,
-        // TODO: we're "overriding" an existing symbol, not adding one.
-        this.MethodSymCount <- this.MethodSymCount + 1
+        // Multiple match expression branches can bind an id
+        // to the matched expression's value.
+        // But at runtime, only one branch will execute,
+        // as a result we need only one temporary on stack.
+        // That's why we don't increase `MethodSymCount`,
+        // if `sym.Index < this.MethodSymCount`.
+        if sym.Index >= this.MethodSymCount
+        then
+            this.MethodSymCount <- this.MethodSymCount + 1
     
     
     member this.Resolve(name: ID): Symbol =

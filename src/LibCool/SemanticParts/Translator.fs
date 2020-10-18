@@ -55,10 +55,30 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
         else this.LeastUpperBound(type1=this.Resolve(type1.Super), type2=type2)
         
         
-    member this.LeastUpperBound(types: seq<ClassSymbol>): ClassSymbol =
-        BasicClasses.Any
+    // member this.LeastUpperBound(types: seq<ClassSymbol>): ClassSymbol =
+    //     let rec least_upper_bound types =
+    //         match List.ofSeq types with
+    //         | [] -> invalidOp "types.Length = 0"
+    //         | [ t1 ] -> t1
+    //         | t1::t2::types_tl -> least_upper_bound (this.LeastUpperBound(t1, t2)::types_tl)
+    //         
+    //     least_upper_bound (List.ofSeq types)
         
         
+    member this.LeastUpperBound(types: ClassSymbol[]): ClassSymbol =
+        if types.Length = 0
+        then
+            invalidOp "types.Length = 0"
+            
+        let mutable least_upper_bound = types.[0]
+        let mutable i = 1
+        while i < types.Length do
+            least_upper_bound <- this.LeastUpperBound(least_upper_bound, types.[i])
+            i <- i + 1
+            
+        least_upper_bound
+
+
 [<IsReadOnly; Struct; DefaultAugmentation(false)>]
 type Result<'T>
     = Error
@@ -125,7 +145,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (expr_frag.Value.Type.Is(BasicClasses.Int))
             then
                 _diags.Error(
-                    sprintf "Expected an 'Int' expression but found '%O'"
+                    sprintf "'!' expects a 'Boolean' argument but found '%O'"
                             expr_frag.Value.Type.Name,
                     expr.Span)
                 
@@ -146,7 +166,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (expr_frag.Value.Type.Is(BasicClasses.Int))
             then
                 _diags.Error(
-                    sprintf "Expected an 'Int' expression but found '%O'"
+                    sprintf "Unary '-' expects an 'Int' argument but found '%O'"
                             expr_frag.Value.Type.Name,
                     expr.Span)
                 
@@ -167,7 +187,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (condition_frag.Value.Type.Is(BasicClasses.Boolean))
             then
                 _diags.Error(
-                    sprintf "Expected a 'Boolean' expression bug found '%O'"
+                    sprintf "'if' expects a 'Boolean' condition bug found '%O'"
                             condition_frag.Value.Type.Name,
                     condition.Span)
                 
@@ -209,7 +229,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (condition_frag.Value.Type.Is(BasicClasses.Boolean))
             then
                 _diags.Error(
-                    sprintf "Expected a 'Boolean' expression bug found '%O'"
+                    sprintf "'while' expects a 'Boolean' condition bug found '%O'"
                             condition_frag.Value.Type.Name,
                     condition.Span)
                 
@@ -654,7 +674,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
                 
-            let block_types = block_frags |> Seq.map (fun it -> it.Value.Type)
+            let block_types = block_frags |> Array.map (fun it -> it.Value.Type)
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _type_cmp.LeastUpperBound(block_types)
                  Reg = Reg.Null }
@@ -1082,28 +1102,57 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     
     let translate_method (method_node: AstNode<MethodSyntax>) =
         _sym_table.EnterMethod()
+        
+        let mutable override_ok = true
 
-        // Add the method's formal parameters to the symbol table.
-        _sym_table.Add(Symbol.This(_class_syntax))
-        
-        method_node.Syntax.Formals
-        |> Seq.iter (fun formal_node ->
-            let sym = Symbol.Of(formal_node, index=_sym_table.MethodSymCount)
-            _sym_table.Add(sym))
-        
-        // Translate the method's body
-        let body_frag = translate_expr method_node.Syntax.Body.Syntax.AsExprSyntax
-        if body_frag.IsOk
+        if method_node.Syntax.Override
         then
-            // Make sure, the body's type conforms to the return type.
-            let return_type = _class_sym_map.[method_node.Syntax.RETURN.Syntax]
-            if not (_type_cmp.Conforms(ancestor=return_type, descendant=body_frag.Value.Type))
+            let super_sym = _class_sym_map.[_class_syntax.ExtendsSyntax.SUPER.Syntax]
+            let overridden_method_sym = super_sym.Methods.[method_node.Syntax.ID.Syntax]
+            
+            if overridden_method_sym.Formals.Length <> method_node.Syntax.Formals.Length
             then
-                _diags.Error(
-                    sprintf "The method's body type '%O' does not conform to the declared return type '%O'"
-                            body_frag.Value.Type.Name
-                            return_type.Name,
-                    method_node.Syntax.Body.Span)
+                // TODO: We need the span of formals.
+                _diags.Error("", method_node.Syntax.ID.Span)
+                override_ok <- false
+                
+            overridden_method_sym.Formals |> Array.iteri (fun i overridden_formal_sym ->
+                let formal = method_node.Syntax.Formals.[i].Syntax
+                if overridden_formal_sym.Type <> formal.TYPE.Syntax
+                then
+                    _diags.Error("", formal.TYPE.Span)
+                    override_ok <- false)
+
+            let overridden_return_ty = _class_sym_map.[overridden_method_sym.ReturnType]
+            let return_ty = _class_sym_map.[method_node.Syntax.RETURN.Syntax]
+            if not (_type_cmp.Conforms(ancestor=overridden_return_ty, descendant=return_ty))
+            then
+                _diags.Error("", method_node.Syntax.RETURN.Span)
+                override_ok <- false
+
+        if override_ok
+        then
+            // Add the method's formal parameters to the symbol table.
+            _sym_table.Add(Symbol.This(_class_syntax))
+            
+            method_node.Syntax.Formals
+            |> Seq.iter (fun formal_node ->
+                let sym = Symbol.Of(formal_node, index=_sym_table.MethodSymCount)
+                _sym_table.Add(sym))
+            
+            // Translate the method's body
+            let body_frag = translate_expr method_node.Syntax.Body.Syntax.AsExprSyntax
+            if body_frag.IsOk
+            then
+                // Make sure, the body's type conforms to the return type.
+                let return_type = _class_sym_map.[method_node.Syntax.RETURN.Syntax]
+                if not (_type_cmp.Conforms(ancestor=return_type, descendant=body_frag.Value.Type))
+                then
+                    _diags.Error(
+                        sprintf "The method's body type '%O' does not conform to the declared return type '%O'"
+                                body_frag.Value.Type.Name
+                                return_type.Name,
+                        method_node.Syntax.Body.Span)
 
         _sym_table.LeaveMethod()
     
