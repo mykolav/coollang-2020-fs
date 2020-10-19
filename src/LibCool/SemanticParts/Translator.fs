@@ -636,7 +636,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 if not (_type_cmp.Conforms(pattern_ty, expr_frag.Value.Type) ||
                         _type_cmp.Conforms(expr_frag.Value.Type, pattern_ty))
                 then
-                    _diags.Error("", span)
+                    _diags.Error(
+                        sprintf "'%O' and '%O' are not parts of the same inheritance chain. As a result this case is unreachable"
+                                expr_frag.Value.Type
+                                pattern_ty,
+                        span)
                     pattern_error <- true
                 else
                 
@@ -646,7 +650,10 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     let (prev_pattern_ty, prev_span) = patterns.[j]
                     if _type_cmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
                     then
-                        _diags.Error("", prev_span)
+                        _diags.Error(
+                            sprintf "This case is shadowed by an earlier case at %O"
+                                    (_source.Map(prev_span.First)),
+                            span)
                         pattern_error <- true
             
             let sym_index = _sym_table.MethodSymCount
@@ -689,7 +696,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if not (receiver_frag.Value.Type.Methods.ContainsKey(method_id.Syntax))
             then
-                _diags.Error("", method_id.Span)
+                _diags.Error(
+                    sprintf "'%O' does not contain a definition for '%O'"
+                            receiver_frag.Value.Type.Name
+                            method_id.Syntax,
+                    method_id.Span)
                 Error
             else
                 
@@ -697,6 +708,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if method_sym.Formals.Length <> actual_frags.Length
             then
+                _diags.Error(
+                    sprintf "'%O'.'%O' expects %d actuals but got %d"
+                            receiver_frag.Value.Type.Name
+                            method_sym.Name
+                            method_sym.Formals.Length
+                            actual_frags.Length,
+                    method_id.Span)
                 Error
             else
                 
@@ -709,7 +727,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
                 then
                     formal_actual_mismatch <- true
-                    _diags.Error("", actuals.[i].Span)
+                    _diags.Error(
+                        sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
+                                actual.Type
+                                formal_ty,
+                        actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _class_sym_map.[method_sym.ReturnType]
@@ -725,7 +747,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if not (this_frag.Value.Type.Methods.ContainsKey(method_id.Syntax))
             then
-                _diags.Error("", method_id.Span)
+                _diags.Error(
+                    sprintf "'%O' does not contain a definition for '%O'"
+                            this_frag.Value.Type.Name
+                            method_id.Syntax,
+                    method_id.Span)
                 Error
             else
                 
@@ -733,8 +759,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if method_sym.Formals.Length <> actual_frags.Length
             then
-                // TODO: We need but don't have the span of `(actuals...)`
-                _diags.Error("", method_id.Span)
+                _diags.Error(
+                    sprintf "'%O'.'%O' expects %d actuals but got %d"
+                            this_frag.Value.Type.Name
+                            method_sym.Name
+                            method_sym.Formals.Length
+                            actual_frags.Length,
+                    method_id.Span)
                 Error
             else
                 
@@ -747,7 +778,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
                 then
                     formal_actual_mismatch <- true
-                    _diags.Error("", actuals.[i].Span)
+                    _diags.Error(
+                        sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
+                                actual.Type
+                                formal_ty,
+                        actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _class_sym_map.[method_sym.ReturnType]
@@ -764,7 +799,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             let super_sym = _class_sym_map.[_class_syntax.ExtendsSyntax.SUPER.Syntax] 
             if not (super_sym.Methods.ContainsKey(method_id.Syntax))
             then
-                _diags.Error("", method_id.Span)
+                _diags.Error(
+                    sprintf "'%O' does not contain a definition for '%O'"
+                            super_sym.Name
+                            method_id.Syntax,
+                    method_id.Span)
                 Error
             else
                 
@@ -772,8 +811,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if method_sym.Formals.Length <> actual_frags.Length
             then
-                // TODO: We need but don't have the span of `(actuals...)`
-                _diags.Error("", method_id.Span)
+                _diags.Error(
+                    sprintf "'%O'.'%O' expects %d actuals but got %d"
+                            super_sym.Name
+                            method_sym.Name
+                            method_sym.Formals.Length
+                            actual_frags.Length,
+                    method_id.Span)
                 Error
             else
                 
@@ -786,7 +830,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
                 then
                     formal_actual_mismatch <- true
-                    _diags.Error("", actuals.[i].Span)
+                    _diags.Error(
+                        sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
+                                actual.Type
+                                formal_ty,
+                        actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _class_sym_map.[method_sym.ReturnType]
@@ -808,7 +856,9 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean) ||
                ty.Is(BasicClasses.Symbol) 
             then
-                _diags.Error("", type_name.Span)
+                _diags.Error(
+                    sprintf "'new %O' is not allowed" type_name.Syntax,
+                    type_name.Span)
                 Error
             else
             
@@ -820,8 +870,12 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
 
             if ty.Ctor.Formals.Length <> actual_frags.Length
             then
-                // TODO: We need but don't have the span of `(actuals...)`
-                _diags.Error("", type_name.Span)
+                _diags.Error(
+                    sprintf "Constructor of '%O' expects %d actuals but got %d"
+                            type_name.Syntax
+                            ty.Ctor.Formals.Length
+                            actual_frags.Length,
+                    type_name.Span)
                 Error
             else
                 
@@ -834,7 +888,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
                 then
                     formal_actual_mismatch <- true
-                    _diags.Error("", actuals.[i].Span)
+                    _diags.Error(
+                        sprintf "The actual's type '%O' does not conform to the varformal's type '%O'"
+                                actual.Type
+                                formal_ty.Name,
+                        actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = ty
@@ -1112,22 +1170,41 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if overridden_method_sym.Formals.Length <> method_node.Syntax.Formals.Length
             then
-                // TODO: We need the span of formals.
-                _diags.Error("", method_node.Syntax.ID.Span)
+                _diags.Error(
+                    sprintf "The overriding '%O.%O' method's number of formals %d does not match the overridden '%O.%O' method's number of formals %d"
+                            _class_syntax.NAME.Syntax
+                            method_node.Syntax.ID.Syntax
+                            method_node.Syntax.Formals.Length
+                            super_sym.Name
+                            method_node.Syntax.ID.Syntax
+                            overridden_method_sym.Formals.Length,
+                    method_node.Syntax.ID.Span)
                 override_ok <- false
                 
             overridden_method_sym.Formals |> Array.iteri (fun i overridden_formal_sym ->
                 let formal = method_node.Syntax.Formals.[i].Syntax
                 if overridden_formal_sym.Type <> formal.TYPE.Syntax
                 then
-                    _diags.Error("", formal.TYPE.Span)
+                    _diags.Error(
+                        sprintf "The overriding formals's type '%O' does not match to the overridden formal's type '%O'"
+                                formal.TYPE.Syntax
+                                overridden_formal_sym.Type,
+                        formal.TYPE.Span)
                     override_ok <- false)
 
             let overridden_return_ty = _class_sym_map.[overridden_method_sym.ReturnType]
             let return_ty = _class_sym_map.[method_node.Syntax.RETURN.Syntax]
             if not (_type_cmp.Conforms(ancestor=overridden_return_ty, descendant=return_ty))
             then
-                _diags.Error("", method_node.Syntax.RETURN.Span)
+                _diags.Error(
+                    sprintf "The overriding '%O.%O' method's return type '%O' does not conform to the overridden '%O.%O' method's return type '%O'"
+                            _class_syntax.NAME.Syntax
+                            method_node.Syntax.ID.Syntax
+                            method_node.Syntax.RETURN.Syntax
+                            super_sym.Name
+                            method_node.Syntax.ID.Syntax
+                            overridden_method_sym.ReturnType,
+                    method_node.Syntax.RETURN.Span)
                 override_ok <- false
 
         if override_ok
