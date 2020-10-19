@@ -46,10 +46,34 @@ type ClassSymbol =
 module BasicClasses =
     
     
+    type ClassSymbol
+        with
+        static member Mk(name: string, super: string, ?methods: MethodSymbol[]) =
+            let methods = Dictionary<_, _>((defaultArg methods [||])
+                                           |> Array.map (fun m -> KeyValuePair(m.Name, m)))
+            let ctor = 
+                { MethodSymbol.Name = ID ".ctor"
+                  Formals = [||] 
+                  ReturnType = TYPENAME name  
+                  Override = false
+                  DeclaringClass = TYPENAME name 
+                  Index = -1
+                  SyntaxSpan = Span.Invalid
+                }
+                
+            methods.Add(ctor.Name, ctor)
+            
+            { Name = TYPENAME name
+              Super = TYPENAME super
+              Ctor = ctor
+              Attrs = Map.empty
+              Methods = methods
+              SyntaxSpan = Span.Invalid
+            }
+    
+    
     let private mk_empty_class_sym (name: TYPENAME) (super: TYPENAME) =
-        { Name = name
-          Super = super
-          Ctor =
+        let ctor = 
             { MethodSymbol.Name = ID ".ctor"
               Formals = [||] 
               ReturnType = name  
@@ -58,8 +82,11 @@ module BasicClasses =
               Index = -1
               SyntaxSpan = Span.Invalid
             }
+        { Name = name
+          Super = super
+          Ctor = ctor
           Attrs = Map.empty
-          Methods = Map.empty
+          Methods = Map.ofSeq [ ID ".ctor", ctor ]
           SyntaxSpan = Span.Invalid
         }
         
@@ -70,7 +97,21 @@ module BasicClasses =
     let String: ClassSymbol = mk_empty_class_sym (TYPENAME "String") (TYPENAME "Any")
     let Boolean: ClassSymbol = mk_empty_class_sym (TYPENAME "Boolean") (TYPENAME "Any")
     let ArrayAny: ClassSymbol = mk_empty_class_sym (TYPENAME "ArrayAny") (TYPENAME "Any")
-    let IO: ClassSymbol = mk_empty_class_sym (TYPENAME "IO") (TYPENAME "Any")
+    
+    let IO: ClassSymbol =
+        ClassSymbol.Mk(
+            name="IO",
+            super="Any",
+            methods=[|
+                { MethodSymbol.Name = ID "out_string"
+                  Formals = [| { FormalSymbol.Name = ID "str"; Type = String.Name; Index = 1; SyntaxSpan = Span.Invalid } |]
+                  ReturnType = Unit.Name
+                  Override = false
+                  DeclaringClass = TYPENAME "IO"
+                  Index = 0
+                  SyntaxSpan = Span.Invalid }
+            |])
+    
     let Symbol: ClassSymbol = mk_empty_class_sym (TYPENAME "Symbol") (TYPENAME "Any")
 
     // Null is the type of the null literal.

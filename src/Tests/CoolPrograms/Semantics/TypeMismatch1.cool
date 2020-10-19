@@ -7,5 +7,5 @@ class A() {
 
 class Main() {}
 
-// DIAG: TypeMismatch1.cool(3,23): Error: Expected the type to be 'Int' but found 'String'
+// DIAG: Semantics/TypeMismatch1.cool(3,23): Error: The expression's type 'String' does not conform to the type 'Int' of 'it'
 // DIAG: Build failed: Errors: 1. Warnings: 0

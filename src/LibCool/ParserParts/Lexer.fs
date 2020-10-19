@@ -238,13 +238,13 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             then
                 _diags.Error("Unterminated string literal", span())
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_qqq_literal.ToString()),
-                                            Span.Of(_token_start + 3u, _offset)))
+                                            Span.Of(_token_start, _offset)))
             else
             
             if is_ahead "\"\"\""
             then
                 token_opt <- Some (Token.Of(TokenKind.TripleQuotedStringLiteral (sb_qqq_literal.ToString()),
-                                            Span.Of(_token_start + 3u, _offset + 1u)))
+                                            Span.Of(_token_start, _offset + 3u)))
                 eat_chars 3u
             else
                 
@@ -265,14 +265,14 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             then
                 _diags.Error("Unterminated string literal", span())
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
-                                            Span.Of(_token_start + 1u, _offset)))
+                                            Span.Of(_token_start, _offset)))
             else
 
             let ch1 = peek_char()
             if ch1 = '"'
             then
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
-                                            Span.Of(_token_start + 1u, _offset + 1u)))
+                                            Span.Of(_token_start, _offset + 1u)))
                 eat_char()
             else
                 
@@ -292,7 +292,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                 then
                     _diags.Error("Unterminated string literal", span())
                     token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
-                                                Span.Of(_token_start + 1u, _offset)))
+                                                Span.Of(_token_start, _offset)))
                 else
 
                 let ch2 = peek_char()

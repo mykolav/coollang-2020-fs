@@ -48,5 +48,13 @@ type RegisterSet() =
         
         
     member this.NameOf(reg: Reg): string =
+        if reg = Reg.Null
+        then
+            // TODO: Actually, we do want to raise an exception if Reg.Null is supplied!
+            // TODO: This is a temporary measure, so that the exception doesn't distract
+            // TODO: from type-checking code development.
+            ""
+        else
+            
         let (Reg index) = reg
         _regs.[index].Name

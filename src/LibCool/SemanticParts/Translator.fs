@@ -709,7 +709,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if method_sym.Formals.Length <> actual_frags.Length
             then
                 _diags.Error(
-                    sprintf "'%O'.'%O' expects %d actuals but got %d"
+                    sprintf "'%O.%O' takes %d actual(s) but was passed %d"
                             receiver_frag.Value.Type.Name
                             method_sym.Name
                             method_sym.Formals.Length
@@ -729,8 +729,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     formal_actual_mismatch <- true
                     _diags.Error(
                         sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
-                                actual.Type
-                                formal_ty,
+                                actual.Type.Name
+                                formal_ty.Name,
                         actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
@@ -760,7 +760,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if method_sym.Formals.Length <> actual_frags.Length
             then
                 _diags.Error(
-                    sprintf "'%O'.'%O' expects %d actuals but got %d"
+                    sprintf "'%O.%O' takes %d actual(s) but was passed %d"
                             this_frag.Value.Type.Name
                             method_sym.Name
                             method_sym.Formals.Length
@@ -780,8 +780,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     formal_actual_mismatch <- true
                     _diags.Error(
                         sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
-                                actual.Type
-                                formal_ty,
+                                actual.Type.Name
+                                formal_ty.Name,
                         actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
@@ -812,7 +812,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if method_sym.Formals.Length <> actual_frags.Length
             then
                 _diags.Error(
-                    sprintf "'%O'.'%O' expects %d actuals but got %d"
+                    sprintf "'%O.%O' takes %d actual(s) but was passed %d"
                             super_sym.Name
                             method_sym.Name
                             method_sym.Formals.Length
@@ -832,8 +832,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     formal_actual_mismatch <- true
                     _diags.Error(
                         sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
-                                actual.Type
-                                formal_ty,
+                                actual.Type.Name
+                                formal_ty.Name,
                         actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
@@ -871,7 +871,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if ty.Ctor.Formals.Length <> actual_frags.Length
             then
                 _diags.Error(
-                    sprintf "Constructor of '%O' expects %d actuals but got %d"
+                    sprintf "Constructor of '%O' takes %d actuals but was passed %d"
                             type_name.Syntax
                             ty.Ctor.Formals.Length
                             actual_frags.Length,
@@ -890,7 +890,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     formal_actual_mismatch <- true
                     _diags.Error(
                         sprintf "The actual's type '%O' does not conform to the varformal's type '%O'"
-                                actual.Type
+                                actual.Type.Name
                                 formal_ty.Name,
                         actuals.[i].Span)
 
@@ -959,7 +959,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             _diags.Error(
                 sprintf "The expression's type '%O' does not conform to the type '%O' of '%O'"
                         expr_frag.Value.Type.Name
-                        addr_frag.Type
+                        addr_frag.Type.Name
                         id.Syntax,
                 expr.Span)
             
