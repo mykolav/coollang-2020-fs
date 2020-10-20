@@ -47,7 +47,6 @@
         <Content Include="CoolPrograms\Syntax\FeaturesMustBeTerminatedByASemi.cool" />
         <Content Include="CoolPrograms\Syntax\AFeatureMustBeAMethodAttrOrBlock.cool" />
         <Content Include="CoolPrograms\Semantics\TypeNameCouldNotBeFound1.cool" />
-        <Content Include="CoolPrograms\Semantics\TypeMismatch2.cool" />
         <Content Include="CoolPrograms\Semantics\TypeMismatch1.cool" />
         <Content Include="CoolPrograms\Semantics\TypeAlreadyContainsADefinition1.cool" />
         <Content Include="CoolPrograms\Semantics\RedefinesInheritedAttribute.cool" />
@@ -57,6 +56,7 @@
         <Content Include="CoolPrograms\Semantics\OverrideSameTypeFormals.cool" />
         <Content Include="CoolPrograms\Semantics\OverrideReturnTypeMustConform.cool" />
         <Content Include="CoolPrograms\Semantics\MethodArgumentNumberMismatch1.cool" />
+        <Content Include="CoolPrograms\Semantics\MethodArgumentTypeMismatch.cool" />
         <Content Include="CoolPrograms\Semantics\MethodReturnTypeBodyTypeMismatch.cool" />
         <Content Include="CoolPrograms\Semantics\CircularSuperClass.cool" />
     </ItemGroup>

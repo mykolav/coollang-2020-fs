@@ -5,5 +5,5 @@ class A() {
 class Main() {
     { new A().foo(42) };
 }
-// DIAG: Semantics/TypeMismatch2.cool(6,19): Error: The actual's type 'Int' does not conform to the formal's type 'String'
+// DIAG: Semantics/MethodArgumentTypeMismatch.cool(6,19): Error: The actual's type 'Int' does not conform to the formal's type 'String'
 // DIAG: Build failed: Errors: 1. Warnings: 0
