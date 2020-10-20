@@ -1,0 +1,6 @@
+class A() { def foo(i: Int, s: String) : Int = 0; }
+class B() extends A() { override def foo(i: Int, s: String, b: Boolean) : Int = 0; } 
+
+class Main() {}
+// DIAG: Semantics/OverrideSameNumFormals.cool(2,38): Error: The overriding 'B.foo' method's number of formals 3 does not match the overridden 'A.foo' method's number of formals 2
+// DIAG: Build failed: Errors: 1. Warnings: 0

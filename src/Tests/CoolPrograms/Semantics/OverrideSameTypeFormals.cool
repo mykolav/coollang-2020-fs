@@ -1,0 +1,7 @@
+class A() { def foo(i: Int, s: String) : Int = 0; }
+class B() extends A() { override def foo(i: String, s: Int) : Int = 0; } 
+
+class Main() {}
+// DIAG: Semantics/OverrideSameTypeFormals.cool(2,45): Error: The overriding formals's type 'String' does not match to the overridden formal's type 'Int'
+// DIAG: Semantics/OverrideSameTypeFormals.cool(2,56): Error: The overriding formals's type 'Int' does not match to the overridden formal's type 'String'
+// DIAG: Build failed: Errors: 2. Warnings: 0

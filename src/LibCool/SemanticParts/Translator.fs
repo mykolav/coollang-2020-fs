@@ -1231,7 +1231,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 if not (_type_cmp.Conforms(ancestor=return_ty, descendant=body_frag.Value.Type))
                 then
                     _diags.Error(
-                        sprintf "The method's body type '%O' does not conform to the declared return type '%O'"
+                        sprintf "The method body's type '%O' does not conform to the declared return type '%O'"
                                 body_frag.Value.Type.Name
                                 return_ty.Name,
                         method_node.Syntax.Body.Span)

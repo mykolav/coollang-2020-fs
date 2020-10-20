@@ -1,0 +1,6 @@
+class Main() {
+    def foo(): String = 9001;
+    {};
+}
+// DIAG: Semantics/MethodReturnTypeBodyTypeMismatch.cool(2,25): Error: The method body's type 'Int' does not conform to the declared return type 'String'
+// DIAG: Build failed: Errors: 1. Warnings: 0

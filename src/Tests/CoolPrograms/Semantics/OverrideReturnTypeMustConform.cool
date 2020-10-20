@@ -1,0 +1,9 @@
+class A() {}
+class B() {} 
+
+class C() { def foo() : A = new A(); }
+class D() extends C() { override def foo() : B = new B(); } 
+
+class Main() {}
+// DIAG: Semantics/OverrideReturnTypeMustConform.cool(5,46): Error: The overriding 'D.foo' method's return type 'B' does not conform to the overridden 'C.foo' method's return type 'A'
+// DIAG: Build failed: Errors: 1. Warnings: 0
