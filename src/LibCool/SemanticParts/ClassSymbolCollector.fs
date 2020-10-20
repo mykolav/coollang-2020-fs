@@ -9,6 +9,18 @@ open LibCool.SourceParts
 open AstExtensions
 
 
+[<RequireQualifiedAccess>]
+module SpecialClasses =
+    let Error = ClassSymbol.Virtual(class_name=TYPENAME ".Error")
+
+
+[<AutoOpen>]
+module private ClassSymbolExtensions =
+    type ClassSymbol
+        with
+        member this.IsError: bool = this.Is(SpecialClasses.Error)
+
+
 [<Sealed>]
 type private InheritanceChain() =
     let _ancestry_map = Dictionary<TYPENAME, struct {| Syntax: ClassSyntax; Distance: int |}>()
@@ -64,7 +76,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
         if not (_class_sym_map.ContainsKey(class_name))
         then
-            _class_sym_map.Add(class_name, BasicClasses.Error)
+            _class_sym_map.Add(class_name, SpecialClasses.Error)
             _diags.Error(
                 sprintf "The type name '%O' could not be found (is an input file missing?)" class_name,
                 class_name_node.Span)
@@ -283,7 +295,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             let class_node_opt = resolve_to_class_syntax class_name_node
             if class_node_opt.IsNone
             then 
-                BasicClasses.Error
+                SpecialClasses.Error
             else
                 
             let class_node = class_node_opt.Value 
@@ -310,7 +322,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             
             if cycle_detected
             then
-                BasicClasses.Error
+                SpecialClasses.Error
             else
 
             // We didn't collect a symbol for this class previously.
@@ -324,8 +336,8 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 // Remember we failed to collect a symbol for the current class.
                 // So the next time we need it, we don't try to collect it again
                 // and don't emit duplicate diags.
-                _class_sym_map.Add(class_name, BasicClasses.Error)
-                BasicClasses.Error
+                _class_sym_map.Add(class_name, SpecialClasses.Error)
+                SpecialClasses.Error
             else
 
             // Merge the current class' syntax and its super's symbol.

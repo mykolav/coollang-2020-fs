@@ -187,7 +187,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (condition_frag.Value.Type.Is(BasicClasses.Boolean))
             then
                 _diags.Error(
-                    sprintf "'if' expects a 'Boolean' condition bug found '%O'"
+                    sprintf "'if' expects a 'Boolean' condition but found '%O'"
                             condition_frag.Value.Type.Name,
                     condition.Span)
                 
@@ -229,7 +229,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if not (condition_frag.Value.Type.Is(BasicClasses.Boolean))
             then
                 _diags.Error(
-                    sprintf "'while' expects a 'Boolean' condition bug found '%O'"
+                    sprintf "'while' expects a 'Boolean' condition but found '%O'"
                             condition_frag.Value.Type.Name,
                     condition.Span)
                 
@@ -506,7 +506,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             _reg_set.Free(right_frag.Value.Reg)
             
             Ok { AsmFragment.Asm = StringBuilder()
-                 Type = BasicClasses.Boolean
+                 Type = BasicClasses.Int
                  Reg = Reg.Null }
         
         | ExprSyntax.Div (left, right) ->
@@ -542,7 +542,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             _reg_set.Free(right_frag.Value.Reg)
             
             Ok { AsmFragment.Asm = StringBuilder()
-                 Type = BasicClasses.Boolean
+                 Type = BasicClasses.Int
                  Reg = Reg.Null }
         
         | ExprSyntax.Sum (left, right) ->
@@ -578,7 +578,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             _reg_set.Free(right_frag.Value.Reg)
             
             Ok { AsmFragment.Asm = StringBuilder()
-                 Type = BasicClasses.Boolean
+                 Type = BasicClasses.Int
                  Reg = Reg.Null }
         
         | ExprSyntax.Sub (left, right) ->
@@ -614,7 +614,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             _reg_set.Free(right_frag.Value.Reg)
             
             Ok { AsmFragment.Asm = StringBuilder()
-                 Type = BasicClasses.Boolean
+                 Type = BasicClasses.Int
                  Reg = Reg.Null }
         
         | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
