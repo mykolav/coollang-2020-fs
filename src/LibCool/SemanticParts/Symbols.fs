@@ -95,6 +95,7 @@ type ClassSymbol =
 
 [<RequireQualifiedAccess>]
 module BasicClassNames =
+    let Nothing = TYPENAME "Nothing"
     let Any = TYPENAME "Any" 
     let Unit = TYPENAME "Unit" 
     let Int = TYPENAME "Int"
@@ -108,7 +109,16 @@ module BasicClassNames =
 
 [<RequireQualifiedAccess>]
 module BasicClasses =
-    let Any = ClassSymbol.Virtual(class_name=BasicClassNames.Any) 
+    let Nothing = ClassSymbol.Virtual(class_name=BasicClassNames.Nothing)
+    let Any =
+        ClassSymbol.Virtual(
+            class_name=BasicClassNames.Any,
+            methods=[|
+                MethodSymbol.Virtual(BasicClassNames.Any(*declaring_class*),
+                                     ID "abort"(*name*),
+                                     BasicClassNames.Nothing(*return_type*))
+            |])
+    
     let Unit = ClassSymbol.Virtual(class_name=BasicClassNames.Unit, super=BasicClasses.Any) 
     let Int = ClassSymbol.Virtual(class_name=BasicClassNames.Int, super=BasicClasses.Any)
     let String = ClassSymbol.Virtual(class_name=BasicClassNames.String, super=BasicClasses.Any)
@@ -134,6 +144,14 @@ module BasicClasses =
                                      ID "out_nl"(*name*),
                                      BasicClassNames.Unit(*return_type*),
                                      formals=[||])
+                
+                MethodSymbol.Virtual(BasicClassNames.IO(*declaring_class*),
+                                     ID "in_string"(*name*),
+                                     BasicClassNames.String(*return_type*))
+                
+                MethodSymbol.Virtual(BasicClassNames.IO(*declaring_class*),
+                                     ID "in_int"(*name*),
+                                     BasicClassNames.Int(*return_type*))
             |])
     
     let Symbol = ClassSymbol.Virtual(class_name=BasicClassNames.Symbol, super=BasicClasses.Any)

@@ -24,6 +24,11 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
         then
             true
         else
+            
+        if descendant.Is(BasicClasses.Nothing)
+        then
+            true
+        else
         
         if descendant.Is(BasicClasses.Null)
         then
@@ -1222,13 +1227,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if body_frag.IsOk
             then
                 // Make sure, the body's type conforms to the return type.
-                let return_type = _class_sym_map.[method_node.Syntax.RETURN.Syntax]
-                if not (_type_cmp.Conforms(ancestor=return_type, descendant=body_frag.Value.Type))
+                let return_ty = _class_sym_map.[method_node.Syntax.RETURN.Syntax]
+                if not (_type_cmp.Conforms(ancestor=return_ty, descendant=body_frag.Value.Type))
                 then
                     _diags.Error(
                         sprintf "The method's body type '%O' does not conform to the declared return type '%O'"
                                 body_frag.Value.Type.Name
-                                return_type.Name,
+                                return_ty.Name,
                         method_node.Syntax.Body.Span)
 
         _sym_table.LeaveMethod()

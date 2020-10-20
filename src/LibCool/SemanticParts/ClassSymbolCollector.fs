@@ -352,6 +352,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
     
     
     member this.Collect(): IReadOnlyDictionary<TYPENAME, ClassSymbol> =
+        add_class_sym_to_map BasicClasses.Nothing
         add_class_sym_to_map BasicClasses.Any
         add_class_sym_to_map BasicClasses.Unit
         add_class_sym_to_map BasicClasses.Int
