@@ -1,4 +1,6 @@
 class A() {
+    var attr: String = 9001;
+    
     def foo(): String = "";
     
     {
@@ -10,6 +12,7 @@ class A() {
 
 class Main() {}
 
-// DIAG: Semantics/TypeMismatch1.cool(5,23): Error: The expression's type 'String' does not conform to the type 'Int' of 'it'
-// DIAG: Semantics/TypeMismatch1.cool(6,24): Error: The expression's type 'String' does not conform to the type 'Int' of 'it1'
-// DIAG: Build failed: Errors: 2. Warnings: 0
+// DIAG: Semantics/TypeMismatch1.cool(2,24): Error: The initial expression's type 'Int' does not conform to the 'attr' attribute's type 'String'
+// DIAG: Semantics/TypeMismatch1.cool(7,23): Error: The expression's type 'String' does not conform to the type 'Int' of 'it'
+// DIAG: Semantics/TypeMismatch1.cool(8,24): Error: The expression's type 'String' does not conform to the type 'Int' of 'it1'
+// DIAG: Build failed: Errors: 3. Warnings: 0
