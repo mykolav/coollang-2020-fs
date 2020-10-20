@@ -58,6 +58,7 @@
         <Content Include="CoolPrograms\Semantics\MethodArgumentNumberMismatch1.cool" />
         <Content Include="CoolPrograms\Semantics\MethodArgumentTypeMismatch.cool" />
         <Content Include="CoolPrograms\Semantics\MethodReturnTypeBodyTypeMismatch.cool" />
+        <Content Include="CoolPrograms\Semantics\CtorMismatch.cool" />
         <Content Include="CoolPrograms\Semantics\CircularSuperClass.cool" />
     </ItemGroup>
 
