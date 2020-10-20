@@ -1,11 +1,15 @@
 class A() {
+    def foo(): String = "";
+    
     {
         var it: Int = "";
+        var it1: Int = foo();
         ()
     };
 } 
 
 class Main() {}
 
-// DIAG: Semantics/TypeMismatch1.cool(3,23): Error: The expression's type 'String' does not conform to the type 'Int' of 'it'
-// DIAG: Build failed: Errors: 1. Warnings: 0
+// DIAG: Semantics/TypeMismatch1.cool(5,23): Error: The expression's type 'String' does not conform to the type 'Int' of 'it'
+// DIAG: Semantics/TypeMismatch1.cool(6,24): Error: The expression's type 'String' does not conform to the type 'Int' of 'it1'
+// DIAG: Build failed: Errors: 2. Warnings: 0
