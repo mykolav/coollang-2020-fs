@@ -1,0 +1,52 @@
+class A() {}
+
+class Main() {
+    {
+        var i: Int = 0;
+        
+        i = 2 + 2;
+        i = 2 - 2;
+        i = 2 * 2;
+        i = 2 / 2;
+        
+        var s: String = "";
+        
+        s = "Hello" + ", World";
+        s = "Hello" - ", World";
+        s = "Hello" * ", World";
+        s = "Hello" / ", World";
+
+        var a: A = null;
+        
+        a = new A() + new A();        
+        a = new A() - new A();        
+        a = new A() * new A();        
+        a = new A() / new A();        
+        
+        2 + "Hello";
+        "Hello" + 2;
+        
+        2 + new A();
+        new A() + 2;
+        
+        "Hello" + new A();
+        new A() + "Hell";        
+
+        ()
+    };
+}
+
+// DIAG: Semantics/Arith.cool(15,13): Error: '-' cannot be applied to operands of type 'String' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Arith.cool(16,13): Error: '*' cannot be applied to operands of type 'String' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Arith.cool(17,13): Error: '/' cannot be applied to operands of type 'String' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Arith.cool(21,13): Error: '+' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int' or 'String' and 'String'
+// DIAG: Semantics/Arith.cool(22,13): Error: '-' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Arith.cool(23,13): Error: '*' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Arith.cool(24,13): Error: '/' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Arith.cool(26,9): Error: '+' cannot be applied to operands of type 'Int' and 'String'; only to 'Int' and 'Int' or 'String' and 'String'
+// DIAG: Semantics/Arith.cool(27,9): Error: '+' cannot be applied to operands of type 'String' and 'Int'; only to 'Int' and 'Int' or 'String' and 'String'
+// DIAG: Semantics/Arith.cool(29,9): Error: '+' cannot be applied to operands of type 'Int' and 'A'; only to 'Int' and 'Int' or 'String' and 'String'
+// DIAG: Semantics/Arith.cool(30,9): Error: '+' cannot be applied to operands of type 'A' and 'Int'; only to 'Int' and 'Int' or 'String' and 'String'
+// DIAG: Semantics/Arith.cool(32,9): Error: '+' cannot be applied to operands of type 'String' and 'A'; only to 'Int' and 'Int' or 'String' and 'String'
+// DIAG: Semantics/Arith.cool(33,9): Error: '+' cannot be applied to operands of type 'A' and 'String'; only to 'Int' and 'Int' or 'String' and 'String'
+// DIAG: Build failed: Errors: 13. Warnings: 0

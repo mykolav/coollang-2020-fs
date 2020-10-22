@@ -1,0 +1,49 @@
+class A() {}
+
+class Main() {
+    {
+        var it: Boolean = false;
+        
+        it = 2 < 2;
+        it = 2 <= 2;
+        it = 2 > 2;
+        it = 2 >= 2;
+        
+        it = "Hello" < ", World";
+        it = "Hello" <= ", World";
+        it = "Hello" > ", World";
+        it = "Hello" >= ", World";
+
+        it = new A() < new A();        
+        it = new A() <= new A();        
+        it = new A() > new A();        
+        it = new A() >= new A();
+        
+        it = 2 < "Hello";
+        it = "Hello" < 2;
+        
+        it = 2 < new A();
+        it = new A() < 2;
+        
+        it = "Hello" < new A();
+        it = new A() < "Hell";        
+        
+        ()
+    };
+}
+
+// DIAG: Semantics/Comparison.cool(12,14): Error: '<' cannot be applied to operands of type 'String' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(13,14): Error: '<=' cannot be applied to operands of type 'String' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(14,14): Error: '>' cannot be applied to operands of type 'String' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(15,14): Error: '>=' cannot be applied to operands of type 'String' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(17,14): Error: '<' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(18,14): Error: '<=' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(19,14): Error: '>' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(20,14): Error: '>=' cannot be applied to operands of type 'A' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(22,14): Error: '<' cannot be applied to operands of type 'Int' and 'String'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(23,14): Error: '<' cannot be applied to operands of type 'String' and 'Int'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(25,14): Error: '<' cannot be applied to operands of type 'Int' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(26,14): Error: '<' cannot be applied to operands of type 'A' and 'Int'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(28,14): Error: '<' cannot be applied to operands of type 'String' and 'A'; only to 'Int' and 'Int'
+// DIAG: Semantics/Comparison.cool(29,14): Error: '<' cannot be applied to operands of type 'A' and 'String'; only to 'Int' and 'Int'
+// DIAG: Build failed: Errors: 14. Warnings: 0
