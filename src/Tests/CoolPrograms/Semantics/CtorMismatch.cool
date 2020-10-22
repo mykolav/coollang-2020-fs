@@ -14,11 +14,11 @@ class Main() {
     };
 }
 
-// DIAG: Semantics/CtorMismatch.cool(6,13): Error: Constructor of 'C' takes 2 actuals but was passed 0
-// DIAG: Semantics/CtorMismatch.cool(7,13): Error: Constructor of 'C' takes 2 actuals but was passed 1
-// DIAG: Semantics/CtorMismatch.cool(8,13): Error: Constructor of 'C' takes 2 actuals but was passed 1
+// DIAG: Semantics/CtorMismatch.cool(6,13): Error: Constructor of 'C' takes 2 actual(s) but was passed 0
+// DIAG: Semantics/CtorMismatch.cool(7,13): Error: Constructor of 'C' takes 2 actual(s) but was passed 1
+// DIAG: Semantics/CtorMismatch.cool(8,13): Error: Constructor of 'C' takes 2 actual(s) but was passed 1
 // DIAG: Semantics/CtorMismatch.cool(9,15): Error: The actual's type 'String' does not conform to the varformal's type 'Int'
 // DIAG: Semantics/CtorMismatch.cool(9,24): Error: The actual's type 'Int' does not conform to the varformal's type 'String'
-// DIAG: Semantics/CtorMismatch.cool(10,13): Error: Constructor of 'C' takes 2 actuals but was passed 3
+// DIAG: Semantics/CtorMismatch.cool(10,13): Error: Constructor of 'C' takes 2 actual(s) but was passed 3
 // DIAG: Semantics/CtorMismatch.cool(12,20): Error: The expression's type 'C' does not conform to the type 'A' of 'a'
 // DIAG: Build failed: Errors: 7. Warnings: 0

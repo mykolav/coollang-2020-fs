@@ -492,115 +492,12 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Reg = Reg.Null }
 
         | ExprSyntax.Dispatch (receiver, method_id, actuals) ->
-            let receiver_frag = translate_expr receiver.Syntax
-            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
-            if receiver_frag.IsError || (actual_frags |> Array.exists (fun it -> it.IsError))
-            then
-                Error
-            else
-            
-            if not (receiver_frag.Value.Type.Methods.ContainsKey(method_id.Syntax))
-            then
-                _diags.Error(
-                    sprintf "'%O' does not contain a definition for '%O'"
-                            receiver_frag.Value.Type.Name
-                            method_id.Syntax,
-                    method_id.Span)
-                Error
-            else
-                
-            let method_sym = receiver_frag.Value.Type.Methods.[method_id.Syntax]
-            
-            if method_sym.Formals.Length <> actual_frags.Length
-            then
-                _diags.Error(
-                    sprintf "'%O.%O' takes %d actual(s) but was passed %d"
-                            receiver_frag.Value.Type.Name
-                            method_sym.Name
-                            method_sym.Formals.Length
-                            actual_frags.Length,
-                    method_id.Span)
-                Error
-            else
-                
-            let mutable formal_actual_mismatch = false
-            
-            for i in 0 .. method_sym.Formals.Length - 1 do
-                let formal = method_sym.Formals.[i]
-                let formal_ty = _class_sym_map.[formal.Type]
-                let actual = actual_frags.[i].Value
-                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
-                then
-                    formal_actual_mismatch <- true
-                    _diags.Error(
-                        sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
-                                actual.Type.Name
-                                formal_ty.Name,
-                        actuals.[i].Span)
-
-            Ok { AsmFragment.Asm = StringBuilder()
-                 Type = _class_sym_map.[method_sym.ReturnType]
-                 Reg = Reg.Null }
+            translate_dispatch receiver.Syntax method_id actuals
             
         | ExprSyntax.ImplicitThisDispatch (method_id, actuals) ->
-            let this_frag = translate_expr ExprSyntax.This
-            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
-            if this_frag.IsError || (actual_frags |> Array.exists (fun it -> it.IsError))
-            then
-                Error
-            else
-            
-            if not (this_frag.Value.Type.Methods.ContainsKey(method_id.Syntax))
-            then
-                _diags.Error(
-                    sprintf "'%O' does not contain a definition for '%O'"
-                            this_frag.Value.Type.Name
-                            method_id.Syntax,
-                    method_id.Span)
-                Error
-            else
-                
-            let method_sym = this_frag.Value.Type.Methods.[method_id.Syntax]
-            
-            if method_sym.Formals.Length <> actual_frags.Length
-            then
-                _diags.Error(
-                    sprintf "'%O.%O' takes %d actual(s) but was passed %d"
-                            this_frag.Value.Type.Name
-                            method_sym.Name
-                            method_sym.Formals.Length
-                            actual_frags.Length,
-                    method_id.Span)
-                Error
-            else
-                
-            let mutable formal_actual_mismatch = false
-            
-            for i in 0 .. method_sym.Formals.Length - 1 do
-                let formal = method_sym.Formals.[i]
-                let formal_ty = _class_sym_map.[formal.Type]
-                let actual = actual_frags.[i].Value
-                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
-                then
-                    formal_actual_mismatch <- true
-                    _diags.Error(
-                        sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
-                                actual.Type.Name
-                                formal_ty.Name,
-                        actuals.[i].Span)
-
-            Ok { AsmFragment.Asm = StringBuilder()
-                 Type = _class_sym_map.[method_sym.ReturnType]
-                 Reg = Reg.Null }
+            translate_dispatch ExprSyntax.This method_id actuals
             
         | ExprSyntax.SuperDispatch (method_id, actuals) ->
-            let this_frag = translate_expr ExprSyntax.This
-            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
-            if this_frag.IsError || (actual_frags |> Array.exists (fun it -> it.IsError))
-            then
-                Error
-            else
-            
             let super_sym = _class_sym_map.[_class_syntax.ExtendsSyntax.SUPER.Syntax] 
             if not (super_sym.Methods.ContainsKey(method_id.Syntax))
             then
@@ -612,41 +509,26 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
                 
-            let method_sym = super_sym.Methods.[method_id.Syntax]
-            
-            if method_sym.Formals.Length <> actual_frags.Length
+            let this_frag = translate_expr ExprSyntax.This
+            if this_frag.IsError
             then
-                _diags.Error(
-                    sprintf "'%O.%O' takes %d actual(s) but was passed %d"
-                            super_sym.Name
-                            method_sym.Name
-                            method_sym.Formals.Length
-                            actual_frags.Length,
-                    method_id.Span)
                 Error
             else
                 
-            let mutable formal_actual_mismatch = false
-            
-            for i in 0 .. method_sym.Formals.Length - 1 do
-                let formal = method_sym.Formals.[i]
-                let formal_ty = _class_sym_map.[formal.Type]
-                let actual = actual_frags.[i].Value
-                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
-                then
-                    formal_actual_mismatch <- true
-                    _diags.Error(
-                        sprintf "The actual's type '%O' does not conform to the formal's type '%O'"
-                                actual.Type.Name
-                                formal_ty.Name,
-                        actuals.[i].Span)
+            let method_sym = super_sym.Methods.[method_id.Syntax]
+            let method_name = sprintf "'%O.%O'" super_sym.Name method_sym.Name
+
+            let actuals_frag = translate_actuals method_name method_id.Span method_sym (*formal_name=*)"formal" actuals
+            if actuals_frag.IsError
+            then
+                Error
+            else
 
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _class_sym_map.[method_sym.ReturnType]
                  Reg = Reg.Null }
             
         | ExprSyntax.New (type_name, actuals) ->
-            // Any, Int, Unit, Boolean, Symbol
             if not (_class_sym_map.ContainsKey(type_name.Syntax))
             then
                 _diags.Error(
@@ -667,37 +549,19 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
             
-            let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
-            if (actual_frags |> Array.exists (fun it -> it.IsError))
-            then
-                Error
-            else
+            let method_sym = ty.Ctor
+            let method_name = sprintf "Constructor of '%O'" ty.Name
 
-            if ty.Ctor.Formals.Length <> actual_frags.Length
+            let actuals_frag =
+                translate_actuals method_name
+                                  type_name.Span
+                                  method_sym
+                                  (*formal_name=*)"varformal"
+                                  actuals
+            if actuals_frag.IsError
             then
-                _diags.Error(
-                    sprintf "Constructor of '%O' takes %d actuals but was passed %d"
-                            type_name.Syntax
-                            ty.Ctor.Formals.Length
-                            actual_frags.Length,
-                    type_name.Span)
                 Error
             else
-                
-            let mutable formal_actual_mismatch = false
-            
-            for i in 0 .. ty.Ctor.Formals.Length - 1 do
-                let formal = ty.Ctor.Formals.[i]
-                let formal_ty = _class_sym_map.[formal.Type]
-                let actual = actual_frags.[i].Value
-                if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
-                then
-                    formal_actual_mismatch <- true
-                    _diags.Error(
-                        sprintf "The actual's type '%O' does not conform to the varformal's type '%O'"
-                                actual.Type.Name
-                                formal_ty.Name,
-                        actuals.[i].Span)
 
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = ty
@@ -868,6 +732,84 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
 
         Ok (left_frag.Value, right_frag.Value)
     
+    
+    and translate_dispatch (receiver_syntax: ExprSyntax)
+                           (method_id: AstNode<ID>)
+                           (actuals: AstNode<ExprSyntax>[])
+                           : Result<AsmFragment> =
+        let receiver_frag = translate_expr receiver_syntax
+        if receiver_frag.IsError
+        then
+            Error
+        else
+        
+        if not (receiver_frag.Value.Type.Methods.ContainsKey(method_id.Syntax))
+        then
+            _diags.Error(
+                sprintf "'%O' does not contain a definition for '%O'"
+                        receiver_frag.Value.Type.Name
+                        method_id.Syntax,
+                method_id.Span)
+            Error
+        else
+            
+        let method_sym = receiver_frag.Value.Type.Methods.[method_id.Syntax]
+        let method_name = sprintf "'%O.%O'" receiver_frag.Value.Type.Name method_sym.Name
+        
+        let actuals_frag = translate_actuals method_name method_id.Span method_sym (*formal_name=*)"formal" actuals
+        if actuals_frag.IsError
+        then
+            Error
+        else
+
+        Ok { AsmFragment.Asm = StringBuilder()
+             Type = _class_sym_map.[method_sym.ReturnType]
+             Reg = Reg.Null }
+
+    
+    and translate_actuals (method_name: string)
+                          (method_id_span: Span)
+                          (method_sym: MethodSymbol)
+                          (formal_name: string)
+                          (actuals: AstNode<ExprSyntax>[])
+                          : Result<AsmFragment> =
+        let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
+        if actual_frags |> Array.exists (fun it -> it.IsError)
+        then
+            Error
+        else
+        
+        if method_sym.Formals.Length <> actual_frags.Length
+        then
+            _diags.Error(
+                sprintf "%s takes %d actual(s) but was passed %d"
+                        method_name
+                        method_sym.Formals.Length
+                        actual_frags.Length,
+                method_id_span)
+            Error
+        else
+            
+        let mutable formal_actual_mismatch = false
+        
+        for i in 0 .. method_sym.Formals.Length - 1 do
+            let formal = method_sym.Formals.[i]
+            let formal_ty = _class_sym_map.[formal.Type]
+            let actual = actual_frags.[i].Value
+            if not (_type_cmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
+            then
+                formal_actual_mismatch <- true
+                _diags.Error(
+                    sprintf "The actual's type '%O' does not conform to the %s's type '%O'"
+                            actual.Type.Name
+                            formal_name
+                            formal_ty.Name,
+                    actuals.[i].Span)
+
+        Ok { AsmFragment.Asm = StringBuilder()
+             Type = _class_sym_map.[method_sym.ReturnType]
+             Reg = Reg.Null }
+        
     
     and translate_var (var_node: AstNode<VarSyntax>): Result<AsmFragment> =
         _sym_table.Add (Symbol.Of(var_node, _sym_table.MethodSymCount))
