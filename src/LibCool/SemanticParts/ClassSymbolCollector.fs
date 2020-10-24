@@ -11,7 +11,7 @@ open AstExtensions
 
 [<RequireQualifiedAccess>]
 module SpecialClasses =
-    let Error = ClassSymbol.Virtual(class_name=TYPENAME ".Error")
+    let Error = ClassSymbol.Virtual(class_name=TYPENAME ".Error", tag=(-1))
 
 
 [<AutoOpen>]
@@ -65,10 +65,22 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
     let _class_sym_map = Dictionary<TYPENAME, ClassSymbol>() 
     
 
-    let resolve_to_class_syntax (class_name_node: AstNode<TYPENAME>)
-                                : AstNode<ClassSyntax> voption =
+    let resolve_to_class_node (class_name_node: AstNode<TYPENAME>)
+                              : AstNode<ClassSyntax> voption =
         let class_name = class_name_node.Syntax
-        
+
+        // Make sure it's not a reference to a system class that is not allowed in user code.
+        if _class_sym_map.ContainsKey(class_name) &&
+           (let class_sym = _class_sym_map.[class_name]
+            class_sym.Tag = -1 && class_sym <> SpecialClasses.Error)
+        then
+            _diags.Error(
+                sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
+                class_name_node.Span)
+            
+            ValueNone
+        else
+
         if _class_node_map.ContainsKey(class_name)
         then
             ValueSome (_class_node_map.[class_name])
@@ -76,11 +88,13 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
         if not (_class_sym_map.ContainsKey(class_name))
         then
+            // We could not find a syntax node or symbol corresponding to `class_name`.
             _class_sym_map.Add(class_name, SpecialClasses.Error)
             _diags.Error(
                 sprintf "The type name '%O' could not be found (is an input file missing?)" class_name,
                 class_name_node.Span)
 
+        // Else: it's a basic class, that only exists as a symbol and is not present in the ast.
         ValueNone
 
 
@@ -115,7 +129,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 _diags.Error(message, attr_node.Span)
             else
                 
-            resolve_to_class_syntax attr_syntax.TYPE |> ignore
+            resolve_to_class_node attr_syntax.TYPE |> ignore
 
             let ai = mk_attr_sym class_syntax
                                  attr_node
@@ -153,7 +167,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 _diags.Error(get_message formal_node prev_formal_node, formal_node.Span)
             else
                 
-            resolve_to_class_syntax formal_syntax.TYPE |> ignore
+            resolve_to_class_node formal_syntax.TYPE |> ignore
             formal_node_map.Add(formal_syntax.ID.Syntax, formal_node)
         )
 
@@ -221,7 +235,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                     method_node.Span)
             else
                 
-            resolve_to_class_syntax method_syntax.RETURN |> ignore
+            resolve_to_class_node method_syntax.RETURN |> ignore
             
             let index = if method_syms.ContainsKey(method_syntax.ID.Syntax)
                         then method_syms.[method_syntax.ID.Syntax].Index
@@ -243,9 +257,9 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
                       ((*get_message=*)fun formal prev_formal ->
                           sprintf "The constructor of class '%O' already contains a var formal '%O' at %O"
-                                   class_syntax.NAME.Syntax
-                                   formal.Syntax.ID.Syntax
-                                   prev_formal.Span)
+                                  class_syntax.NAME.Syntax
+                                  formal.Syntax.ID.Syntax
+                                  prev_formal.Span)
 
 
     let mk_ctor_sym (class_syntax: ClassSyntax): MethodSymbol =
@@ -271,6 +285,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
           Ctor = mk_ctor_sym class_syntax
           Attrs = attr_syms
           Methods = method_syms
+          Tag = _class_sym_map.Values |> Seq.where (fun it -> it.Tag <> -1) |> Seq.length
           SyntaxSpan = class_node.Span }
         
         
@@ -284,15 +299,22 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         let rec do_collect_class_sym (class_name_node: AstNode<TYPENAME>): ClassSymbol =
             let class_name = class_name_node.Syntax
      
-            // See if we collected a symbol for this class earlier.
-            // If we did, don't try to collect again.
+            // See if we collected a symbol for this class earlier or it's a basic class.
+            // If so, don't try to collect again.
             if _class_sym_map.ContainsKey(class_name)
             then
-                _class_sym_map.[class_name]
+                let class_sym = _class_sym_map.[class_name_node.Syntax]
+                if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
+                then
+                    _diags.Error(
+                        sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
+                        class_name_node.Span)
+                
+                class_sym
             else
             
-            // See if a class with the name supplied to us exists.
-            let class_node_opt = resolve_to_class_syntax class_name_node
+            // See if a class with the name supplied to us exists in user code.
+            let class_node_opt = resolve_to_class_node class_name_node
             if class_node_opt.IsNone
             then 
                 SpecialClasses.Error
@@ -309,12 +331,11 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 else
 
                 // An inheritance cycle detected
-                
                 let sb_message = StringBuilder("A circular superclass dependency detected: '")
 
                 let cycle = inheritance_chain.Subchain(class_syntax)
-                
                 cycle |> Seq.iter (fun it -> sb_message.AppendFormat("{0} -> ", it.NAME.Syntax) |> ignore)
+
                 sb_message.AppendFormat("{0}'", cycle.[0].NAME.Syntax) |> ignore
 
                 _diags.Error(sb_message.ToString(), class_syntax.ExtendsSyntax.SUPER.Span)
@@ -347,12 +368,27 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             // so the next time we need it, we can reuse it instead of collecting from scratch.
             add_class_sym_to_map class_sym
             class_sym
-            
+        
+        if _class_sym_map.ContainsKey(class_name_node.Syntax)
+        then
+            let class_sym = _class_sym_map.[class_name_node.Syntax]
+            if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
+            then
+                _diags.Error(
+                    sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
+                    class_name_node.Span)
+        else
+        
         do_collect_class_sym class_name_node |> ignore
     
     
     member this.Collect(): IReadOnlyDictionary<TYPENAME, ClassSymbol> =
+        // The following three aren't allowed in user code.
         add_class_sym_to_map BasicClasses.Nothing
+        add_class_sym_to_map BasicClasses.Null
+        add_class_sym_to_map BasicClasses.Symbol
+        
+        // Just normal basic classes.
         add_class_sym_to_map BasicClasses.Any
         add_class_sym_to_map BasicClasses.Unit
         add_class_sym_to_map BasicClasses.Int
@@ -365,7 +401,6 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         // So we don't add it to the map before collecting class symbols from the program's ast. 
         
         _program_syntax.Classes |> Array.iter (fun class_node ->
-            let class_syntax = class_node.Syntax
-            collect_class_sym class_syntax.NAME)
+            collect_class_sym class_node.Syntax.NAME)
         
         _class_sym_map :> IReadOnlyDictionary<_, _>

@@ -55,6 +55,7 @@ type ClassSymbol =
       Ctor: MethodSymbol
       Attrs: IReadOnlyDictionary<ID, AttrSymbol>
       Methods: IReadOnlyDictionary<ID, MethodSymbol>
+      Tag: int
       SyntaxSpan: Span }
     
     
@@ -62,6 +63,7 @@ type ClassSymbol =
     
     
     static member Virtual(class_name: TYPENAME,
+                          tag: int,
                           ?ctor_formals: (ID * TYPENAME)[],
                           ?super: ClassSymbol,
                           ?methods: MethodSymbol[]): ClassSymbol =
@@ -91,6 +93,7 @@ type ClassSymbol =
           Ctor = ctor
           Attrs = Map.empty
           Methods = method_map
+          Tag = tag
           SyntaxSpan = Span.Invalid }
 
 
@@ -110,27 +113,32 @@ module BasicClassNames =
 
 [<RequireQualifiedAccess>]
 module BasicClasses =
-    let Nothing = ClassSymbol.Virtual(class_name=BasicClassNames.Nothing)
+    let Nothing = ClassSymbol.Virtual(class_name=BasicClassNames.Nothing, tag=(-1))
+    
+    
+    let Symbol = ClassSymbol.Virtual(class_name=BasicClassNames.Symbol, tag=(-1))
     
     
     let Any =
         ClassSymbol.Virtual(
             class_name=BasicClassNames.Any,
+            tag=0,
             methods=[|
                 MethodSymbol.Virtual(ID "abort"(*name*),
                                      BasicClassNames.Nothing(*return_type*))
             |])
     
     
-    let Unit = ClassSymbol.Virtual(class_name=BasicClassNames.Unit, super=BasicClasses.Any) 
+    let Unit = ClassSymbol.Virtual(class_name=BasicClassNames.Unit, tag=1, super=BasicClasses.Any) 
     
     
-    let Int = ClassSymbol.Virtual(class_name=BasicClassNames.Int, super=BasicClasses.Any)
+    let Int = ClassSymbol.Virtual(class_name=BasicClassNames.Int, tag=2, super=BasicClasses.Any)
     
     
     let String =
         ClassSymbol.Virtual(
             class_name=BasicClassNames.String,
+            tag=3,
             ctor_formals=[| (ID "value", BasicClassNames.String) |],
             super=BasicClasses.Any,
             methods=[|
@@ -148,12 +156,13 @@ module BasicClasses =
             |])
     
     
-    let Boolean = ClassSymbol.Virtual(class_name=BasicClassNames.Boolean, super=BasicClasses.Any)
+    let Boolean = ClassSymbol.Virtual(class_name=BasicClassNames.Boolean, tag=4, super=BasicClasses.Any)
     
     
     let ArrayAny =
         ClassSymbol.Virtual(
             class_name=BasicClassNames.ArrayAny,
+            tag=5,
             ctor_formals=[| (ID "length", BasicClassNames.Int) |],
             super=BasicClasses.Any,
             methods=[|
@@ -173,6 +182,7 @@ module BasicClasses =
     let IO =
         ClassSymbol.Virtual(
             class_name=BasicClassNames.IO,
+            tag=6,
             super=BasicClasses.Any,
             methods=[|
                 MethodSymbol.Virtual(ID "out_string"(*name*),
@@ -192,13 +202,10 @@ module BasicClasses =
                 MethodSymbol.Virtual(ID "in_int"(*name*),
                                      BasicClassNames.Int(*return_type*))
             |])
-    
-    
-    let Symbol = ClassSymbol.Virtual(class_name=BasicClassNames.Symbol, super=BasicClasses.Any)
 
     
     // Null is the type of the null literal.
     // It is a subtype of every type except those of value classes. Value classes include types such as Int, Boolean, Unit.
     // Since Null is not a subtype of value types, null is not a member of any such type.
     // For instance, it is not possible to assign null to a variable of type Int. 
-    let Null = ClassSymbol.Virtual(class_name=BasicClassNames.Null, super=BasicClasses.Any)
+    let Null = ClassSymbol.Virtual(class_name=BasicClassNames.Null, tag=(-1), super=BasicClasses.Any)

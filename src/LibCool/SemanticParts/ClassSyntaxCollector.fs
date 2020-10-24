@@ -27,6 +27,6 @@ type ClassDeclCollector(_program_syntax: ProgramSyntax, _diags: DiagnosticBag, _
             else
                 map.Add(class_syntax.NAME.Syntax, class_node)
         
-        _program_syntax.Classes |> Seq.iter (fun it -> add_class_syntax it)
+        _program_syntax.Classes |> Seq.iter add_class_syntax
         
         map :> IReadOnlyDictionary<_, _>

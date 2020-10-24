@@ -1,0 +1,26 @@
+class Nothing() {}
+class Null() {}
+class Symbol() {}
+
+class Main() {
+    def foo(): Nothing = abort();
+    def bar(): Null = abort();
+    def baz(): Symbol = abort();
+
+    {
+        var it0: Nothing = abort();
+        var it1: Null = abort();
+        var it2: Symbol = abort();
+    };
+}
+
+// DIAG: Semantics/SystemTypes.cool(1,7): Error: The type name 'Nothing' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(2,7): Error: The type name 'Null' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(3,7): Error: The type name 'Symbol' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(6,16): Error: The type name 'Nothing' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(7,16): Error: The type name 'Null' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(8,16): Error: The type name 'Symbol' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(11,18): Error: The type name 'Nothing' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(12,18): Error: The type name 'Null' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(13,18): Error: The type name 'Symbol' is not allowed in user code
+// DIAG: Build failed: Errors: 9. Warnings: 0

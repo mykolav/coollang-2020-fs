@@ -63,6 +63,7 @@
         <Content Include="CoolPrograms\Semantics\Arith.cool" />
         <Content Include="CoolPrograms\Semantics\Comparison.cool" />
         <Content Include="CoolPrograms\Semantics\Equality.cool" />
+        <Content Include="CoolPrograms\Semantics\SystemTypes.cool" />
     </ItemGroup>
 
     <ItemGroup>

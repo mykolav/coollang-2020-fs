@@ -8,6 +8,11 @@ class F(var a: TypeNotFound1) {
     var b: TypeNotFound2 = new TypeNotFound2();
     def foo(): TypeNotFound3 = new TypeNotFound3();
     def bar(c: String, d: TypeNotFound4, e: Int): String = "";
+    
+    {
+        var it: TypeNotFound5 = new TypeNotFound5();
+        ()
+    };
 }
 
 class Main() {}
@@ -17,4 +22,6 @@ class Main() {}
 // DIAG: Semantics/TypeNameCouldNotBeFound1.cool(8,12): Error: The type name 'TypeNotFound2' could not be found (is an input file missing?)
 // DIAG: Semantics/TypeNameCouldNotBeFound1.cool(9,16): Error: The type name 'TypeNotFound3' could not be found (is an input file missing?)
 // DIAG: Semantics/TypeNameCouldNotBeFound1.cool(10,27): Error: The type name 'TypeNotFound4' could not be found (is an input file missing?)
-// DIAG: Build failed: Errors: 5. Warnings: 0
+// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(13,17): Error: The type name 'TypeNotFound5' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(13,37): Error: The type name 'TypeNotFound5' could not be found (is an input file missing?)
+// DIAG: Build failed: Errors: 6. Warnings: 0

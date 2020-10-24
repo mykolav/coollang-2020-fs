@@ -145,6 +145,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             if result.IsError
             then
                 Error
+
             else
                 
             let expr_frag = result.Value
@@ -541,7 +542,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if ty.Is(BasicClasses.Any) || ty.Is(BasicClasses.Int) ||
                ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean) ||
-               ty.Is(BasicClasses.Symbol) 
+               ty.Is(BasicClasses.Symbol) || ty.Is(BasicClasses.Nothing) ||
+               ty.Is(BasicClasses.Null)
             then
                 _diags.Error(
                     sprintf "'new %O' is not allowed" type_name.Syntax,
