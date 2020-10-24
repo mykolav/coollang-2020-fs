@@ -1,4 +1,4 @@
-namespace LibCool.SemanticParts.SemanticParts
+namespace LibCool.SemanticParts
 
 
 open System.Collections.Generic

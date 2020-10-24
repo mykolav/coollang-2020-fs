@@ -1,10 +1,10 @@
-namespace LibCool.SemanticParts.SemanticParts
+namespace LibCool.SemanticParts
 
 
 open System.Collections.Generic
 open LibCool.SourceParts
 open LibCool.AstParts
-open LibCool.SemanticParts.SemanticParts
+open LibCool.SemanticParts
 
 
 type SymbolKind

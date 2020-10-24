@@ -7,7 +7,7 @@ open System.Text
 open LibCool.SourceParts
 open LibCool.DiagnosticParts
 open LibCool.AstParts
-open LibCool.SemanticParts.SemanticParts
+open LibCool.SemanticParts
 open AstExtensions
 
 
