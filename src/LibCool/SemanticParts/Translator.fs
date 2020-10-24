@@ -85,7 +85,7 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
 
 
 [<IsReadOnly; Struct; DefaultAugmentation(false)>]
-type Result<'T>
+type Res<'T>
     = Error
     | Ok of 'T
     with
@@ -136,7 +136,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
           Reg = Reg.Null }
     
     
-    let rec translate_expr: (*expr_syntax:*) ExprSyntax -> Result<AsmFragment> = function
+    let rec translate_expr: (*expr_syntax:*) ExprSyntax -> Res<AsmFragment> = function
         | ExprSyntax.Assign (id, expr) ->
             translate_assign id expr
 
@@ -613,7 +613,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             Ok AsmFragment.Unit
         
         
-    and translate_assign (id: AstNode<ID>) (expr: AstNode<ExprSyntax>): Result<AsmFragment> =
+    and translate_assign (id: AstNode<ID>) (expr: AstNode<ExprSyntax>): Res<AsmFragment> =
         let addr_frag = addr_of (_sym_table.Resolve(id.Syntax))
         let expr_frag = translate_expr expr.Syntax
         if expr_frag.IsError
@@ -651,7 +651,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     and translate_unaryop_operand (expr: AstNode<ExprSyntax>)
                                   (op: string)
                                   (expected_ty: ClassSymbol)
-                                  : Result<AsmFragment> =
+                                  : Res<AsmFragment> =
         let expr_frag = translate_expr expr.Syntax
         if expr_frag.IsError
         then
@@ -676,7 +676,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     and translate_infixop_int_operands (left: AstNode<ExprSyntax>)
                                        (right: AstNode<ExprSyntax>)
                                        (op: string)
-                                       : Result<(AsmFragment * AsmFragment)> =
+                                       : Res<(AsmFragment * AsmFragment)> =
         let typecheck left_frag right_frag: bool =
             if not (left_frag.Type.Is(BasicClasses.Int) &&
                     right_frag.Type.Is(BasicClasses.Int))
@@ -697,7 +697,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     and translate_eqop_operands (left: AstNode<ExprSyntax>)
                                 (right: AstNode<ExprSyntax>)
                                 (op: string)
-                                : Result<(AsmFragment * AsmFragment)> =
+                                : Res<(AsmFragment * AsmFragment)> =
         let typecheck left_frag right_frag: bool =
             if not (_type_cmp.Conforms(left_frag.Type, right_frag.Type) ||
                     _type_cmp.Conforms(right_frag.Type, left_frag.Type))
@@ -718,7 +718,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     and translate_infixop_operands (left: AstNode<ExprSyntax>)
                                    (right: AstNode<ExprSyntax>)
                                    (typecheck: AsmFragment -> AsmFragment -> bool)
-                                   : Result<(AsmFragment * AsmFragment)> =
+                                   : Res<(AsmFragment * AsmFragment)> =
         let left_frag = translate_expr left.Syntax
         let right_frag = translate_expr right.Syntax
         
@@ -738,7 +738,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     and translate_dispatch (receiver_syntax: ExprSyntax)
                            (method_id: AstNode<ID>)
                            (actuals: AstNode<ExprSyntax>[])
-                           : Result<AsmFragment> =
+                           : Res<AsmFragment> =
         let receiver_frag = translate_expr receiver_syntax
         if receiver_frag.IsError
         then
@@ -774,7 +774,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                           (method_sym: MethodSymbol)
                           (formal_name: string)
                           (actuals: AstNode<ExprSyntax>[])
-                          : Result<AsmFragment> =
+                          : Res<AsmFragment> =
         let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
         if actual_frags |> Array.exists (fun it -> it.IsError)
         then
@@ -813,7 +813,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
              Reg = Reg.Null }
         
     
-    and translate_var (var_node: AstNode<VarSyntax>): Result<AsmFragment> =
+    and translate_var (var_node: AstNode<VarSyntax>): Res<AsmFragment> =
         _sym_table.Add(Symbol.Of(var_node, _sym_table.MethodSymCount))
         let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
@@ -827,7 +827,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         Ok { assign_frag.Value with Reg = Reg.Null }
 
     
-    and translate_block (block_syntax_opt: BlockSyntax voption): Result<AsmFragment> =
+    and translate_block (block_syntax_opt: BlockSyntax voption): Res<AsmFragment> =
         match block_syntax_opt with
         | ValueNone ->
             Ok AsmFragment.Unit
@@ -864,9 +864,9 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             Ok { AsmFragment.Asm = sb_asm
                  Type = expr_frag.Value.Type
                  Reg = expr_frag.Value.Reg }
-
-
-    let translate_attr (attr_node: AstNode<AttrSyntax>): Result<string> =
+            
+            
+    let translate_attr (attr_node: AstNode<AttrSyntax>): Res<string> =
         let initial_node = attr_node.Syntax.Initial
         let expr_node =
             match initial_node.Syntax with
