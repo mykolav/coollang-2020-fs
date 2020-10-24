@@ -1,0 +1,21 @@
+class A() { def bar(): Unit = (); }
+class F() {
+    def foo(f: Any): Unit = ();
+    
+    {
+        foo(actual_does_not_exist);
+        method_id_does_not_exist();
+        
+        var a: A = new A();
+        a.bar();
+        a.method_id_does_not_exist();
+        ()
+    };
+}
+
+class Main() {}
+
+// DIAG: Semantics/IdNotFound1.cool(6,13): Error: The name 'actual_does_not_exist' does not exist in the current context
+// DIAG: Semantics/IdNotFound1.cool(7,9): Error: 'F' does not contain a definition for 'method_id_does_not_exist'
+// DIAG: Semantics/IdNotFound1.cool(11,11): Error: 'A' does not contain a definition for 'method_id_does_not_exist'
+// DIAG: Build failed: Errors: 3. Warnings: 0

@@ -48,6 +48,7 @@
         <Content Include="CoolPrograms\Syntax\AFeatureMustBeAMethodAttrOrBlock.cool" />
         <Content Include="CoolPrograms\Semantics\TypeNotFound1.cool" />
         <Content Include="CoolPrograms\Semantics\TypeNotFound2.cool" />
+        <Content Include="CoolPrograms\Semantics\IdNotFound1.cool" />
         <Content Include="CoolPrograms\Semantics\CircularSuperClass.cool" />
         <Content Include="CoolPrograms\Semantics\TypeMismatch1.cool" />
         <Content Include="CoolPrograms\Semantics\TypeAlreadyContainsADefinition1.cool" />

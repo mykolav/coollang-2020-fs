@@ -1,12 +1,13 @@
 class F() {
     {
-        var it: TypeNotFound5 = new TypeNotFound6();
+        var it0: TypeNotFound5 = new TypeNotFound6();
+        var it1: Any = new TypeNotFound6();
         ()
     };
 }
 
 class Main() {}
 
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(3,17): Error: The type name 'TypeNotFound5' could not be found (is an input file missing?)
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(3,37): Error: The type name 'TypeNotFound6' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNotFound2.cool(3,18): Error: The type name 'TypeNotFound5' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNotFound2.cool(4,28): Error: The type name 'TypeNotFound6' could not be found (is an input file missing?)
 // DIAG: Build failed: Errors: 2. Warnings: 0

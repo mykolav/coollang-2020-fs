@@ -59,6 +59,9 @@ type ClassSymbol =
       SyntaxSpan: Span }
     
     
+    member this.IsSpecial: bool = this.Tag = -1
+    
+    
     member this.Is(class_sym: ClassSymbol): bool = this.Name = class_sym.Name
     
     

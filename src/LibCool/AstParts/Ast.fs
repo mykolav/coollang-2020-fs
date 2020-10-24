@@ -9,7 +9,7 @@ open LibCool.SourceParts
 type AstNode<'TSyntax> =
     { Span: Span
       Syntax: 'TSyntax }
-    with
+    member this.IsVirtual: bool = this.Span = Span.Invalid
     member this.Map<'TMapped>(mapping: 'TSyntax -> 'TMapped): AstNode<'TMapped> =
         AstNode.Of(mapping this.Syntax, this.Span)
         

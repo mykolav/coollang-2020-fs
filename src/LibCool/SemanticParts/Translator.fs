@@ -136,7 +136,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
           Reg = Reg.Null }
     
     
-    let rec translate_expr: (*expr_syntax:*) ExprSyntax -> Res<AsmFragment> = function
+    let rec translate_expr (expr_node: AstNode<ExprSyntax>): Res<AsmFragment> =
+        match expr_node.Syntax with
         | ExprSyntax.Assign (id, expr) ->
             translate_assign id expr
 
@@ -168,7 +169,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     Asm = expr_frag.Asm.AppendLine(asm) }
             
         | ExprSyntax.If (condition, then_branch, else_branch) ->
-            let condition_frag = translate_expr condition.Syntax
+            let condition_frag = translate_expr condition
             if condition_frag.IsError
             then
                 Error
@@ -190,8 +191,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
 
             _reg_set.Free(condition_frag.Value.Reg)
             
-            let then_frag = translate_expr then_branch.Syntax
-            let else_frag = translate_expr else_branch.Syntax
+            let then_frag = translate_expr then_branch
+            let else_frag = translate_expr else_branch
 
             if then_frag.IsError || else_frag.IsError
             then
@@ -210,7 +211,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Reg = reg }
         
         | ExprSyntax.While (condition, body) ->
-            let condition_frag = translate_expr condition.Syntax
+            let condition_frag = translate_expr condition
             if condition_frag.IsError
             then
                 Error
@@ -232,7 +233,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
 
             _reg_set.Free(condition_frag.Value.Reg)
             
-            let body_frag = translate_expr body.Syntax
+            let body_frag = translate_expr body
             if body_frag.IsError
             then
                 Error
@@ -424,7 +425,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Reg = Reg.Null }
         
         | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
-            let expr_frag = translate_expr expr.Syntax
+            let expr_frag = translate_expr expr
             if expr_frag.IsError
             then
                 Error
@@ -433,12 +434,19 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             let cases = Array.concat [[| cases_hd |]; cases_tl]    
             let patterns = cases |> Array.map (fun case ->
                 match case.Syntax.Pattern.Syntax with
-                | PatternSyntax.IdType (_, ty) -> _class_sym_map.[ty.Syntax], ty.Span
-                | PatternSyntax.Null -> BasicClasses.Null, case.Syntax.Pattern.Span)
+                | PatternSyntax.IdType (_, ty) -> ty
+                | PatternSyntax.Null -> AstNode.Virtual(BasicClassNames.Null))
             
             let mutable pattern_error = false
             for i in 0 .. patterns.Length-1 do
-                let (pattern_ty, span) = patterns.[i]
+                let pattern = patterns.[i]
+                if pattern.Syntax <> BasicClassNames.Null &&
+                   (typecheck_type pattern) = Error
+                then
+                    pattern_error <- true
+                else
+                
+                let pattern_ty = _class_sym_map.[pattern.Syntax]    
                 if not (_type_cmp.Conforms(pattern_ty, expr_frag.Value.Type) ||
                         _type_cmp.Conforms(expr_frag.Value.Type, pattern_ty))
                 then
@@ -446,21 +454,24 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                         sprintf "'%O' and '%O' are not parts of the same inheritance chain. As a result this case is unreachable"
                                 expr_frag.Value.Type
                                 pattern_ty,
-                        span)
+                        pattern.Span)
                     pattern_error <- true
                 else
                 
                 // if `i` = 0, we'll have `for j in 0 .. -1 do`
                 // that will not perform a single iteration.
                 for j in 0 .. i-1 do
-                    let (prev_pattern_ty, prev_span) = patterns.[j]
-                    if _type_cmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
+                    let prev_pattern = patterns.[j]
+                    if _class_sym_map.ContainsKey(prev_pattern.Syntax)
                     then
-                        _diags.Error(
-                            sprintf "This case is shadowed by an earlier case at %O"
-                                    (_source.Map(prev_span.First)),
-                            span)
-                        pattern_error <- true
+                        let prev_pattern_ty = _class_sym_map.[prev_pattern.Syntax]    
+                        if _type_cmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
+                        then
+                            _diags.Error(
+                                sprintf "This case is shadowed by an earlier case at %O"
+                                        (_source.Map(prev_pattern.Span.First)),
+                                pattern.Span)
+                            pattern_error <- true
             
             let sym_index = _sym_table.MethodSymCount
             let block_frags =
@@ -493,10 +504,10 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Reg = Reg.Null }
 
         | ExprSyntax.Dispatch (receiver, method_id, actuals) ->
-            translate_dispatch receiver.Syntax method_id actuals
+            translate_dispatch receiver method_id actuals
             
         | ExprSyntax.ImplicitThisDispatch (method_id, actuals) ->
-            translate_dispatch ExprSyntax.This method_id actuals
+            translate_dispatch (AstNode.Virtual(ExprSyntax.This)) method_id actuals
             
         | ExprSyntax.SuperDispatch (method_id, actuals) ->
             let super_sym = _class_sym_map.[_class_syntax.ExtendsSyntax.SUPER.Syntax] 
@@ -510,7 +521,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 Error
             else
                 
-            let this_frag = translate_expr ExprSyntax.This
+            let this_frag = translate_expr (AstNode.Virtual(ExprSyntax.This))
             if this_frag.IsError
             then
                 Error
@@ -530,20 +541,15 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Reg = Reg.Null }
             
         | ExprSyntax.New (type_name, actuals) ->
-            if not (_class_sym_map.ContainsKey(type_name.Syntax))
+            if (typecheck_type type_name) = Error
             then
-                _diags.Error(
-                    sprintf "The type name '%O' could not be found (is an input file missing?)" type_name.Syntax,
-                    type_name.Span)
                 Error
             else
-               
+                
             let ty = _class_sym_map.[type_name.Syntax]
             
             if ty.Is(BasicClasses.Any) || ty.Is(BasicClasses.Int) ||
-               ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean) ||
-               ty.Is(BasicClasses.Symbol) || ty.Is(BasicClasses.Nothing) ||
-               ty.Is(BasicClasses.Null)
+               ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean)
             then
                 _diags.Error(
                     sprintf "'new %O' is not allowed" type_name.Syntax,
@@ -573,14 +579,21 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             translate_block block
                 
         | ExprSyntax.ParensExpr expr ->
-            translate_expr expr.Syntax
+            translate_expr expr
 
         | ExprSyntax.Id id ->
-            let sym = _sym_table.Resolve(id)
-            let ty = _class_sym_map.[sym.Type]
-            Ok { AsmFragment.Asm = StringBuilder()
-                 Type = ty
-                 Reg = Reg.Null }
+            let sym = _sym_table.TryResolve(id)
+            match sym with
+            | ValueNone ->
+                _diags.Error(
+                    sprintf "The name '%O' does not exist in the current context" id,
+                    expr_node.Span)
+                Error
+            | ValueSome sym ->
+                let ty = _class_sym_map.[sym.Type]
+                Ok { AsmFragment.Asm = StringBuilder()
+                     Type = ty
+                     Reg = Reg.Null }
             
         | ExprSyntax.Int value ->
             Ok { AsmFragment.Asm = StringBuilder()
@@ -615,7 +628,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         
     and translate_assign (id: AstNode<ID>) (expr: AstNode<ExprSyntax>): Res<AsmFragment> =
         let addr_frag = addr_of (_sym_table.Resolve(id.Syntax))
-        let expr_frag = translate_expr expr.Syntax
+        let expr_frag = translate_expr expr
         if expr_frag.IsError
         then
             _reg_set.Free(addr_frag.Reg)
@@ -652,7 +665,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                                   (op: string)
                                   (expected_ty: ClassSymbol)
                                   : Res<AsmFragment> =
-        let expr_frag = translate_expr expr.Syntax
+        let expr_frag = translate_expr expr
         if expr_frag.IsError
         then
             Error
@@ -719,8 +732,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                                    (right: AstNode<ExprSyntax>)
                                    (typecheck: AsmFragment -> AsmFragment -> bool)
                                    : Res<(AsmFragment * AsmFragment)> =
-        let left_frag = translate_expr left.Syntax
-        let right_frag = translate_expr right.Syntax
+        let left_frag = translate_expr left
+        let right_frag = translate_expr right
         
         if left_frag.IsError || right_frag.IsError
         then
@@ -735,11 +748,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         Ok (left_frag.Value, right_frag.Value)
     
     
-    and translate_dispatch (receiver_syntax: ExprSyntax)
+    and translate_dispatch (receiver: AstNode<ExprSyntax>)
                            (method_id: AstNode<ID>)
                            (actuals: AstNode<ExprSyntax>[])
                            : Res<AsmFragment> =
-        let receiver_frag = translate_expr receiver_syntax
+        let receiver_frag = translate_expr receiver
         if receiver_frag.IsError
         then
             Error
@@ -775,7 +788,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                           (formal_name: string)
                           (actuals: AstNode<ExprSyntax>[])
                           : Res<AsmFragment> =
-        let actual_frags = actuals |> Array.map (fun it -> translate_expr it.Syntax)
+        let actual_frags = actuals |> Array.map (fun it -> translate_expr it)
         if actual_frags |> Array.exists (fun it -> it.IsError)
         then
             Error
@@ -814,6 +827,11 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         
     
     and translate_var (var_node: AstNode<VarSyntax>): Res<AsmFragment> =
+        if (typecheck_type var_node.Syntax.TYPE) = Error
+        then
+            Error
+        else
+            
         _sym_table.Add(Symbol.Of(var_node, _sym_table.MethodSymCount))
         let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
@@ -845,13 +863,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                     then
                         sb_asm.Append(var_frag.Value.Asm) |> ignore
                 | StmtSyntax.Expr expr_syntax ->
-                    let expr_frag = translate_expr expr_syntax
+                    let expr_frag = translate_expr (stmt_node.Map(fun _ -> expr_syntax))
                     if expr_frag.IsOk
                     then
                         _reg_set.Free(expr_frag.Value.Reg)
                         sb_asm.Append(expr_frag.Value.Asm) |> ignore)
             
-            let expr_frag = translate_expr block_syntax.Expr.Syntax
+            let expr_frag = translate_expr block_syntax.Expr
             
             _sym_table.LeaveBlock()
             
@@ -866,6 +884,29 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                  Reg = expr_frag.Value.Reg }
             
             
+    and typecheck_type (ty_node: AstNode<TYPENAME>): Res<Unit> =
+        // Make sure it's not a reference to a system class that is not allowed in user code.
+        if _class_sym_map.ContainsKey(ty_node.Syntax)
+        then
+            let class_sym = _class_sym_map.[ty_node.Syntax]
+            if class_sym.IsSpecial
+            then
+                _diags.Error(
+                    sprintf "The type name '%O' is not allowed in user code" ty_node.Syntax,
+                    ty_node.Span)
+                Error
+            else
+            
+            Ok ()
+        else
+
+        // We could not find a symbol corresponding to `ty_node.Syntax`.
+        _diags.Error(
+            sprintf "The type name '%O' could not be found (is an input file missing?)" ty_node.Syntax,
+            ty_node.Span)
+        Error
+
+
     let translate_attr (attr_node: AstNode<AttrSyntax>): Res<string> =
         let initial_node = attr_node.Syntax.Initial
         let expr_node =
@@ -875,7 +916,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             | AttrInitialSyntax.Native ->
                 invalidOp "AttrInitialSyntax.Native"
                 
-        let initial_frag = translate_expr expr_node.Syntax
+        let initial_frag = translate_expr expr_node
         if initial_frag.IsError
         then
             Error
@@ -940,7 +981,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                                         method_id=AstNode.Virtual(ID ".ctor"),
                                         actuals=extends_syntax.Actuals)
         
-        let super_dispatch_frag = translate_expr super_dispatch_syntax
+        let super_dispatch_frag = translate_expr (AstNode.Virtual(super_dispatch_syntax))
         if super_dispatch_frag.IsOk
         then
             sb_ctor_body.Append(super_dispatch_frag.Value.Asm) |> ignore
@@ -953,7 +994,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 ExprSyntax.Assign(id=AstNode.Virtual(ID attr_name),
                                   expr=AstNode.Virtual(ExprSyntax.Id (ID ("." + attr_name))))
 
-            let assign_frag = translate_expr assign_syntax
+            let assign_frag = translate_expr (AstNode.Virtual(assign_syntax))
             if assign_frag.IsOk
             then
                 sb_ctor_body.Append(assign_frag.Value.Asm) |> ignore)
@@ -979,7 +1020,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         // Append ExprSyntax.This to the .ctor's end.
         // (As a result, the last block's last expr's type doesn't have to match the class' type.)
         let this_syntax = ExprSyntax.This
-        let this_frag = translate_expr this_syntax
+        let this_frag = translate_expr (AstNode.Virtual(this_syntax))
         if this_frag.IsOk
         then
             // TODO: Here we need to emit assembly moving this_frag.Reg into the return value register
@@ -1054,7 +1095,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                 _sym_table.Add(sym))
             
             // Translate the method's body
-            let body_frag = translate_expr method_node.Syntax.Body.Syntax.AsExprSyntax
+            let body_frag = translate_expr (method_node.Syntax.Body.Map(fun it -> it.AsExprSyntax))
             if body_frag.IsOk
             then
                 // Make sure, the body's type conforms to the return type.

@@ -72,7 +72,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         // Make sure it's not a reference to a system class that is not allowed in user code.
         if _class_sym_map.ContainsKey(class_name) &&
            (let class_sym = _class_sym_map.[class_name]
-            class_sym.Tag = -1 && not class_sym.IsError)
+            class_sym.IsSpecial && not class_sym.IsError)
         then
             _diags.Error(
                 sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,

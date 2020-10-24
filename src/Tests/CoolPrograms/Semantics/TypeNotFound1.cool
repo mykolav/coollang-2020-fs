@@ -12,11 +12,9 @@ class F(var a: TypeNotFound1) {
 
 class Main() {}
 
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(1,19): Error: The type name 'A' could not be found (is an input file missing?)
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(7,16): Error: The type name 'TypeNotFound1' could not be found (is an input file missing?)
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(8,12): Error: The type name 'TypeNotFound2' could not be found (is an input file missing?)
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(9,16): Error: The type name 'TypeNotFound3' could not be found (is an input file missing?)
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(10,27): Error: The type name 'TypeNotFound4' could not be found (is an input file missing?)
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(13,17): Error: The type name 'TypeNotFound5' could not be found (is an input file missing?)
-// DIAG: Semantics/TypeNameCouldNotBeFound1.cool(13,37): Error: The type name 'TypeNotFound6' could not be found (is an input file missing?)
-// DIAG: Build failed: Errors: 6. Warnings: 0
+// DIAG: Semantics/TypeNotFound1.cool(1,19): Error: The type name 'A' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNotFound1.cool(7,16): Error: The type name 'TypeNotFound1' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNotFound1.cool(8,12): Error: The type name 'TypeNotFound2' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNotFound1.cool(9,16): Error: The type name 'TypeNotFound3' could not be found (is an input file missing?)
+// DIAG: Semantics/TypeNotFound1.cool(10,27): Error: The type name 'TypeNotFound4' could not be found (is an input file missing?)
+// DIAG: Build failed: Errors: 5. Warnings: 0
