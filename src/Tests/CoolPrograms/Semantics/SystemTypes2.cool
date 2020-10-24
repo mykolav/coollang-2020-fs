@@ -1,0 +1,13 @@
+class Main() {
+    {
+        var it0: Nothing = abort();
+        var it1: Null = abort();
+        var it2: Symbol = abort();
+        ()
+    };
+}
+
+// DIAG: Semantics/SystemTypes.cool(3,18): Error: The type name 'Nothing' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(4,18): Error: The type name 'Null' is not allowed in user code
+// DIAG: Semantics/SystemTypes.cool(5,18): Error: The type name 'Symbol' is not allowed in user code
+// DIAG: Build failed: Errors: 3. Warnings: 0

@@ -814,7 +814,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         
     
     and translate_var (var_node: AstNode<VarSyntax>): Result<AsmFragment> =
-        _sym_table.Add (Symbol.Of(var_node, _sym_table.MethodSymCount))
+        _sym_table.Add(Symbol.Of(var_node, _sym_table.MethodSymCount))
         let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
         then

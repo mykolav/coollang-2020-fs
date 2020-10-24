@@ -46,7 +46,8 @@
         <Content Include="CoolPrograms\Syntax\SemiAfterBlocksLastExpr.cool" />
         <Content Include="CoolPrograms\Syntax\FeaturesMustBeTerminatedByASemi.cool" />
         <Content Include="CoolPrograms\Syntax\AFeatureMustBeAMethodAttrOrBlock.cool" />
-        <Content Include="CoolPrograms\Semantics\TypeNameCouldNotBeFound1.cool" />
+        <Content Include="CoolPrograms\Semantics\TypeNotFound1.cool" />
+        <Content Include="CoolPrograms\Semantics\TypeNotFound2.cool" />
         <Content Include="CoolPrograms\Semantics\CircularSuperClass.cool" />
         <Content Include="CoolPrograms\Semantics\TypeMismatch1.cool" />
         <Content Include="CoolPrograms\Semantics\TypeAlreadyContainsADefinition1.cool" />
@@ -63,7 +64,8 @@
         <Content Include="CoolPrograms\Semantics\Arith.cool" />
         <Content Include="CoolPrograms\Semantics\Comparison.cool" />
         <Content Include="CoolPrograms\Semantics\Equality.cool" />
-        <Content Include="CoolPrograms\Semantics\SystemTypes.cool" />
+        <Content Include="CoolPrograms\Semantics\SystemTypes1.cool" />
+        <Content Include="CoolPrograms\Semantics\SystemTypes2.cool" />
     </ItemGroup>
 
     <ItemGroup>
