@@ -8,8 +8,8 @@ type Snippet = Snippet of content: string
     member this.ToDisplayString() =
         let (Snippet content) = this
         "\"" +
-        (if content.Length > 100 
-        then content.[0..100] + "..."
+        (if content.Length > 50 
+        then content.[0..49].Replace("\r", "").Replace("\n", " ") + "..."
         else content) +
         "\""
         
