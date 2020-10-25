@@ -23,6 +23,11 @@
         <Compile Include="SemanticParts\RegisterSet.fs" />
         <Compile Include="SemanticParts\LabelGenerator.fs" />
         <Compile Include="SemanticParts\ConstSet.fs" />
+        <Compile Include="SemanticParts\TypeComparer.fs" />
+        <Compile Include="SemanticParts\TranslationContext.fs" />
+        <Compile Include="SemanticParts\ExprTranslator.fs" />
+        <Compile Include="SemanticParts\ClassTranslator.fs" />
+        <Compile Include="SemanticParts\ProgramTranslator.fs" />
         <Compile Include="SemanticParts\Translator.fs" />
         <Compile Include="Driver\Driver.fs" />
     </ItemGroup>
