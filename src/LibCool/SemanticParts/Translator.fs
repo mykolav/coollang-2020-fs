@@ -97,7 +97,7 @@ type Res<'T>
     member this.Value: 'T =
         match this with
         | Ok value -> value
-        | _ -> invalidOp "Result<'T>.Value"
+        | _ -> invalidOp "Res<'T>.Value"
 
 
 [<IsReadOnly; Struct>]
@@ -113,6 +113,9 @@ type AsmFragment =
 [<Sealed>]
 type private ClassTranslator(_class_syntax: ClassSyntax,
                              _class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>,
+                             _int_consts: ConstSet<int>,
+                             _str_consts: ConstSet<string>,
+                             _sb_code: StringBuilder,
                              _diags: DiagnosticBag,
                              _source: Source) =
     
@@ -120,13 +123,6 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
     let _type_cmp = TypeComparer(_class_sym_map)
     let _reg_set = RegisterSet()
     let _label_gen = LabelGenerator()
-    
-    
-    // Make _sb_data, _sb_code the ctor's parameters?
-    let _sb_data = StringBuilder()
-    let _sb_code = StringBuilder()
-    
-    
     let _sym_table = SymbolTable(_class_sym_map.[_class_syntax.NAME.Syntax])
     
     
@@ -595,20 +591,34 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                      Type = ty
                      Reg = Reg.Null }
             
-        | ExprSyntax.Int value ->
-            Ok { AsmFragment.Asm = StringBuilder()
-                 Type = BasicClasses.Int
-                 Reg = Reg.Null }
+        | ExprSyntax.Int int_syntax ->
+            let const_label = _int_consts.GetOrAdd(int_syntax.Value)
+            let reg = _reg_set.Allocate()
+            let asm = sprintf "movq $%s, %s" const_label (_reg_set.NameOf(reg))
             
-        | ExprSyntax.Str value ->
-            Ok { AsmFragment.Asm = StringBuilder()
+            Ok { AsmFragment.Asm = StringBuilder(asm)
+                 Type = BasicClasses.Int
+                 Reg = reg }
+            
+        | ExprSyntax.Str str_syntax ->
+            let const_label = _str_consts.GetOrAdd(str_syntax.Value)
+            let reg = _reg_set.Allocate()
+            let asm = sprintf "movq $%s, %s" const_label (_reg_set.NameOf(reg))
+            
+            Ok { AsmFragment.Asm = StringBuilder(asm)
                  Type = BasicClasses.String
-                 Reg = Reg.Null }
+                 Reg = reg }
 
-        | ExprSyntax.Bool value ->
-            Ok { AsmFragment.Asm = StringBuilder()
+        | ExprSyntax.Bool bool_syntax ->
+            let const_label = if bool_syntax = BOOL.True
+                              then "bool_const_true"
+                              else "bool_const_false"
+            let reg = _reg_set.Allocate()
+            let asm = sprintf "movq $%s, %s" const_label (_reg_set.NameOf(reg))
+                              
+            Ok { AsmFragment.Asm = StringBuilder(asm)
                  Type = BasicClasses.Boolean
-                 Reg = Reg.Null }
+                 Reg = reg }
 
         | ExprSyntax.This ->
             let sym = _sym_table.Resolve(ID "this")
@@ -1125,17 +1135,59 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                                _source: Source) =
     
     
-    let _sb_data = StringBuilder()
+    let _int_consts = ConstSet<int>("int_const")
+    let _str_consts = ConstSet<string>("str_const")
     let _sb_code = StringBuilder()
+    let _sb_data = StringBuilder()
+
+    
+    let translate_class (class_node: AstNode<ClassSyntax>): unit =
+        ClassTranslator(class_node.Syntax,
+                        _class_sym_map,
+                        _int_consts,
+                        _str_consts,
+                        _sb_code,
+                        _diags,
+                        _source).Translate()
+        
+        
+    let translate_consts (): unit =
+        ()
     
     
-    let translate_class (class_node: AstNode<ClassSyntax>) =
-        ClassTranslator(class_node.Syntax, _class_sym_map, _diags, _source).Translate()
+    let emit_class_name_table(): unit = 
+        ()
+    
+    
+    let emit_class_parent_table(): unit = 
+        ()
+    
+    
+    let emit_class_vtables(): unit = 
+        ()
 
 
     member this.Translate(): string =
+        let sb_asm = StringBuilder()
+
         _program_syntax.Classes |> Array.iter translate_class
-        ""
+
+        translate_consts()
+        emit_class_name_table()
+        emit_class_parent_table()
+        emit_class_vtables()
+
+        let asm = 
+            sb_asm
+                .AppendLine(".data")
+                .AppendLine(".global class_name_table")
+                .AppendLine(".global Main_proto_obj")
+                .Append(_sb_data.ToString())
+                .AppendLine()
+                .AppendLine(".code")
+                .Append(_sb_code.ToString())
+                .ToString()
+        asm
 
 
 [<Sealed>]
