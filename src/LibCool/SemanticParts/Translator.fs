@@ -192,6 +192,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
 
             if then_frag.IsError || else_frag.IsError
             then
+                if then_frag.IsOk then _reg_set.Free(then_frag.Value.Reg)
+                if else_frag.IsOk then _reg_set.Free(else_frag.Value.Reg)
                 Error
             else
                 
@@ -220,6 +222,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                             condition_frag.Value.Type.Name,
                     condition.Span)
                 
+                _reg_set.Free(condition_frag.Value.Reg)
                 Error
             else
             
@@ -491,10 +494,16 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             
             if pattern_error || (block_frags |> Seq.exists (fun it -> it.IsError))
             then
+                _reg_set.Free(expr_frag.Value.Reg)
+                block_frags |> Seq.iter (fun it -> if it.IsOk then _reg_set.Free(it.Value.Reg))
                 Error
             else
                 
             let block_types = block_frags |> Array.map (fun it -> it.Value.Type)
+            
+            _reg_set.Free(expr_frag.Value.Reg)
+            block_frags |> Seq.iter (fun it -> _reg_set.Free(it.Value.Reg))
+            
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _type_cmp.LeastUpperBound(block_types)
                  Reg = Reg.Null }
@@ -638,6 +647,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         
     and translate_assign (id: AstNode<ID>) (expr: AstNode<ExprSyntax>): Res<AsmFragment> =
         let addr_frag = addr_of (_sym_table.Resolve(id.Syntax))
+        
         let expr_frag = translate_expr expr
         if expr_frag.IsError
         then
@@ -647,9 +657,6 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         
         if not (_type_cmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Value.Type))
         then
-            _reg_set.Free(addr_frag.Reg)
-            _reg_set.Free(expr_frag.Value.Reg)
-
             _diags.Error(
                 sprintf "The expression's type '%O' does not conform to the type '%O' of '%O'"
                         expr_frag.Value.Type.Name
@@ -657,6 +664,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                         id.Syntax,
                 expr.Span)
             
+            _reg_set.Free(addr_frag.Reg)
+            _reg_set.Free(expr_frag.Value.Reg)
             Error
         else
 
@@ -690,6 +699,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                         expr_frag.Value.Type.Name,
                 expr.Span)
             
+            _reg_set.Free(expr_frag.Value.Reg)
             Error
         else
             
@@ -747,11 +757,15 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         
         if left_frag.IsError || right_frag.IsError
         then
+            if left_frag.IsOk then _reg_set.Free(left_frag.Value.Reg)
+            if right_frag.IsOk then _reg_set.Free(right_frag.Value.Reg)
             Error
         else
             
         if not (typecheck left_frag.Value right_frag.Value)
         then
+            _reg_set.Free(left_frag.Value.Reg)
+            _reg_set.Free(right_frag.Value.Reg)
             Error
         else
 
@@ -775,6 +789,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                         receiver_frag.Value.Type.Name
                         method_id.Syntax,
                 method_id.Span)
+            
+            _reg_set.Free(receiver_frag.Value.Reg)
             Error
         else
             
@@ -784,6 +800,7 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
         let actuals_frag = translate_actuals method_name method_id.Span method_sym (*formal_name=*)"formal" actuals
         if actuals_frag.IsError
         then
+            _reg_set.Free(receiver_frag.Value.Reg)
             Error
         else
 
@@ -799,8 +816,9 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                           (actuals: AstNode<ExprSyntax>[])
                           : Res<AsmFragment> =
         let actual_frags = actuals |> Array.map (fun it -> translate_expr it)
-        if actual_frags |> Array.exists (fun it -> it.IsError)
+        if actual_frags |> Seq.exists (fun it -> it.IsError)
         then
+            actual_frags |> Seq.iter (fun it -> if it.IsOk then _reg_set.Free(it.Value.Reg))
             Error
         else
         
@@ -812,6 +830,8 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                         method_sym.Formals.Length
                         actual_frags.Length,
                 method_id_span)
+
+            actual_frags |> Seq.iter (fun it -> _reg_set.Free(it.Value.Reg))
             Error
         else
             
@@ -831,6 +851,13 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
                             formal_ty.Name,
                     actuals.[i].Span)
 
+        if formal_actual_mismatch
+        then
+            actual_frags |> Seq.iter (fun it -> _reg_set.Free(it.Value.Reg))
+            Error
+        else
+            
+        actual_frags |> Seq.iter (fun it -> _reg_set.Free(it.Value.Reg))
         Ok { AsmFragment.Asm = StringBuilder()
              Type = _class_sym_map.[method_sym.ReturnType]
              Reg = Reg.Null }
@@ -842,6 +869,10 @@ type private ClassTranslator(_class_syntax: ClassSyntax,
             Error
         else
             
+        // We place a symbol for this variable in the symbol table
+        // before translating the init expression.
+        // As a result, the var will be visible to the init expression.
+        // TODO: Does this correspond to Cool2020's operational semantics?
         _sym_table.Add(Symbol.Of(var_node, _sym_table.MethodSymCount))
         let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
