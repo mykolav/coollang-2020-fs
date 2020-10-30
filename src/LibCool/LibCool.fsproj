@@ -5,6 +5,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="SharedParts\StringBuilderExtension.fs" />
+        <Compile Include="SharedParts\Res.fs" />
         <Compile Include="SourceParts\Types.fs" />
         <Compile Include="SourceParts\Source.fs" />
         <Compile Include="DiagnosticParts\DiagnosticParts.fs" />

@@ -3,26 +3,11 @@ namespace rec LibCool.SemanticParts
 
 open System.Runtime.CompilerServices
 open System.Text
+open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.AstParts
 open LibCool.SemanticParts
 open AstExtensions
-
-
-[<IsReadOnly; Struct; DefaultAugmentation(false)>]
-type Res<'T>
-    = Error
-    | Ok of 'T
-    with
-    member this.IsError: bool =
-        match this with
-        | Error -> true
-        | Ok _  -> false
-    member this.IsOk: bool = not this.IsError
-    member this.Value: 'T =
-        match this with
-        | Ok value -> value
-        | _ -> invalidOp "Res<'T>.Value"
 
 
 [<IsReadOnly; Struct>]

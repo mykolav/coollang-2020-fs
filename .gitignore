@@ -300,14 +300,15 @@ BenchmarkDotNet.Artifacts/
 
 #Antlr generated files
 *.class
-sandbox/**/*.java
-sandbox/**/*.tokens
-sandbox/**/*.interp
+*.java
+*.tokens
+*.interp
 
 #KDevelop
 .kdev4/
 *.kdev4
 
 #Misc
-/assets/.antlr
 .antlr
+*.o
+*.exe

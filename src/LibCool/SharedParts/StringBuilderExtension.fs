@@ -1,4 +1,4 @@
-namespace Tests.Support
+namespace LibCool.SharedParts
 
 
 open System.Runtime.CompilerServices

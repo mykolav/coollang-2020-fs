@@ -5,6 +5,7 @@ open System
 open System.Collections.Generic
 open System.IO
 open LibCool.DiagnosticParts
+open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.ParserParts
 open LibCool.SemanticParts
@@ -27,31 +28,47 @@ type Driver private () =
         let mutable source_file_expected = true
         let mutable i = 0
         
+        let mutable out_file = "a.exe"
+        let mutable output_asm = false
+        
         while source_file_expected && i < arg_array.Length do
             let arg = arg_array.[i]
             if arg = "-o"
             then
                 source_file_expected <- false
+                if i + 1 >= arg_array.Length
+                then
+                    invalidOp "'-o' must be followed by an output file name"
+                    
+                out_file <- arg_array.[i + 1]
+            else if arg = "-S"
+            then
+                output_asm <- true
             else
-                
-            source_parts.Add({ FileName = arg; Content = File.ReadAllText(arg) })
+                source_parts.Add({ FileName = arg; Content = File.ReadAllText(arg) })
             i <- i + 1
             
         let source = Source(source_parts)
         let diags = DiagnosticBag()
 
-        let ret_code = Driver.DoCompile(source, diags)
+        let result = Driver.DoCompile(source, diags)
         Driver.RenderDiags(diags,
                            source,
                            { new IWriteLine with
                                member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
                                    Console.WriteLine(format, args)})
-        ret_code
-
-
-    static member DoCompile(source: Source, diags: DiagnosticBag): int =
         
+        if result.IsOk
+        then
+            if output_asm
+            then
+                Console.WriteLine(result.Value)
+            0
+        else
+            -1
 
+
+    static member DoCompile(source: Source, diags: DiagnosticBag): Res<string> =
         // ERROR HANDLING:
         // 1) If any lexical errors, report and stop
         // 2) If any syntax errors, report and stop
@@ -66,7 +83,7 @@ type Driver private () =
     
         if diags.ErrorsCount <> 0
         then
-            -1
+            Res.Error
         else
             
         // Parse
@@ -74,17 +91,16 @@ type Driver private () =
         
         if diags.ErrorsCount <> 0
         then
-            -1
+            Res.Error
         else
 
         let asm = Translator.Translate(ast, diags, source)
         if diags.ErrorsCount <> 0
         then
-            -1
+            Res.Error
         else
 
-        asm |> ignore
-        0
+        Res.Ok asm
 
 
     static member RenderDiags(diagnostic_bag: DiagnosticBag, source: Source, writer: IWriteLine): unit =
@@ -105,4 +121,4 @@ type Driver private () =
             writer.WriteLine("Build succeeded: Errors: 0. Warnings: {0}", diagnostic_bag.WarningsCount)
         else
             writer.WriteLine("Build failed: Errors: {0}. Warnings: {1}", diagnostic_bag.ErrorsCount,
-                                                                          diagnostic_bag.WarningsCount)
+                                                                         diagnostic_bag.WarningsCount)

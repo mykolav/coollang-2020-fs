@@ -1,0 +1,3 @@
+.data
+.global Any_vtable
+.global String_vtable

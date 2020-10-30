@@ -9,7 +9,6 @@
 
     <ItemGroup>
         <Compile Include="Support\Indent.fs" />
-        <Compile Include="Support\StringBuilderExtensions.fs" />
         <Compile Include="Support\AstRenderer.fs" />
         <Compile Include="Support\AssertFail.fs" />
         <Compile Include="Support\Mismatch.fs" />

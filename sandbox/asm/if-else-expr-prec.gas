@@ -1,0 +1,57 @@
+.data
+.global class_name_table
+.global Main_proto_obj
+
+    .quad -1
+str_const_0:
+    .quad 3 # tag
+    .quad 7 # size in quads
+    .quad String_vtable
+    .quad int_const_3 # length
+#   '`if (true) 1 else 2 * 100` = '
+    .byte 96, 105, 102, 32, 40, 116, 114, 117, 101, 41, 32, 49, 32, 101, 108, 115, 101, 32, 50, 32, 42, 32, 49, 48, 48, 96, 32, 61, 32
+    .byte 0 # terminator
+    .zero 2 # payload's size in bytes = 54, pad to an 8 byte boundary
+    .quad -1
+str_const_1:
+    .quad 3 # tag
+    .quad 11 # size in quads
+    .quad String_vtable
+    .quad int_const_4 # length
+#   '`if (true) 1 else 2 match { case it: Int => it * 100 }` = '
+    .byte 96, 105, 102, 32, 40, 116, 114, 117, 101, 41, 32, 49, 32, 101, 108, 115, 101, 32, 50, 32, 109, 97, 116, 99, 104, 32, 123, 32, 99, 97, 115, 101, 32, 105, 116, 58, 32, 73, 110, 116, 32, 61, 62, 32, 105, 116, 32, 42, 32, 49, 48, 48, 32, 125, 96, 32, 61, 32
+    .byte 0 # terminator
+    .zero 5 # payload's size in bytes = 83, pad to an 8 byte boundary
+    .quad -1
+int_const_0:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 1 # value
+    .quad -1
+int_const_1:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 2 # value
+    .quad -1
+int_const_2:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 100 # value
+    .quad -1
+int_const_3:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 29 # value
+    .quad -1
+int_const_4:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 58 # value
+
+.text
+    ret

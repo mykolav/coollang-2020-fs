@@ -3,14 +3,15 @@ namespace Tests.Compiler
 
 open System
 open System.IO
+open Xunit
+open Xunit.Abstractions
 open LibCool.AstParts
 open LibCool.DiagnosticParts
 open LibCool.Driver
 open LibCool.SourceParts
 open LibCool.ParserParts
 open Tests.Parser
-open Xunit
-open Xunit.Abstractions
+open Tests.Compiler.ProcessRunner 
 
 
 type Sandbox(_test_output: ITestOutputHelper) =
@@ -61,4 +62,16 @@ type Sandbox(_test_output: ITestOutputHelper) =
         //let ast = parse "Valid/IfElseExprPrecedence.cool"
         let rendered = AstRenderer.Render(ast.Value)
         _test_output.WriteLine(rendered)
-    
+
+
+    [<Fact>]
+    member _.PrintCompilerOutput() =
+        // Arrange
+        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid\\IfElseExprPrecedence.cool").Replace("\\", "/")
+        let tc = CompilerTestCase.ReadFrom(path)
+
+        // Act
+        let clc_output = run_clc_in_process ([ "-S"; path; "-o"; tc.FileName + ".exe" ])
+        
+        _test_output.WriteLine("===== clc: =====")
+        _test_output.WriteLine(clc_output)

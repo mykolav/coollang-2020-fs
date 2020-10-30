@@ -5,6 +5,7 @@ open System.Text
 open LibCool.AstParts
 open LibCool.SemanticParts
 open AstExtensions
+open LibCool.SharedParts
 
 
 [<Sealed>]
