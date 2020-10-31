@@ -30,6 +30,12 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                      // Accumulators
                      IntConsts = ConstSet<int>("int_const")
                      StrConsts = ConstSet<string>("str_const") }
+    
+    // Add default values here so that their indexes are 0,
+    // and const labels look similar to `int_const_0`, `str_const_0`.
+    // Prototype objs need these.
+    do _context.IntConsts.GetOrAdd(0) |> ignore
+    do _context.StrConsts.GetOrAdd("") |> ignore
 
     
     let translate_class (class_node: AstNode<ClassSyntax>): unit =
@@ -59,12 +65,12 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             .AppendLine(        "    .quad -1")
             .AppendLine(sprintf "%s:" int_const.Label)
             // Tag
-            .AppendLine(sprintf "    .quad %d # tag" BasicClasses.String.Tag)
+            .AppendLine(sprintf "    .quad %d # tag" BasicClasses.Int.Tag)
             // Object size in quads
             .AppendLine(sprintf "    .quad %d # size in quads" int_object_size_in_quads)
             // Addr of the vtable
-            .AppendLine(sprintf "    .quad %s_vtable" BasicClasses.String.Name.Value)
-            // Addr of an int object containing the string's len in chars
+            .AppendLine(sprintf "    .quad %s_vtable" BasicClasses.Int.Name.Value)
+            // Value
             .AppendLine(sprintf "    .quad %d # value" int_const.Value)
             .Nop()
         
@@ -139,10 +145,12 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     let emit_consts (): unit =
+        // Add class names to string constants -- class name table needs these.
         _context.ClassSymMap.Values
         |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
         |> Seq.iter (fun class_sym -> _context.StrConsts.GetOrAdd(class_sym.Name.Value) |> ignore)
         
+        // Translate.
         _context.StrConsts.Items |> Seq.iter translate_str_const
         _context.IntConsts.Items |> Seq.iter translate_int_const
     
@@ -200,6 +208,41 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         )
 
 
+    let emit_prototype_obj(class_sym: ClassSymbol): unit =
+        let header_size_in_quads = 3 // tag + size + vtable
+        let proto_obj_size_in_quads = header_size_in_quads + class_sym.Attrs.Count
+        _sb_data
+             // Eyecatch, unique id to verify any object
+            .AppendLine(        "    .quad -1")
+            .AppendLine(sprintf "%s_proto_obj:" class_sym.Name.Value)
+            // Tag
+            .AppendLine(sprintf "    .quad %d # tag" class_sym.Tag)
+            // Object size in quads
+            .AppendLine(sprintf "    .quad %d # size in quads" proto_obj_size_in_quads)
+            // Addr of the vtable
+            .AppendLine(sprintf "    .quad %s_vtable" class_sym.Name.Value)
+            .Nop()
+            
+        class_sym.Attrs.Values
+        |> Seq.sortBy (fun attr_sym -> attr_sym.Index)
+        |> Seq.iter (fun attr_sym ->
+            let default_value_ref =
+                if attr_sym.Type = TYPENAME "Unit" then "Unit_value"
+                else if attr_sym.Type = TYPENAME "Int" then _context.IntConsts.GetOrAdd(0)
+                else if attr_sym.Type = TYPENAME "String" then _context.StrConsts.GetOrAdd("")
+                else if attr_sym.Type = TYPENAME "Boolean" then "Boolean_false"
+                else "0"
+            _sb_data.AppendLine(sprintf "    .quad %s # %s"
+                                        default_value_ref
+                                        attr_sym.Name.Value).Nop())
+    
+    
+    let emit_prototype_objs(): unit =
+        _context.ClassSymMap.Values
+        |> Seq.where (fun class_sym -> not class_sym.IsVirtual)
+        |> Seq.iter emit_prototype_obj
+    
+    
     member this.Translate(): string =
         let sb_asm = StringBuilder()
 
@@ -209,6 +252,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         emit_class_name_table()
         emit_class_parent_table()
         emit_class_vtables()
+        emit_prototype_objs()
 
         let asm = 
             sb_asm
