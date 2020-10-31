@@ -112,9 +112,17 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             .AppendLine(sprintf "    .quad %s # length" len_const_label)
             // A comment with the string's content in human-readable form
             .AppendLine(sprintf "#   '%s'" (str_const.Value.Replace("\r", "").Replace("\n", "\\n")))
-            // String content encoded in UTF8
-            .AppendLine(sprintf "    .byte %s" (String.Join(", ", utf8_bytes)))
-             // String terminator
+            |> ignore
+        
+        // String content encoded in UTF8
+        if utf8_bytes.Length > 0
+        then
+            _sb_data
+                .AppendLine(sprintf "    .byte %s" (String.Join(", ", utf8_bytes)))
+                |> ignore
+                
+        // String terminator
+        _sb_data
             .AppendLine(sprintf "    .byte 0 # terminator")
             |> ignore
             
@@ -127,7 +135,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             |> ignore
     
     
-    let translate_consts (): unit =
+    let emit_consts (): unit =
         _context.StrConsts.Items |> Seq.iter translate_str_const
         _context.IntConsts.Items |> Seq.iter translate_int_const
     
@@ -148,21 +156,23 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         let sb_asm = StringBuilder()
 
         _program_syntax.Classes |> Array.iter translate_class
+        
+        // TODO: Add class names to the string constant set.
 
-        translate_consts()
+        emit_consts()
         emit_class_name_table()
         emit_class_parent_table()
         emit_class_vtables()
 
         let asm = 
             sb_asm
-                .AppendLine(".data")
-                .AppendLine(".global class_name_table")
-                .AppendLine(".global Main_proto_obj")
+                .AppendLine("    .data")
+                .AppendLine("    .global class_name_table")
+                .AppendLine("    .global Main_proto_obj")
                 .AppendLine()
                 .Append(_sb_data.ToString())
                 .AppendLine()
-                .AppendLine(".text")
+                .AppendLine("    .text")
                 .AppendLine("    ret")
                 // .AppendLine("    movq $0, %rcx")
                 // .AppendLine("    call ExitProcess")
