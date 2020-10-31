@@ -1,4 +1,4 @@
-.data
+    .data
 
     .global Any_vtable
 Any_vtable:
@@ -81,7 +81,7 @@ IO_prototype_obj:
     .quad 3 # size in quads
     .quad IO_vtable
 
-.text
+    .text
 
     .global type_name
 type_name:
