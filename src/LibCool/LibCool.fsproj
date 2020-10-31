@@ -19,7 +19,6 @@
         <Compile Include="ParserParts\Parser.fs" />
         <Compile Include="TranslatorParts\AstExtensions.fs" />
         <Compile Include="TranslatorParts\Symbols.fs" />
-        <Compile Include="TranslatorParts\ClassSyntaxCollector.fs" />
         <Compile Include="TranslatorParts\ClassSymbolCollector.fs" />
         <Compile Include="TranslatorParts\SymbolTable.fs" />
         <Compile Include="TranslatorParts\RegisterSet.fs" />
