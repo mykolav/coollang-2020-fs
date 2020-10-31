@@ -26,6 +26,9 @@ Boolean_vtable:
     .global ArrayAny_vtable
 ArrayAny_vtable:
     .quad Any.abort
+    .quad ArrayAny.get
+    .quad ArrayAny.set
+    .quad ArrayAny.length
 
     .global IO_vtable
 IO_vtable:
@@ -102,6 +105,15 @@ String.concat:
     ret
 
 String.substring:
+    ret
+
+ArrayAny.get:
+    ret
+
+ArrayAny.set:
+    ret
+
+ArrayAny.length:
     ret
 
 IO.in_int:
