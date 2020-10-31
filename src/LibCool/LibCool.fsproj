@@ -19,7 +19,6 @@
         <Compile Include="ParserParts\Parser.fs" />
         <Compile Include="TranslatorParts\AstExtensions.fs" />
         <Compile Include="TranslatorParts\Symbols.fs" />
-        <Compile Include="TranslatorParts\ClassSymbolCollector.fs" />
         <Compile Include="TranslatorParts\SymbolTable.fs" />
         <Compile Include="TranslatorParts\RegisterSet.fs" />
         <Compile Include="TranslatorParts\LabelGenerator.fs" />
@@ -29,6 +28,7 @@
         <Compile Include="TranslatorParts\ExprTranslator.fs" />
         <Compile Include="TranslatorParts\ClassTranslator.fs" />
         <Compile Include="TranslatorParts\ProgramTranslator.fs" />
+        <Compile Include="TranslatorParts\ClassSymbolCollector.fs" />
         <Compile Include="TranslatorParts\Translator.fs" />
         <Compile Include="DriverParts\Driver.fs" />
     </ItemGroup>
