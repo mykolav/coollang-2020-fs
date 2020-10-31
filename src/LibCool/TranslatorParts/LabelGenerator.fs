@@ -1,4 +1,4 @@
-namespace LibCool.SemanticParts
+namespace LibCool.TranslatorParts
 
 
 type Label = Label of int

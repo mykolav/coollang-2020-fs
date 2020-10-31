@@ -1,4 +1,4 @@
-namespace rec LibCool.SemanticParts
+namespace rec LibCool.TranslatorParts
 
 
 open System.Collections.Generic

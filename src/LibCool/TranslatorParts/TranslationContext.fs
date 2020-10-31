@@ -1,11 +1,11 @@
-namespace rec LibCool.SemanticParts
+namespace rec LibCool.TranslatorParts
 
 
 open System.Collections.Generic
 open LibCool.SourceParts
 open LibCool.DiagnosticParts
 open LibCool.AstParts
-open LibCool.SemanticParts
+open LibCool.TranslatorParts
 
 
 type TranslationContext =

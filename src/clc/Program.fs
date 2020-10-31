@@ -1,5 +1,6 @@
-﻿open LibCool.Driver
+﻿open LibCool.DriverParts
+
 
 [<EntryPoint>]
 let main argv =
-    Driver.Compile(argv)
+    Driver().Compile(argv)

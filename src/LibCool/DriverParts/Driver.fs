@@ -1,4 +1,4 @@
-namespace LibCool.Driver
+namespace LibCool.DriverParts
 
 
 open System
@@ -8,7 +8,7 @@ open LibCool.DiagnosticParts
 open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.ParserParts
-open LibCool.SemanticParts
+open LibCool.TranslatorParts
 
 
 type IWriteLine =
@@ -16,10 +16,15 @@ type IWriteLine =
 
 
 [<Sealed>]
-type Driver private () =
+type Driver(?_writer: IWriteLine) =
+    
+    let _writer = defaultArg _writer
+                             ({ new IWriteLine with
+                                    member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
+                                        Console.WriteLine(format, args)})
     
     
-    static member Compile(args: seq<string>): int =
+    member this.Compile(args: seq<string>): int =
         
         let arg_array = Array.ofSeq args
 
@@ -52,11 +57,7 @@ type Driver private () =
         let diags = DiagnosticBag()
 
         let result = Driver.DoCompile(source, diags)
-        Driver.RenderDiags(diags,
-                           source,
-                           { new IWriteLine with
-                               member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
-                                   Console.WriteLine(format, args)})
+        Driver.RenderDiags(diags, source, _writer)
         
         if result.IsOk
         then

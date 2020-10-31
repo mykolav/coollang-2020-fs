@@ -2,7 +2,7 @@ namespace Tests.Compiler
 
 open System
 open System.IO
-open LibCool.Driver
+open LibCool.DriverParts
 
 module ProcessRunner =
 
@@ -38,8 +38,8 @@ module ProcessRunner =
                                  RedirectStandardOutput = true,
                                  RedirectStandardError = true))
 
-        theProcess.OutputDataReceived.AddHandler(fun sender args -> sb_output.Append(args.Data) |> ignore)
-        theProcess.ErrorDataReceived.AddHandler(fun sender args -> sb_output.Append(args.Data) |> ignore)
+        theProcess.OutputDataReceived.AddHandler(fun sender args -> sb_output.AppendLine(args.Data) |> ignore)
+        theProcess.ErrorDataReceived.AddHandler(fun sender args -> sb_output.AppendLine(args.Data) |> ignore)
 
         theProcess.Start() |> ignore
         theProcess.BeginOutputReadLine()
@@ -54,14 +54,12 @@ module ProcessRunner =
         run "../../../../clc/bin/Debug/netcoreapp3.1/clc.exe" (String.Join(" ", args))
 
 
-    let run_clc_in_process (args: seq<string>): string =
+    let run_clc_in_process (driver_args: seq<string>): string =
         use output = new StringBuilderWriter()
-        
-        let console_out = Console.Out
-        Console.SetOut(output)
-        
-        Driver.Compile(args) |> ignore
-        
-        Console.SetOut(console_out)
+        Driver({ new IWriteLine with
+                     member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
+                         output.WriteLine(format, args) })
+            .Compile(driver_args)
+            |> ignore
         
         output.ToString()

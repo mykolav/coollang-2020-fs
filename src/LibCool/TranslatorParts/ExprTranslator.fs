@@ -1,4 +1,4 @@
-namespace rec LibCool.SemanticParts
+namespace rec LibCool.TranslatorParts
 
 
 open System.Runtime.CompilerServices
@@ -6,7 +6,7 @@ open System.Text
 open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.AstParts
-open LibCool.SemanticParts
+open LibCool.TranslatorParts
 open AstExtensions
 
 

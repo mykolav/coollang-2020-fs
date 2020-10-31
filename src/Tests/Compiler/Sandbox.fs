@@ -7,7 +7,7 @@ open Xunit
 open Xunit.Abstractions
 open LibCool.AstParts
 open LibCool.DiagnosticParts
-open LibCool.Driver
+open LibCool.DriverParts
 open LibCool.SourceParts
 open LibCool.ParserParts
 open Tests.Parser
@@ -67,7 +67,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
     [<Fact>]
     member _.PrintCompilerOutput() =
         // Arrange
-        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid\\IfElseExprPrecedence.cool").Replace("\\", "/")
+        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/IfElseExprPrecedence.cool")
         let tc = CompilerTestCase.ReadFrom(path)
 
         // Act
