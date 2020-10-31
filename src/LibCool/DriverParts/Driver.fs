@@ -12,7 +12,7 @@ open LibCool.TranslatorParts
 
 
 type IWriteLine =
-    abstract member WriteLine: format:string * [<ParamArray>] args:obj[] -> unit
+    abstract member WriteLine: line:string -> unit
 
 
 [<Sealed>]
@@ -20,8 +20,8 @@ type Driver(?_writer: IWriteLine) =
     
     let _writer = defaultArg _writer
                              ({ new IWriteLine with
-                                    member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
-                                        Console.WriteLine(format, args)})
+                                    member _.WriteLine(line: string) =
+                                        Console.WriteLine(line)})
     
     
     member this.Compile(args: seq<string>): int =
@@ -63,7 +63,7 @@ type Driver(?_writer: IWriteLine) =
         then
             if output_asm
             then
-                Console.WriteLine(result.Value)
+                _writer.WriteLine(result.Value)
             0
         else
             -1
@@ -111,15 +111,16 @@ type Driver(?_writer: IWriteLine) =
         
         for diag in diagnostic_bag.ToReadOnlyList() do
             let location = source.Map(diag.Span.First)
-            writer.WriteLine(
-                "{0}: {1}: {2}",
-                location,
-                (diag.Severity.ToString().Replace("Severity.", "")),
-                diag.Message)
+            writer.WriteLine(sprintf "%O: %s: %s"
+                                     location
+                                     (diag.Severity.ToString().Replace("Severity.", ""))
+                                     diag.Message)
 
         if diagnostic_bag.ErrorsCount = 0
         then
-            writer.WriteLine("Build succeeded: Errors: 0. Warnings: {0}", diagnostic_bag.WarningsCount)
+            writer.WriteLine(sprintf "Build succeeded: Errors: 0. Warnings: %d"
+                                     diagnostic_bag.WarningsCount)
         else
-            writer.WriteLine("Build failed: Errors: {0}. Warnings: {1}", diagnostic_bag.ErrorsCount,
-                                                                         diagnostic_bag.WarningsCount)
+            writer.WriteLine(sprintf "Build failed: Errors: %d. Warnings: %d"
+                                     diagnostic_bag.ErrorsCount
+                                     diagnostic_bag.WarningsCount)

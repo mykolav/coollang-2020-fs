@@ -1,0 +1,229 @@
+    .data
+    .global class_name_table
+    .global Main_proto_obj
+
+    .quad -1
+str_const_0:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_3 # length = 1
+    # ' '
+    .byte 32
+    .byte 0 # terminator
+    .zero 6 # payload's size in bytes = 26, pad to an 8 byte boundary
+    .quad -1
+str_const_1:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_7 # length = 3
+    # 'Any'
+    .byte 65, 110, 121
+    .byte 0 # terminator
+    .zero 4 # payload's size in bytes = 28, pad to an 8 byte boundary
+    .quad -1
+str_const_2:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_9 # length = 4
+    # 'Unit'
+    .byte 85, 110, 105, 116
+    .byte 0 # terminator
+    .zero 3 # payload's size in bytes = 29, pad to an 8 byte boundary
+    .quad -1
+str_const_3:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_7 # length = 3
+    # 'Int'
+    .byte 73, 110, 116
+    .byte 0 # terminator
+    .zero 4 # payload's size in bytes = 28, pad to an 8 byte boundary
+    .quad -1
+str_const_4:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_11 # length = 6
+    # 'String'
+    .byte 83, 116, 114, 105, 110, 103
+    .byte 0 # terminator
+    .zero 1 # payload's size in bytes = 31, pad to an 8 byte boundary
+    .quad -1
+str_const_5:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_12 # length = 7
+    # 'Boolean'
+    .byte 66, 111, 111, 108, 101, 97, 110
+    .byte 0 # terminator
+    .quad -1
+str_const_6:
+    .quad 3 # tag
+    .quad 5 # size in quads
+    .quad String_vtable
+    .quad int_const_13 # length = 8
+    # 'ArrayAny'
+    .byte 65, 114, 114, 97, 121, 65, 110, 121
+    .byte 0 # terminator
+    .zero 7 # payload's size in bytes = 33, pad to an 8 byte boundary
+    .quad -1
+str_const_7:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_5 # length = 2
+    # 'IO'
+    .byte 73, 79
+    .byte 0 # terminator
+    .zero 5 # payload's size in bytes = 27, pad to an 8 byte boundary
+    .quad -1
+str_const_8:
+    .quad 3 # tag
+    .quad 5 # size in quads
+    .quad String_vtable
+    .quad int_const_14 # length = 9
+    # 'QuickSort'
+    .byte 81, 117, 105, 99, 107, 83, 111, 114, 116
+    .byte 0 # terminator
+    .zero 6 # payload's size in bytes = 34, pad to an 8 byte boundary
+    .quad -1
+str_const_9:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_9 # length = 4
+    # 'Main'
+    .byte 77, 97, 105, 110
+    .byte 0 # terminator
+    .zero 3 # payload's size in bytes = 29, pad to an 8 byte boundary
+    .quad -1
+int_const_0:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 5 # value
+    .quad -1
+int_const_1:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 0 # value
+    .quad -1
+int_const_2:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 30 # value
+    .quad -1
+int_const_3:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 1 # value
+    .quad -1
+int_const_4:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 20 # value
+    .quad -1
+int_const_5:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 2 # value
+    .quad -1
+int_const_6:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 50 # value
+    .quad -1
+int_const_7:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 3 # value
+    .quad -1
+int_const_8:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 40 # value
+    .quad -1
+int_const_9:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 4 # value
+    .quad -1
+int_const_10:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 10 # value
+    .quad -1
+int_const_11:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 6 # value
+    .quad -1
+int_const_12:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 7 # value
+    .quad -1
+int_const_13:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 8 # value
+    .quad -1
+int_const_14:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad 9 # value
+class_name_table:
+    .quad str_const_1 # Any
+    .quad str_const_2 # Unit
+    .quad str_const_3 # Int
+    .quad str_const_4 # String
+    .quad str_const_5 # Boolean
+    .quad str_const_6 # ArrayAny
+    .quad str_const_7 # IO
+    .quad str_const_8 # QuickSort
+    .quad str_const_9 # Main
+class_parent_table:
+    .quad -1 # Any
+    .quad 0 # Unit extends Any
+    .quad 0 # Int extends Any
+    .quad 0 # String extends Any
+    .quad 0 # Boolean extends Any
+    .quad 0 # ArrayAny extends Any
+    .quad 0 # IO extends Any
+    .quad 6 # QuickSort extends IO
+    .quad 0 # Main extends Any
+QuickSort_vtable:
+    .quad Any.abort # overrides? no
+    .quad IO.out_string # overrides? no
+    .quad IO.out_int # overrides? no
+    .quad IO.out_nl # overrides? no
+    .quad IO.in_string # overrides? no
+    .quad IO.in_int # overrides? no
+    .quad QuickSort.quicksort # overrides? no
+    .quad QuickSort.partition # overrides? no
+    .quad QuickSort.array_swap # overrides? no
+    .quad QuickSort.out_array # overrides? no
+Main_vtable:
+    .quad Any.abort # overrides? no
+
+    .text
+    ret

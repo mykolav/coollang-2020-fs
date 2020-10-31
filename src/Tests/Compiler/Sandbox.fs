@@ -1,7 +1,6 @@
 namespace Tests.Compiler
 
 
-open System
 open System.IO
 open Xunit
 open Xunit.Abstractions
@@ -51,8 +50,8 @@ type Sandbox(_test_output: ITestOutputHelper) =
         Driver.RenderDiags(diagnostic_bag,
                            source,
                            { new IWriteLine with
-                               member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
-                                   _test_output.WriteLine(format, args)})
+                               member _.WriteLine(line: string) =
+                                   _test_output.WriteLine(line)})
         ast_opt
         
 
@@ -67,7 +66,8 @@ type Sandbox(_test_output: ITestOutputHelper) =
     [<Fact>]
     member _.PrintCompilerOutput() =
         // Arrange
-        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/IfElseExprPrecedence.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/IfElseExprPrecedence.cool")
+        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/QuickSort.cool")
         let tc = CompilerTestCase.ReadFrom(path)
 
         // Act

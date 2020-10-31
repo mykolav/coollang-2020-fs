@@ -57,8 +57,8 @@ module ProcessRunner =
     let run_clc_in_process (driver_args: seq<string>): string =
         use output = new StringBuilderWriter()
         Driver({ new IWriteLine with
-                     member _.WriteLine(format: string, [<ParamArray>] args: obj[]) =
-                         output.WriteLine(format, args) })
+                     member _.WriteLine(line: string) =
+                         output.WriteLine(line) })
             .Compile(driver_args)
             |> ignore
         

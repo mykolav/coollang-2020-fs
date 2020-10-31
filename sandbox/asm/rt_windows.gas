@@ -33,10 +33,11 @@ ArrayAny_vtable:
     .global IO_vtable
 IO_vtable:
     .quad Any.abort
-    .quad IO.in_int
-    .quad IO.in_string
-    .quad IO.out_int
     .quad IO.out_string
+    .quad IO.out_int
+    .quad IO.out_nl
+    .quad IO.in_string
+    .quad IO.in_int
 
     .set Unit_tag, 1
     .set Boolean_tag, 4
@@ -70,9 +71,8 @@ Boolean_false:
     .global ArrayAny_prototype_obj
 ArrayAny_prototype_obj:
     .quad ArrayAny_tag # tag
-    .quad 4 # size in quads
+    .quad 3 # size in quads
     .quad ArrayAny_vtable
-    .quad 0
     
     .quad -1
     .global IO_prototype_obj
@@ -95,35 +95,50 @@ copy_object:
 are_equal:
     ret
 
+    .global Any.abort
 Any.abort:
     ret
 
+    .global String.length
 String.length:
     ret
 
+    .global String.concat
 String.concat:
     ret
 
+    .global String.substring
 String.substring:
     ret
 
+    .global ArrayAny.get
 ArrayAny.get:
     ret
 
+    .global ArrayAny.set
 ArrayAny.set:
     ret
 
+    .global ArrayAny.length
 ArrayAny.length:
     ret
 
-IO.in_int:
+    .global IO.out_string
+IO.out_string:
     ret
 
-IO.in_string:
-    ret
-
+    .global IO.out_int
 IO.out_int:
     ret
 
-IO.out_string:
+    .global IO.out_nl
+IO.out_nl:
+    ret
+
+    .global IO.in_string
+IO.in_string:
+    ret
+
+    .global IO.in_int
+IO.in_int:
     ret

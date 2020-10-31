@@ -4,6 +4,7 @@ namespace rec LibCool.TranslatorParts
 open System
 open System.Collections.Generic
 open System.Text
+open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.DiagnosticParts
 open LibCool.AstParts
@@ -65,15 +66,16 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             .AppendLine(sprintf "    .quad %s_vtable" BasicClasses.String.Name.Value)
             // Addr of an int object containing the string's len in chars
             .AppendLine(sprintf "    .quad %d # value" int_const.Value)
-            |> ignore
+            .Nop()
         
         if pad_size_in_bytes > 0
         then
              // Ensure 8 byte alignment
-            _sb_data.AppendLine(sprintf "    .zero %d # payload's size in bytes = %d, pad to an 8 byte boundary"
-                                        pad_size_in_bytes
-                                        int_object_size_in_bytes)
-            |> ignore
+            _sb_data
+                .AppendLine(sprintf "    .zero %d # payload's size in bytes = %d, pad to an 8 byte boundary"
+                                    pad_size_in_bytes
+                                    int_object_size_in_bytes)
+                .Nop()
         
         
     let translate_str_const (str_const: ConstSetItem<string>): unit =
@@ -109,47 +111,93 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             // Addr of the vtable
             .AppendLine(sprintf "    .quad %s_vtable" BasicClasses.String.Name.Value)
             // Addr of an int object containing the string's len in chars
-            .AppendLine(sprintf "    .quad %s # length" len_const_label)
+            .AppendLine(sprintf "    .quad %s # length = %d" len_const_label utf8_bytes.Length)
             // A comment with the string's content in human-readable form
-            .AppendLine(sprintf "#   '%s'" (str_const.Value.Replace("\r", "").Replace("\n", "\\n")))
-            |> ignore
+            .AppendLine(sprintf "    # '%s'" (str_const.Value.Replace("\r", "").Replace("\n", "\\n")))
+            .Nop()
         
         // String content encoded in UTF8
         if utf8_bytes.Length > 0
         then
             _sb_data
                 .AppendLine(sprintf "    .byte %s" (String.Join(", ", utf8_bytes)))
-                |> ignore
+                .Nop()
                 
         // String terminator
         _sb_data
             .AppendLine(sprintf "    .byte 0 # terminator")
-            |> ignore
+            .Nop()
             
         if pad_size_in_bytes > 0
         then
             // Ensure 8 byte alignment
-            _sb_data.AppendLine(sprintf "    .zero %d # payload's size in bytes = %d, pad to an 8 byte boundary"
-                                        pad_size_in_bytes
-                                        str_object_size_in_bytes)
-            |> ignore
+            _sb_data
+                .AppendLine(sprintf "    .zero %d # payload's size in bytes = %d, pad to an 8 byte boundary"
+                                    pad_size_in_bytes
+                                    str_object_size_in_bytes)
+                .Nop()
     
     
     let emit_consts (): unit =
+        _context.ClassSymMap.Values
+        |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
+        |> Seq.iter (fun class_sym -> _context.StrConsts.GetOrAdd(class_sym.Name.Value) |> ignore)
+        
         _context.StrConsts.Items |> Seq.iter translate_str_const
         _context.IntConsts.Items |> Seq.iter translate_int_const
     
     
-    let emit_class_name_table(): unit = 
-        ()
+    let emit_class_name_table(): unit =
+        _sb_data.AppendLine("class_name_table:").Nop()
+        
+        _context.ClassSymMap.Values
+        |> Seq.sortBy (fun class_sym -> class_sym.Tag)
+        |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
+        |> Seq.iter (fun class_sym ->
+            let name_const_label = _context.StrConsts.GetOrAdd(class_sym.Name.Value)
+            _sb_data.AppendLine(sprintf "    .quad %s # %s" name_const_label class_sym.Name.Value).Nop())
     
     
     let emit_class_parent_table(): unit = 
-        ()
+        _sb_data.AppendLine("class_parent_table:").Nop()
+        
+        _context.ClassSymMap.Values
+        |> Seq.sortBy (fun class_sym -> class_sym.Tag)
+        |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
+        |> Seq.iter (fun class_sym ->
+            if class_sym.Is(BasicClasses.Any)
+            then
+                _sb_data.AppendLine("    .quad -1 # Any").Nop()
+            else
+                
+            let super_sym = _context.ClassSymMap.[class_sym.Super]
+            _sb_data.AppendLine(sprintf "    .quad %d # %s extends %s"
+                                        super_sym.Tag
+                                        class_sym.Name.Value
+                                        super_sym.Name.Value)
+                    .Nop())
     
     
     let emit_class_vtables(): unit = 
-        ()
+        _context.ClassSymMap.Values
+        |> Seq.sortBy (fun class_sym -> class_sym.Tag)
+        |> Seq.where (fun class_sym -> not class_sym.IsVirtual)
+        |> Seq.iter (fun class_sym ->
+            _sb_data
+                .AppendLine(sprintf "%s_vtable:" class_sym.Name.Value)
+                .Nop()
+            
+            class_sym.Methods.Values
+            |> Seq.sortBy (fun method_sym -> method_sym.Index)
+            |> Seq.where (fun method_sym -> method_sym.Name <> ID ".ctor")
+            |> Seq.iter (fun method_sym ->
+                _sb_data.AppendLine(sprintf "    .quad %s.%s # overrides? %s"
+                                            method_sym.DeclaringClass.Value
+                                            method_sym.Name.Value
+                                            (if method_sym.Override then "yes" else "no"))
+                        .Nop()
+                )
+        )
 
 
     member this.Translate(): string =
@@ -157,8 +205,6 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
 
         _program_syntax.Classes |> Array.iter translate_class
         
-        // TODO: Add class names to the string constant set.
-
         emit_consts()
         emit_class_name_table()
         emit_class_parent_table()

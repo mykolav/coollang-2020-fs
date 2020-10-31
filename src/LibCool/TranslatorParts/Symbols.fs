@@ -29,6 +29,7 @@ type MethodSymbol =
       DeclaringClass: TYPENAME
       Index: int
       SyntaxSpan: Span }
+    member this.IsVirtual: bool = this.SyntaxSpan = Span.Invalid
     static member Virtual(name: ID,
                           return_type: TYPENAME,
                           ?is_override: bool,
@@ -60,6 +61,7 @@ type ClassSymbol =
     
     
     member this.IsSpecial: bool = this.Tag = -1
+    member this.IsVirtual: bool = this.SyntaxSpan = Span.Invalid
     
     
     member this.Is(class_sym: ClassSymbol): bool = this.Name = class_sym.Name
