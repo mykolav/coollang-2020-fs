@@ -1,3 +1,117 @@
 .data
-.global Any_vtable
-.global String_vtable
+
+    .global Any_vtable
+Any_vtable:
+    .quad Any.abort
+
+    .global Unit_vtable
+Unit_vtable:
+    .quad Any.abort
+
+    .global Int_vtable
+Int_vtable:
+    .quad Any.abort
+
+    .global String_vtable
+String_vtable:
+    .quad Any.abort
+    .quad String.length
+    .quad String.concat
+    .quad String.substring
+
+    .global Boolean_vtable
+Boolean_vtable:
+    .quad Any.abort
+
+    .global ArrayAny_vtable
+ArrayAny_vtable:
+    .quad Any.abort
+
+    .global IO_vtable
+IO_vtable:
+    .quad Any.abort
+    .quad IO.in_int
+    .quad IO.in_string
+    .quad IO.out_int
+    .quad IO.out_string
+
+    .set Unit_tag, 1
+    .set Boolean_tag, 4
+    .set ArrayAny_tag, 5
+    .set IO_tag, 6
+
+    .quad -1
+    .global Unit_value
+Unit_value:
+    .quad Unit_tag # tag
+    .quad 3 # size in quads
+    .quad Unit_vtable
+    
+    .quad -1
+    .global Boolean_true
+Boolean_true:
+    .quad Boolean_tag # tag
+    .quad 4 # size in quads
+    .quad Boolean_vtable
+    .quad 1
+
+    .quad -1
+    .global Boolean_false
+Boolean_false:
+    .quad Boolean_tag # tag
+    .quad 4 # size in quads
+    .quad Boolean_vtable
+    .quad 0
+    
+    .quad -1
+    .global ArrayAny_prototype_obj
+ArrayAny_prototype_obj:
+    .quad ArrayAny_tag # tag
+    .quad 4 # size in quads
+    .quad ArrayAny_vtable
+    .quad 0
+    
+    .quad -1
+    .global IO_prototype_obj
+IO_prototype_obj:
+    .quad IO_tag # tag
+    .quad 3 # size in quads
+    .quad IO_vtable
+
+.text
+
+    .global type_name
+type_name:
+    ret
+
+    .global copy_object
+copy_object:
+    ret
+
+    .global are_equal
+are_equal:
+    ret
+
+Any.abort:
+    ret
+
+String.length:
+    ret
+
+String.concat:
+    ret
+
+String.substring:
+    ret
+
+IO.in_int:
+    ret
+
+IO.in_string:
+    ret
+
+IO.out_int:
+    ret
+
+IO.out_string:
+    ret
