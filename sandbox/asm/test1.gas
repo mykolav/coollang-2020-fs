@@ -1,0 +1,13 @@
+    .data
+int_const0:
+    .quad 0 # tag
+    .quad 0 # size
+    .quad 0 # vtable
+    .quad 0 # value
+
+    .text
+    movq $int_const0, %rax
+    xorq $0xFFFFFFFFFFFFFFFF, 24(%rax)
+    negq 24(%rax)
+    cmpq $0, 24(%rax)
+    ret

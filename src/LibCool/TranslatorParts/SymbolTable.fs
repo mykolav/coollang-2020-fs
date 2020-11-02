@@ -72,13 +72,13 @@ type Scope() =
 type SymbolTable(_class_sym: ClassSymbol) =
 
 
-    let _method_syms = List<struct {| FormalsCount: int; VarsCount: int |}>()
+    let _method_frame = List<struct {| ActualsCount: int; VarsCount: int |}>()
     let _scopes = List<Scope>()
     
     
-    member this.MethodSyms
-        with get() = _method_syms.[_method_syms.Count - 1]
-        and private set count = _method_syms.[_method_syms.Count - 1] <- count
+    member this.MethodFrame
+        with get() = _method_frame.[_method_frame.Count - 1]
+        and private set count = _method_frame.[_method_frame.Count - 1] <- count
 
 
     member private this.CurrentScopeLevel = _scopes.Count - 1
@@ -86,7 +86,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.EnterMethod(): unit =
-        _method_syms.Add({| FormalsCount = 0; VarsCount = 0 |})
+        _method_frame.Add({| ActualsCount = 0; VarsCount = 0 |})
         _scopes.Add(Scope())
     
     
@@ -107,13 +107,13 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.LeaveMethod(): unit =
-        _method_syms.RemoveAt(this.CurrentScopeLevel)
+        _method_frame.RemoveAt(this.CurrentScopeLevel)
         _scopes.RemoveAt(this.CurrentScopeLevel)
         
         
     member this.AddFormal(sym: Symbol): unit =
         this.CurrentScope.Add(sym)
-        this.MethodSyms <- {| this.MethodSyms with FormalsCount = this.MethodSyms.FormalsCount + 1 |}
+        this.MethodFrame <- {| this.MethodFrame with ActualsCount = this.MethodFrame.ActualsCount + 1 |}
         
         
     member this.AddVar(sym: Symbol): unit =
@@ -124,9 +124,9 @@ type SymbolTable(_class_sym: ClassSymbol) =
         // as a result we need only one temporary on stack.
         // That's why we don't increase `MethodSyms.VarsCount`,
         // if `sym.Index < this.MethodSym.VarCount`.
-        if sym.Index >= this.MethodSyms.VarsCount
+        if sym.Index >= this.MethodFrame.VarsCount
         then
-            this.MethodSyms <- {| this.MethodSyms with VarsCount = this.MethodSyms.VarsCount + 1 |}
+            this.MethodFrame <- {| this.MethodFrame with VarsCount = this.MethodFrame.VarsCount + 1 |}
     
     
     member this.Resolve(name: ID): Symbol =

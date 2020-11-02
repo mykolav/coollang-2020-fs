@@ -131,10 +131,10 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 
             resolve_to_class_node attr_syntax.TYPE |> ignore
 
-            let ai = mk_attr_sym class_syntax
-                                 attr_node
-                                 (*index=*)attr_syms.Count
-            attr_syms.Add(ai.Name, ai)
+            let attr_sym = mk_attr_sym class_syntax
+                                       attr_node
+                                       (*index=*)attr_syms.Count
+            attr_syms.Add(attr_sym.Name, attr_sym)
             
         class_syntax.VarFormals
         |> Seq.iter (fun varformal_node ->

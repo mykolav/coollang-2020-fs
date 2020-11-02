@@ -58,12 +58,12 @@ type private ClassTranslator(_context: TranslationContext,
 
 
     let emit_method_prologue (): unit =
-        let actuals_in_frame_count = if _sym_table.MethodSyms.FormalsCount >= 6
+        let actuals_in_frame_count = if _sym_table.MethodFrame.ActualsCount >= 6
                                      then 6
-                                     else _sym_table.MethodSyms.FormalsCount
+                                     else _sym_table.MethodFrame.ActualsCount
         let actuals_size_in_bytes = actuals_in_frame_count * 8
 
-        let vars_size_in_bytes = _sym_table.MethodSyms.VarsCount * 8
+        let vars_size_in_bytes = _sym_table.MethodFrame.VarsCount * 8
         let callee_saved_regs_size_in_bytes = 5 (* number of the callee-saved regs *) * 8
 
         let frame_size_in_bytes =
@@ -141,7 +141,7 @@ type private ClassTranslator(_context: TranslationContext,
         _class_syntax.VarFormals
         |> Seq.iter (fun vf_node ->
             let sym = Symbol.Of(formal_node=vf_node.Map(fun vf -> vf.AsFormalSyntax(id_prefix=".")),
-                                index=_sym_table.MethodSyms.FormalsCount)
+                                index=_sym_table.MethodFrame.ActualsCount)
             _sym_table.AddFormal(sym))
         
         // We're entering .ctor's body, which is a block.
@@ -264,7 +264,7 @@ type private ClassTranslator(_context: TranslationContext,
             
             method_node.Syntax.Formals
             |> Seq.iter (fun formal_node ->
-                let sym = Symbol.Of(formal_node, index=_sym_table.MethodSyms.FormalsCount)
+                let sym = Symbol.Of(formal_node, index=_sym_table.MethodFrame.ActualsCount)
                 _sym_table.AddFormal(sym))
             
             // Translate the method's body

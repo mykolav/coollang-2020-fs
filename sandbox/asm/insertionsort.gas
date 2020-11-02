@@ -373,7 +373,7 @@ Nil.isNil:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-    movq $bool_const_true, %rbx
+    movq $Boolean_true, %rbx
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -399,8 +399,8 @@ Cons.isNil:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-    movq $bool_const_false, %rbx
-    movq %rbx, %rax
+    movq $Boolean_false, %r11
+    movq %r11, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -480,7 +480,7 @@ Main.insert:
     movq %r15, -64(%rbp)
     # begin body
 
-    movq %r10, %rax
+    movq %r12, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -507,7 +507,7 @@ Main.sort:
     movq %r15, -56(%rbp)
     # begin body
 
-    movq %rbx, %rax
+    movq %r11, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -534,7 +534,7 @@ Main.out_list:
     movq %r15, -56(%rbp)
     # begin body
 
-    movq %rbx, %rax
+    movq %r11, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
