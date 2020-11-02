@@ -366,18 +366,17 @@ type private ExprTranslator(_context: TranslationContext,
                                 pattern.Span)
                             pattern_error <- true
             
-            let sym_index = _sym_table.MethodSymCount
             let block_frags =
                 cases |> Array.map (fun case ->
                     _sym_table.EnterBlock()
                     
                     match case.Syntax.Pattern.Syntax with
                     | PatternSyntax.IdType (id, ty) ->
-                        _sym_table.Add({ Symbol.Name = id.Syntax
-                                         Type = ty.Syntax
-                                         Index = sym_index
-                                         SyntaxSpan = case.Syntax.Pattern.Span
-                                         Kind = SymbolKind.Var })
+                        _sym_table.AddVar({ Symbol.Name = id.Syntax
+                                            Type = ty.Syntax
+                                            Index = _sym_table.MethodSyms.VarsCount
+                                            SyntaxSpan = case.Syntax.Pattern.Span
+                                            Kind = SymbolKind.Var })
                     | PatternSyntax.Null ->
                         ()
                         
@@ -497,7 +496,7 @@ type private ExprTranslator(_context: TranslationContext,
         | ExprSyntax.Int int_syntax ->
             let const_label = _context.IntConsts.GetOrAdd(int_syntax.Value)
             let reg = _context.RegSet.Allocate()
-            let asm = sprintf "movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+            let asm = sprintf "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
             
             Ok { AsmFragment.Asm = StringBuilder(asm)
                  Type = BasicClasses.Int
@@ -506,7 +505,7 @@ type private ExprTranslator(_context: TranslationContext,
         | ExprSyntax.Str str_syntax ->
             let const_label = _context.StrConsts.GetOrAdd(str_syntax.Value)
             let reg = _context.RegSet.Allocate()
-            let asm = sprintf "movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+            let asm = sprintf "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
             
             Ok { AsmFragment.Asm = StringBuilder(asm)
                  Type = BasicClasses.String
@@ -517,7 +516,7 @@ type private ExprTranslator(_context: TranslationContext,
                               then "bool_const_true"
                               else "bool_const_false"
             let reg = _context.RegSet.Allocate()
-            let asm = sprintf "movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+            let asm = sprintf "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
                               
             Ok { AsmFragment.Asm = StringBuilder(asm)
                  Type = BasicClasses.Boolean
@@ -563,7 +562,9 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
 
-        let asm = sprintf "movq %s, %s" (_context.RegSet.NameOf(expr_frag.Value.Reg)) (addr_frag.Asm.ToString())
+        let asm = sprintf "    movq %s, %s"
+                          (_context.RegSet.NameOf(expr_frag.Value.Reg))
+                          (addr_frag.Asm.ToString())
         _context.RegSet.Free(addr_frag.Reg)
 
         // We do not free up expr_frag.Value.Reg,
@@ -767,7 +768,7 @@ type private ExprTranslator(_context: TranslationContext,
         // before translating the init expression.
         // As a result, the var will be visible to the init expression.
         // TODO: Does this correspond to Cool2020's operational semantics?
-        _sym_table.Add(Symbol.Of(var_node, _sym_table.MethodSymCount))
+        _sym_table.AddVar(Symbol.Of(var_node, _sym_table.MethodSyms.VarsCount))
         let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
         then

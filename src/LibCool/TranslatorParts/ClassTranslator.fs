@@ -57,7 +57,69 @@ type private ClassTranslator(_context: TranslationContext,
         Ok asm
 
 
-    let translate_ctor () =
+    let emit_method_prologue (): unit =
+        let actuals_in_frame_count = if _sym_table.MethodSyms.FormalsCount >= 6
+                                     then 6
+                                     else _sym_table.MethodSyms.FormalsCount
+        let actuals_size_in_bytes = actuals_in_frame_count * 8
+
+        let vars_size_in_bytes = _sym_table.MethodSyms.VarsCount * 8
+        let callee_saved_regs_size_in_bytes = 5 (* number of the callee-saved regs *) * 8
+
+        let frame_size_in_bytes =
+            actuals_size_in_bytes +
+            vars_size_in_bytes +
+            callee_saved_regs_size_in_bytes
+
+        let pad_size_in_bytes = if (frame_size_in_bytes % 16) = 0
+                                then 0
+                                else 16 - (frame_size_in_bytes % 16)
+                                
+        let actuals_offset_in_bytes = 0
+        // let vars_offset_in_bytes = actuals_size_in_bytes
+        let callee_saved_regs_offset_in_bytes = actuals_size_in_bytes + vars_size_in_bytes
+
+        _sb_code
+            .AppendLine("    pushq %rbp # save the base pointer")
+            .AppendLine("    movq %rsp, %rbp # set new base pointer to rsp")
+            .AppendLine(sprintf "    subq $%d, %%rsp" (frame_size_in_bytes + pad_size_in_bytes))
+            .AppendLine("    # save actuals on the stack")
+            .Nop()
+        
+        let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
+        for i in 0..actuals_in_frame_count do
+            _sb_code
+                .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
+                                    actual_regs.[i]
+                                    (actuals_offset_in_bytes + 8 * (i + 1)))
+                .Nop()
+        
+        _sb_code.AppendLine("    # save callee-saved registers").Nop()
+
+        let callee_saved_regs = [| "%rbx"; "%r12"; "%r13"; "%r14"; "%r15" |]
+        for i in 0..(callee_saved_regs.Length-1) do
+            _sb_code
+                .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
+                                    callee_saved_regs.[i]
+                                    (callee_saved_regs_offset_in_bytes + 8 * (i + 1)))
+                .Nop()
+    
+    
+    let emit_method_epilogue (): unit =
+        _sb_code
+            .AppendLine("    # restore callee-saved registers")
+            .AppendLine("    popq %r15 ")
+            .AppendLine("    popq %r14")
+            .AppendLine("    popq %r13")
+            .AppendLine("    popq %r12")
+            .AppendLine("    popq %rbx")
+            .AppendLine("    movq %rbp, %rsp # reset stack to base pointer")
+            .AppendLine("    popq %rbp # restore the old base pointer")
+            .AppendLine("    ret")
+            .Nop()
+    
+    
+    let translate_ctor (): unit =
     
         // .ctor's formals are varformals,
         // .ctor's body is
@@ -71,7 +133,7 @@ type private ClassTranslator(_context: TranslationContext,
         let sb_ctor_body = StringBuilder()
         
         _sym_table.EnterMethod()
-        _sym_table.Add(Symbol.This(_class_syntax))
+        _sym_table.AddFormal(Symbol.This(_class_syntax))
         
         // By a cruel twist of fate, you can't say `this.ID = ...` in Cool2020.
         // Gotta be creative and prefix formal names with "."
@@ -79,8 +141,8 @@ type private ClassTranslator(_context: TranslationContext,
         _class_syntax.VarFormals
         |> Seq.iter (fun vf_node ->
             let sym = Symbol.Of(formal_node=vf_node.Map(fun vf -> vf.AsFormalSyntax(id_prefix=".")),
-                                index=_sym_table.MethodSymCount)
-            _sym_table.Add(sym))
+                                index=_sym_table.MethodSyms.FormalsCount)
+            _sym_table.AddFormal(sym))
         
         // We're entering .ctor's body, which is a block.
         _sym_table.EnterBlock()
@@ -198,12 +260,12 @@ type private ClassTranslator(_context: TranslationContext,
         if override_ok
         then
             // Add the method's formal parameters to the symbol table.
-            _sym_table.Add(Symbol.This(_class_syntax))
+            _sym_table.AddFormal(Symbol.This(_class_syntax))
             
             method_node.Syntax.Formals
             |> Seq.iter (fun formal_node ->
-                let sym = Symbol.Of(formal_node, index=_sym_table.MethodSymCount)
-                _sym_table.Add(sym))
+                let sym = Symbol.Of(formal_node, index=_sym_table.MethodSyms.FormalsCount)
+                _sym_table.AddFormal(sym))
             
             // Translate the method's body
             let body_frag = _expr_translator.Translate(method_node.Syntax.Body.Map(fun it -> it.AsExprSyntax))
@@ -218,6 +280,27 @@ type private ClassTranslator(_context: TranslationContext,
                                 body_frag.Value.Type.Name
                                 return_ty.Name,
                         method_node.Syntax.Body.Span)
+                else
+                    // Finally, all the semantic checks passed.
+                    // Emit assembly.
+                    _sb_code
+                        .AppendLine(sprintf "%O.%O:"
+                                            _class_syntax.NAME.Syntax
+                                            method_node.Syntax.ID.Syntax)
+                        .Nop()
+                        
+                    emit_method_prologue ()
+                    _sb_code
+                        .AppendLine("    # begin body")
+                        .AppendLine(body_frag.Value.Asm.ToString())
+                        .AppendLine(sprintf "    movq %s, %%rax"
+                                            (if body_frag.Value.Reg = Reg.Null
+                                             then "$0"
+                                             else _context.RegSet.NameOf(body_frag.Value.Reg)))
+                        .AppendLine("    # end body")
+                        .Nop()
+                    _context.RegSet.Free(body_frag.Value.Reg)
+                    emit_method_epilogue ()
 
         _sym_table.LeaveMethod()
     

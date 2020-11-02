@@ -7,13 +7,22 @@ str_const_0:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
+    .quad int_const_0 # length = 0
+    # ''
+    .byte 0 # terminator
+    .zero 7 # payload's size in bytes = 25, pad to an 8 byte boundary
+    .quad -1
+str_const_1:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
     .quad int_const_3 # length = 1
     # ' '
     .byte 32
     .byte 0 # terminator
     .zero 6 # payload's size in bytes = 26, pad to an 8 byte boundary
     .quad -1
-str_const_1:
+str_const_2:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
@@ -23,7 +32,7 @@ str_const_1:
     .byte 0 # terminator
     .zero 4 # payload's size in bytes = 28, pad to an 8 byte boundary
     .quad -1
-str_const_2:
+str_const_3:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
@@ -33,7 +42,7 @@ str_const_2:
     .byte 0 # terminator
     .zero 3 # payload's size in bytes = 29, pad to an 8 byte boundary
     .quad -1
-str_const_3:
+str_const_4:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
@@ -43,7 +52,7 @@ str_const_3:
     .byte 0 # terminator
     .zero 4 # payload's size in bytes = 28, pad to an 8 byte boundary
     .quad -1
-str_const_4:
+str_const_5:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
@@ -53,7 +62,7 @@ str_const_4:
     .byte 0 # terminator
     .zero 1 # payload's size in bytes = 31, pad to an 8 byte boundary
     .quad -1
-str_const_5:
+str_const_6:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
@@ -62,7 +71,7 @@ str_const_5:
     .byte 66, 111, 111, 108, 101, 97, 110
     .byte 0 # terminator
     .quad -1
-str_const_6:
+str_const_7:
     .quad 3 # tag
     .quad 5 # size in quads
     .quad String_vtable
@@ -72,7 +81,7 @@ str_const_6:
     .byte 0 # terminator
     .zero 7 # payload's size in bytes = 33, pad to an 8 byte boundary
     .quad -1
-str_const_7:
+str_const_8:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
@@ -82,7 +91,7 @@ str_const_7:
     .byte 0 # terminator
     .zero 5 # payload's size in bytes = 27, pad to an 8 byte boundary
     .quad -1
-str_const_8:
+str_const_9:
     .quad 3 # tag
     .quad 5 # size in quads
     .quad String_vtable
@@ -92,7 +101,7 @@ str_const_8:
     .byte 0 # terminator
     .zero 6 # payload's size in bytes = 34, pad to an 8 byte boundary
     .quad -1
-str_const_9:
+str_const_10:
     .quad 3 # tag
     .quad 4 # size in quads
     .quad String_vtable
@@ -103,104 +112,104 @@ str_const_9:
     .zero 3 # payload's size in bytes = 29, pad to an 8 byte boundary
     .quad -1
 int_const_0:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
-    .quad 5 # value
-    .quad -1
-int_const_1:
-    .quad 3 # tag
-    .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 0 # value
     .quad -1
-int_const_2:
-    .quad 3 # tag
+int_const_1:
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
+    .quad 5 # value
+    .quad -1
+int_const_2:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
     .quad 30 # value
     .quad -1
 int_const_3:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 1 # value
     .quad -1
 int_const_4:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 20 # value
     .quad -1
 int_const_5:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 2 # value
     .quad -1
 int_const_6:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 50 # value
     .quad -1
 int_const_7:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 3 # value
     .quad -1
 int_const_8:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 40 # value
     .quad -1
 int_const_9:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 4 # value
     .quad -1
 int_const_10:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 10 # value
     .quad -1
 int_const_11:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 6 # value
     .quad -1
 int_const_12:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 7 # value
     .quad -1
 int_const_13:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 8 # value
     .quad -1
 int_const_14:
-    .quad 3 # tag
+    .quad 2 # tag
     .quad 4 # size in quads
-    .quad String_vtable
+    .quad Int_vtable
     .quad 9 # value
 class_name_table:
-    .quad str_const_1 # Any
-    .quad str_const_2 # Unit
-    .quad str_const_3 # Int
-    .quad str_const_4 # String
-    .quad str_const_5 # Boolean
-    .quad str_const_6 # ArrayAny
-    .quad str_const_7 # IO
-    .quad str_const_8 # QuickSort
-    .quad str_const_9 # Main
+    .quad str_const_2 # Any
+    .quad str_const_3 # Unit
+    .quad str_const_4 # Int
+    .quad str_const_5 # String
+    .quad str_const_6 # Boolean
+    .quad str_const_7 # ArrayAny
+    .quad str_const_8 # IO
+    .quad str_const_9 # QuickSort
+    .quad str_const_10 # Main
 class_parent_table:
     .quad -1 # Any
     .quad 0 # Unit extends Any
@@ -224,6 +233,134 @@ QuickSort_vtable:
     .quad QuickSort.out_array # overrides? no
 Main_vtable:
     .quad Any.abort # overrides? no
+    .quad -1
+QuickSort_proto_obj:
+    .quad 7 # tag
+    .quad 3 # size in quads
+    .quad QuickSort_vtable
+    .quad -1
+Main_proto_obj:
+    .quad 8 # tag
+    .quad 3 # size in quads
+    .quad Main_vtable
 
     .text
+QuickSort.quicksort:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $80, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    movq %rdx, -24(%rbp)
+    movq %rcx, -32(%rbp)
+    movq %r8, -40(%rbp)
+    # save callee-saved registers
+    movq %rbx, -48(%rbp)
+    movq %r12, -56(%rbp)
+    movq %r13, -64(%rbp)
+    movq %r14, -72(%rbp)
+    movq %r15, -80(%rbp)
+    # begin body
+
+    movq %rbx, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret
+QuickSort.partition:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $112, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    movq %rdx, -24(%rbp)
+    movq %rcx, -32(%rbp)
+    movq %r8, -40(%rbp)
+    # save callee-saved registers
+    movq %rbx, -80(%rbp)
+    movq %r12, -88(%rbp)
+    movq %r13, -96(%rbp)
+    movq %r14, -104(%rbp)
+    movq %r15, -112(%rbp)
+    # begin body
+    movq , 
+    movq , 
+    movq , 
+
+    movq $0, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret
+QuickSort.array_swap:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $80, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    movq %rdx, -24(%rbp)
+    movq %rcx, -32(%rbp)
+    movq %r8, -40(%rbp)
+    # save callee-saved registers
+    movq %rbx, -48(%rbp)
+    movq %r12, -56(%rbp)
+    movq %r13, -64(%rbp)
+    movq %r14, -72(%rbp)
+    movq %r15, -80(%rbp)
+    # begin body
+    movq , 
+
+    movq $0, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret
+QuickSort.out_array:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $80, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    movq %rdx, -24(%rbp)
+    # save callee-saved registers
+    movq %rbx, -40(%rbp)
+    movq %r12, -48(%rbp)
+    movq %r13, -56(%rbp)
+    movq %r14, -64(%rbp)
+    movq %r15, -72(%rbp)
+    # begin body
+    movq $int_const_0, %rbx    movq %rbx, 
+
+    movq $0, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
     ret

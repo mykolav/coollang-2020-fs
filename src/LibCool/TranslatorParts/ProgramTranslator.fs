@@ -85,8 +85,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         
         
     let translate_str_const (str_const: ConstSetItem<string>): unit =
-        let utf8_bytes = Encoding.UTF8.GetBytes(str_const.Value)
-        let len_const_label = _context.IntConsts.GetOrAdd(utf8_bytes.Length)
+        let ascii_bytes = Encoding.ASCII.GetBytes(str_const.Value)
+        let len_const_label = _context.IntConsts.GetOrAdd(ascii_bytes.Length)
         
         let tag_field_size_in_bytes = 8
         let size_field_size_in_bytes = 8
@@ -97,7 +97,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             tag_field_size_in_bytes +
             size_field_size_in_bytes +
             vtable_addr_field_size_in_bytes +
-            utf8_bytes.Length +
+            ascii_bytes.Length +
             terminating_zero_field_size_in_bytes
             
         let pad_size_in_bytes = if (str_object_size_in_bytes % 8) = 0
@@ -117,16 +117,16 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             // Addr of the vtable
             .AppendLine(sprintf "    .quad %s_vtable" BasicClasses.String.Name.Value)
             // Addr of an int object containing the string's len in chars
-            .AppendLine(sprintf "    .quad %s # length = %d" len_const_label utf8_bytes.Length)
+            .AppendLine(sprintf "    .quad %s # length = %d" len_const_label ascii_bytes.Length)
             // A comment with the string's content in human-readable form
             .AppendLine(sprintf "    # '%s'" (str_const.Value.Replace("\r", "").Replace("\n", "\\n")))
             .Nop()
         
         // String content encoded in UTF8
-        if utf8_bytes.Length > 0
+        if ascii_bytes.Length > 0
         then
             _sb_data
-                .AppendLine(sprintf "    .byte %s" (String.Join(", ", utf8_bytes)))
+                .AppendLine(sprintf "    .byte %s" (String.Join(", ", ascii_bytes)))
                 .Nop()
                 
         // String terminator
@@ -263,7 +263,6 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 .Append(_sb_data.ToString())
                 .AppendLine()
                 .AppendLine("    .text")
-                .AppendLine("    ret")
                 // .AppendLine("    movq $0, %rcx")
                 // .AppendLine("    call ExitProcess")
                 .Append(_sb_code.ToString())

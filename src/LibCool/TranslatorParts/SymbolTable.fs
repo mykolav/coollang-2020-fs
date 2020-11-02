@@ -72,13 +72,13 @@ type Scope() =
 type SymbolTable(_class_sym: ClassSymbol) =
 
 
-    let _method_sym_counts = List<int>()
+    let _method_syms = List<struct {| FormalsCount: int; VarsCount: int |}>()
     let _scopes = List<Scope>()
     
     
-    member this.MethodSymCount
-        with get() = _method_sym_counts.[_method_sym_counts.Count - 1]
-        and private set count = _method_sym_counts.[_method_sym_counts.Count - 1] <- count
+    member this.MethodSyms
+        with get() = _method_syms.[_method_syms.Count - 1]
+        and private set count = _method_syms.[_method_syms.Count - 1] <- count
 
 
     member private this.CurrentScopeLevel = _scopes.Count - 1
@@ -86,7 +86,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.EnterMethod(): unit =
-        _method_sym_counts.Add(0)
+        _method_syms.Add({| FormalsCount = 0; VarsCount = 0 |})
         _scopes.Add(Scope())
     
     
@@ -107,21 +107,26 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.LeaveMethod(): unit =
-        _method_sym_counts.RemoveAt(this.CurrentScopeLevel)
+        _method_syms.RemoveAt(this.CurrentScopeLevel)
         _scopes.RemoveAt(this.CurrentScopeLevel)
         
         
-    member this.Add(sym: Symbol): unit =
+    member this.AddFormal(sym: Symbol): unit =
+        this.CurrentScope.Add(sym)
+        this.MethodSyms <- {| this.MethodSyms with FormalsCount = this.MethodSyms.FormalsCount + 1 |}
+        
+        
+    member this.AddVar(sym: Symbol): unit =
         this.CurrentScope.Add(sym)
         // Multiple match expression branches can bind an id
         // to the matched expression's value.
         // But at runtime, only one branch will execute,
         // as a result we need only one temporary on stack.
-        // That's why we don't increase `MethodSymCount`,
-        // if `sym.Index < this.MethodSymCount`.
-        if sym.Index >= this.MethodSymCount
+        // That's why we don't increase `MethodSyms.VarsCount`,
+        // if `sym.Index < this.MethodSym.VarCount`.
+        if sym.Index >= this.MethodSyms.VarsCount
         then
-            this.MethodSymCount <- this.MethodSymCount + 1
+            this.MethodSyms <- {| this.MethodSyms with VarsCount = this.MethodSyms.VarsCount + 1 |}
     
     
     member this.Resolve(name: ID): Symbol =
