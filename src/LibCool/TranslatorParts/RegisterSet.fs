@@ -26,6 +26,19 @@ type RegisterSet() =
     |]
     
     
+    member this.Count: int = _regs.Length
+    
+    
+    member this.FreeCount: int =
+        _regs |> Array.where (fun it -> it.IsFree) |> Array.length
+        
+        
+    member this.AssertNoLeaks(): unit =
+        if this.FreeCount <> this.Count
+        then
+            invalidOp "A register leak detected"
+    
+    
     member this.Allocate(): Reg =
         let index_opt = _regs |> Seq.tryFindIndex (fun it -> it.IsFree)
         match index_opt with

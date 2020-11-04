@@ -43,18 +43,26 @@ type private ClassTranslator(_context: TranslationContext,
                         attr_sym.Name
                         attr_sym.Type,
                 initial_node.Span)
+
+            _context.RegSet.Free(initial_frag.Value.Reg)
+            _context.RegSet.Free(addr_frag.Reg)
+
             Error
         else
             
-        let asm =
-            initial_frag.Value.Asm
-                .AppendLine(sprintf "movq %s, %s" (_context.RegSet.NameOf(initial_frag.Value.Reg)) (addr_frag.Asm.ToString()))
-                .ToString()
+        let asm = initial_frag.Value.Asm
+        if addr_frag.Asm.IsSome
+        then
+            asm.Append(addr_frag.Asm.Value).Nop()
+            
+        asm.AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(initial_frag.Value.Reg))
+                                                 (addr_frag.Asm.ToString()))
+           .Nop()
             
         _context.RegSet.Free(initial_frag.Value.Reg)
         _context.RegSet.Free(addr_frag.Reg)
 
-        Ok asm
+        Ok (asm.ToString())
 
 
     let emit_method_prologue (): unit =
@@ -121,6 +129,8 @@ type private ClassTranslator(_context: TranslationContext,
     
     let translate_ctor (): unit =
     
+        _context.RegSet.AssertNoLeaks()
+
         // .ctor's formals are varformals,
         // .ctor's body is
         //   - an invocation of the super's .ctor with actuals from the extends syntax
@@ -157,8 +167,11 @@ type private ClassTranslator(_context: TranslationContext,
         let super_dispatch_frag = _expr_translator.Translate(AstNode.Virtual(super_dispatch_syntax))
         if super_dispatch_frag.IsOk
         then
-            sb_ctor_body.Append(super_dispatch_frag.Value.Asm) |> ignore
+            _context.RegSet.Free(super_dispatch_frag.Value.Reg)
+            sb_ctor_body.Append(super_dispatch_frag.Value.Asm).Nop()
             
+        _context.RegSet.AssertNoLeaks()
+
         // Assign values passed as formals to attrs derived from varformals.
         _class_syntax.VarFormals
         |> Seq.iter (fun vf_node ->
@@ -170,8 +183,14 @@ type private ClassTranslator(_context: TranslationContext,
             let assign_frag = _expr_translator.Translate(AstNode.Virtual(assign_syntax))
             if assign_frag.IsOk
             then
-                sb_ctor_body.Append(assign_frag.Value.Asm) |> ignore)
+                _context.RegSet.Free(assign_frag.Value.Reg)
+                sb_ctor_body.Append(assign_frag.Value.Asm).Nop()
         
+            _context.RegSet.AssertNoLeaks()
+        )
+        
+        _context.RegSet.AssertNoLeaks()
+
         // Assign initial values to attributes declared in the class.
         _class_syntax.Features
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsAttr)
@@ -179,8 +198,11 @@ type private ClassTranslator(_context: TranslationContext,
             let attr_frag = translate_attr (feature_node.Map(fun it -> it.AsAttrSyntax))
             if attr_frag.IsOk
             then
-                sb_ctor_body.Append(attr_frag.Value) |> ignore)
+                sb_ctor_body.Append(attr_frag.Value).Nop()
+        )
         
+        _context.RegSet.AssertNoLeaks()
+
         // Translate blocks.
         _class_syntax.Features
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsBracedBlock)
@@ -188,8 +210,12 @@ type private ClassTranslator(_context: TranslationContext,
             let block_frag = _expr_translator.TranslateBlock(feature_node.Syntax.AsBlockSyntax)
             if block_frag.IsOk
             then
-                sb_ctor_body.Append(block_frag.Value.Asm) |> ignore)
+                _context.RegSet.Free(block_frag.Value.Reg)
+                sb_ctor_body.Append(block_frag.Value.Asm).Nop()
+        )
         
+        _context.RegSet.AssertNoLeaks()
+
         // Append ExprSyntax.This to the .ctor's end.
         // (As a result, the last block's last expr's type doesn't have to match the class' type.)
         let this_syntax = ExprSyntax.This
@@ -200,15 +226,33 @@ type private ClassTranslator(_context: TranslationContext,
             //       Keep in mind, returning a value is more relevant for regular method
             //       as a ctor return value is the one we passed it in `this`.
             //       So, maybe, we aren't going to return anything at all from ctors.
-            this_frag.Value.Reg |> ignore
+            _context.RegSet.Free(this_frag.Value.Reg)
             
-        // TODO: Generate the method header and footer, insert `sb_ctor_body` in between them.
+        _context.RegSet.AssertNoLeaks()
+
+        // Finally, emit assembly.
+        _sb_code
+            .AppendLine(sprintf "%O..ctor:" _class_syntax.NAME.Syntax)
+            .Nop()
+                        
+        emit_method_prologue ()
+        _sb_code
+            .AppendLine("    # begin body")
+            .Append(sb_ctor_body.ToString())
+            .AppendLine(sprintf "    movq %s, %%rax" (_context.RegSet.NameOf(this_frag.Value.Reg)))
+            .AppendLine("    # end body")
+            .Nop()
+        emit_method_epilogue ()
 
         _sym_table.LeaveBlock()
         _sym_table.LeaveMethod()
+
+        _context.RegSet.AssertNoLeaks()
     
     
     let translate_method (method_node: AstNode<MethodSyntax>) =
+        _context.RegSet.AssertNoLeaks()
+
         _sym_table.EnterMethod()
         
         let mutable override_ok = true
@@ -292,7 +336,7 @@ type private ClassTranslator(_context: TranslationContext,
                     emit_method_prologue ()
                     _sb_code
                         .AppendLine("    # begin body")
-                        .AppendLine(body_frag.Value.Asm.ToString())
+                        .Append(body_frag.Value.Asm.ToString())
                         .AppendLine(sprintf "    movq %s, %%rax"
                                             (if body_frag.Value.Reg = Reg.Null
                                              then "$0"
@@ -303,10 +347,15 @@ type private ClassTranslator(_context: TranslationContext,
                     emit_method_epilogue ()
 
         _sym_table.LeaveMethod()
+        _context.RegSet.AssertNoLeaks()
     
     
     member this.Translate(): unit =
+        _context.RegSet.AssertNoLeaks()
+            
         translate_ctor ()
         _class_syntax.Features
             |> Seq.where (fun feature_node -> feature_node.Syntax.IsMethod)
             |> Seq.iter (fun feature_node -> translate_method (feature_node.Map(fun it -> it.AsMethodSyntax)))
+
+        _context.RegSet.AssertNoLeaks()

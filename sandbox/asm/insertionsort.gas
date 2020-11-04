@@ -281,6 +281,31 @@ Main_proto_obj:
     .quad Main_vtable
 
     .text
+List..ctor:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $48, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    # save callee-saved registers
+    movq %rbx, -16(%rbp)
+    movq %r12, -24(%rbp)
+    movq %r13, -32(%rbp)
+    movq %r14, -40(%rbp)
+    movq %r15, -48(%rbp)
+    # begin body
+    movq %rbx, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret
 List.isNil:
     pushq %rbp # save the base pointer
     movq %rsp, %rbp # set new base pointer to rsp
@@ -295,7 +320,6 @@ List.isNil:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-
     movq $0, %rax
     # end body
     # restore callee-saved registers
@@ -321,7 +345,6 @@ List.head:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-
     movq $0, %rax
     # end body
     # restore callee-saved registers
@@ -347,8 +370,32 @@ List.tail:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-
     movq $0, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret
+Nil..ctor:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $48, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    # save callee-saved registers
+    movq %rbx, -16(%rbp)
+    movq %r12, -24(%rbp)
+    movq %r13, -32(%rbp)
+    movq %r14, -40(%rbp)
+    movq %r15, -48(%rbp)
+    # begin body
+    movq %rbx, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -385,6 +432,41 @@ Nil.isNil:
     movq %rbp, %rsp # reset stack to base pointer
     popq %rbp # restore the old base pointer
     ret
+Cons..ctor:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $64, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    movq %rdx, -24(%rbp)
+    movq %rcx, -32(%rbp)
+    # save callee-saved registers
+    movq %rbx, -32(%rbp)
+    movq %r12, -40(%rbp)
+    movq %r13, -48(%rbp)
+    movq %r14, -56(%rbp)
+    movq %r15, -64(%rbp)
+    # begin body
+    movq -16(%rbp), %rbx
+    movq -8(%rbp), %r10
+
+    movq %rbx, 192(%r10)
+    movq -24(%rbp), %rbx
+    movq -8(%rbp), %r10
+
+    movq %rbx, 200(%r10)
+    movq %rbx, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret
 Cons.isNil:
     pushq %rbp # save the base pointer
     movq %rsp, %rbp # set new base pointer to rsp
@@ -399,8 +481,8 @@ Cons.isNil:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-    movq $Boolean_false, %r11
-    movq %r11, %rax
+    movq $Boolean_false, %rbx
+    movq %rbx, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -425,8 +507,9 @@ Cons.head:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-
-    movq $0, %rax
+    movq -8(%rbp), %rbx
+    movq 192(%rbx), %r10
+    movq %r10, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -451,8 +534,35 @@ Cons.tail:
     movq %r14, -40(%rbp)
     movq %r15, -48(%rbp)
     # begin body
-
-    movq $0, %rax
+    movq -8(%rbp), %rbx
+    movq 200(%rbx), %r10
+    movq %r10, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret
+Main..ctor:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $64, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    # save callee-saved registers
+    movq %rbx, -24(%rbp)
+    movq %r12, -32(%rbp)
+    movq %r13, -40(%rbp)
+    movq %r14, -48(%rbp)
+    movq %r15, -56(%rbp)
+    # begin body
+    movq , -16(%rbp)
+    movq %rbx, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -479,8 +589,25 @@ Main.insert:
     movq %r14, -56(%rbp)
     movq %r15, -64(%rbp)
     # begin body
-
-    movq %r12, %rax
+    cmpq $0, 24()
+    je .label_2
+    # then
+    movq , %r10
+    jmp .label_3
+.label_2: # else
+    movq -24(%rbp), %r10
+    movq 24(%r10), %r10
+    movq 24(), 
+    cmpq %r10, 
+    jle .label_0
+    movq , %rbx
+    jmp .label_1
+.label_0:
+    movq , %rbx
+.label_1:
+    movq %rbx, %r10
+.label_3: # done
+    movq %r10, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -506,8 +633,16 @@ Main.sort:
     movq %r14, -48(%rbp)
     movq %r15, -56(%rbp)
     # begin body
-
-    movq %r11, %rax
+    cmpq $0, 24()
+    je .label_4
+    # then
+    movq -16(%rbp), %rbx
+    movq %rbx, %r10
+    jmp .label_5
+.label_4: # else
+    movq , %r10
+.label_5: # done
+    movq %r10, %rax
     # end body
     # restore callee-saved registers
     popq %r15 
@@ -533,8 +668,15 @@ Main.out_list:
     movq %r14, -48(%rbp)
     movq %r15, -56(%rbp)
     # begin body
-
-    movq %r11, %rax
+    cmpq $0, 24()
+    je .label_6
+    # then
+    movq , %rbx
+    jmp .label_7
+.label_6: # else
+    movq , %rbx
+.label_7: # done
+    movq %rbx, %rax
     # end body
     # restore callee-saved registers
     popq %r15 

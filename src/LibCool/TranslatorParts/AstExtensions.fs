@@ -2,11 +2,26 @@ namespace LibCool.TranslatorParts
 
 
 open LibCool.AstParts
-open LibCool.SourceParts
 
 
 module AstExtensions =
     
+    
+    type ExprSyntax
+        with
+        member this.IsComparison: bool =
+            match this with
+            | ExprSyntax.Lt _   -> true
+            | ExprSyntax.LtEq _ -> true
+            | ExprSyntax.Gt _   -> true
+            | ExprSyntax.GtEq _ -> true
+            | _                 -> false
+        member this.IsEquality: bool =
+            match this with
+            | ExprSyntax.EqEq _  -> true
+            | ExprSyntax.NotEq _ -> true
+            | _                  -> false
+
     
     type VarFormalSyntax
         with

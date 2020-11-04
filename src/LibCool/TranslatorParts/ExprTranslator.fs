@@ -15,9 +15,6 @@ type AsmFragment =
     { Type: ClassSymbol
       Asm: StringBuilder
       Reg: Reg }
-    with
-    static member Unit =
-        { Type=BasicClasses.Unit; Asm=StringBuilder(); Reg=Reg.Null }
 
 
 [<Sealed>]
@@ -45,7 +42,7 @@ type private ExprTranslator(_context: TranslationContext,
             let done_label = _context.LabelGen.Generate()
             
             expr_frag.Asm
-                .AppendLine(sprintf "    cmpq $0, %s" (_context.RegSet.NameOf(expr_frag.Reg)))
+                .AppendLine(sprintf "    cmpq $0, 24(%s)" (_context.RegSet.NameOf(expr_frag.Reg)))
                 .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(false_label)))
                 .AppendLine(sprintf "    movq $Boolean_false, %s" (_context.RegSet.NameOf(expr_frag.Reg)))
                 .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
@@ -76,6 +73,88 @@ type private ExprTranslator(_context: TranslationContext,
             Ok expr_frag
             
         | ExprSyntax.If (condition, then_branch, else_branch) ->
+            let then_frag = translate_expr then_branch
+            let else_frag = translate_expr else_branch
+
+            if then_frag.IsError || else_frag.IsError
+            then
+                if then_frag.IsOk then _context.RegSet.Free(then_frag.Value.Reg)
+                if else_frag.IsOk then _context.RegSet.Free(else_frag.Value.Reg)
+                Error
+            else
+
+            let result_reg = _context.RegSet.Allocate()
+            
+            let then_asm =
+                then_frag.Value.Asm
+                    .AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(then_frag.Value.Reg))
+                                                          (_context.RegSet.NameOf(result_reg)))
+                    .ToString()
+            
+            let else_asm =
+                else_frag.Value.Asm
+                    .AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(else_frag.Value.Reg))
+                                                          (_context.RegSet.NameOf(result_reg)))
+                    .ToString()
+
+            // It's OK to free up these registers early,
+            // as the the condition's code cannot overwrite them
+            // (it's located before the branches).
+            _context.RegSet.Free(then_frag.Value.Reg)
+            _context.RegSet.Free(else_frag.Value.Reg)
+                
+            if condition.Syntax.IsComparison
+            then
+                let left, right, op, jmp =
+                    match condition.Syntax with
+                    | ExprSyntax.Lt (left, right)   -> left, right, "<", "jl"
+                    | ExprSyntax.LtEq (left, right) -> left, right, "<=", "jle"
+                    | ExprSyntax.Gt (left, right)   -> left, right, ">", "jg"
+                    | ExprSyntax.GtEq (left, right) -> left, right, ">=", "jge"
+                    | _                             -> invalidOp "Unreachable"
+                let operands = translate_infixop_int_operands left right op
+                if operands.IsError
+                then
+                    Error
+                else
+                    
+                let left_frag, right_frag = operands.Value
+                let asm = emit_cmpop_with_branches left_frag
+                                                   right_frag
+                                                   jmp
+                                                   (*false_branch*)else_asm
+                                                   (*true_branch*)then_asm
+
+                Ok { AsmFragment.Asm = asm
+                     Type = _context.TypeCmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
+                     Reg = result_reg }
+            else
+                
+            if condition.Syntax.IsEquality
+            then
+                let left, right, equal_branch, not_equal_branch =
+                    match condition.Syntax with
+                    | ExprSyntax.EqEq (left, right)  -> left, right, then_asm, else_asm
+                    | ExprSyntax.NotEq (left, right) -> left, right, else_asm, then_asm
+                    | _                              -> invalidOp "Unreachable"
+                let operands = translate_eqop_operands left right "=="
+                if operands.IsError
+                then
+                    Error
+                else
+                    
+                let left_frag, right_frag = operands.Value
+                let asm = 
+                    emit_eqop_with_branches left_frag
+                                            right_frag
+                                            not_equal_branch
+                                            equal_branch
+
+                Ok { AsmFragment.Asm = asm
+                     Type = _context.TypeCmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
+                     Reg = result_reg }
+            else
+                
             let condition_frag = translate_expr condition
             if condition_frag.IsError
             then
@@ -92,32 +171,26 @@ type private ExprTranslator(_context: TranslationContext,
                 Error
             else
             
-            let sb_asm = condition_frag.Value.Asm
-            
-            // TODO: Emit comparison asm
+            let else_label = _context.LabelGen.Generate()
+            let done_label = _context.LabelGen.Generate()
 
+            let asm = condition_frag.Value.Asm
+            asm            
+               .AppendLine(sprintf "    cmpq $0, 24(%s)" (_context.RegSet.NameOf(condition_frag.Value.Reg)))
+               .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(else_label)))
+               .AppendLine("    # then")
+               .Append(then_asm)
+               .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
+               .AppendLine(sprintf "%s: # else" (_context.LabelGen.NameOf(else_label)))
+               .Append(else_asm)
+               .AppendLine(sprintf "%s: # done" (_context.LabelGen.NameOf(done_label)))
+               .Nop()
+            
             _context.RegSet.Free(condition_frag.Value.Reg)
             
-            let then_frag = translate_expr then_branch
-            let else_frag = translate_expr else_branch
-
-            if then_frag.IsError || else_frag.IsError
-            then
-                if then_frag.IsOk then _context.RegSet.Free(then_frag.Value.Reg)
-                if else_frag.IsOk then _context.RegSet.Free(else_frag.Value.Reg)
-                Error
-            else
-                
-            let reg = _context.RegSet.Allocate()
-            
-            // TODO: Emit branches asm, move each branch result into `reg`
-            
-            _context.RegSet.Free(then_frag.Value.Reg)
-            _context.RegSet.Free(else_frag.Value.Reg)
-                
-            Ok { AsmFragment.Asm = sb_asm
+            Ok { AsmFragment.Asm = asm
                  Type = _context.TypeCmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
-                 Reg = reg }
+                 Reg = result_reg }
         
         | ExprSyntax.While (condition, body) ->
             let condition_frag = translate_expr condition
@@ -125,6 +198,9 @@ type private ExprTranslator(_context: TranslationContext,
             then
                 Error
             else
+
+            // Free up the register right away, it's OK if the body re-uses it.
+            _context.RegSet.Free(condition_frag.Value.Reg)
                 
             if not (condition_frag.Value.Type.Is(BasicClasses.Boolean))
             then
@@ -132,31 +208,39 @@ type private ExprTranslator(_context: TranslationContext,
                     sprintf "'while' expects a 'Boolean' condition but found '%O'"
                             condition_frag.Value.Type.Name,
                     condition.Span)
-                
-                _context.RegSet.Free(condition_frag.Value.Reg)
+
                 Error
             else
-            
-            let sb_asm = condition_frag.Value.Asm
-            
-            // TODO: Emit comparison asm
-
-            _context.RegSet.Free(condition_frag.Value.Reg)
             
             let body_frag = translate_expr body
             if body_frag.IsError
             then
                 Error
             else
-                
-            // TODO: Emit the body asm
             
-            // The loop's type is always Unit, so we free up `body_frag.Value.Reg`
+            // Free up the register right away, it's OK if the condition uses the same register.
             _context.RegSet.Free(body_frag.Value.Reg)
+
+            let result_reg = _context.RegSet.Allocate()
+            let loop_label = _context.LabelGen.Generate()
+            let done_label = _context.LabelGen.Generate()
+
+            let asm =
+                StringBuilder()
+                    .AppendLine("    # while")
+                    .AppendLine(sprintf "%s: # condition" (_context.LabelGen.NameOf(loop_label)))
+                    .Append(condition_frag.Value.Asm.ToString())
+                    .AppendLine(sprintf "    cmpq $0, 24(%s)" (_context.RegSet.NameOf(condition_frag.Value.Reg)))
+                    .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(done_label)))
+                    .AppendLine("    # body")
+                    .Append(body_frag.Value.Asm)
+                    .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(loop_label)))
+                    .AppendLine(sprintf "%s: # done" (_context.LabelGen.NameOf(done_label)))
+                    .AppendLine(sprintf "    movq $Unit_value, %s" (_context.RegSet.NameOf(result_reg)))
                 
-            Ok { AsmFragment.Asm = sb_asm
+            Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Unit
-                 Reg = Reg.Null }
+                 Reg = result_reg }
 
         | ExprSyntax.LtEq (left, right) ->
             let operands = translate_infixop_int_operands left right (*op=*)"<="
@@ -225,6 +309,8 @@ type private ExprTranslator(_context: TranslationContext,
             let result_reg = _context.RegSet.Allocate()
             let asm =
                 StringBuilder()
+                    .Append(left_frag.Asm.ToString())
+                    .Append(right_frag.Asm.ToString())
                     .AppendLine("    pushq %r10")
                     .AppendLine("    pushq %r11")
                     .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(left_frag.Reg)))
@@ -248,14 +334,19 @@ type private ExprTranslator(_context: TranslationContext,
                 Error
             else
                 
+            let result_reg = _context.RegSet.Allocate()
+            let not_equal_branch = sprintf "    movq $Boolean_true, %s\n" (_context.RegSet.NameOf(result_reg))
+            let equal_branch = sprintf "    movq $Boolean_false, %s\n" (_context.RegSet.NameOf(result_reg))
             let left_frag, right_frag = operands.Value
-                
-            _context.RegSet.Free(left_frag.Reg)
-            _context.RegSet.Free(right_frag.Reg)
-            
-            Ok { AsmFragment.Asm = StringBuilder()
+            let asm = 
+                emit_eqop_with_branches left_frag
+                                        right_frag
+                                        not_equal_branch
+                                        equal_branch
+                                        
+            Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Boolean
-                 Reg = Reg.Null }
+                 Reg = result_reg }
         
         | ExprSyntax.Mul (left, right) ->
             let operands = translate_infixop_int_operands left right "*"
@@ -401,6 +492,7 @@ type private ExprTranslator(_context: TranslationContext,
                         ()
                         
                     let block_frag = this.TranslateBlock(case.Syntax.Block.Syntax.AsBlockSyntax)
+                    if block_frag.IsOk then _context.RegSet.Free(block_frag.Value.Reg)
                     _sym_table.LeaveBlock()
                     
                     block_frag)
@@ -408,14 +500,14 @@ type private ExprTranslator(_context: TranslationContext,
             if pattern_error || (block_frags |> Seq.exists (fun it -> it.IsError))
             then
                 _context.RegSet.Free(expr_frag.Value.Reg)
-                block_frags |> Seq.iter (fun it -> if it.IsOk then _context.RegSet.Free(it.Value.Reg))
+                //block_frags |> Seq.iter (fun it -> if it.IsOk then _context.RegSet.Free(it.Value.Reg))
                 Error
             else
                 
             let block_types = block_frags |> Array.map (fun it -> it.Value.Type)
             
             _context.RegSet.Free(expr_frag.Value.Reg)
-            block_frags |> Seq.iter (fun it -> _context.RegSet.Free(it.Value.Reg))
+            //block_frags |> Seq.iter (fun it -> _context.RegSet.Free(it.Value.Reg))
             
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _context.TypeCmp.LeastUpperBound(block_types)
@@ -444,6 +536,8 @@ type private ExprTranslator(_context: TranslationContext,
             then
                 Error
             else
+                
+            _context.RegSet.Free(this_frag.Value.Reg)
                 
             let method_sym = super_sym.Methods.[method_id.Syntax]
             let method_name = sprintf "'%O.%O'" super_sym.Name method_sym.Name
@@ -509,9 +603,24 @@ type private ExprTranslator(_context: TranslationContext,
                 Error
             | ValueSome sym ->
                 let ty = _context.ClassSymMap.[sym.Type]
-                Ok { AsmFragment.Asm = StringBuilder()
+                
+                let asm = StringBuilder()
+                let addr_frag = this.AddrOf(sym)
+                let result_reg = _context.RegSet.Allocate()
+                
+                if addr_frag.Asm.IsSome
+                then
+                    asm.Append(addr_frag.Asm.Value).Nop()
+                
+                asm.AppendLine(sprintf "    movq %s, %s" addr_frag.Addr
+                                                         (_context.RegSet.NameOf(result_reg)))
+                   .Nop()
+                
+                _context.RegSet.Free(addr_frag.Reg)
+                
+                Ok { AsmFragment.Asm = asm
                      Type = ty
-                     Reg = Reg.Null }
+                     Reg = result_reg }
             
         | ExprSyntax.Int int_syntax ->
             let const_label = _context.IntConsts.GetOrAdd(int_syntax.Value)
@@ -525,7 +634,7 @@ type private ExprTranslator(_context: TranslationContext,
         | ExprSyntax.Str str_syntax ->
             let const_label = _context.StrConsts.GetOrAdd(str_syntax.Value)
             let reg = _context.RegSet.Allocate()
-            let asm = sprintf "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+            let asm = sprintf "    movq $%s, %s\n" const_label (_context.RegSet.NameOf(reg))
             
             Ok { AsmFragment.Asm = StringBuilder(asm)
                  Type = BasicClasses.String
@@ -536,7 +645,7 @@ type private ExprTranslator(_context: TranslationContext,
                               then "Boolean_true"
                               else "Boolean_false"
             let reg = _context.RegSet.Allocate()
-            let asm = sprintf "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+            let asm = sprintf "    movq $%s, %s\n" const_label (_context.RegSet.NameOf(reg))
                               
             Ok { AsmFragment.Asm = StringBuilder(asm)
                  Type = BasicClasses.Boolean
@@ -545,62 +654,89 @@ type private ExprTranslator(_context: TranslationContext,
         | ExprSyntax.This ->
             let sym = _sym_table.Resolve(ID "this")
             let ty = _context.ClassSymMap.[sym.Type]
-            Ok { AsmFragment.Asm = StringBuilder()
-                 Type = ty 
-                 Reg = Reg.Null }
+
+            let asm = StringBuilder()
+            let addr_frag = this.AddrOf(sym)
+            let result_reg = _context.RegSet.Allocate()
+            
+            if addr_frag.Asm.IsSome
+            then
+                asm.Append(addr_frag.Asm.Value).Nop()
+            
+            asm.AppendLine(sprintf "    movq %s, %s" addr_frag.Addr (_context.RegSet.NameOf(result_reg)))
+               .Nop()
+               
+            _context.RegSet.Free(addr_frag.Reg)
+            
+            Ok { AsmFragment.Asm = asm
+                 Type = ty
+                 Reg = result_reg }
 
         | ExprSyntax.Null ->
-            Ok { AsmFragment.Asm = StringBuilder()
+            let result_reg = _context.RegSet.Allocate()
+            let asm =
+                StringBuilder()
+                    .AppendLine(sprintf "    xorq %s, %s" (_context.RegSet.NameOf(result_reg))
+                                                          (_context.RegSet.NameOf(result_reg)))
+            
+            Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Null 
-                 Reg = Reg.Null }
+                 Reg = result_reg }
 
         | ExprSyntax.Unit ->
-            Ok AsmFragment.Unit
+            let result_reg = _context.RegSet.Allocate()
+            let asm =
+                StringBuilder()
+                    .AppendLine(sprintf "    movq $Unit_value, %s" (_context.RegSet.NameOf(result_reg)))
+            
+            Ok { AsmFragment.Asm = asm
+                 Type = BasicClasses.Unit
+                 Reg = result_reg }
         
         
     and translate_assign (id: AstNode<ID>) (expr: AstNode<ExprSyntax>): Res<AsmFragment> =
-        let addr = this.AddrOf(_sym_table.Resolve(id.Syntax))
         
         let expr_frag = translate_expr expr
         if expr_frag.IsError
         then
-            _context.RegSet.Free(addr.Reg)
             Error
         else
         
-        if not (_context.TypeCmp.Conforms(ancestor=addr.Type, descendant=expr_frag.Value.Type))
+        let addr_frag = this.AddrOf(_sym_table.Resolve(id.Syntax))
+
+        if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Value.Type))
         then
             _context.Diags.Error(
                 sprintf "The expression's type '%O' does not conform to the type '%O' of '%O'"
                         expr_frag.Value.Type.Name
-                        addr.Type.Name
+                        addr_frag.Type.Name
                         id.Syntax,
                 expr.Span)
             
-            _context.RegSet.Free(addr.Reg)
+            _context.RegSet.Free(addr_frag.Reg)
             _context.RegSet.Free(expr_frag.Value.Reg)
             Error
         else
 
         let asm = expr_frag.Value.Asm
         
-        if addr.Asm.IsSome
+        if addr_frag.Asm.IsSome
         then
-            asm.AppendLine(addr.Asm.Value).Nop()
+            asm.AppendLine(addr_frag.Asm.Value).Nop()
             
         asm.AppendLine(sprintf "    movq %s, %s"
                                (_context.RegSet.NameOf(expr_frag.Value.Reg))
-                               addr.Addr)
+                               addr_frag.Addr)
            .Nop()
         
-        _context.RegSet.Free(addr.Reg)
+        _context.RegSet.Free(addr_frag.Reg)
 
         // We do not free up expr_frag.Value.Reg,
         // to support assignments of the form `ID = ID = ...`
 
         Ok { AsmFragment.Asm = asm
              Reg = expr_frag.Value.Reg
-             Type = addr.Type }
+             Type = addr_frag.Type }
         
         
     and translate_unaryop_operand (expr: AstNode<ExprSyntax>)
@@ -716,6 +852,8 @@ type private ExprTranslator(_context: TranslationContext,
             _context.RegSet.Free(receiver_frag.Value.Reg)
             Error
         else
+
+        _context.RegSet.Free(receiver_frag.Value.Reg)
             
         let method_sym = receiver_frag.Value.Type.Methods.[method_id.Syntax]
         let method_name = sprintf "'%O.%O'" receiver_frag.Value.Type.Name method_sym.Name
@@ -723,7 +861,6 @@ type private ExprTranslator(_context: TranslationContext,
         let actuals_frag = translate_actuals method_name method_id.Span method_sym (*formal_name=*)"formal" actuals
         if actuals_frag.IsError
         then
-            _context.RegSet.Free(receiver_frag.Value.Reg)
             Error
         else
 
@@ -737,11 +874,14 @@ type private ExprTranslator(_context: TranslationContext,
                           (method_sym: MethodSymbol)
                           (formal_name: string)
                           (actuals: AstNode<ExprSyntax>[])
-                          : Res<AsmFragment> =
-        let actual_frags = actuals |> Array.map translate_expr
+                          : Res<string> =
+        let actual_frags = actuals |> Array.map (fun it ->
+                                                    let actual_frag = translate_expr it
+                                                    if actual_frag.IsOk
+                                                    then _context.RegSet.Free(actual_frag.Value.Reg)
+                                                    actual_frag)
         if actual_frags |> Seq.exists (fun it -> it.IsError)
         then
-            actual_frags |> Seq.iter (fun it -> if it.IsOk then _context.RegSet.Free(it.Value.Reg))
             Error
         else
         
@@ -754,7 +894,6 @@ type private ExprTranslator(_context: TranslationContext,
                         actual_frags.Length,
                 method_id_span)
 
-            actual_frags |> Seq.iter (fun it -> _context.RegSet.Free(it.Value.Reg))
             Error
         else
             
@@ -776,14 +915,10 @@ type private ExprTranslator(_context: TranslationContext,
 
         if formal_actual_mismatch
         then
-            actual_frags |> Seq.iter (fun it -> _context.RegSet.Free(it.Value.Reg))
             Error
         else
             
-        actual_frags |> Seq.iter (fun it -> _context.RegSet.Free(it.Value.Reg))
-        Ok { AsmFragment.Asm = StringBuilder()
-             Type = _context.ClassSymMap.[method_sym.ReturnType]
-             Reg = Reg.Null }
+        Ok ""
         
     
     and translate_var (var_node: AstNode<VarSyntax>): Res<AsmFragment> =
@@ -868,12 +1003,47 @@ type private ExprTranslator(_context: TranslationContext,
                 .AppendLine(sprintf "    cmpq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
                                                       (_context.RegSet.NameOf(right_frag.Reg)))
                 .AppendLine(sprintf "    %s %s" jmp (_context.LabelGen.NameOf(true_label)))
-                .AppendLine(false_branch)
+                .Append(false_branch)
                 .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
                 .AppendLine(sprintf "%s:" (_context.LabelGen.NameOf(true_label)))
-                .AppendLine(true_branch)
+                .Append(true_branch)
                 .AppendLine(sprintf "%s:" (_context.LabelGen.NameOf(done_label)))
         
+        _context.RegSet.Free(left_frag.Reg)
+        _context.RegSet.Free(right_frag.Reg)
+        
+        asm
+    
+    
+    and emit_eqop_with_branches (left_frag: AsmFragment)
+                                (right_frag: AsmFragment)
+                                (not_equal_branch: string)
+                                (equal_branch: string)
+                                : StringBuilder =
+
+        let not_equal_label = _context.LabelGen.Generate()
+        let done_label = _context.LabelGen.Generate()
+        
+        let asm =
+            StringBuilder()
+                .Append(left_frag.Asm.ToString())
+                .Append(right_frag.Asm.ToString())
+                .AppendLine("    pushq %r10")
+                .AppendLine("    pushq %r11")
+                .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(left_frag.Reg)))
+                .AppendLine(sprintf "    movq %s, %%rsi" (_context.RegSet.NameOf(right_frag.Reg)))
+                .AppendLine("    call are_equal")
+                .AppendLine("    cmpq $0, 24(%rax)")
+                .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(not_equal_label)))
+                .AppendLine("# equal")
+                .Append(equal_branch)
+                .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
+                .AppendLine(sprintf "%s: # not equal" (_context.LabelGen.NameOf(not_equal_label)))
+                .Append(not_equal_branch)
+                .AppendLine(sprintf "%s: # done" (_context.LabelGen.NameOf(done_label)))
+                .AppendLine("    popq %r11")
+                .AppendLine("    popq %r10")
+            
         _context.RegSet.Free(left_frag.Reg)
         _context.RegSet.Free(right_frag.Reg)
         
@@ -883,7 +1053,14 @@ type private ExprTranslator(_context: TranslationContext,
     member this.TranslateBlock(block_syntax_opt: BlockSyntax voption): Res<AsmFragment> =
         match block_syntax_opt with
         | ValueNone ->
-            Ok AsmFragment.Unit
+            let result_reg = _context.RegSet.Allocate()
+            let asm =
+                StringBuilder()
+                    .AppendLine(sprintf "    movq $Unit_value, %s" (_context.RegSet.NameOf(result_reg)))
+            
+            Ok { AsmFragment.Asm = asm
+                 Type = BasicClasses.Unit
+                 Reg = result_reg }
         | ValueSome block_syntax ->
             _sym_table.EnterBlock()
         
@@ -896,13 +1073,20 @@ type private ExprTranslator(_context: TranslationContext,
                     let var_frag = translate_var (stmt_node.Map(fun _ -> var_syntax))
                     if var_frag.IsOk
                     then
-                        sb_asm.Append(var_frag.Value.Asm) |> ignore
+                        _context.RegSet.Free(var_frag.Value.Reg)
+                        sb_asm.Append(var_frag.Value.Asm).Nop()
+
+                    _context.RegSet.AssertNoLeaks()
+                        
                 | StmtSyntax.Expr expr_syntax ->
                     let expr_frag = translate_expr (stmt_node.Map(fun _ -> expr_syntax))
                     if expr_frag.IsOk
                     then
                         _context.RegSet.Free(expr_frag.Value.Reg)
-                        sb_asm.Append(expr_frag.Value.Asm) |> ignore)
+                        sb_asm.Append(expr_frag.Value.Asm).Nop()
+
+                    _context.RegSet.AssertNoLeaks()
+            )
             
             let expr_frag = translate_expr block_syntax.Expr
             
@@ -913,7 +1097,7 @@ type private ExprTranslator(_context: TranslationContext,
                 Error
             else
                 
-            sb_asm.Append(expr_frag.Value.Asm) |> ignore
+            sb_asm.Append(expr_frag.Value.Asm).Nop()
             Ok { AsmFragment.Asm = sb_asm
                  Type = expr_frag.Value.Type
                  Reg = expr_frag.Value.Reg }
@@ -955,9 +1139,9 @@ type private ExprTranslator(_context: TranslationContext,
             {| Addr = sprintf "%d(%s)"
                               ((attrs_offset_in_quads + sym.Index) * 8)
                               (_context.RegSet.NameOf(this_reg))
-               Asm = ValueSome (sprintf "    movq -8(%%rbp), %s" (_context.RegSet.NameOf(this_reg)))
+               Asm = ValueSome (sprintf "    movq -8(%%rbp), %s\n" (_context.RegSet.NameOf(this_reg)))
                Type = _context.ClassSymMap.[sym.Type]
-               Reg = Reg.Null |}
+               Reg = this_reg |}
 
 
     member this.Translate(expr_node: AstNode<ExprSyntax>): Res<AsmFragment> =
