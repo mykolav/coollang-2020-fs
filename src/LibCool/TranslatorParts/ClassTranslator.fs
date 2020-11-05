@@ -324,6 +324,7 @@ type private ClassTranslator(_context: TranslationContext,
                                 body_frag.Value.Type.Name
                                 return_ty.Name,
                         method_node.Syntax.Body.Span)
+                    _context.RegSet.Free(body_frag.Value.Reg)
                 else
                     // Finally, all the semantic checks passed.
                     // Emit assembly.
