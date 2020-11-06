@@ -129,7 +129,7 @@ type private ClassTranslator(_context: TranslationContext,
     
     let translate_ctor (): unit =
     
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
 
         // .ctor's formals are varformals,
         // .ctor's body is
@@ -170,7 +170,7 @@ type private ClassTranslator(_context: TranslationContext,
             _context.RegSet.Free(super_dispatch_frag.Value.Reg)
             sb_ctor_body.Append(super_dispatch_frag.Value.Asm).Nop()
             
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
 
         // Assign values passed as formals to attrs derived from varformals.
         _class_syntax.VarFormals
@@ -186,10 +186,10 @@ type private ClassTranslator(_context: TranslationContext,
                 _context.RegSet.Free(assign_frag.Value.Reg)
                 sb_ctor_body.Append(assign_frag.Value.Asm).Nop()
         
-            _context.RegSet.AssertNoLeaks()
+            _context.RegSet.AssertAllFree()
         )
         
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
 
         // Assign initial values to attributes declared in the class.
         _class_syntax.Features
@@ -201,7 +201,7 @@ type private ClassTranslator(_context: TranslationContext,
                 sb_ctor_body.Append(attr_frag.Value).Nop()
         )
         
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
 
         // Translate blocks.
         _class_syntax.Features
@@ -214,7 +214,7 @@ type private ClassTranslator(_context: TranslationContext,
                 sb_ctor_body.Append(block_frag.Value.Asm).Nop()
         )
         
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
 
         // Append ExprSyntax.This to the .ctor's end.
         // (As a result, the last block's last expr's type doesn't have to match the class' type.)
@@ -228,7 +228,7 @@ type private ClassTranslator(_context: TranslationContext,
             //       So, maybe, we aren't going to return anything at all from ctors.
             _context.RegSet.Free(this_frag.Value.Reg)
             
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
 
         // Finally, emit assembly.
         _sb_code
@@ -247,11 +247,11 @@ type private ClassTranslator(_context: TranslationContext,
         _sym_table.LeaveBlock()
         _sym_table.LeaveMethod()
 
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
     
     
     let translate_method (method_node: AstNode<MethodSyntax>) =
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
 
         _sym_table.EnterMethod()
         
@@ -348,15 +348,15 @@ type private ClassTranslator(_context: TranslationContext,
                     emit_method_epilogue ()
 
         _sym_table.LeaveMethod()
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
     
     
     member this.Translate(): unit =
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()
             
         translate_ctor ()
         _class_syntax.Features
             |> Seq.where (fun feature_node -> feature_node.Syntax.IsMethod)
             |> Seq.iter (fun feature_node -> translate_method (feature_node.Map(fun it -> it.AsMethodSyntax)))
 
-        _context.RegSet.AssertNoLeaks()
+        _context.RegSet.AssertAllFree()

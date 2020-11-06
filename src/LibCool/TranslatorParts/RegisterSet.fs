@@ -33,7 +33,7 @@ type RegisterSet() =
         _regs |> Array.where (fun it -> it.IsFree) |> Array.length
         
         
-    member this.AssertNoLeaks(): unit =
+    member this.AssertAllFree(): unit =
         if this.FreeCount <> this.Count
         then
             invalidOp "A register leak detected"

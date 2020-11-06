@@ -168,14 +168,17 @@ type private ExprTranslator(_context: TranslationContext,
                             condition_frag.Value.Type.Name,
                     condition.Span)
                 
+                _context.RegSet.Free(condition_frag.Value.Reg)
                 Error
             else
             
             let else_label = _context.LabelGen.Generate()
             let done_label = _context.LabelGen.Generate()
 
-            let asm = condition_frag.Value.Asm
-            asm            
+            let asm = StringBuilder()
+            
+            asm.AppendLine("    # if")
+               .Append(condition_frag.Value.Asm.ToString())
                .AppendLine(sprintf "    cmpq $0, 24(%s)" (_context.RegSet.NameOf(condition_frag.Value.Reg)))
                .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(else_label)))
                .AppendLine("    # then")
@@ -852,22 +855,85 @@ type private ExprTranslator(_context: TranslationContext,
             _context.RegSet.Free(receiver_frag.Value.Reg)
             Error
         else
-
-        _context.RegSet.Free(receiver_frag.Value.Reg)
             
+        let asm = StringBuilder()
+        
+        asm.AppendLine("    pushq %r10")
+           .AppendLine("    pushq %r11")
+           .Append(receiver_frag.Value.Asm.ToString())
+           .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(receiver_frag.Value.Reg)))
+           .Nop()
+
         let method_sym = receiver_frag.Value.Type.Methods.[method_id.Syntax]
         let method_name = sprintf "'%O.%O'" receiver_frag.Value.Type.Name method_sym.Name
         
-        let actuals_frag = translate_actuals method_name method_id.Span method_sym (*formal_name=*)"formal" actuals
+        let actuals_frag = translate_actuals method_name
+                                             method_id.Span
+                                             method_sym
+                                             (*formal_name=*)"formal"
+                                             actuals
         if actuals_frag.IsError
+        then
+            _context.RegSet.Free(receiver_frag.Value.Reg)
+            Error
+        else
+            
+        let method_reg = _context.RegSet.Allocate()
+        let result_reg = _context.RegSet.Allocate()
+        
+        asm.Append(actuals_frag.Value)
+           .AppendLine(sprintf "    movq 16(%s), %s" (_context.RegSet.NameOf(receiver_frag.Value.Reg))
+                                                     (_context.RegSet.NameOf(method_reg)))
+           .AppendLine(sprintf "    movq %d(%s), %s" (method_sym.Index * 8)
+                                                     (_context.RegSet.NameOf(method_reg))
+                                                     (_context.RegSet.NameOf(method_reg)))
+           .AppendLine(sprintf "    call %s" (_context.RegSet.NameOf(method_reg)))
+           .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+           .Nop()
+        
+        let actuals_on_stack = actuals.Length - 6
+        if actuals_on_stack > 0
+        then
+            asm.AppendLine(sprintf "    addq %d, %%rsp" (actuals_on_stack * 8))
+               .Nop()
+        
+        asm.AppendLine("    popq %r11")
+           .AppendLine("    popq %r10")
+           .Nop()
+
+        _context.RegSet.Free(receiver_frag.Value.Reg)
+        _context.RegSet.Free(method_reg)
+    
+        Ok { AsmFragment.Asm = asm
+             Type = _context.ClassSymMap.[method_sym.ReturnType]
+             Reg = result_reg }
+
+    
+    and translate_actual (index: int)
+                         (actual: AstNode<ExprSyntax>)
+                         : Res<AsmFragment> =
+        let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
+        let actual_frag = translate_expr actual
+        if actual_frag.IsError
         then
             Error
         else
-
-        Ok { AsmFragment.Asm = StringBuilder()
-             Type = _context.ClassSymMap.[method_sym.ReturnType]
+            
+        let pass_actual_asm =
+            if index < actual_regs.Length
+            then
+                sprintf "    movq %s, %s" (_context.RegSet.NameOf(actual_frag.Value.Reg))
+                                          actual_regs.[index]
+            else
+                sprintf "    movq %s, %d(%%rsp)" (_context.RegSet.NameOf(actual_frag.Value.Reg))
+                                                 ((index - 7) * 8)
+        
+        _context.RegSet.Free(actual_frag.Value.Reg)
+        
+        Ok { Asm = actual_frag.Value.Asm.AppendLine(pass_actual_asm)
+             Type = actual_frag.Value.Type
              Reg = Reg.Null }
-
+                              
     
     and translate_actuals (method_name: string)
                           (method_id_span: Span)
@@ -875,11 +941,15 @@ type private ExprTranslator(_context: TranslationContext,
                           (formal_name: string)
                           (actuals: AstNode<ExprSyntax>[])
                           : Res<string> =
-        let actual_frags = actuals |> Array.map (fun it ->
-                                                    let actual_frag = translate_expr it
-                                                    if actual_frag.IsOk
-                                                    then _context.RegSet.Free(actual_frag.Value.Reg)
-                                                    actual_frag)
+        let asm = StringBuilder()
+        
+        let actuals_on_stack = actuals.Length - 6
+        if actuals_on_stack > 0
+        then
+            asm.AppendLine(sprintf "    subq %d, %%rsp" (actuals_on_stack * 8))
+               .Nop()
+        
+        let actual_frags = actuals |> Array.mapi translate_actual
         if actual_frags |> Seq.exists (fun it -> it.IsError)
         then
             Error
@@ -917,8 +987,11 @@ type private ExprTranslator(_context: TranslationContext,
         then
             Error
         else
+        
+        actual_frags |> Array.iter (fun it -> asm.Append(it.Value.Asm.ToString())
+                                                 .Nop())
             
-        Ok ""
+        Ok (asm.ToString())
         
     
     and translate_var (var_node: AstNode<VarSyntax>): Res<AsmFragment> =
@@ -992,22 +1065,26 @@ type private ExprTranslator(_context: TranslationContext,
         let true_label = _context.LabelGen.Generate()
         let done_label = _context.LabelGen.Generate()
         
-        let asm =
-            StringBuilder()
-                .Append(left_frag.Asm.ToString())
-                .Append(right_frag.Asm.ToString())
-                .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(left_frag.Reg))
-                                                          (_context.RegSet.NameOf(left_frag.Reg)))
-                .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(right_frag.Reg))
-                                                          (_context.RegSet.NameOf(right_frag.Reg)))
-                .AppendLine(sprintf "    cmpq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
-                                                      (_context.RegSet.NameOf(right_frag.Reg)))
-                .AppendLine(sprintf "    %s %s" jmp (_context.LabelGen.NameOf(true_label)))
-                .Append(false_branch)
-                .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
-                .AppendLine(sprintf "%s:" (_context.LabelGen.NameOf(true_label)))
-                .Append(true_branch)
-                .AppendLine(sprintf "%s:" (_context.LabelGen.NameOf(done_label)))
+        let asm = StringBuilder()
+        
+        asm.AppendLine()
+           .AppendLine("    # cmp op / if")
+           .Append(left_frag.Asm.ToString())
+           .Append(right_frag.Asm.ToString())
+           .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(left_frag.Reg))
+                                                     (_context.RegSet.NameOf(left_frag.Reg)))
+           .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(right_frag.Reg))
+                                                     (_context.RegSet.NameOf(right_frag.Reg)))
+           .AppendLine(sprintf "    cmpq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
+                                                 (_context.RegSet.NameOf(right_frag.Reg)))
+           .AppendLine(sprintf "    %s %s" jmp (_context.LabelGen.NameOf(true_label)))
+           .AppendLine("    # false / else")
+           .Append(false_branch)
+           .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
+           .AppendLine(sprintf "%s: # true / then" (_context.LabelGen.NameOf(true_label)))
+           .Append(true_branch)
+           .AppendLine(sprintf "%s: # done" (_context.LabelGen.NameOf(done_label)))
+           .Nop()
         
         _context.RegSet.Free(left_frag.Reg)
         _context.RegSet.Free(right_frag.Reg)
@@ -1026,6 +1103,7 @@ type private ExprTranslator(_context: TranslationContext,
         
         let asm =
             StringBuilder()
+                .AppendLine("    # eq op / if")
                 .Append(left_frag.Asm.ToString())
                 .Append(right_frag.Asm.ToString())
                 .AppendLine("    pushq %r10")
@@ -1033,6 +1111,8 @@ type private ExprTranslator(_context: TranslationContext,
                 .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(left_frag.Reg)))
                 .AppendLine(sprintf "    movq %s, %%rsi" (_context.RegSet.NameOf(right_frag.Reg)))
                 .AppendLine("    call are_equal")
+                .AppendLine("    popq %r11")
+                .AppendLine("    popq %r10")
                 .AppendLine("    cmpq $0, 24(%rax)")
                 .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(not_equal_label)))
                 .AppendLine("# equal")
@@ -1041,8 +1121,6 @@ type private ExprTranslator(_context: TranslationContext,
                 .AppendLine(sprintf "%s: # not equal" (_context.LabelGen.NameOf(not_equal_label)))
                 .Append(not_equal_branch)
                 .AppendLine(sprintf "%s: # done" (_context.LabelGen.NameOf(done_label)))
-                .AppendLine("    popq %r11")
-                .AppendLine("    popq %r10")
             
         _context.RegSet.Free(left_frag.Reg)
         _context.RegSet.Free(right_frag.Reg)
@@ -1075,8 +1153,6 @@ type private ExprTranslator(_context: TranslationContext,
                     then
                         _context.RegSet.Free(var_frag.Value.Reg)
                         sb_asm.Append(var_frag.Value.Asm).Nop()
-
-                    _context.RegSet.AssertNoLeaks()
                         
                 | StmtSyntax.Expr expr_syntax ->
                     let expr_frag = translate_expr (stmt_node.Map(fun _ -> expr_syntax))
@@ -1084,8 +1160,6 @@ type private ExprTranslator(_context: TranslationContext,
                     then
                         _context.RegSet.Free(expr_frag.Value.Reg)
                         sb_asm.Append(expr_frag.Value.Asm).Nop()
-
-                    _context.RegSet.AssertNoLeaks()
             )
             
             let expr_frag = translate_expr block_syntax.Expr
