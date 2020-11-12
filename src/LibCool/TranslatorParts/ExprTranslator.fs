@@ -361,12 +361,23 @@ type private ExprTranslator(_context: TranslationContext,
             
             let left_frag, right_frag = operands.Value    
 
+            let result_reg = _context.RegSet.Allocate()
+            
+            let asm = StringBuilder()
+            asm.AppendLine("    # multiply")
+               .Append(left_frag.Asm)
+               .Append(right_frag.Asm)
+               .AppendLine(sprintf "    movq %s, %%rax" (_context.RegSet.NameOf(left_frag.Reg)))
+               .AppendLine(sprintf "    imul %s" (_context.RegSet.NameOf(right_frag.Reg)))
+               .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+               .Nop()
+
             _context.RegSet.Free(left_frag.Reg)
             _context.RegSet.Free(right_frag.Reg)
             
-            Ok { AsmFragment.Asm = StringBuilder()
+            Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Int
-                 Reg = Reg.Null }
+                 Reg = result_reg }
         
         | ExprSyntax.Div (left, right) ->
             let operands = translate_infixop_int_operands left right "/"
@@ -377,12 +388,25 @@ type private ExprTranslator(_context: TranslationContext,
             
             let left_frag, right_frag = operands.Value    
 
+            let result_reg = _context.RegSet.Allocate()
+            
+            let asm = StringBuilder()
+            asm.AppendLine("    # divide")
+               .Append(left_frag.Asm)
+               .Append(right_frag.Asm)
+               // left / right
+               .AppendLine("    xorq %rdx, %rdx")
+               .AppendLine(sprintf "    movq %s, %%rax" (_context.RegSet.NameOf(left_frag.Reg)))
+               .AppendLine(sprintf "    idiv %s" (_context.RegSet.NameOf(right_frag.Reg)))
+               .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+               .Nop()
+
             _context.RegSet.Free(left_frag.Reg)
             _context.RegSet.Free(right_frag.Reg)
             
-            Ok { AsmFragment.Asm = StringBuilder()
+            Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Int
-                 Reg = Reg.Null }
+                 Reg = result_reg }
         
         | ExprSyntax.Sum (left, right) ->
             let typecheck left_frag right_frag: bool =
@@ -406,15 +430,41 @@ type private ExprTranslator(_context: TranslationContext,
                 Error
             else
             
-            let left_frag, right_frag = operands.Value    
+            let left_frag, right_frag = operands.Value
+            
+            let result_reg = _context.RegSet.Allocate()
+            
+            let asm = StringBuilder()
+            asm.AppendLine("    # add / concatenate")
+               .Append(left_frag.Asm)
+               .Append(right_frag.Asm)
+               .Nop()
+            
+            if left_frag.Type.Is(BasicClasses.Int) &&
+               right_frag.Type.Is(BasicClasses.Int)
+            then
+                asm.AppendLine(sprintf "    addq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
+                                                         (_context.RegSet.NameOf(right_frag.Reg)))
+                   .AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(right_frag.Reg))
+                                                         (_context.RegSet.NameOf(result_reg)))
+                   .Nop()
+            else // string concatenation
+                asm.AppendLine("    pushq %r10")
+                   .AppendLine("    pushq %r11")
+                   .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(left_frag.Reg)))
+                   .AppendLine(sprintf "    movq %s, %%rsi" (_context.RegSet.NameOf(right_frag.Reg)))
+                   .AppendLine("    call String.concat")
+                   .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+                   .AppendLine("    popq %r11")
+                   .AppendLine("    popq %r10")
+                   .Nop()
 
             _context.RegSet.Free(left_frag.Reg)
             _context.RegSet.Free(right_frag.Reg)
             
-            let ty = left_frag.Type
-            Ok { AsmFragment.Asm = StringBuilder()
-                 Type = ty
-                 Reg = Reg.Null }
+            Ok { AsmFragment.Asm = asm
+                 Type = left_frag.Type
+                 Reg = result_reg }
         
         | ExprSyntax.Sub (left, right) ->
             let operands = translate_infixop_int_operands left right "-"
@@ -425,12 +475,25 @@ type private ExprTranslator(_context: TranslationContext,
             
             let left_frag, right_frag = operands.Value    
 
+            let result_reg = _context.RegSet.Allocate()
+            
+            let asm = StringBuilder()
+            asm.AppendLine("    # subtract")
+               .Append(left_frag.Asm)
+               .Append(right_frag.Asm)
+               // left - right
+               .AppendLine(sprintf "    subq %s, %s" (_context.RegSet.NameOf(right_frag.Reg))
+                                                     (_context.RegSet.NameOf(left_frag.Reg)))
+               .AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
+                                                     (_context.RegSet.NameOf(result_reg)))
+               .Nop()
+
             _context.RegSet.Free(left_frag.Reg)
             _context.RegSet.Free(right_frag.Reg)
             
-            Ok { AsmFragment.Asm = StringBuilder()
+            Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Int
-                 Reg = Reg.Null }
+                 Reg = result_reg }
         
         | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
             let expr_frag = translate_expr expr
@@ -504,14 +567,12 @@ type private ExprTranslator(_context: TranslationContext,
             if pattern_error || (block_frags |> Seq.exists (fun it -> it.IsError))
             then
                 _context.RegSet.Free(expr_frag.Value.Reg)
-                //block_frags |> Seq.iter (fun it -> if it.IsOk then _context.RegSet.Free(it.Value.Reg))
                 Error
             else
                 
             let block_types = block_frags |> Array.map (fun it -> it.Value.Type)
             
             _context.RegSet.Free(expr_frag.Value.Reg)
-            //block_frags |> Seq.iter (fun it -> _context.RegSet.Free(it.Value.Reg))
             
             Ok { AsmFragment.Asm = StringBuilder()
                  Type = _context.TypeCmp.LeastUpperBound(block_types)
@@ -992,30 +1053,31 @@ type private ExprTranslator(_context: TranslationContext,
              Reg = result_reg }
 
     
-    and translate_actual (index: int)
-                         (actual: AstNode<ExprSyntax>)
-                         : Res<AsmFragment> =
-        let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
-        let actual_frag = translate_expr actual
-        if actual_frag.IsError
-        then
-            Error
-        else
-            
-        let pass_actual_asm =
-            if index < actual_regs.Length
-            then
-                sprintf "    movq %s, %s" (_context.RegSet.NameOf(actual_frag.Value.Reg))
-                                          actual_regs.[index]
-            else
-                sprintf "    movq %s, %d(%%rsp)" (_context.RegSet.NameOf(actual_frag.Value.Reg))
-                                                 ((index - 7) * 8)
-        
-        _context.RegSet.Free(actual_frag.Value.Reg)
-        
-        Ok { Asm = actual_frag.Value.Asm.AppendLine(pass_actual_asm)
-             Type = actual_frag.Value.Type
-             Reg = Reg.Null }
+    // and translate_actual (index: int)
+    //                      (actual: AstNode<ExprSyntax>)
+    //                      : Res<AsmFragment> =
+    //     let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
+    //     let actual_frag = translate_expr actual
+    //     if actual_frag.IsError
+    //     then
+    //         Error
+    //     else
+    //         
+    //     let pass_actual_asm =
+    //         // We store `this` in %rdi, and as a result can only pass 5 actuals in registers. 
+    //         if index < (actual_regs.Length - 1)
+    //         then
+    //             sprintf "    movq %s, %s" (_context.RegSet.NameOf(actual_frag.Value.Reg))
+    //                                       actual_regs.[index + 1]
+    //         else
+    //             sprintf "    movq %s, %d(%%rsp)" (_context.RegSet.NameOf(actual_frag.Value.Reg))
+    //                                              ((index - 6) * 8)
+    //     
+    //     _context.RegSet.Free(actual_frag.Value.Reg)
+    //     
+    //     Ok { Asm = actual_frag.Value.Asm.AppendLine(pass_actual_asm)
+    //          Type = actual_frag.Value.Type
+    //          Reg = Reg.Null }
                               
     
     and translate_actuals (method_name: string)
@@ -1034,7 +1096,7 @@ type private ExprTranslator(_context: TranslationContext,
                .Nop()
         
             actual_nodes |> Array.iteri (fun actual_index actual_node ->
-                let actual_frag = translate_actual actual_index actual_node
+                let actual_frag = translate_expr actual_node
                 if actual_frag.IsOk
                 then
                     asm.AppendLine(sprintf "    # actual %d" actual_index)

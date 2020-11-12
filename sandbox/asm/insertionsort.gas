@@ -655,8 +655,7 @@ Main..ctor:
     subq 16, %rsp
     # actual 0
     movq $int_const_1, %rbx
-    movq %rbx, %rdi
-    movq , 0(%rsp)
+    movq %rbx, 0(%rsp)
     # actual 1
     # new Cons
     # make a copy of the prototype object
@@ -674,8 +673,7 @@ Main..ctor:
     subq 16, %rsp
     # actual 0
     movq $int_const_2, %rbx
-    movq %rbx, %rdi
-    movq , 0(%rsp)
+    movq %rbx, 0(%rsp)
     # actual 1
     # new Cons
     # make a copy of the prototype object
@@ -693,8 +691,7 @@ Main..ctor:
     subq 16, %rsp
     # actual 0
     movq $int_const_3, %rbx
-    movq %rbx, %rdi
-    movq , 0(%rsp)
+    movq %rbx, 0(%rsp)
     # actual 1
     # new Cons
     # make a copy of the prototype object
@@ -712,8 +709,7 @@ Main..ctor:
     subq 16, %rsp
     # actual 0
     movq $int_const_4, %rbx
-    movq %rbx, %rdi
-    movq , 0(%rsp)
+    movq %rbx, 0(%rsp)
     # actual 1
     # new Cons
     # make a copy of the prototype object
@@ -731,8 +727,7 @@ Main..ctor:
     subq 16, %rsp
     # actual 0
     movq $int_const_5, %rbx
-    movq %rbx, %rdi
-    movq , 0(%rsp)
+    movq %rbx, 0(%rsp)
     # actual 1
     # new Nil
     # make a copy of the prototype object
@@ -751,8 +746,7 @@ Main..ctor:
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
-    movq %rbx, %rsi
-    movq , 8(%rsp)
+    movq %rbx, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -760,8 +754,7 @@ Main..ctor:
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
-    movq %rbx, %rsi
-    movq , 8(%rsp)
+    movq %rbx, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -769,8 +762,7 @@ Main..ctor:
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
-    movq %rbx, %rsi
-    movq , 8(%rsp)
+    movq %rbx, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -778,8 +770,7 @@ Main..ctor:
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
-    movq %rbx, %rsi
-    movq , 8(%rsp)
+    movq %rbx, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -787,8 +778,7 @@ Main..ctor:
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
-    movq %rbx, %rsi
-    movq , 8(%rsp)
+    movq %rbx, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -806,8 +796,7 @@ Main..ctor:
     subq 8, %rsp
     # actual 0
     movq -16(%rbp), %r10
-    movq %r10, %rdi
-    movq , 0(%rsp)
+    movq %r10, 0(%rsp)
     movq 0(%rsp), %rsi
     addq 8, %rsp
     movq 16(%rbx), %r10 # load vtable
@@ -833,8 +822,7 @@ Main..ctor:
     subq 8, %rsp
     # actual 0
     movq -16(%rbp), %r11
-    movq %r11, %rdi
-    movq , 0(%rsp)
+    movq %r11, 0(%rsp)
     movq 0(%rsp), %rsi
     addq 8, %rsp
     movq 16(%r10), %r11 # load vtable
@@ -843,8 +831,7 @@ Main..ctor:
     movq %rax, %r12 # store return value
     popq %r11
     popq %r10
-    movq %r12, %rdi
-    movq , 0(%rsp)
+    movq %r12, 0(%rsp)
     movq 0(%rsp), %rsi
     addq 8, %rsp
     movq 16(%rbx), %r10 # load vtable
@@ -912,12 +899,10 @@ Main.insert:
     subq 16, %rsp
     # actual 0
     movq -24(%rbp), %rbx
-    movq %rbx, %rdi
-    movq , 0(%rsp)
+    movq %rbx, 0(%rsp)
     # actual 1
     movq -16(%rbp), %rbx
-    movq %rbx, %rsi
-    movq , 8(%rsp)
+    movq %rbx, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -975,8 +960,7 @@ Main.insert:
     movq %rax, %r13 # store return value
     popq %r11
     popq %r10
-    movq %r13, %rdi
-    movq , 0(%rsp)
+    movq %r13, 0(%rsp)
     # actual 1
     # dispatch Main.insert
     pushq %r10
@@ -998,12 +982,10 @@ Main.insert:
     movq %rax, %r14 # store return value
     popq %r11
     popq %r10
-    movq %r14, %rdi
-    movq , 0(%rsp)
+    movq %r14, 0(%rsp)
     # actual 1
     movq -24(%rbp), %r12
-    movq %r12, %rsi
-    movq , 8(%rsp)
+    movq %r12, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -1013,8 +995,7 @@ Main.insert:
     movq %rax, %r13 # store return value
     popq %r11
     popq %r10
-    movq %r13, %rsi
-    movq , 8(%rsp)
+    movq %r13, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -1041,12 +1022,10 @@ Main.insert:
     subq 16, %rsp
     # actual 0
     movq -24(%rbp), %r10
-    movq %r10, %rdi
-    movq , 0(%rsp)
+    movq %r10, 0(%rsp)
     # actual 1
     movq -16(%rbp), %r10
-    movq %r10, %rsi
-    movq , 8(%rsp)
+    movq %r10, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -1132,8 +1111,7 @@ Main.sort:
     movq %rax, %r14 # store return value
     popq %r11
     popq %r10
-    movq %r14, %rdi
-    movq , 0(%rsp)
+    movq %r14, 0(%rsp)
     movq 0(%rsp), %rsi
     addq 8, %rsp
     movq 16(%r11), %r12 # load vtable
@@ -1142,8 +1120,7 @@ Main.sort:
     movq %rax, %r13 # store return value
     popq %r11
     popq %r10
-    movq %r13, %rdi
-    movq , 0(%rsp)
+    movq %r13, 0(%rsp)
     # actual 1
     # dispatch List.head
     pushq %r10
@@ -1157,8 +1134,7 @@ Main.sort:
     movq %rax, %r13 # store return value
     popq %r11
     popq %r10
-    movq %r13, %rsi
-    movq , 8(%rsp)
+    movq %r13, 8(%rsp)
     movq 0(%rsp), %rsi
     movq 8(%rsp), %rdx
     addq 16, %rsp
@@ -1247,8 +1223,7 @@ Main.out_list:
     movq %rax, %r13 # store return value
     popq %r11
     popq %r10
-    movq %r13, %rdi
-    movq , 0(%rsp)
+    movq %r13, 0(%rsp)
     movq 0(%rsp), %rsi
     addq 8, %rsp
     movq 16(%rbx), %r10 # load vtable
@@ -1267,8 +1242,7 @@ Main.out_list:
     # actual 0
     movq $str_const_1, %r10
 
-    movq %r10, %rdi
-    movq , 0(%rsp)
+    movq %r10, 0(%rsp)
     movq 0(%rsp), %rsi
     addq 8, %rsp
     movq 16(%rbx), %r10 # load vtable
@@ -1297,8 +1271,7 @@ Main.out_list:
     movq %rax, %r13 # store return value
     popq %r11
     popq %r10
-    movq %r13, %rdi
-    movq , 0(%rsp)
+    movq %r13, 0(%rsp)
     movq 0(%rsp), %rsi
     addq 8, %rsp
     movq 16(%rbx), %r10 # load vtable
