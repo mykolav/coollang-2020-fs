@@ -10,5 +10,5 @@ int_const0:
     xorq $0xFFFFFFFFFFFFFFFF, 24(%rax)
     negq 24(%rax)
     cmpq $0, 24(%rax)
-    # if
+    # if_expr
     ret

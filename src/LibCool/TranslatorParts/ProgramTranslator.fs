@@ -199,10 +199,10 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             |> Seq.sortBy (fun method_sym -> method_sym.Index)
             |> Seq.where (fun method_sym -> method_sym.Name <> ID ".ctor")
             |> Seq.iter (fun method_sym ->
-                _sb_data.AppendLine(sprintf "    .quad %s.%s # overrides? %s"
+                _sb_data.AppendLine(sprintf "    .quad %s.%s %s"
                                             method_sym.DeclaringClass.Value
                                             method_sym.Name.Value
-                                            (if method_sym.Override then "yes" else "no"))
+                                            (if method_sym.Override then "# overrides" else ""))
                         .Nop()
                 )
         )
