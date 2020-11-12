@@ -607,12 +607,7 @@ type private ExprTranslator(_context: TranslationContext,
                                                                 method_id.Syntax)
                .AppendLine("    pushq %r10")
                .AppendLine("    pushq %r11")
-               .Append(this_frag.Value.Asm.ToString())
-               .AppendLine("    # store 'this' in %rdi")
-               .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(this_frag.Value.Reg)))
                .Nop()
-                
-            _context.RegSet.Free(this_frag.Value.Reg)
                 
             let method_sym = super_sym.Methods.[method_id.Syntax]
             let method_name = sprintf "'%O.%O'" super_sym.Name method_sym.Name
@@ -621,6 +616,7 @@ type private ExprTranslator(_context: TranslationContext,
                                                  method_id.Span
                                                  method_sym
                                                  (*formal_name=*)"formal"
+                                                 this_frag.Value
                                                  actuals
             if actuals_frag.IsError
             then
@@ -669,16 +665,22 @@ type private ExprTranslator(_context: TranslationContext,
 
             let asm = StringBuilder()
             asm.AppendLine(sprintf "    # new %O" ty.Name)
-               .AppendLine("    # make a copy of the prototype object")
-               .AppendLine(sprintf "    movq $%O_proto_obj, %%rdi" ty.Name)
-               .AppendLine("    pushq %r10")
-               .AppendLine("    pushq %r11")
-               .AppendLine("    call copy_object")
-               .AppendLine("    # store 'this' in %rdi")
-               .AppendLine("    movq %rax, %rdi")
-               .AppendLine("    popq %r11")
-               .AppendLine("    popq %r10")
                .Nop()
+               
+            let this_reg = _context.RegSet.Allocate()
+            let this_frag = {
+                AsmFragment.Asm = StringBuilder()
+                                      .AppendLine("    # make a copy of the prototype object")
+                                      .AppendLine(sprintf "    movq $%O_proto_obj, %%rdi" ty.Name)
+                                      .AppendLine("    pushq %r10")
+                                      .AppendLine("    pushq %r11")
+                                      .AppendLine("    call copy_object")
+                                      .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(this_reg)))
+                                      .AppendLine("    popq %r11")
+                                      .AppendLine("    popq %r10")
+                Reg = this_reg
+                Type = ty
+            }
             
             let method_sym = ty.Ctor
             let method_name = sprintf "Constructor of '%O'" ty.Name
@@ -688,6 +690,7 @@ type private ExprTranslator(_context: TranslationContext,
                                   type_name.Span
                                   method_sym
                                   (*formal_name=*)"varformal"
+                                  this_frag
                                   actuals
             if actuals_frag.IsError
             then
@@ -696,8 +699,7 @@ type private ExprTranslator(_context: TranslationContext,
 
             let result_reg = _context.RegSet.Allocate()
             
-            asm.AppendLine("    # dispatch the constructor")
-               .AppendLine("    pushq %r10")
+            asm.AppendLine("    pushq %r10")
                .AppendLine("    pushq %r11")
                .Append(actuals_frag.Value)
                .AppendLine(sprintf "    call %O..ctor" ty.Name)
@@ -1001,9 +1003,6 @@ type private ExprTranslator(_context: TranslationContext,
                                                       method_id.Syntax)
            .AppendLine("    pushq %r10")
            .AppendLine("    pushq %r11")
-           .Append(receiver_frag.Value.Asm.ToString())
-           .AppendLine("    # store 'this' in %rdi")
-           .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(receiver_frag.Value.Reg)))
            .Nop()
 
         let method_sym = receiver_frag.Value.Type.Methods.[method_id.Syntax]
@@ -1013,10 +1012,10 @@ type private ExprTranslator(_context: TranslationContext,
                                              method_id.Span
                                              method_sym
                                              (*formal_name=*)"formal"
+                                             receiver_frag.Value
                                              actuals
         if actuals_frag.IsError
         then
-            _context.RegSet.Free(receiver_frag.Value.Reg)
             Error
         else
             
@@ -1045,7 +1044,6 @@ type private ExprTranslator(_context: TranslationContext,
            .AppendLine("    popq %r10")
            .Nop()
 
-        _context.RegSet.Free(receiver_frag.Value.Reg)
         _context.RegSet.Free(method_reg)
     
         Ok { AsmFragment.Asm = asm
@@ -1053,76 +1051,58 @@ type private ExprTranslator(_context: TranslationContext,
              Reg = result_reg }
 
     
-    // and translate_actual (index: int)
-    //                      (actual: AstNode<ExprSyntax>)
-    //                      : Res<AsmFragment> =
-    //     let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
-    //     let actual_frag = translate_expr actual
-    //     if actual_frag.IsError
-    //     then
-    //         Error
-    //     else
-    //         
-    //     let pass_actual_asm =
-    //         // We store `this` in %rdi, and as a result can only pass 5 actuals in registers. 
-    //         if index < (actual_regs.Length - 1)
-    //         then
-    //             sprintf "    movq %s, %s" (_context.RegSet.NameOf(actual_frag.Value.Reg))
-    //                                       actual_regs.[index + 1]
-    //         else
-    //             sprintf "    movq %s, %d(%%rsp)" (_context.RegSet.NameOf(actual_frag.Value.Reg))
-    //                                              ((index - 6) * 8)
-    //     
-    //     _context.RegSet.Free(actual_frag.Value.Reg)
-    //     
-    //     Ok { Asm = actual_frag.Value.Asm.AppendLine(pass_actual_asm)
-    //          Type = actual_frag.Value.Type
-    //          Reg = Reg.Null }
-                              
-    
     and translate_actuals (method_name: string)
                           (method_id_span: Span)
                           (method_sym: MethodSymbol)
                           (formal_name: string)
+                          (this_frag: AsmFragment)
                           (actual_nodes: AstNode<ExprSyntax>[])
                           : Res<string> =
         let asm = StringBuilder()
         
         let actual_frags = List<Res<AsmFragment>>()
         
-        if actual_nodes.Length > 0
-        then
-            asm.AppendLine(sprintf "    subq %d, %%rsp" (actual_nodes.Length * 8))
+        asm.AppendLine(sprintf "    subq %d, %%rsp" ((actual_nodes.Length + 1) * 8))
+            // Calculate and store 'this'.
+           .AppendLine("    # actual 0 is 'this'")
+           .Append(this_frag.Asm.ToString())
+           .AppendLine(sprintf "    movq %s, 0(%%rsp)" (_context.RegSet.NameOf(this_frag.Reg)))
+           .Nop()
+           
+        _context.RegSet.Free(this_frag.Reg)
+            
+        actual_nodes |> Array.iteri (fun actual_index actual_node ->
+            let actual_frag = translate_expr actual_node
+            if actual_frag.IsOk
+            then
+                asm.AppendLine(sprintf "    # actual %d" actual_index)
+                   .Append(actual_frag.Value.Asm.ToString())
+                   .AppendLine(sprintf "    movq %s, %d(%%rsp)" (_context.RegSet.NameOf(actual_frag.Value.Reg))
+                                                                ((actual_index + 1) * 8))
+                   .Nop()
+                   
+                _context.RegSet.Free(actual_frag.Value.Reg)
+
+            actual_frags.Add(actual_frag)
+        )
+        
+        asm.AppendLine("    # load first 6 actuals into registers")
+           .Nop()
+           
+        let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
+        // We store `this` in %rdi, and as a result can only pass 5 actuals in registers. 
+        let actual_in_reg_count = if (actual_frags.Count + 1) > actual_regs.Length
+                                  then actual_regs.Length
+                                  else actual_frags.Count + 1 // Add one, to account for passing 'this' as the actual 0. 
+                                  
+        for actual_index in 0 .. (actual_in_reg_count - 1) do
+            asm.AppendLine(sprintf "    movq %d(%%rsp), %s" (actual_index * 8)
+                                                            (actual_regs.[actual_index]))
                .Nop()
         
-            actual_nodes |> Array.iteri (fun actual_index actual_node ->
-                let actual_frag = translate_expr actual_node
-                if actual_frag.IsOk
-                then
-                    asm.AppendLine(sprintf "    # actual %d" actual_index)
-                       .Append(actual_frag.Value.Asm.ToString())
-                       .AppendLine(sprintf "    movq %s, %d(%%rsp)" (_context.RegSet.NameOf(actual_frag.Value.Reg))
-                                                                    (actual_index * 8))
-                       .Nop()
-                       
-                    _context.RegSet.Free(actual_frag.Value.Reg)
-
-                actual_frags.Add(actual_frag)
-            )
-            
-            let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
-            // We store `this` in %rdi, and as a result can only pass 5 actuals in registers. 
-            let actual_in_reg_count = if actual_frags.Count >= (actual_regs.Length - 1)
-                                      then actual_regs.Length - 1
-                                      else actual_frags.Count
-                                      
-            for actual_index in 0 .. (actual_in_reg_count - 1) do
-                asm.AppendLine(sprintf "    movq %d(%%rsp), %s" (actual_index * 8)
-                                                                (actual_regs.[actual_index + 1]))
-                   .Nop()
-            
-            asm.AppendLine(sprintf "    addq %d, %%rsp" (actual_in_reg_count * 8))
-               .Nop()
+        asm.AppendLine("    # remove actuals loaded in registers from stack")
+           .AppendLine(sprintf "    addq %d, %%rsp" (actual_in_reg_count * 8))
+           .Nop()
             
         if actual_frags |> Seq.exists (fun it -> it.IsError)
         then
