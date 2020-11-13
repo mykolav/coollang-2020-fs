@@ -409,7 +409,7 @@ type private ExprTranslator(_context: TranslationContext,
                  Reg = result_reg }
         
         | ExprSyntax.Sum (left, right) ->
-            let typecheck left_frag right_frag: bool =
+            let check_operands left_frag right_frag: bool =
                 if not ((left_frag.Type.Is(BasicClasses.Int) &&
                          right_frag.Type.Is(BasicClasses.Int)) ||
                         (left_frag.Type.Is(BasicClasses.String) &&
@@ -424,7 +424,7 @@ type private ExprTranslator(_context: TranslationContext,
                 else
                     true
 
-            let operands = translate_infixop_operands left right typecheck
+            let operands = translate_infixop_operands left right check_operands
             if operands.IsError
             then
                 Error
@@ -501,18 +501,30 @@ type private ExprTranslator(_context: TranslationContext,
             then
                 Error
             else
+                
+            let asm = StringBuilder()
+            asm.Append(expr_frag.Value.Asm.ToString())
+               .Nop()
+               
+            let parent_table_reg = _context.RegSet.Allocate()
+            let tag_reg = _context.RegSet.Allocate()
             
             let cases = Array.concat [[| cases_hd |]; cases_tl]    
             let patterns = cases |> Array.map (fun case ->
                 match case.Syntax.Pattern.Syntax with
                 | PatternSyntax.IdType (_, ty) -> ty
                 | PatternSyntax.Null -> AstNode.Virtual(BasicClassNames.Null))
+
+            //let labels      
             
+            _context.RegSet.Free(parent_table_reg)
+            _context.RegSet.Free(tag_reg)
+
             let mutable pattern_error = false
-            for i in 0 .. patterns.Length-1 do
+            for i in 0 .. (patterns.Length - 1) do
                 let pattern = patterns.[i]
                 if pattern.Syntax <> BasicClassNames.Null &&
-                   (typecheck_type pattern) = Error
+                   (check_typename pattern) = Error
                 then
                     pattern_error <- true
                 else
@@ -574,7 +586,7 @@ type private ExprTranslator(_context: TranslationContext,
             
             _context.RegSet.Free(expr_frag.Value.Reg)
             
-            Ok { AsmFragment.Asm = StringBuilder()
+            Ok { AsmFragment.Asm = asm
                  Type = _context.TypeCmp.LeastUpperBound(block_types)
                  Reg = Reg.Null }
 
@@ -647,7 +659,7 @@ type private ExprTranslator(_context: TranslationContext,
                  Reg = result_reg }
             
         | ExprSyntax.New (type_name, actuals) ->
-            if (typecheck_type type_name) = Error
+            if (check_typename type_name) = Error
             then
                 Error
             else
@@ -913,7 +925,7 @@ type private ExprTranslator(_context: TranslationContext,
                                        (right: AstNode<ExprSyntax>)
                                        (op: string)
                                        : Res<(AsmFragment * AsmFragment)> =
-        let typecheck left_frag right_frag: bool =
+        let check_operands left_frag right_frag: bool =
             if not (left_frag.Type.Is(BasicClasses.Int) &&
                     right_frag.Type.Is(BasicClasses.Int))
             then
@@ -927,14 +939,14 @@ type private ExprTranslator(_context: TranslationContext,
             else
                 true
 
-        translate_infixop_operands left right typecheck
+        translate_infixop_operands left right check_operands
         
         
     and translate_eqop_operands (left: AstNode<ExprSyntax>)
                                 (right: AstNode<ExprSyntax>)
                                 (op: string)
                                 : Res<(AsmFragment * AsmFragment)> =
-        let typecheck left_frag right_frag: bool =
+        let check_operands left_frag right_frag: bool =
             if not (_context.TypeCmp.Conforms(left_frag.Type, right_frag.Type) ||
                     _context.TypeCmp.Conforms(right_frag.Type, left_frag.Type))
             then
@@ -948,12 +960,12 @@ type private ExprTranslator(_context: TranslationContext,
             else
                 true
 
-        translate_infixop_operands left right typecheck
+        translate_infixop_operands left right check_operands
         
         
     and translate_infixop_operands (left: AstNode<ExprSyntax>)
                                    (right: AstNode<ExprSyntax>)
-                                   (typecheck: AsmFragment -> AsmFragment -> bool)
+                                   (check_operands: AsmFragment -> AsmFragment -> bool)
                                    : Res<(AsmFragment * AsmFragment)> =
         let left_frag = translate_expr left
         let right_frag = translate_expr right
@@ -965,7 +977,7 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
             
-        if not (typecheck left_frag.Value right_frag.Value)
+        if not (check_operands left_frag.Value right_frag.Value)
         then
             _context.RegSet.Free(left_frag.Value.Reg)
             _context.RegSet.Free(right_frag.Value.Reg)
@@ -1157,7 +1169,7 @@ type private ExprTranslator(_context: TranslationContext,
         
     
     and translate_var (var_node: AstNode<VarSyntax>): Res<AsmFragment> =
-        if (typecheck_type var_node.Syntax.TYPE) = Error
+        if (check_typename var_node.Syntax.TYPE) = Error
         then
             Error
         else
@@ -1179,7 +1191,7 @@ type private ExprTranslator(_context: TranslationContext,
         Ok { assign_frag.Value with Reg = Reg.Null }
             
             
-    and typecheck_type (ty_node: AstNode<TYPENAME>): Res<Unit> =
+    and check_typename (ty_node: AstNode<TYPENAME>): Res<Unit> =
         // Make sure it's not a reference to a system class that is not allowed in user code.
         if _context.ClassSymMap.ContainsKey(ty_node.Syntax)
         then
