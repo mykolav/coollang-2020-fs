@@ -244,8 +244,6 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     member this.Translate(): string =
-        let sb_asm = StringBuilder()
-
         _program_syntax.Classes |> Array.iter translate_class
         
         emit_consts()
@@ -255,7 +253,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         emit_prototype_objs()
 
         let asm = 
-            sb_asm
+            StringBuilder()
                 .AppendLine("    .data")
                 .AppendLine("    .global class_name_table")
                 .AppendLine("    .global Main_proto_obj")

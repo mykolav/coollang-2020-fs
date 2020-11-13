@@ -83,16 +83,24 @@ IO_prototype_obj:
 
     .text
 
-    .global type_name
-type_name:
+    .global .Runtime.abort_dispatch
+.Runtime.abort_dispatch:
     ret
 
-    .global copy_object
-copy_object:
+    .global .Runtime.abort_match
+.Runtime.abort_dispatch:
     ret
 
-    .global are_equal
-are_equal:
+    .global .Runtime.type_name
+.Runtime.type_name:
+    ret
+
+    .global .Runtime.copy_object
+.Runtime.copy_object:
+    ret
+
+    .global .Runtime.are_equal
+.Runtime.are_equal:
     ret
 
     .global Any.abort
