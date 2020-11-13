@@ -1041,7 +1041,7 @@ type private ExprTranslator(_context: TranslationContext,
            .AppendLine(sprintf "    movq %d(%s), %s # load method addr" (method_sym.Index * 8)
                                                                         (_context.RegSet.NameOf(method_reg))
                                                                         (_context.RegSet.NameOf(method_reg)))
-           .AppendLine(sprintf "    call %s" (_context.RegSet.NameOf(method_reg)))
+           .AppendLine(sprintf "    call *%s" (_context.RegSet.NameOf(method_reg)))
            .AppendLine(sprintf "    movq %%rax, %s # store return value" (_context.RegSet.NameOf(result_reg)))
            .Nop()
         

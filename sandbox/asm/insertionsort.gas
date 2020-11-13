@@ -375,7 +375,7 @@ List.isNil:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 0(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r10 # store return value
     popq %r11
     popq %r10
@@ -428,7 +428,7 @@ List.head:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 0(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r10 # store return value
     popq %r11
     popq %r10
@@ -481,7 +481,7 @@ List.tail:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 0(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r10 # store return value
     popq %r11
     popq %r10
@@ -919,7 +919,7 @@ Main..ctor:
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 72(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r10 # store return value
     popq %r11
     popq %r10
@@ -970,7 +970,7 @@ Main..ctor:
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 64(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r10 # store return value
     popq %r11
     popq %r10
@@ -982,7 +982,7 @@ Main..ctor:
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 72(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r10 # store return value
     popq %r11
     popq %r10
@@ -1038,7 +1038,7 @@ Main.insert:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 16(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1105,7 +1105,7 @@ Main.insert:
     addq 8, %rsp
     movq 16(%r11), %r11 # load vtable
     movq 24(%r11), %r11 # load method addr
-    call %r11
+    call *%r11
     movq %rax, %r13 # store return value
     popq %r11
     popq %r10
@@ -1153,7 +1153,7 @@ Main.insert:
     addq 8, %rsp
     movq 16(%r11), %r11 # load vtable
     movq 24(%r11), %r11 # load method addr
-    call %r11
+    call *%r11
     movq %rax, %r12 # store return value
     popq %r11
     popq %r10
@@ -1202,7 +1202,7 @@ Main.insert:
     addq 8, %rsp
     movq 16(%r11), %r11 # load vtable
     movq 32(%r11), %r11 # load method addr
-    call %r11
+    call *%r11
     movq %rax, %r12 # store return value
     popq %r11
     popq %r10
@@ -1218,7 +1218,7 @@ Main.insert:
     addq 24, %rsp
     movq 16(%r11), %r11 # load vtable
     movq 56(%r11), %r11 # load method addr
-    call %r11
+    call *%r11
     movq %rax, %r12 # store return value
     popq %r11
     popq %r10
@@ -1321,7 +1321,7 @@ Main.sort:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 16(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1394,7 +1394,7 @@ Main.sort:
     addq 8, %rsp
     movq 16(%r10), %r10 # load vtable
     movq 32(%r10), %r10 # load method addr
-    call %r10
+    call *%r10
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1406,7 +1406,7 @@ Main.sort:
     addq 16, %rsp
     movq 16(%r10), %r10 # load vtable
     movq 64(%r10), %r10 # load method addr
-    call %r10
+    call *%r10
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1436,7 +1436,7 @@ Main.sort:
     addq 8, %rsp
     movq 16(%r10), %r10 # load vtable
     movq 24(%r10), %r10 # load method addr
-    call %r10
+    call *%r10
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1449,7 +1449,7 @@ Main.sort:
     addq 24, %rsp
     movq 16(%r10), %r10 # load vtable
     movq 56(%r10), %r10 # load method addr
-    call %r10
+    call *%r10
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1506,7 +1506,7 @@ Main.out_list:
     addq 8, %rsp
     movq 16(%r10), %r10 # load vtable
     movq 16(%r10), %r10 # load method addr
-    call %r10
+    call *%r10
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1537,7 +1537,7 @@ Main.out_list:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 24(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r10 # store return value
     popq %r11
     popq %r10
@@ -1587,7 +1587,7 @@ Main.out_list:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 24(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1599,7 +1599,7 @@ Main.out_list:
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 16(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1632,7 +1632,7 @@ Main.out_list:
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 8(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1679,7 +1679,7 @@ Main.out_list:
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 32(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
@@ -1691,7 +1691,7 @@ Main.out_list:
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
     movq 72(%rbx), %rbx # load method addr
-    call %rbx
+    call *%rbx
     movq %rax, %r11 # store return value
     popq %r11
     popq %r10
