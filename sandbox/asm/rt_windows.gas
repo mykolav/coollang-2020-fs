@@ -150,3 +150,27 @@ IO.in_string:
     .global IO.in_int
 IO.in_int:
     ret
+
+########################################
+# Process entry point
+########################################
+main:
+    # A class 'Main' must be present in every Cool2020 program.
+    # Create a new instance of 'Main'.
+    pushq %r10
+    pushq %r11
+    movq $Main_proto_obj, %rdi
+    call .Runtime.copy_object
+    popq %r11
+    popq %r10
+
+    # 'Main..ctor' is a Cool2020 program's entry point.
+    # Pass a reference to the newly created 'Main' instance in %rdi.
+    # Invoke the constructor.
+    pushq %r10
+    pushq %r11
+    movq %rax, %rdi
+    call Main..ctor
+    popq %r11
+    popq %r10
+    ret

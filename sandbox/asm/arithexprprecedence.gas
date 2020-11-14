@@ -1,6 +1,7 @@
     .data
     .global class_name_table
     .global Main_proto_obj
+    .global Main..ctor
 
     .quad -1
 str_const_0:
@@ -350,9 +351,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi

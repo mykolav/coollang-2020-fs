@@ -257,6 +257,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 .AppendLine("    .data")
                 .AppendLine("    .global class_name_table")
                 .AppendLine("    .global Main_proto_obj")
+                .AppendLine("    .global Main..ctor")
                 .AppendLine()
                 .Append(_sb_data.ToString())
                 .AppendLine()

@@ -1,6 +1,7 @@
     .data
     .global class_name_table
     .global Main_proto_obj
+    .global Main..ctor
 
     .quad -1
 str_const_0:
@@ -551,7 +552,6 @@ Nil.isNil:
     movq %r15, -48(%rbp)
     # begin body
     movq $Boolean_true, %rbx
-
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -628,7 +628,6 @@ Cons.isNil:
     movq %r15, -48(%rbp)
     # begin body
     movq $Boolean_false, %rbx
-
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -733,9 +732,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # actual 0
     movq $int_const_1, %rbx
@@ -751,9 +750,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # actual 0
     movq $int_const_2, %rbx
@@ -769,9 +768,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # actual 0
     movq $int_const_3, %rbx
@@ -787,9 +786,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # actual 0
     movq $int_const_4, %rbx
@@ -805,9 +804,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # actual 0
     movq $int_const_5, %rbx
@@ -823,9 +822,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -1043,7 +1042,7 @@ Main.insert:
     popq %r10
     movq %rax, %r11 # store return value
     cmpq $0, 24(%r11)
-    je .label_13
+    je .label_13 # else
     # then
     # new Cons
     pushq %r10
@@ -1055,9 +1054,9 @@ Main.insert:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # actual 0
     movq -24(%rbp), %rbx
@@ -1076,7 +1075,7 @@ Main.insert:
     popq %r11
     popq %r10
     movq %rbx, %r10
-    jmp .label_14
+    jmp .label_14 # end if_expr
 .label_13: # else
     # cmp op / if_expr
     movq -24(%rbp), %r10
@@ -1123,9 +1122,9 @@ Main.insert:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %r11
     popq %r11
     popq %r10
+    movq %rax, %r11
     movq %r11, 0(%rsp)
     # actual 0
     # dispatch List.head
@@ -1245,9 +1244,9 @@ Main.insert:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %r10
     popq %r11
     popq %r10
+    movq %rax, %r10
     movq %r10, 0(%rsp)
     # actual 0
     movq -24(%rbp), %r10
@@ -1325,11 +1324,11 @@ Main.sort:
     popq %r10
     movq %rax, %r11 # store return value
     cmpq $0, 24(%r11)
-    je .label_20
+    je .label_20 # else
     # then
     movq -16(%rbp), %rbx
     movq %rbx, %r10
-    jmp .label_21
+    jmp .label_21 # end if_expr
 .label_20: # else
     # dispatch Main.insert
     pushq %r10
@@ -1510,7 +1509,7 @@ Main.out_list:
     popq %r10
     movq %rax, %r11 # store return value
     cmpq $0, 24(%r11)
-    je .label_29
+    je .label_29 # else
     # then
     # dispatch Main.out_nl
     pushq %r10
@@ -1541,7 +1540,7 @@ Main.out_list:
     popq %r10
     movq %rax, %r10 # store return value
     movq %r10, %rbx
-    jmp .label_30
+    jmp .label_30 # end if_expr
 .label_29: # else
     # dispatch Main.out_int
     pushq %r10
@@ -1622,7 +1621,6 @@ Main.out_list:
     movq %rbx, 0(%rsp)
     # actual 0
     movq $str_const_2, %rbx
-
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi

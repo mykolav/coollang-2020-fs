@@ -1,6 +1,7 @@
     .data
     .global class_name_table
     .global Main_proto_obj
+    .global Main..ctor
 
     .quad -1
 str_const_0:
@@ -300,9 +301,9 @@ QuickSort..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # actual 0
     movq $int_const_1, %rbx
@@ -1468,7 +1469,6 @@ QuickSort.out_array:
     movq %r10, 0(%rsp)
     # actual 0
     movq $str_const_2, %r10
-
     movq %r10, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -1571,9 +1571,9 @@ Main..ctor:
     pushq %r10
     pushq %r11
     call .Runtime.copy_object
-    movq %rax, %rbx
     popq %r11
     popq %r10
+    movq %rax, %rbx
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
