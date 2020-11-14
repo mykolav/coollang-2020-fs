@@ -1079,7 +1079,7 @@ Main.insert:
     jmp .label_14
 .label_13: # else
 
-    # cmp op / if
+    # cmp op / if_expr
     movq -24(%rbp), %r10
     # dispatch List.head
     pushq %r10
@@ -1267,9 +1267,9 @@ Main.insert:
     popq %r11
     popq %r10
     movq %r10, %r12
-.label_11: # done
+.label_11: # end cmp op / if_expr
     movq %r12, %r10
-.label_14: # done
+.label_14: # end if_expr
     movq %r10, %rax
     # end body
     # restore callee-saved registers
@@ -1454,7 +1454,7 @@ Main.sort:
     popq %r11
     popq %r10
     movq %r11, %r10
-.label_21: # done
+.label_21: # end if_expr
     movq %r10, %rax
     # end body
     # restore callee-saved registers
@@ -1696,7 +1696,7 @@ Main.out_list:
     popq %r11
     popq %r10
     movq %r11, %rbx
-.label_30: # done
+.label_30: # end if_expr
     movq %rbx, %rax
     # end body
     # restore callee-saved registers

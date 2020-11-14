@@ -88,7 +88,7 @@ IO_prototype_obj:
     ret
 
     .global .Runtime.abort_match
-.Runtime.abort_dispatch:
+.Runtime.abort_match:
     ret
 
     .global .Runtime.type_name
