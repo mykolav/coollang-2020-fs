@@ -1,5 +1,8 @@
     .data
 
+########################################
+# Virtual tables
+########################################
     .global Any_vtable
 Any_vtable:
     .quad Any.abort
@@ -44,6 +47,9 @@ IO_vtable:
     .set ArrayAny_tag, 5
     .set IO_tag, 6
 
+########################################
+# Prototype objects
+########################################
     .quad -1
     .global Unit_value
 Unit_value:
@@ -83,6 +89,9 @@ IO_prototype_obj:
 
     .text
 
+########################################
+# .Runtime
+########################################
     .global .Runtime.abort_dispatch
 .Runtime.abort_dispatch:
     ret
@@ -103,8 +112,19 @@ IO_prototype_obj:
 .Runtime.are_equal:
     ret
 
+########################################
+# Any
+########################################
+    .global Any..ctor
+Any..ctor:
+    ret
+
     .global Any.abort
 Any.abort:
+    ret
+
+    .global String..ctor
+String..ctor:
     ret
 
     .global String.length
@@ -119,6 +139,13 @@ String.concat:
 String.substring:
     ret
 
+########################################
+# ArrayAny
+########################################
+    .global ArrayAny..ctor
+ArrayAny..ctor:
+    ret
+
     .global ArrayAny.get
 ArrayAny.get:
     ret
@@ -129,6 +156,13 @@ ArrayAny.set:
 
     .global ArrayAny.length
 ArrayAny.length:
+    ret
+
+########################################
+# IO
+########################################
+    .global IO..ctor
+IO..ctor:
     ret
 
     .global IO.out_string
