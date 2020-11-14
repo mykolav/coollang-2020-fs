@@ -66,9 +66,10 @@ type Sandbox(_test_output: ITestOutputHelper) =
     [<Fact>]
     member _.PrintCompilerOutput() =
         // Arrange
+        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/ArithExprPrecedence.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/IfElseExprPrecedence.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/QuickSort.cool")
-        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/InsertionSort.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/InsertionSort.cool")
         let tc = CompilerTestCase.ReadFrom(path)
 
         // Act

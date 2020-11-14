@@ -1,0 +1,484 @@
+    .data
+    .global class_name_table
+    .global Main_proto_obj
+
+    .quad -1
+str_const_0:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_0 # length = 0
+    # ''
+    .byte 0 # terminator
+    .zero 7 # payload's size in bytes = 25, pad to an 8 byte boundary
+    .quad -1
+str_const_1:
+    .quad 3 # tag
+    .quad 10 # size in quads
+    .quad String_vtable
+    .quad int_const_4 # length = 53
+    # '../../../CoolPrograms/Valid/IfElseExprPrecedence.cool'
+    .byte 46, 46, 47, 46, 46, 47, 46, 46, 47, 67, 111, 111, 108, 80, 114, 111, 103, 114, 97, 109, 115, 47, 86, 97, 108, 105, 100, 47, 73, 102, 69, 108, 115, 101, 69, 120, 112, 114, 80, 114, 101, 99, 101, 100, 101, 110, 99, 101, 46, 99, 111, 111, 108
+    .byte 0 # terminator
+    .zero 2 # payload's size in bytes = 78, pad to an 8 byte boundary
+    .quad -1
+str_const_2:
+    .quad 3 # tag
+    .quad 7 # size in quads
+    .quad String_vtable
+    .quad int_const_5 # length = 29
+    # '`if (true) 1 else 2 * 100` = '
+    .byte 96, 105, 102, 32, 40, 116, 114, 117, 101, 41, 32, 49, 32, 101, 108, 115, 101, 32, 50, 32, 42, 32, 49, 48, 48, 96, 32, 61, 32
+    .byte 0 # terminator
+    .zero 2 # payload's size in bytes = 54, pad to an 8 byte boundary
+    .quad -1
+str_const_3:
+    .quad 3 # tag
+    .quad 11 # size in quads
+    .quad String_vtable
+    .quad int_const_6 # length = 58
+    # '`if (true) 1 else 2 match { case it: Int => it * 100 }` = '
+    .byte 96, 105, 102, 32, 40, 116, 114, 117, 101, 41, 32, 49, 32, 101, 108, 115, 101, 32, 50, 32, 109, 97, 116, 99, 104, 32, 123, 32, 99, 97, 115, 101, 32, 105, 116, 58, 32, 73, 110, 116, 32, 61, 62, 32, 105, 116, 32, 42, 32, 49, 48, 48, 32, 125, 96, 32, 61, 32
+    .byte 0 # terminator
+    .zero 5 # payload's size in bytes = 83, pad to an 8 byte boundary
+    .quad -1
+str_const_4:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_7 # length = 3
+    # 'Any'
+    .byte 65, 110, 121
+    .byte 0 # terminator
+    .zero 4 # payload's size in bytes = 28, pad to an 8 byte boundary
+    .quad -1
+str_const_5:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_8 # length = 4
+    # 'Unit'
+    .byte 85, 110, 105, 116
+    .byte 0 # terminator
+    .zero 3 # payload's size in bytes = 29, pad to an 8 byte boundary
+    .quad -1
+str_const_6:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_7 # length = 3
+    # 'Int'
+    .byte 73, 110, 116
+    .byte 0 # terminator
+    .zero 4 # payload's size in bytes = 28, pad to an 8 byte boundary
+    .quad -1
+str_const_7:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_9 # length = 6
+    # 'String'
+    .byte 83, 116, 114, 105, 110, 103
+    .byte 0 # terminator
+    .zero 1 # payload's size in bytes = 31, pad to an 8 byte boundary
+    .quad -1
+str_const_8:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_10 # length = 7
+    # 'Boolean'
+    .byte 66, 111, 111, 108, 101, 97, 110
+    .byte 0 # terminator
+    .quad -1
+str_const_9:
+    .quad 3 # tag
+    .quad 5 # size in quads
+    .quad String_vtable
+    .quad int_const_11 # length = 8
+    # 'ArrayAny'
+    .byte 65, 114, 114, 97, 121, 65, 110, 121
+    .byte 0 # terminator
+    .zero 7 # payload's size in bytes = 33, pad to an 8 byte boundary
+    .quad -1
+str_const_10:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_2 # length = 2
+    # 'IO'
+    .byte 73, 79
+    .byte 0 # terminator
+    .zero 5 # payload's size in bytes = 27, pad to an 8 byte boundary
+    .quad -1
+str_const_11:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad int_const_8 # length = 4
+    # 'Main'
+    .byte 77, 97, 105, 110
+    .byte 0 # terminator
+    .zero 3 # payload's size in bytes = 29, pad to an 8 byte boundary
+    .quad -1
+int_const_0:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 0 # value
+    .quad -1
+int_const_1:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 1 # value
+    .quad -1
+int_const_2:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 2 # value
+    .quad -1
+int_const_3:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 100 # value
+    .quad -1
+int_const_4:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 53 # value
+    .quad -1
+int_const_5:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 29 # value
+    .quad -1
+int_const_6:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 58 # value
+    .quad -1
+int_const_7:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 3 # value
+    .quad -1
+int_const_8:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 4 # value
+    .quad -1
+int_const_9:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 6 # value
+    .quad -1
+int_const_10:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 7 # value
+    .quad -1
+int_const_11:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 8 # value
+class_name_table:
+    .quad str_const_4 # Any
+    .quad str_const_5 # Unit
+    .quad str_const_6 # Int
+    .quad str_const_7 # String
+    .quad str_const_8 # Boolean
+    .quad str_const_9 # ArrayAny
+    .quad str_const_10 # IO
+    .quad str_const_11 # Main
+class_parent_table:
+    .quad -1 # Any
+    .quad 0 # Unit extends Any
+    .quad 0 # Int extends Any
+    .quad 0 # String extends Any
+    .quad 0 # Boolean extends Any
+    .quad 0 # ArrayAny extends Any
+    .quad 0 # IO extends Any
+    .quad 0 # Main extends Any
+Main_vtable:
+    .quad Any.abort 
+    .quad -1
+Main_proto_obj:
+    .quad 7 # tag
+    .quad 3 # size in quads
+    .quad Main_vtable
+
+    .text
+Main..ctor:
+    pushq %rbp # save the base pointer
+    movq %rsp, %rbp # set new base pointer to rsp
+    subq $64, %rsp
+    # save actuals on the stack
+    movq %rdi, -8(%rbp)
+    movq %rsi, -16(%rbp)
+    # save callee-saved registers
+    movq %rbx, -32(%rbp)
+    movq %r12, -40(%rbp)
+    movq %r13, -48(%rbp)
+    movq %r14, -56(%rbp)
+    movq %r15, -64(%rbp)
+    # begin body
+    # super dispatch Any..ctor
+    pushq %r10
+    pushq %r11
+    subq 8, %rsp
+    # actual 0 is 'this'
+    movq -8(%rbp), %rbx
+    movq %rbx, 0(%rsp)
+    # load first 6 actuals into registers
+    movq 0(%rsp), %rdi
+    # remove actuals loaded into registers from stack
+    addq 8, %rsp
+    call Any..ctor
+    movq %rax, %rbx # store return value
+    popq %r11
+    popq %r10
+    # new IO
+    pushq %r10
+    pushq %r11
+    subq 8, %rsp
+    # actual 0 is 'this'
+    # make a copy of the prototype object
+    movq $IO_proto_obj, %rdi
+    pushq %r10
+    pushq %r11
+    call .Runtime.copy_object
+    movq %rax, %rbx
+    popq %r11
+    popq %r10
+    movq %rbx, 0(%rsp)
+    # load first 6 actuals into registers
+    movq 0(%rsp), %rdi
+    # remove actuals loaded into registers from stack
+    addq 8, %rsp
+    call IO..ctor
+    movq %rax, %rbx # store return value
+    popq %r11
+    popq %r10
+    movq %rbx, -16(%rbp)
+    # dispatch IO.out_string
+    pushq %r10
+    pushq %r11
+    cmpq $0, %rbx
+    jne .label_0 # the receiver is not null
+    pushq %r10
+    pushq %r11
+    movq $str_const_1, %rdi
+    movq $5, %rsi
+    movq $6, %rdx
+    call .Runtime.abort_dispatch
+    popq %r11
+    popq %r10
+.label_0: # the receiver is not null
+    subq 16, %rsp
+    # actual 0 is 'this'
+    movq -16(%rbp), %rbx
+    movq %rbx, 0(%rsp)
+    # actual 0
+    movq $str_const_2, %rbx
+    movq %rbx, 8(%rsp)
+    # load first 6 actuals into registers
+    movq 0(%rsp), %rdi
+    movq 8(%rsp), %rsi
+    # remove actuals loaded into registers from stack
+    addq 16, %rsp
+    movq 16(%rbx), %rbx # load vtable
+    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    call *%rbx
+    popq %r11
+    popq %r10
+    movq %rax, %r10 # store return value
+    # dispatch IO.out_int
+    pushq %r10
+    pushq %r11
+    cmpq $0, %rbx
+    jne .label_1 # the receiver is not null
+    pushq %r10
+    pushq %r11
+    movq $str_const_1, %rdi
+    movq $5, %rsi
+    movq $54, %rdx
+    call .Runtime.abort_dispatch
+    popq %r11
+    popq %r10
+.label_1: # the receiver is not null
+    subq 16, %rsp
+    # actual 0 is 'this'
+    movq -16(%rbp), %rbx
+    movq %rbx, 0(%rsp)
+    # actual 0
+    # if_expr
+    movq $Boolean_true, %rbx
+    cmpq $0, 24(%rbx)
+    je .label_2 # else
+    # then
+    movq $int_const_1, %rbx
+    movq %rbx, %r10
+    jmp .label_3 # end if_expr
+.label_2: # else
+    # multiply
+    movq $int_const_2, %r10
+    movq $int_const_3, %r11
+    movq %r10, %rax
+    imul %r11
+    movq %rax, %r12
+    movq %r12, %r10
+.label_3: # end if_expr
+    movq %r10, 8(%rsp)
+    # load first 6 actuals into registers
+    movq 0(%rsp), %rdi
+    movq 8(%rsp), %rsi
+    # remove actuals loaded into registers from stack
+    addq 16, %rsp
+    movq 16(%rbx), %rbx # load vtable
+    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    call *%rbx
+    popq %r11
+    popq %r10
+    movq %rax, %r10 # store return value
+    # dispatch IO.out_string
+    pushq %r10
+    pushq %r11
+    cmpq $0, %rbx
+    jne .label_4 # the receiver is not null
+    pushq %r10
+    pushq %r11
+    movq $str_const_1, %rdi
+    movq $6, %rsi
+    movq $6, %rdx
+    call .Runtime.abort_dispatch
+    popq %r11
+    popq %r10
+.label_4: # the receiver is not null
+    subq 16, %rsp
+    # actual 0 is 'this'
+    movq -16(%rbp), %rbx
+    movq %rbx, 0(%rsp)
+    # actual 0
+    movq $str_const_3, %rbx
+    movq %rbx, 8(%rsp)
+    # load first 6 actuals into registers
+    movq 0(%rsp), %rdi
+    movq 8(%rsp), %rsi
+    # remove actuals loaded into registers from stack
+    addq 16, %rsp
+    movq 16(%rbx), %rbx # load vtable
+    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    call *%rbx
+    popq %r11
+    popq %r10
+    movq %rax, %r10 # store return value
+    # dispatch IO.out_int
+    pushq %r10
+    pushq %r11
+    cmpq $0, %rbx
+    jne .label_5 # the receiver is not null
+    pushq %r10
+    pushq %r11
+    movq $str_const_1, %rdi
+    movq $6, %rsi
+    movq $83, %rdx
+    call .Runtime.abort_dispatch
+    popq %r11
+    popq %r10
+.label_5: # the receiver is not null
+    subq 16, %rsp
+    # actual 0 is 'this'
+    movq -16(%rbp), %rbx
+    movq %rbx, 0(%rsp)
+    # actual 0
+    # if_expr
+    movq $Boolean_true, %rbx
+    cmpq $0, 24(%rbx)
+    je .label_9 # else
+    # then
+    movq $int_const_1, %rbx
+    movq %rbx, %r11
+    jmp .label_10 # end if_expr
+.label_9: # else
+    # match
+    movq $int_const_2, %r10
+    # handle 'null'
+    cmpq $0, %r10
+    jne .label_7 # try match
+    pushq %r10
+    pushq %r11
+    movq $str_const_1, %rdi
+    movq $6, %rsi
+    movq $111, %rdx
+    movq %r10, %rcx
+    call .Runtime.abort_match
+    popq %r11
+    popq %r10
+    # prepare
+    movq %r10, -16(%rbp) # store the expression's value
+    movq $2, %r11
+.label_7: # try match
+    cmpq $-1, %r11
+    jne .label_7 # try match
+    pushq %r10
+    pushq %r11
+    movq $str_const_1, %rdi
+    movq $6, %rsi
+    movq $111, %rdx
+    movq %r10, %rcx
+    call .Runtime.abort_match
+    popq %r11
+    popq %r10
+    cmpq $2, %r11 # Int
+    je .label_6
+    salq $3, %r11 # multiply by 8
+    addq $class_parent_table, %r11
+    movq (%r11), %r11
+    jmp .label_7 # try match
+    # case Int
+.label_6:
+    # multiply
+    movq -24(%rbp), %r11
+    movq $int_const_3, %r12
+    movq %r11, %rax
+    imul %r12
+    movq %rax, %r13
+    movq %r13, %r10
+    jmp .label_8 # end match
+.label_8: # end match
+    movq %r10, %r11
+.label_10: # end if_expr
+    movq %r11, 8(%rsp)
+    # load first 6 actuals into registers
+    movq 0(%rsp), %rdi
+    movq 8(%rsp), %rsi
+    # remove actuals loaded into registers from stack
+    addq 16, %rsp
+    movq 16(%rbx), %rbx # load vtable
+    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    call *%rbx
+    popq %r11
+    popq %r10
+    movq %rax, %r10 # store return value
+    movq %rbx, %rax
+    # end body
+    # restore callee-saved registers
+    popq %r15 
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %rbx
+    movq %rbp, %rsp # reset stack to base pointer
+    popq %rbp # restore the old base pointer
+    ret

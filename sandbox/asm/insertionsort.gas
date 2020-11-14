@@ -355,12 +355,12 @@ List.isNil:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_0
+    jne .label_0 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -374,11 +374,11 @@ List.isNil:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 0(%rbx), %rbx # load method addr
+    movq 0(%rbx), %rbx # load the 'abort' method's addr
     call *%rbx
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     movq %r10, %rax
     # end body
     # restore callee-saved registers
@@ -408,12 +408,12 @@ List.head:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_1
+    jne .label_1 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -427,11 +427,11 @@ List.head:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 0(%rbx), %rbx # load method addr
+    movq 0(%rbx), %rbx # load the 'abort' method's addr
     call *%rbx
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     movq %r10, %rax
     # end body
     # restore callee-saved registers
@@ -461,12 +461,12 @@ List.tail:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_2
+    jne .label_2 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -480,11 +480,11 @@ List.tail:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 0(%rbx), %rbx # load method addr
+    movq 0(%rbx), %rbx # load the 'abort' method's addr
     call *%rbx
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     movq %r10, %rax
     # end body
     # restore callee-saved registers
@@ -895,12 +895,12 @@ Main..ctor:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_3
+    jne .label_3 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -918,21 +918,21 @@ Main..ctor:
     # remove actuals loaded into registers from stack
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 72(%rbx), %rbx # load method addr
+    movq 72(%rbx), %rbx # load the 'out_list' method's addr
     call *%rbx
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     # dispatch Main.out_list
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_4
+    jne .label_4 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -946,12 +946,12 @@ Main..ctor:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_5
+    jne .label_5 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -969,11 +969,11 @@ Main..ctor:
     # remove actuals loaded into registers from stack
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 64(%rbx), %rbx # load method addr
+    movq 64(%rbx), %rbx # load the 'sort' method's addr
     call *%rbx
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     movq %r10, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -981,11 +981,11 @@ Main..ctor:
     # remove actuals loaded into registers from stack
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 72(%rbx), %rbx # load method addr
+    movq 72(%rbx), %rbx # load the 'out_list' method's addr
     call *%rbx
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -1018,12 +1018,12 @@ Main.insert:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_12
+    jne .label_12 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 21, %rsi
-    movq 13, %rdx
+    movq $str_const_1, %rdi
+    movq $21, %rsi
+    movq $13, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1037,11 +1037,11 @@ Main.insert:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 16(%rbx), %rbx # load method addr
+    movq 16(%rbx), %rbx # load the 'isNil' method's addr
     call *%rbx
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     cmpq $0, 24(%r11)
     je .label_13
     # then
@@ -1078,19 +1078,18 @@ Main.insert:
     movq %rbx, %r10
     jmp .label_14
 .label_13: # else
-
     # cmp op / if_expr
     movq -24(%rbp), %r10
     # dispatch List.head
     pushq %r10
     pushq %r11
     cmpq $0, %r11
-    jne .label_9
+    jne .label_9 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 23, %rsi
-    movq 23, %rdx
+    movq $str_const_1, %rdi
+    movq $23, %rsi
+    movq $23, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1104,11 +1103,11 @@ Main.insert:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%r11), %r11 # load vtable
-    movq 24(%r11), %r11 # load method addr
+    movq 24(%r11), %r11 # load the 'head' method's addr
     call *%r11
-    movq %rax, %r13 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r13 # store return value
     movq 24(%r10), %r10
     movq 24(%r13), %r13
     cmpq %r10, %r13
@@ -1133,12 +1132,12 @@ Main.insert:
     pushq %r10
     pushq %r11
     cmpq $0, %r11
-    jne .label_6
+    jne .label_6 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 26, %rsi
-    movq 22, %rdx
+    movq $str_const_1, %rdi
+    movq $26, %rsi
+    movq $22, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1152,23 +1151,23 @@ Main.insert:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%r11), %r11 # load vtable
-    movq 24(%r11), %r11 # load method addr
+    movq 24(%r11), %r11 # load the 'head' method's addr
     call *%r11
-    movq %rax, %r12 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r12 # store return value
     movq %r12, 8(%rsp)
     # actual 1
     # dispatch Main.insert
     pushq %r10
     pushq %r11
     cmpq $0, %r11
-    jne .label_7
+    jne .label_7 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1182,12 +1181,12 @@ Main.insert:
     pushq %r10
     pushq %r11
     cmpq $0, %r11
-    jne .label_8
+    jne .label_8 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 26, %rsi
-    movq 41, %rdx
+    movq $str_const_1, %rdi
+    movq $26, %rsi
+    movq $41, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1201,11 +1200,11 @@ Main.insert:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%r11), %r11 # load vtable
-    movq 32(%r11), %r11 # load method addr
+    movq 32(%r11), %r11 # load the 'tail' method's addr
     call *%r11
-    movq %rax, %r12 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r12 # store return value
     movq %r12, 8(%rsp)
     # actual 1
     movq -24(%rbp), %r11
@@ -1217,11 +1216,11 @@ Main.insert:
     # remove actuals loaded into registers from stack
     addq 24, %rsp
     movq 16(%r11), %r11 # load vtable
-    movq 56(%r11), %r11 # load method addr
+    movq 56(%r11), %r11 # load the 'insert' method's addr
     call *%r11
-    movq %rax, %r12 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r12 # store return value
     movq %r12, 16(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -1301,12 +1300,12 @@ Main.sort:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_19
+    jne .label_19 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 29, %rsi
-    movq 13, %rdx
+    movq $str_const_1, %rdi
+    movq $29, %rsi
+    movq $13, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1320,11 +1319,11 @@ Main.sort:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 16(%rbx), %rbx # load method addr
+    movq 16(%rbx), %rbx # load the 'isNil' method's addr
     call *%rbx
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     cmpq $0, 24(%r11)
     je .label_20
     # then
@@ -1336,12 +1335,12 @@ Main.sort:
     pushq %r10
     pushq %r11
     cmpq $0, %r10
-    jne .label_15
+    jne .label_15 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1355,12 +1354,12 @@ Main.sort:
     pushq %r10
     pushq %r11
     cmpq $0, %r10
-    jne .label_16
+    jne .label_16 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1374,12 +1373,12 @@ Main.sort:
     pushq %r10
     pushq %r11
     cmpq $0, %r10
-    jne .label_17
+    jne .label_17 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 32, %rsi
-    movq 25, %rdx
+    movq $str_const_1, %rdi
+    movq $32, %rsi
+    movq $25, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1393,11 +1392,11 @@ Main.sort:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%r10), %r10 # load vtable
-    movq 32(%r10), %r10 # load method addr
+    movq 32(%r10), %r10 # load the 'tail' method's addr
     call *%r10
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -1405,23 +1404,23 @@ Main.sort:
     # remove actuals loaded into registers from stack
     addq 16, %rsp
     movq 16(%r10), %r10 # load vtable
-    movq 64(%r10), %r10 # load method addr
+    movq 64(%r10), %r10 # load the 'sort' method's addr
     call *%r10
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, 8(%rsp)
     # actual 1
     # dispatch List.head
     pushq %r10
     pushq %r11
     cmpq $0, %r10
-    jne .label_18
+    jne .label_18 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 32, %rsi
-    movq 38, %rdx
+    movq $str_const_1, %rdi
+    movq $32, %rsi
+    movq $38, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1435,11 +1434,11 @@ Main.sort:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%r10), %r10 # load vtable
-    movq 24(%r10), %r10 # load method addr
+    movq 24(%r10), %r10 # load the 'head' method's addr
     call *%r10
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, 16(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -1448,11 +1447,11 @@ Main.sort:
     # remove actuals loaded into registers from stack
     addq 24, %rsp
     movq 16(%r10), %r10 # load vtable
-    movq 56(%r10), %r10 # load method addr
+    movq 56(%r10), %r10 # load the 'insert' method's addr
     call *%r10
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, %r10
 .label_21: # end if_expr
     movq %r10, %rax
@@ -1486,12 +1485,12 @@ Main.out_list:
     pushq %r10
     pushq %r11
     cmpq $0, %r10
-    jne .label_28
+    jne .label_28 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 35, %rsi
-    movq 13, %rdx
+    movq $str_const_1, %rdi
+    movq $35, %rsi
+    movq $13, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1505,11 +1504,11 @@ Main.out_list:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%r10), %r10 # load vtable
-    movq 16(%r10), %r10 # load method addr
+    movq 16(%r10), %r10 # load the 'isNil' method's addr
     call *%r10
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     cmpq $0, 24(%r11)
     je .label_29
     # then
@@ -1517,12 +1516,12 @@ Main.out_list:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_22
+    jne .label_22 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1536,11 +1535,11 @@ Main.out_list:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 24(%rbx), %rbx # load method addr
+    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
     call *%rbx
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     movq %r10, %rbx
     jmp .label_30
 .label_29: # else
@@ -1548,12 +1547,12 @@ Main.out_list:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_23
+    jne .label_23 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1567,12 +1566,12 @@ Main.out_list:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_24
+    jne .label_24 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 38, %rsi
-    movq 21, %rdx
+    movq $str_const_1, %rdi
+    movq $38, %rsi
+    movq $21, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1586,11 +1585,11 @@ Main.out_list:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 24(%rbx), %rbx # load method addr
+    movq 24(%rbx), %rbx # load the 'head' method's addr
     call *%rbx
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -1598,21 +1597,21 @@ Main.out_list:
     # remove actuals loaded into registers from stack
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 16(%rbx), %rbx # load method addr
+    movq 16(%rbx), %rbx # load the 'out_int' method's addr
     call *%rbx
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     # dispatch Main.out_string
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_25
+    jne .label_25 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1631,21 +1630,21 @@ Main.out_list:
     # remove actuals loaded into registers from stack
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 8(%rbx), %rbx # load method addr
+    movq 8(%rbx), %rbx # load the 'out_string' method's addr
     call *%rbx
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     # dispatch Main.out_list
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_26
+    jne .label_26 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 1, %rsi
-    movq 1, %rdx
+    movq $str_const_1, %rdi
+    movq $1, %rsi
+    movq $1, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1659,12 +1658,12 @@ Main.out_list:
     pushq %r10
     pushq %r11
     cmpq $0, %rbx
-    jne .label_27
+    jne .label_27 # the receiver is not null
     pushq %r10
     pushq %r11
-    movq str_const_1, %rdi
-    movq 40, %rsi
-    movq 22, %rdx
+    movq $str_const_1, %rdi
+    movq $40, %rsi
+    movq $22, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
@@ -1678,11 +1677,11 @@ Main.out_list:
     # remove actuals loaded into registers from stack
     addq 8, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 32(%rbx), %rbx # load method addr
+    movq 32(%rbx), %rbx # load the 'tail' method's addr
     call *%rbx
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -1690,11 +1689,11 @@ Main.out_list:
     # remove actuals loaded into registers from stack
     addq 16, %rsp
     movq 16(%rbx), %rbx # load vtable
-    movq 72(%rbx), %rbx # load method addr
+    movq 72(%rbx), %rbx # load the 'out_list' method's addr
     call *%rbx
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, %rbx
 .label_30: # end if_expr
     movq %rbx, %rax

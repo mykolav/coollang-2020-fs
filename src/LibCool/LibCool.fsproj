@@ -6,6 +6,7 @@
 
     <ItemGroup>
         <Compile Include="SharedParts\StringBuilderExtension.fs" />
+        <Compile Include="SharedParts\PrintfExtensions.fs" />
         <Compile Include="SharedParts\Res.fs" />
         <Compile Include="SourceParts\Types.fs" />
         <Compile Include="SourceParts\Source.fs" />
