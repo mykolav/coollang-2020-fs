@@ -784,9 +784,9 @@ type private ExprTranslator(_context: TranslationContext,
                                       .AppendLine("    pushq %r10")
                                       .AppendLine("    pushq %r11")
                                       .AppendLine("    call .Runtime.copy_object")
-                                      .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(this_reg)))
                                       .AppendLine("    popq %r11")
                                       .AppendLine("    popq %r10")
+                                      .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(this_reg)))
                 Reg = this_reg
                 Type = ty
             }
