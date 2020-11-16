@@ -1,4 +1,16 @@
+########################################
+# Data
+########################################
     .data
+
+########################################
+# Strings
+########################################
+str_const_new_line:
+    .ascii "\r\n"
+
+str_const_aborted_from:
+    .ascii "Aborted from "
 
 ########################################
 # Virtual tables
@@ -87,29 +99,77 @@ IO_prototype_obj:
     .quad 3 # size in quads
     .quad IO_vtable
 
+########################################
+# Text
+########################################
     .text
+
+    .set STD_INPUT_HANDLE, -10
+    .set STD_OUTPUT_HANDLE, -11
+    .set STD_ERROR_HANDLE, -12
+
+    .set OBJ_TAG, 0
+    .set OBJ_SIZE, 8
+    .set OBJ_VTAB, 16
+    
+    .set STR_LEN, 24
+    .set STR_VAL, 32
+
+    .set BOOL_VAL, 24
+
+    .set INT_VAL, 24
 
 ########################################
 # .Runtime
 ########################################
     .global .Runtime.abort_dispatch
 .Runtime.abort_dispatch:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global .Runtime.abort_match
 .Runtime.abort_match:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global .Runtime.type_name
 .Runtime.type_name:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global .Runtime.copy_object
 .Runtime.copy_object:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global .Runtime.are_equal
 .Runtime.are_equal:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
 ########################################
@@ -117,26 +177,99 @@ IO_prototype_obj:
 ########################################
     .global Any..ctor
 Any..ctor:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
+#
+#  Any.abort
+#
+#      'this' in %rdi
+#  
+#  Prints "Aborted from {classname}" and exits.
+#
     .global Any.abort
 Any.abort:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    # Print "Aborted from " 
+    subq $8, %rsp # NumberOfBytesWritten
+
+    movl $STD_OUTPUT_HANDLE, %ecx
+    call GetStdHandle
+    movq %rax, %rcx
+  
+    movq $str_const_aborted_from, %rdx
+    movq $13, %r8
+    movq %rsp, %r9 # lpNumberOfBytesWritten
+    pushq $0
+    call WriteFile
+
+    # Print "{classname}"
+    movq OBJ_TAG(%rdi), %rdi
+    salq $3, %rdi # multiply the tag by 8
+                  # to get the offset in 'class_name_table'
+    addq $class_name_table, %rdi
+
+    movq STR_VAL(%rdi), %rdx
+    movq STR_LEN(%rdi), %r8
+    call WriteFile
+
+    # Exit the process
+    movq $0, %rcx
+    call ExitProcess
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
+########################################
+# String
+########################################
     .global String..ctor
 String..ctor:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global String.length
 String.length:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global String.concat
 String.concat:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global String.substring
 String.substring:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
 ########################################
@@ -144,18 +277,42 @@ String.substring:
 ########################################
     .global ArrayAny..ctor
 ArrayAny..ctor:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global ArrayAny.get
 ArrayAny.get:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global ArrayAny.set
 ArrayAny.set:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global ArrayAny.length
 ArrayAny.length:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
 ########################################
@@ -163,48 +320,137 @@ ArrayAny.length:
 ########################################
     .global IO..ctor
 IO..ctor:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global IO.out_string
+
+#
+#  IO.out_string
+#
+#      'this' in %rdi
+#      a string object in %rsi
+#
+#  Prints out the content of a string object argument.
+#
 IO.out_string:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    subq $8, %rsp # NumberOfBytesWritten
+
+    movl $STD_OUTPUT_HANDLE, %ecx
+    call GetStdHandle
+    movq %rax, %rcx
+  
+    # BOOL WriteFile(
+    #   HANDLE       hFile,
+    #   LPCVOID      lpBuffer,
+    #   DWORD        nNumberOfBytesToWrite,
+    #   LPDWORD      lpNumberOfBytesWritten,
+    #   LPOVERLAPPED lpOverlapped
+    # );
+    movq STR_VAL(%rsi), %rdx
+    movq STR_LEN(%rsi), %r8
+    movq %rsp, %r9 # lpNumberOfBytesWritten
+    pushq $0
+    call WriteFile
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global IO.out_int
 IO.out_int:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
+#
+#  IO.out_nl
+#
+#      'this' in %rdi
+#
+#  Prints out "\r\n"
+#
     .global IO.out_nl
 IO.out_nl:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    subq $8, %rsp # NumberOfBytesWritten
+
+    movl $STD_OUTPUT_HANDLE, %ecx
+    call GetStdHandle
+    movq %rax, %rcx
+  
+    # BOOL WriteFile(
+    #   HANDLE       hFile,
+    #   LPCVOID      lpBuffer,
+    #   DWORD        nNumberOfBytesToWrite,
+    #   LPDWORD      lpNumberOfBytesWritten,
+    #   LPOVERLAPPED lpOverlapped
+    # );
+    movq $str_const_new_line, %rdx
+    movq $2, %r8
+    movq %rsp, %r9 # lpNumberOfBytesWritten
+    pushq $0
+    call WriteFile
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global IO.in_string
 IO.in_string:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
     .global IO.in_int
 IO.in_int:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
     ret
 
 ########################################
 # Process entry point
 ########################################
 main:
+    pushq %rbp
+    movq %rsp, %rbp
+
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.
-    pushq %r10
-    pushq %r11
     movq $Main_proto_obj, %rdi
     call .Runtime.copy_object
-    popq %r11
-    popq %r10
 
     # 'Main..ctor' is a Cool2020 program's entry point.
     # Pass a reference to the newly created 'Main' instance in %rdi.
     # Invoke the constructor.
-    pushq %r10
-    pushq %r11
     movq %rax, %rdi
     call Main..ctor
-    popq %r11
-    popq %r10
+    
+    movq %rbp, %rsp
+    popq %rbp
+    
     ret

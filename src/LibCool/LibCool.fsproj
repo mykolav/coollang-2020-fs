@@ -26,6 +26,7 @@
         <Compile Include="TranslatorParts\ConstSet.fs" />
         <Compile Include="TranslatorParts\TypeComparer.fs" />
         <Compile Include="TranslatorParts\TranslationContext.fs" />
+        <Compile Include="TranslatorParts\Facts.fs" />
         <Compile Include="TranslatorParts\ExprTranslator.fs" />
         <Compile Include="TranslatorParts\ClassTranslator.fs" />
         <Compile Include="TranslatorParts\ProgramTranslator.fs" />
