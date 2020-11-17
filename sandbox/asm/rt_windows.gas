@@ -218,16 +218,22 @@ Any.abort:
 
     movq STR_VAL(%rdi), %rdx
     movq STR_LEN(%rdi), %r8
+    movq INT_VAL(%r8), %r8
+    call WriteFile
+
+    # Print new line
+    movq $str_const_new_line, %rdx
+    movq $2, %r8
     call WriteFile
 
     # Exit the process
     movq $0, %rcx
     call ExitProcess
 
-    movq %rbp, %rsp
-    popq %rbp
+    # movq %rbp, %rsp
+    # popq %rbp
 
-    ret
+    # ret
 
 ########################################
 # String
@@ -357,6 +363,7 @@ IO.out_string:
     # );
     movq STR_VAL(%rsi), %rdx
     movq STR_LEN(%rsi), %r8
+    movq INT_VAL(%r8), %r8
     movq %rsp, %r9 # lpNumberOfBytesWritten
     pushq $0
     call WriteFile
