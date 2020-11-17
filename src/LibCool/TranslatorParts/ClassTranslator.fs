@@ -220,14 +220,12 @@ type private ClassTranslator(_context: TranslationContext,
         // (As a result, the last block's last expr's type doesn't have to match the class' type.)
         let this_syntax = ExprSyntax.This
         let this_frag = _expr_translator.Translate(AstNode.Virtual(this_syntax))
-        if this_frag.IsOk
-        then
-            // TODO: Here we need to emit assembly moving this_frag.Reg into the return value register
-            //       Keep in mind, returning a value is more relevant for regular method
-            //       as a ctor return value is the one we passed it in `this`.
-            //       So, maybe, we aren't going to return anything at all from ctors.
-            _context.RegSet.Free(this_frag.Value.Reg)
-            
+        sb_ctor_body.AppendLine("    # return 'this'")
+                    .Append(this_frag.Value.Asm.ToString())
+                    .AppendLine(sprintf "    movq %s, %%rax" (_context.RegSet.NameOf(this_frag.Value.Reg)))
+                    .Nop()
+
+        _context.RegSet.Free(this_frag.Value.Reg)
         _context.RegSet.AssertAllFree()
 
         // Finally, emit assembly.
@@ -239,15 +237,12 @@ type private ClassTranslator(_context: TranslationContext,
         _sb_code
             .AppendLine("    # begin body")
             .Append(sb_ctor_body.ToString())
-            .AppendLine(sprintf "    movq %s, %%rax" (_context.RegSet.NameOf(this_frag.Value.Reg)))
             .AppendLine("    # end body")
             .Nop()
         emit_method_epilogue ()
 
         _sym_table.LeaveBlock()
         _sym_table.LeaveMethod()
-
-        _context.RegSet.AssertAllFree()
     
     
     let translate_method (method_node: AstNode<MethodSyntax>) =
