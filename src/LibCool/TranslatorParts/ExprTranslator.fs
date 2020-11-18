@@ -409,8 +409,8 @@ type private ExprTranslator(_context: TranslationContext,
                .AppendLine(sprintf "movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
                .Append(right_frag.Asm)
                // left / right
-               .AppendLine("    xorq %rdx, %rdx")
                .AppendLine(sprintf "    movq 24(%s), %%rax" (_context.RegSet.NameOf(left_frag.Reg)))
+               .AppendLine("    cqto # sign-extend %rax to %rdx:%rax")
                .AppendLine(sprintf "    idivq 24(%s)" (_context.RegSet.NameOf(right_frag.Reg)))
                .AppendLine(sprintf "    movq %%rax, 24(%s)" (_context.RegSet.NameOf(result_reg)))
                .Nop()
@@ -815,15 +815,23 @@ type private ExprTranslator(_context: TranslationContext,
             // The actual's type '%O' does not conform to the %s's type '%O'
             let this_reg = _context.RegSet.Allocate()
             let this_asm = StringBuilder()
-            this_asm.AppendLine("    # make a copy of the prototype object")
-                    .AppendLine("    pushq %r10")
-                    .AppendLine("    pushq %r11")
-                    .AppendLine(sprintf "    movq $%O_proto_obj, %%rdi" ty.Name)
-                    .AppendLine("    call .Runtime.copy_object")
-                    .AppendLine("    popq %r11")
-                    .AppendLine("    popq %r10")
-                    .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(this_reg)))
-                    .Nop()
+            
+            if ty.Is(BasicClasses.ArrayAny)
+            then
+                this_asm.AppendLine("    # ArrayAny..ctor will allocate memory for N items")
+                        .AppendLine(sprintf "    xorq %s, %s" (_context.RegSet.NameOf(this_reg))
+                                                              (_context.RegSet.NameOf(this_reg)))
+                        .Nop()
+            else
+                this_asm.AppendLine("    # make a copy of the prototype object")
+                        .AppendLine("    pushq %r10")
+                        .AppendLine("    pushq %r11")
+                        .AppendLine(sprintf "    movq $%O_proto_obj, %%rdi" ty.Name)
+                        .AppendLine("    call .Runtime.copy_object")
+                        .AppendLine("    popq %r11")
+                        .AppendLine("    popq %r10")
+                        .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(this_reg)))
+                        .Nop()
             
             let this_frag =
                 { AsmFragment.Asm = this_asm

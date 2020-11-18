@@ -1,3 +1,4 @@
+
 ########################################
 # Data
 ########################################
@@ -54,7 +55,12 @@ IO_vtable:
     .quad IO.in_string
     .quad IO.in_int
 
+########################################
+# Tags
+########################################
     .set Unit_tag, 1
+    .set Int_tag, 2
+    .set String_tag, 3
     .set Boolean_tag, 4
     .set ArrayAny_tag, 5
     .set IO_tag, 6
@@ -62,6 +68,14 @@ IO_vtable:
 ########################################
 # Prototype objects
 ########################################
+    .quad -1
+    .global Int_prototype_obj
+Int_prototype_obj:
+    .quad Int_tag # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 0 # value
+
     .quad -1
     .global Unit_value
 Unit_value:
@@ -75,7 +89,7 @@ Boolean_true:
     .quad Boolean_tag # tag
     .quad 4 # size in quads
     .quad Boolean_vtable
-    .quad 1
+    .quad 1 # value
 
     .quad -1
     .global Boolean_false
@@ -83,14 +97,15 @@ Boolean_false:
     .quad Boolean_tag # tag
     .quad 4 # size in quads
     .quad Boolean_vtable
-    .quad 0
+    .quad 0 # value
     
     .quad -1
     .global ArrayAny_prototype_obj
 ArrayAny_prototype_obj:
     .quad ArrayAny_tag # tag
-    .quad 3 # size in quads
+    .quad 4 # size in quads
     .quad ArrayAny_vtable
+    .quad Int_prototype_obj # array length
     
     .quad -1
     .global IO_prototype_obj
@@ -100,9 +115,24 @@ IO_prototype_obj:
     .quad IO_vtable
 
 ########################################
+# Global vars
+########################################
+
+hProcessDefaultHeap:
+    .quad 0
+
+########################################
 # Text
+#
+# Under the Microsoft x64 calling convention:
+# %rax, %rcx, %rdx, %r8, %r9, %r10, and %r11 are volatile, 
+# %rbx, %rbp, %rdi, %rsi, %rsp, and %r12 through %r15 are non-volatile and must be saved be the callee if used.
 ########################################
     .text
+
+    .set HEAP_GENERATE_EXCEPTIONS, 0x00000004
+    .set HEAP_NO_SERIALIZE, 0x00000001
+    .set HEAP_ZERO_MEMORY, 0x00000008
 
     .set STD_INPUT_HANDLE, -10
     .set STD_OUTPUT_HANDLE, -11
@@ -114,6 +144,9 @@ IO_prototype_obj:
     
     .set STR_LEN, 24
     .set STR_VAL, 32
+
+    .set ARR_LEN, 24
+    .set ARR_ITEMS, 32
 
     .set BOOL_VAL, 24
 
@@ -130,7 +163,7 @@ IO_prototype_obj:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global .Runtime.abort_match
 .Runtime.abort_match:
@@ -140,7 +173,7 @@ IO_prototype_obj:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global .Runtime.type_name
 .Runtime.type_name:
@@ -150,17 +183,64 @@ IO_prototype_obj:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
+#
+#  .Runtime.copy_object
+#
+#      a prototype in %rdi
+#  
+#  Allocates memory on heap and copies the prototype.
+#  Returns a pointer to the copy in %rax.
+#
     .global .Runtime.copy_object
 .Runtime.copy_object:
     pushq %rbp
     movq %rsp, %rbp
 
+    # DECLSPEC_ALLOCATOR LPVOID HeapAlloc(
+    #   HANDLE hHeap,
+    #   DWORD  dwFlags,
+    #   SIZE_T dwBytes
+    # );
+    # hHeap
+    movq hProcessDefaultHeap, %rcx
+    # dwFlags
+    movq $HEAP_ZERO_MEMORY, %rdx
+    # dwBytes
+    movq OBJ_SIZE(%rdi), %r8
+    salq $3, %r8
+    call HeapAlloc
+
+    # %rdi - src
+    # %rdx - src_end
+    # %rsi - dst
+    # %rcx - tmp
+
+    # dst
+    movq %rax, %rsi
+
+    # src_end
+    movq OBJ_SIZE(%rdi), %rdx
+    salq $3, %rdx
+    addq %rax, %rdx
+    
+    jmp .Runtime.copy_object.loop_cond
+
+.Runtime.copy_object.loop_body:
+    movq (%rdi), %rcx
+    movq %rcx, (%rsi)
+    addq $8, %rdi
+    addq $8, %rsi
+
+.Runtime.copy_object.loop_cond:
+    cmpq %rdi, %rdx
+    jne .Runtime.copy_object.loop_body:
+
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global .Runtime.are_equal
 .Runtime.are_equal:
@@ -170,7 +250,7 @@ IO_prototype_obj:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
 ########################################
 # Any
@@ -183,7 +263,7 @@ Any..ctor:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
 #
 #  Any.abort
@@ -233,7 +313,7 @@ Any.abort:
     # movq %rbp, %rsp
     # popq %rbp
 
-    # ret
+    # retq
 
 ########################################
 # String
@@ -246,7 +326,7 @@ String..ctor:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global String.length
 String.length:
@@ -256,7 +336,7 @@ String.length:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global String.concat
 String.concat:
@@ -266,7 +346,7 @@ String.concat:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global String.substring
 String.substring:
@@ -276,11 +356,22 @@ String.substring:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
 ########################################
 # ArrayAny
 ########################################
+
+#
+#  ArrayAny..ctor
+#
+#      'null' in %rdi
+#      a size in %rsi
+#
+#  Allocates memory for %rsi elements array.
+#  Initializes the array's attributes.
+#
+
     .global ArrayAny..ctor
 ArrayAny..ctor:
     pushq %rbp
@@ -289,7 +380,7 @@ ArrayAny..ctor:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global ArrayAny.get
 ArrayAny.get:
@@ -299,7 +390,7 @@ ArrayAny.get:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global ArrayAny.set
 ArrayAny.set:
@@ -309,7 +400,7 @@ ArrayAny.set:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global ArrayAny.length
 ArrayAny.length:
@@ -319,7 +410,7 @@ ArrayAny.length:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
 ########################################
 # IO
@@ -332,7 +423,7 @@ IO..ctor:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global IO.out_string
 
@@ -345,14 +436,14 @@ IO..ctor:
 #  Prints out the content of a string object argument.
 #
 IO.out_string:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
 
-    subq $8, %rsp # NumberOfBytesWritten
+    subq    $8, %rsp # NumberOfBytesWritten
 
-    movl $STD_OUTPUT_HANDLE, %ecx
-    call GetStdHandle
-    movq %rax, %rcx
+    movl    $STD_OUTPUT_HANDLE, %ecx
+    call    GetStdHandle
+    movq    %rax, %rcx
   
     # BOOL WriteFile(
     #   HANDLE       hFile,
@@ -361,27 +452,131 @@ IO.out_string:
     #   LPDWORD      lpNumberOfBytesWritten,
     #   LPOVERLAPPED lpOverlapped
     # );
-    movq STR_VAL(%rsi), %rdx
-    movq STR_LEN(%rsi), %r8
-    movq INT_VAL(%r8), %r8
-    movq %rsp, %r9 # lpNumberOfBytesWritten
-    pushq $0
-    call WriteFile
+    movq    STR_VAL(%rsi), %rdx
+    movq    STR_LEN(%rsi), %r8
+    movq    INT_VAL(%r8), %r8
+    movq    %rsp, %r9 # lpNumberOfBytesWritten
+    pushq   $0
+    call    WriteFile
 
-    movq %rbp, %rsp
-    popq %rbp
+    movq    %rbp, %rsp
+    popq    %rbp
 
-    ret
+    retq
 
+#
+#  IO.out_int
+#
+#      'this' in %rdi
+#      an int object in %rsi
+#
+#  Prints out the value of an int object argument.
+#
     .global IO.out_int
 IO.out_int:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    subq    $64, %rsp
+    
+    movq    %rdi, -8(%rbp) # this
+    
+    movq    INT_VAL(%rsi), %rsi
+    movq    %rsi, -16(%rbp) # i -- the int value
+
+    # Int32.MaxValue = 2147483647 -- (minus sign)? + 10 digits + 0 terminator
+    # char digits[12] = { 0 };
+    movl    $0, -28(%rbp)
+    movq    $0, -24(%rbp)
+
+    # is_negative = i < 0
+    cmpq    $0, %rsi
+    setl    %r8b # set r8b to 1 if the int value in %rsi < 0
+    movzbq  %r8b, %rcx # move a byte from %r8b to %cl, 
+                       # set all the other bits to 0 
+    movq    %rcx, -40(%rbp)
+
+    ## if (is_negative) { i = -i; }
+    cmpq    $0, %rcx
+    je      IO.out_int.loop_init
+
+    # i = -i;
+    negq    %rcx
+    movq    %rcx, -16(%rbp)
+
+IO.out_int.loop_init:
+    # digit_pos = 10
+    # terminating 0 is at index 11
+    movq    $10, -48(%rbp)
+
+IO.out_int.loop_body:
+    movq    -16(%rbp), %rax # i
+    cqto # sign-extend %rax to %rdx:%rax
+    movq    $10, %rcx # divisor
+    idivq   %rcx # remainder is in %rdx
+    addq    $48, %rdx # remainder + '0'
+
+    movq    -48(%rbp), %rsi # digit_pos
+    movb    %dl, -28(%rbp,%rsi) # digits[digit_pos] = remainder
+
+    # --digit_pos
+    addq    $-1, %rsi
+    movq    %rsi, -48(%rbp)
+
+    # i = i / 10
+    movq    -16(%rbp), %rax # i
+    cqto  # sign-extend %rax to %rdx:%rax
+    idivq   %rcx # quotient is in %rax
+    movq    %rax, -16(%rbp)
+
+    # } while (i > 0);
+    cmpq    $0, -16(%rbp)
+    jg      IO.out_int.loop_body
+
+    ## if (is_negative) {
+    #     digits[digit_pos] = '-';
+    #     --digit_pos;
+    # }
+    cmpq    $0, -40(%rbp)
+    je      IO.out_int.print
+    
+    movq    -48(%rbp), %rax
+    # digits[digit_pos] = '-';
+    movb    $45, -28(%rbp,%rax)
+    # --digit_pos;
+    addq    $-1, %rax
+    movq    %rax, -48(%rbp)
+
+IO.out_int.print:
+    leaq    -28(%rbp), %rax # digits
+    movq    -48(%rbp), %rcx # digit_pos
+    # digit_pos is pointing to a vacant digit slot, 
+    # move it to the leftmost digit (or '-')
+    addq    $1, %rcx
+    addq    %rcx, %rax # digits + digit_pos
+    movq    %rax, -64(%rbp)
+
+    # GetStdHandle
+    movq    $STD_OUTPUT_HANDLE, %rcx
+    call    GetStdHandle
+    movq    %rax, %rcx # hFile
+  
+    # WriteFile
+    movq    -64(%rbp), %rdx # lpBuffer
+    
+    movq    $11, %r8 # nNumberOfBytesToWrite
+    subq    -48(%rbp), %r8 # 11 - digit_pos
+
+    leaq    -56(%rbp), %r9 # lpNumberOfBytesWritten
+
+    pushq   $0 # lpOverlapped
+    
+    call    WriteFile
 
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
 #
 #  IO.out_nl
@@ -417,7 +612,7 @@ IO.out_nl:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global IO.in_string
 IO.in_string:
@@ -427,7 +622,7 @@ IO.in_string:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
     .global IO.in_int
 IO.in_int:
@@ -437,7 +632,7 @@ IO.in_int:
     movq %rbp, %rsp
     popq %rbp
 
-    ret
+    retq
 
 ########################################
 # Process entry point
@@ -445,6 +640,10 @@ IO.in_int:
 main:
     pushq %rbp
     movq %rsp, %rbp
+
+    # Initialize the heap.
+    call GetProcessHeap
+    movq %rax, hProcessDefaultHeap
 
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.
@@ -460,4 +659,4 @@ main:
     movq %rbp, %rsp
     popq %rbp
     
-    ret
+    retq

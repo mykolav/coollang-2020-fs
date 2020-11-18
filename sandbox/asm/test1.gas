@@ -12,5 +12,8 @@ int_const0:
     cmpq $0, 24(%rax)
     # addq 24(%rax), 24(%rbx)
     idivq 24(%rdi)
-    # if_expr
-    ret
+    setl %r8b
+    movzbq %r8b, %rax
+    movq    $11, %r8
+    subq    -48(%rbp), %r8 # 11 - digit_pos
+    retq

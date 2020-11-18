@@ -123,7 +123,7 @@ type private ClassTranslator(_context: TranslationContext,
             .AppendLine("    popq %rbx")
             .AppendLine("    movq %rbp, %rsp # reset stack to base pointer")
             .AppendLine("    popq %rbp # restore the old base pointer")
-            .AppendLine("    ret")
+            .AppendLine("    retq")
             .Nop()
     
     
