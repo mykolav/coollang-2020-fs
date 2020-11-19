@@ -59,7 +59,7 @@ main:
 	movq	%rdx, 24(%rbp)	 # argv, argv
  # writeconsole.c:4: {
 	.loc 1 4 1
-	call	__main	 #
+	# call	__main	 #
  # writeconsole.c:5:     char *szMsg = "Hello, Console!";
 	.loc 1 5 11
 	leaq	.LC0(%rip), %rax	 #, tmp84

@@ -780,7 +780,7 @@ type private ExprTranslator(_context: TranslationContext,
             let actual_on_stack_count = actuals.Length - 5
             if actual_on_stack_count > 0
             then
-                asm.AppendLine(sprintf "    addq %d, %%rsp" (actual_on_stack_count * 8))
+                asm.AppendLine(sprintf "    addq $%d, %%rsp" (actual_on_stack_count * 8))
                    .Nop()
             
             asm.AppendLine("    popq %r11")
@@ -859,7 +859,6 @@ type private ExprTranslator(_context: TranslationContext,
                .AppendLine("    pushq %r11")
                .Append(actuals_frag.Value)
                .AppendLine(sprintf "    call %O..ctor" ty.Name)
-               .AppendLine(sprintf "    movq %%rax, %s # store return value" (_context.RegSet.NameOf(result_reg)))
                .Nop()
             
             // We only store 5 actuals in registers,
@@ -867,11 +866,12 @@ type private ExprTranslator(_context: TranslationContext,
             let actual_on_stack_count = actuals.Length - 5
             if actual_on_stack_count > 0
             then
-                asm.AppendLine(sprintf "    addq %d, %%rsp" (actual_on_stack_count * 8))
+                asm.AppendLine(sprintf "    addq $%d, %%rsp" (actual_on_stack_count * 8))
                    .Nop()
             
             asm.AppendLine("    popq %r11")
                .AppendLine("    popq %r10")
+               .AppendLine(sprintf "    movq %%rax, %s # store return value" (_context.RegSet.NameOf(result_reg)))
                .Nop()
 
             Ok { AsmFragment.Asm = asm
@@ -1192,8 +1192,7 @@ type private ExprTranslator(_context: TranslationContext,
         let result_reg = _context.RegSet.Allocate()
         
         asm.Append(actuals_frag.Value)
-           .AppendLine(sprintf "    movq 16(%s), %s # load vtable" (_context.RegSet.NameOf(receiver_frag.Value.Reg))
-                                                                   (_context.RegSet.NameOf(method_reg)))
+           .AppendLine(sprintf "    movq 16(%%rdi), %s # load vtable" (_context.RegSet.NameOf(method_reg)))
            .AppendLine(sprintf "    movq %d(%s), %s # load the '%O' method's addr"
                                (method_sym.Index * 8)
                                (_context.RegSet.NameOf(method_reg))
@@ -1207,7 +1206,7 @@ type private ExprTranslator(_context: TranslationContext,
         let actual_on_stack_count = actuals.Length - 5
         if actual_on_stack_count > 0
         then
-            asm.AppendLine(sprintf "    addq %d, %%rsp" (actual_on_stack_count * 8))
+            asm.AppendLine(sprintf "    addq $%d, %%rsp" (actual_on_stack_count * 8))
                .Nop()
         
         asm.AppendLine("    popq %r11")
@@ -1230,7 +1229,7 @@ type private ExprTranslator(_context: TranslationContext,
                           (actual_nodes: AstNode<ExprSyntax>[])
                           : Res<string> =
         let asm = StringBuilder()
-        asm.AppendLine(sprintf "    subq %d, %%rsp" ((actual_nodes.Length + 1) * 8))
+        asm.AppendLine(sprintf "    subq $%d, %%rsp" ((actual_nodes.Length + 1) * 8))
             // Calculate and store 'this'.
            .AppendLine("    # actual 0 is 'this'")
            .Append(this_frag.Asm.ToString())
@@ -1269,7 +1268,7 @@ type private ExprTranslator(_context: TranslationContext,
                .Nop()
         
         asm.AppendLine("    # remove actuals loaded into registers from stack")
-           .AppendLine(sprintf "    addq %d, %%rsp" (actual_in_reg_count * 8))
+           .AppendLine(sprintf "    addq $%d, %%rsp" (actual_in_reg_count * 8))
            .Nop()
             
         if actual_frags |> Seq.exists (fun it -> it.IsError)

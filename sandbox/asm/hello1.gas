@@ -17,10 +17,16 @@ dwWritten:
     .set STD_OUTPUT_HANDLE, -11
     .set STD_ERROR_HANDLE, -12
 
-main:
+    .global _start
+_start:
+  push %rbp
+  movq %rsp, %rbp
+
+  subq $(8 + 8 + 32), %rsp # shadow space
+  
   movl $STD_OUTPUT_HANDLE, %ecx
   call GetStdHandle
-  movq %rax, hStdOut
+  movq %rax, %rcx
 
 # BOOL WriteFile(
 #   HANDLE       hFile,
@@ -29,12 +35,15 @@ main:
 #   LPDWORD      lpNumberOfBytesWritten,
 #   LPOVERLAPPED lpOverlapped
 # );
-  movq hStdOut, %rcx
+  # movq hStdOut, %rcx
   movq $helloMsg, %rdx
   movq $16, %r8
-  movq $dwWritten, %r9
+  leaq -8(%rbp), %r9
   pushq $0
   call WriteFile
 
   movq $0, %rcx
   call ExitProcess
+
+  movq %rbp, %rsp
+  popq %rbp

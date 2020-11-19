@@ -1,0 +1,8 @@
+class Main() {
+  { 
+    new IO().out_string("Hello, Cool2020!")
+    //new IO().out_int(9001)
+  };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: Hello, Cool2020!

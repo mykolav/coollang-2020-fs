@@ -17,7 +17,8 @@ dwWritten:
     .set STD_OUTPUT_HANDLE, -11
     .set STD_ERROR_HANDLE, -12
 
-main:
+    .global _start
+_start:
   movl $STD_OUTPUT_HANDLE, %ecx
   call GetStdHandle
   movq %rax, hStdOut

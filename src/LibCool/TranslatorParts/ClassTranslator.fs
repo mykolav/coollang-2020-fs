@@ -95,7 +95,7 @@ type private ClassTranslator(_context: TranslationContext,
             .Nop()
         
         let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
-        for i in 0..actuals_in_frame_count do
+        for i in 0 .. (actuals_in_frame_count - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
                                     actual_regs.[i]
@@ -123,7 +123,7 @@ type private ClassTranslator(_context: TranslationContext,
             .AppendLine("    popq %rbx")
             .AppendLine("    movq %rbp, %rsp # reset stack to base pointer")
             .AppendLine("    popq %rbp # restore the old base pointer")
-            .AppendLine("    retq")
+            .AppendLine("    ret")
             .Nop()
     
     

@@ -69,8 +69,8 @@ IO_vtable:
 # Prototype objects
 ########################################
     .quad -1
-    .global Int_prototype_obj
-Int_prototype_obj:
+    .global Int_proto_obj
+Int_proto_obj:
     .quad Int_tag # tag
     .quad 4 # size in quads
     .quad Int_vtable
@@ -100,19 +100,56 @@ Boolean_false:
     .quad 0 # value
     
     .quad -1
-    .global ArrayAny_prototype_obj
-ArrayAny_prototype_obj:
+    .global ArrayAny_proto_obj
+ArrayAny_proto_obj:
     .quad ArrayAny_tag # tag
     .quad 4 # size in quads
     .quad ArrayAny_vtable
-    .quad Int_prototype_obj # array length
+    .quad Int_proto_obj # array length
     
     .quad -1
-    .global IO_prototype_obj
-IO_prototype_obj:
+    .global IO_proto_obj
+IO_proto_obj:
     .quad IO_tag # tag
     .quad 3 # size in quads
     .quad IO_vtable
+
+    .quad -1
+int_const_src_path_len:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 43 # value
+
+    .quad -1
+int_const_hello_cool_len:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 16 # value
+
+    .quad -1
+str_const_src_path:
+    .quad 3 # tag
+    .quad 9 # size in quads
+    .quad String_vtable
+    .quad int_const_src_path_len # length = 43
+    # '../../../CoolPrograms/Valid/HelloCool1.cool'
+    .byte 46, 46, 47, 46, 46, 47, 46, 46, 47, 67, 111, 111, 108, 80, 114, 111, 103, 114, 97, 109, 115, 47, 86, 97, 108, 105, 100, 47, 72, 101, 108, 108, 111, 67, 111, 111, 108, 49, 46, 99, 111, 111, 108
+    .byte 0 # terminator
+    .zero 4 # payload's size in bytes = 68, pad to an 8 byte boundary
+
+    .quad -1
+str_const_hello_cool:
+    .quad 3 # tag
+    .quad 6 # size in quads
+    .quad String_vtable
+    .quad int_const_hello_cool_len # length = 16
+    # 'Hello, Cool2020!'
+    .byte 72, 101, 108, 108, 111, 44, 32, 67, 111, 111, 108, 50, 48, 50, 48, 33
+    .byte 0 # terminator
+    .zero 7 # payload's size in bytes = 41, pad to an 8 byte boundary
+    .quad -1
 
 ########################################
 # Global vars
@@ -163,7 +200,7 @@ hProcessDefaultHeap:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global .Runtime.abort_match
 .Runtime.abort_match:
@@ -173,7 +210,7 @@ hProcessDefaultHeap:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global .Runtime.type_name
 .Runtime.type_name:
@@ -183,7 +220,7 @@ hProcessDefaultHeap:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
 #
 #  .Runtime.copy_object
@@ -197,6 +234,8 @@ hProcessDefaultHeap:
 .Runtime.copy_object:
     pushq %rbp
     movq %rsp, %rbp
+
+    subq $32, %rsp # shadow space!
 
     # DECLSPEC_ALLOCATOR LPVOID HeapAlloc(
     #   HANDLE hHeap,
@@ -223,7 +262,7 @@ hProcessDefaultHeap:
     # src_end
     movq OBJ_SIZE(%rdi), %rdx
     salq $3, %rdx
-    addq %rax, %rdx
+    addq %rdi, %rdx
     
     jmp .Runtime.copy_object.loop_cond
 
@@ -235,12 +274,12 @@ hProcessDefaultHeap:
 
 .Runtime.copy_object.loop_cond:
     cmpq %rdi, %rdx
-    jne .Runtime.copy_object.loop_body:
+    jne .Runtime.copy_object.loop_body
 
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global .Runtime.are_equal
 .Runtime.are_equal:
@@ -250,20 +289,15 @@ hProcessDefaultHeap:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
 ########################################
 # Any
 ########################################
     .global Any..ctor
 Any..ctor:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    movq %rbp, %rsp
-    popq %rbp
-
-    retq
+    movq %rdi, %rax
+    ret
 
 #
 #  Any.abort
@@ -278,7 +312,9 @@ Any.abort:
     movq %rsp, %rbp
 
     # Print "Aborted from " 
-    subq $8, %rsp # NumberOfBytesWritten
+    subq    $(8 + 8 + 32), %rsp # NumberOfBytesWritten + 
+                                # 16 bytes boundary padding + 
+                                # shadow space
 
     movl $STD_OUTPUT_HANDLE, %ecx
     call GetStdHandle
@@ -286,7 +322,7 @@ Any.abort:
   
     movq $str_const_aborted_from, %rdx
     movq $13, %r8
-    movq %rsp, %r9 # lpNumberOfBytesWritten
+    leaq -8(%rbp), %r9 # lpNumberOfBytesWritten
     pushq $0
     call WriteFile
 
@@ -296,7 +332,7 @@ Any.abort:
                   # to get the offset in 'class_name_table'
     addq $class_name_table, %rdi
 
-    movq STR_VAL(%rdi), %rdx
+    leaq STR_VAL(%rdi), %rdx
     movq STR_LEN(%rdi), %r8
     movq INT_VAL(%r8), %r8
     call WriteFile
@@ -313,20 +349,15 @@ Any.abort:
     # movq %rbp, %rsp
     # popq %rbp
 
-    # retq
+    # ret
 
 ########################################
 # String
 ########################################
     .global String..ctor
 String..ctor:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    movq %rbp, %rsp
-    popq %rbp
-
-    retq
+    movq %rdi, %rax
+    ret
 
     .global String.length
 String.length:
@@ -336,7 +367,7 @@ String.length:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global String.concat
 String.concat:
@@ -346,7 +377,7 @@ String.concat:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global String.substring
 String.substring:
@@ -356,7 +387,7 @@ String.substring:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
 ########################################
 # ArrayAny
@@ -380,7 +411,7 @@ ArrayAny..ctor:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global ArrayAny.get
 ArrayAny.get:
@@ -390,7 +421,7 @@ ArrayAny.get:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global ArrayAny.set
 ArrayAny.set:
@@ -400,7 +431,7 @@ ArrayAny.set:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global ArrayAny.length
 ArrayAny.length:
@@ -410,20 +441,15 @@ ArrayAny.length:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
 ########################################
 # IO
 ########################################
     .global IO..ctor
 IO..ctor:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    movq %rbp, %rsp
-    popq %rbp
-
-    retq
+    movq %rdi, %rax
+    ret
 
     .global IO.out_string
 
@@ -439,7 +465,9 @@ IO.out_string:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $8, %rsp # NumberOfBytesWritten
+    subq    $(8 + 8 + 32), %rsp # NumberOfBytesWritten + 
+                                # fifth argument + 
+                                # shadow space
 
     movl    $STD_OUTPUT_HANDLE, %ecx
     call    GetStdHandle
@@ -452,17 +480,19 @@ IO.out_string:
     #   LPDWORD      lpNumberOfBytesWritten,
     #   LPOVERLAPPED lpOverlapped
     # );
-    movq    STR_VAL(%rsi), %rdx
+    leaq    STR_VAL(%rsi), %rdx
     movq    STR_LEN(%rsi), %r8
     movq    INT_VAL(%r8), %r8
-    movq    %rsp, %r9 # lpNumberOfBytesWritten
-    pushq   $0
+    leaq    -8(%rbp), %r9 # lpNumberOfBytesWritten
+    movq    $0, -16(%rbp) # lpOverlapped
+                          # a fifth argument must be higher in the stack
+                          # than the shadow space!
     call    WriteFile
 
     movq    %rbp, %rsp
     popq    %rbp
 
-    retq
+    ret
 
 #
 #  IO.out_int
@@ -477,7 +507,7 @@ IO.out_int:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $64, %rsp
+    subq    $(64 + 32), %rsp # local vars + shadow space
     
     movq    %rdi, -8(%rbp) # this
     
@@ -554,7 +584,7 @@ IO.out_int.print:
     # move it to the leftmost digit (or '-')
     addq    $1, %rcx
     addq    %rcx, %rax # digits + digit_pos
-    movq    %rax, -64(%rbp)
+    movq    %rax, -64(%rbp) # lpBuffer
 
     # GetStdHandle
     movq    $STD_OUTPUT_HANDLE, %rcx
@@ -576,7 +606,7 @@ IO.out_int.print:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
 #
 #  IO.out_nl
@@ -590,7 +620,9 @@ IO.out_nl:
     pushq %rbp
     movq %rsp, %rbp
 
-    subq $8, %rsp # NumberOfBytesWritten
+    subq    $(8 + 8 + 32), %rsp # NumberOfBytesWritten + 
+                                # 16 bytes boundary padding + 
+                                # shadow space
 
     movl $STD_OUTPUT_HANDLE, %ecx
     call GetStdHandle
@@ -605,14 +637,14 @@ IO.out_nl:
     # );
     movq $str_const_new_line, %rdx
     movq $2, %r8
-    movq %rsp, %r9 # lpNumberOfBytesWritten
+    leaq -8(%rbp), %r9 # lpNumberOfBytesWritten
     pushq $0
     call WriteFile
 
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global IO.in_string
 IO.in_string:
@@ -622,7 +654,7 @@ IO.in_string:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
     .global IO.in_int
 IO.in_int:
@@ -632,14 +664,17 @@ IO.in_int:
     movq %rbp, %rsp
     popq %rbp
 
-    retq
+    ret
 
 ########################################
 # Process entry point
 ########################################
+    .global main
 main:
     pushq %rbp
     movq %rsp, %rbp
+
+    subq $32, %rsp # allocate shadow space!
 
     # Initialize the heap.
     call GetProcessHeap
@@ -655,8 +690,11 @@ main:
     # Invoke the constructor.
     movq %rax, %rdi
     call Main..ctor
-    
+
+    # movq $str_const_hello_cool, %rsi
+    # call IO.out_string
+
     movq %rbp, %rsp
     popq %rbp
     
-    retq
+    ret
