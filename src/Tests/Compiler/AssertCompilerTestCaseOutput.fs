@@ -7,7 +7,7 @@ open Tests.Compiler
 
 
 [<Sealed>]
-type AssertCompilerOutput private () =
+type AssertCompilerTestCaseOutput private () =
 
 
     static let format_mismatches (title: string)
@@ -37,11 +37,12 @@ type AssertCompilerOutput private () =
             .ToString()
 
 
-    static member Matches(tc: CompilerTestCase, co: CompilerOutput) =
-        let actual_diags = co.Diags
-                           |> Seq.map (fun it -> if it.StartsWith(CompilerTestCaseSource.ProgramsPath)
-                                                 then it.Replace(CompilerTestCaseSource.ProgramsPath, "")
-                                                 else it)
+    static member Matches(tc: CompilerTestCase, co: CompilerOutput, po: ProgramOutput) =
+        let actual_diags =
+            co.Diags
+            |> Seq.map (fun it -> if it.StartsWith(CompilerTestCaseSource.ProgramsPath)
+                                  then it.Replace(CompilerTestCaseSource.ProgramsPath, "")
+                                  else it)
                            
         let diag_mismatches = StringSeq.compare tc.ExpectedDiags actual_diags
         AssertStringSeq.EmptyMismatches(diag_mismatches,
@@ -49,8 +50,16 @@ type AssertCompilerOutput private () =
                                         Seq.length co.Diags,
                                         format_mismatches "DIAGS:" tc.Snippet)
 
-        let output_mismatches = StringSeq.compare tc.ExpectedOutput co.Output
+        let expected_binutils_diags = []
+        let actual_binutils_diags = co.BinutilsDiags
+        let binutils_diag_mismatches = StringSeq.compare expected_binutils_diags actual_binutils_diags
+        AssertStringSeq.EmptyMismatches(binutils_diag_mismatches,
+                                        Seq.length expected_binutils_diags,
+                                        Seq.length actual_binutils_diags,
+                                        format_mismatches "BINUTILS DIAGS:" tc.Snippet)
+
+        let output_mismatches = StringSeq.compare tc.ExpectedOutput po.Output
         AssertStringSeq.EmptyMismatches(output_mismatches,
                                         Seq.length tc.ExpectedOutput,
-                                        Seq.length co.Output,
+                                        Seq.length po.Output,
                                         format_mismatches "OUTPUT" tc.Snippet)

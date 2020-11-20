@@ -208,9 +208,10 @@ Main..ctor:
     # super dispatch Any..ctor
     pushq %r10
     pushq %r11
-    subq $8, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     movq -8(%rbp), %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -223,24 +224,10 @@ Main..ctor:
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
-    cmpq $0, %rbx
-    jne .label_0 # the receiver is not null
-    pushq %r10
-    pushq %r11
-    movq $str_const_1, %rdi
-    movq $3, %rsi
-    movq $5, %rdx
-    call .Runtime.abort_dispatch
-    popq %r11
-    popq %r10
-.label_0: # the receiver is not null
-    subq $16, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     # new IO
     pushq %r10
     pushq %r11
-    subq $8, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
     pushq %r10
     pushq %r11
@@ -249,6 +236,8 @@ Main..ctor:
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -258,8 +247,21 @@ Main..ctor:
     popq %r11
     popq %r10
     movq %rax, %rbx # store return value
+    cmpq $0, %rbx
+    jne .label_0 # the receiver is some
+    pushq %r10
+    pushq %r11
+    movq $str_const_1, %rdi
+    movq $3, %rsi
+    movq $5, %rdx
+    call .Runtime.abort_dispatch
+    popq %r11
+    popq %r10
+.label_0: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_2, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -267,8 +269,8 @@ Main..ctor:
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10

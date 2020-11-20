@@ -1,30 +1,57 @@
 namespace Tests.Compiler
 
 
+open System
 open System.IO
+open LibCool.SharedParts
 open Tests.Support
 open Xunit
 open Xunit.Abstractions
-open Tests.Compiler.ProcessRunner
+open Tests.Compiler.ClcRunner
+
+
+type CompilerTestsFixture() =
+
+    
+    do 
+        // Our current directory is 'Tests/bin/Debug/netcoreapp3.1',
+        // i.e. where the tests assembly gets build into.
+        // We want to change to 'Tests/CoolBuild'.
+        Directory.SetCurrentDirectory("../../../CoolBuild")
+
+
+    interface IDisposable with
+        member _.Dispose() = ()
 
 
 type CompilerTests(test_output: ITestOutputHelper) =
+    interface IClassFixture<CompilerTestsFixture>
 
 
     [<Theory>]
     [<MemberData("TestCases", MemberType = typeof<CompilerTestCaseSource>)>]
     member _.CompileAndRun(path: string) =
         // Arrange
+        
+        // Build a program's path relative to the 'CoolBuild' folder.
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
         let tc = CompilerTestCase.ReadFrom(path)
+        let exe_file = tc.FileName + ".exe"
 
         // Act
-        let clc_output = run_clc_in_process ([ path; "-o"; tc.FileName + ".exe" ])
+        let clc_output = run_clc_in_process ([ path; "-o"; exe_file ])
         
         test_output.WriteLine("===== clc: =====")
         test_output.WriteLine(clc_output)
         
         let co = CompilerOutput.Parse(clc_output)
+        let po =
+            if co.BuildSucceeded
+            then
+                let output = ProcessRunner.Run(file_name=sprintf "./%s" exe_file, args="")
+                ProgramOutput.Parse(output)
+            else
+                ProgramOutput.Empty
 
         // Assert
-        AssertCompilerOutput.Matches(tc, co)
+        AssertCompilerTestCaseOutput.Matches(tc, co, po)

@@ -1,6 +1,7 @@
 namespace Tests.Compiler
 
 
+open System
 open System.Collections.Generic
 open System.IO
 open System.Runtime.CompilerServices
@@ -12,20 +13,24 @@ open System.Text.RegularExpressions
 type CompilerTestCaseSource private () =
     
     
+    // Test cases discovery runs from 'Tests/bin/Debug/netcoreapp3.1'
+    // before we have a chance to change the working directory to 'Tests/CoolBuild'.
     [<Literal>]
-    static let programs_path = @"../../../CoolPrograms/"
+    static let programs_discovery_path = @"../../../CoolPrograms/"
     
     
     static let discover_compiler_test_cases () =
         let test_cases =
-            Directory.EnumerateFiles(programs_path, "*.cool", SearchOption.AllDirectories)
-            |> Seq.map (fun it -> [| it.Replace(programs_path, "")
+            Directory.EnumerateFiles(programs_discovery_path, "*.cool", SearchOption.AllDirectories)
+            |> Seq.map (fun it -> [| it.Replace(programs_discovery_path, "")
                                        .Replace("\\", "/") :> obj |])
             |> Array.ofSeq
         test_cases
 
     
-    static member ProgramsPath = programs_path
+    // In contrast to discovery, all the other code works
+    // with programs paths relative to the 'CoolBuild' folder.
+    static member ProgramsPath = "../CoolPrograms/"
 
 
     static member TestCases = discover_compiler_test_cases ()
@@ -72,6 +77,17 @@ type CompilerTestCase =
           Snippet = take_snippet lines }
 
 
+[<IsReadOnly; Struct>]
+type CompilerOutput =
+    { BuildSucceeded: bool
+      Diags: seq<string>
+      BinutilsDiags: seq<string> }
+
+
+type ProgramOutput =
+    { Output: seq<string> }
+
+
 [<AutoOpen>]
 module private CompilerOutputParser =
     
@@ -110,35 +126,49 @@ module private CompilerOutputParser =
         lines :> seq<string>
 
 
-    let parse (clc_output: string): struct {| Diags: seq<string>; Output: seq<string> |} =
+    let parse_clc_output (clc_output: string): CompilerOutput =
         let lines = split_in_lines clc_output
         
         let diags = List<string>()
-        let output = List<string>()
+        let binutils_diags = List<string>()
         
         let mutable build_status_seen = false
+        let mutable build_succeeded = false
         
         for line in lines do
             if not build_status_seen
             then
                 diags.Add(line)
             else
-                output.Add(line)
+                if not (String.IsNullOrWhiteSpace(line))
+                then 
+                    build_succeeded <- false
+                    binutils_diags.Add(line)
                 
             if line.StartsWith("Build ")
             then
                 build_status_seen <- true
+                build_succeeded <- line.StartsWith("Build succeeded")
         
-        struct {| Diags = diags; Output = output |}
+        { BuildSucceeded = build_succeeded
+          Diags = diags
+          BinutilsDiags = binutils_diags }
 
 
-[<IsReadOnly; Struct>]
-type CompilerOutput =
-    { Diags: seq<string>
-      Output: seq<string> }
+    let parse_program_output (program_output: string): ProgramOutput =
+        { Output = split_in_lines program_output
+                   |> Seq.where (fun it -> not (String.IsNullOrWhiteSpace(it)))
+                   |> Seq.map (fun it -> it.TrimEnd()) }
 
     
+type CompilerOutput
+with
     static member Parse(clc_output: string): CompilerOutput =
-            
-        let it = parse clc_output
-        { Diags = it.Diags; Output = it.Output }
+        parse_clc_output clc_output
+
+    
+type ProgramOutput
+with
+    static member Empty: ProgramOutput = { Output = [] }
+    static member Parse(program_output: string): ProgramOutput =
+        parse_program_output program_output

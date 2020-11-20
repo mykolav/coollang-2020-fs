@@ -1,0 +1,33 @@
+class Fib() extends IO() {
+  def fib(x: Int): Int =
+    if (x == 0) 0
+    else if (x == 1) 1
+    else fib(x - 2) + fib(x - 1);
+
+  {
+    var i: Int = 0;
+    while (i <= 10) {
+      out_string("fib("); out_int(i); out_string(") = ");
+      out_int(fib(i));
+      out_nl();
+      
+      i = i + 1
+    }
+  };
+}
+
+class Main() {
+  { new Fib() };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: fib(0) = 0
+// OUT: fib(1) = 1
+// OUT: fib(2) = 1
+// OUT: fib(3) = 2
+// OUT: fib(4) = 3
+// OUT: fib(5) = 5
+// OUT: fib(6) = 8
+// OUT: fib(7) = 13
+// OUT: fib(8) = 21
+// OUT: fib(9) = 34
+// OUT: fib(10) = 55

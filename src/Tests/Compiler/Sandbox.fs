@@ -10,7 +10,7 @@ open LibCool.DriverParts
 open LibCool.SourceParts
 open LibCool.ParserParts
 open Tests.Parser
-open Tests.Compiler.ProcessRunner 
+open Tests.Compiler.ClcRunner 
 
 
 type Sandbox(_test_output: ITestOutputHelper) =
@@ -57,8 +57,8 @@ type Sandbox(_test_output: ITestOutputHelper) =
 
     [<Fact>]
     member _.PrintAst() =
-        let ast = parse "Valid/ArithExprPrecedence.cool"
-        //let ast = parse "Valid/IfElseExprPrecedence.cool"
+        let ast = parse "Runtime/ArithExprPrecedence.cool"
+        //let ast = parse "Runtime/IfElseExprPrecedence.cool"
         let rendered = AstRenderer.Render(ast.Value)
         _test_output.WriteLine(rendered)
 
@@ -66,14 +66,14 @@ type Sandbox(_test_output: ITestOutputHelper) =
     [<Fact>]
     member _.PrintCompilerOutput() =
         // Arrange
-        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/ArithExprPrecedence.cool")
-        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/IfElseExprPrecedence.cool")
-        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/QuickSort.cool")
-        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/InsertionSort.cool")
-        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/HelloCool1.cool")
-        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/HelloCool2.cool")
-        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/Abort1.cool")
-        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Valid/Heap1.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/ArithExprPrecedence.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/IfElseExprPrecedence.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/QuickSort.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/InsertionSort.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/HelloCool1.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/HelloCool2.cool")
+        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Abort1.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Heap1.cool")
         let tc = CompilerTestCase.ReadFrom(path)
 
         // Act

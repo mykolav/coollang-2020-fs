@@ -328,9 +328,10 @@ Main..ctor:
     # super dispatch Any..ctor
     pushq %r10
     pushq %r11
-    subq $8, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     movq -8(%rbp), %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -343,8 +344,6 @@ Main..ctor:
     # new IO
     pushq %r10
     pushq %r11
-    subq $8, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
     pushq %r10
     pushq %r11
@@ -353,6 +352,8 @@ Main..ctor:
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -366,8 +367,10 @@ Main..ctor:
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_0 # the receiver is not null
+    jne .label_0 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -376,12 +379,11 @@ Main..ctor:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_0: # the receiver is not null
+.label_0: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_2, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -389,8 +391,8 @@ Main..ctor:
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -398,8 +400,10 @@ Main..ctor:
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_1 # the receiver is not null
+    jne .label_1 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -408,12 +412,11 @@ Main..ctor:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_1: # the receiver is not null
+.label_1: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # subtract
     # multiply
     movq $int_const_1, %rbx
@@ -459,8 +462,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -468,8 +471,10 @@ movq %rax, %r12
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_2 # the receiver is not null
+    jne .label_2 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -478,17 +483,16 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_2: # the receiver is not null
+.label_2: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -496,8 +500,10 @@ movq %rax, %r12
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_3 # the receiver is not null
+    jne .label_3 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -506,12 +512,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_3: # the receiver is not null
+.label_3: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_3, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -519,8 +524,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -528,8 +533,10 @@ movq %rax, %r12
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_4 # the receiver is not null
+    jne .label_4 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -538,12 +545,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_4: # the receiver is not null
+.label_4: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # subtract
     # add / concatenate
     movq $int_const_1, %rbx
@@ -589,8 +595,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -598,8 +604,10 @@ movq %rax, %r12
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_5 # the receiver is not null
+    jne .label_5 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -608,17 +616,16 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_5: # the receiver is not null
+.label_5: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -626,8 +633,10 @@ movq %rax, %r12
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_6 # the receiver is not null
+    jne .label_6 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -636,12 +645,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_6: # the receiver is not null
+.label_6: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_4, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -649,8 +657,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -658,8 +666,10 @@ movq %rax, %r12
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_7 # the receiver is not null
+    jne .label_7 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -668,12 +678,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_7: # the receiver is not null
+.label_7: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # add / concatenate
     movq $int_const_3, %rbx
     # divide
@@ -719,8 +728,8 @@ movq %rax, %r11
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -728,8 +737,10 @@ movq %rax, %r11
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_8 # the receiver is not null
+    jne .label_8 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -738,17 +749,16 @@ movq %rax, %r11
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_8: # the receiver is not null
+.label_8: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -756,8 +766,10 @@ movq %rax, %r11
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_9 # the receiver is not null
+    jne .label_9 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -766,12 +778,11 @@ movq %rax, %r11
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_9: # the receiver is not null
+.label_9: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_5, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -779,8 +790,8 @@ movq %rax, %r11
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -788,8 +799,10 @@ movq %rax, %r11
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_10 # the receiver is not null
+    jne .label_10 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -798,12 +811,11 @@ movq %rax, %r11
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_10: # the receiver is not null
+.label_10: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # add / concatenate
     movq $int_const_3, %rbx
     # multiply
@@ -836,8 +848,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -845,8 +857,10 @@ movq %rax, %r12
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_11 # the receiver is not null
+    jne .label_11 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -855,17 +869,16 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_11: # the receiver is not null
+.label_11: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -873,8 +886,10 @@ movq %rax, %r12
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_12 # the receiver is not null
+    jne .label_12 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -883,12 +898,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_12: # the receiver is not null
+.label_12: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_6, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -896,8 +910,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -905,8 +919,10 @@ movq %rax, %r12
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_13 # the receiver is not null
+    jne .label_13 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -915,12 +931,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_13: # the receiver is not null
+.label_13: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # multiply
     # add / concatenate
     movq $int_const_3, %rbx
@@ -953,8 +968,8 @@ movq %rax, %r10
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -962,8 +977,10 @@ movq %rax, %r10
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_14 # the receiver is not null
+    jne .label_14 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -972,17 +989,16 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_14: # the receiver is not null
+.label_14: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -990,8 +1006,10 @@ movq %rax, %r10
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_15 # the receiver is not null
+    jne .label_15 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1000,12 +1018,11 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_15: # the receiver is not null
+.label_15: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_7, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -1013,8 +1030,8 @@ movq %rax, %r10
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -1022,8 +1039,10 @@ movq %rax, %r10
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_16 # the receiver is not null
+    jne .label_16 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1032,12 +1051,11 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_16: # the receiver is not null
+.label_16: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # add / concatenate
     movq $int_const_3, %rbx
     # multiply
@@ -1070,8 +1088,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -1079,8 +1097,10 @@ movq %rax, %r12
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_17 # the receiver is not null
+    jne .label_17 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1089,17 +1109,16 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_17: # the receiver is not null
+.label_17: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -1107,8 +1126,10 @@ movq %rax, %r12
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_18 # the receiver is not null
+    jne .label_18 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1117,12 +1138,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_18: # the receiver is not null
+.label_18: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_8, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -1130,8 +1150,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -1139,8 +1159,10 @@ movq %rax, %r12
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_19 # the receiver is not null
+    jne .label_19 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1149,12 +1171,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_19: # the receiver is not null
+.label_19: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # subtract
     movq $int_const_4, %rbx
     # divide
@@ -1188,8 +1209,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -1197,8 +1218,10 @@ movq %rax, %r12
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_20 # the receiver is not null
+    jne .label_20 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1207,17 +1230,16 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_20: # the receiver is not null
+.label_20: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -1225,8 +1247,10 @@ movq %rax, %r12
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_21 # the receiver is not null
+    jne .label_21 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1235,12 +1259,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_21: # the receiver is not null
+.label_21: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_9, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -1248,8 +1271,8 @@ movq %rax, %r12
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -1257,8 +1280,10 @@ movq %rax, %r12
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_22 # the receiver is not null
+    jne .label_22 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1267,12 +1292,11 @@ movq %rax, %r12
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_22: # the receiver is not null
+.label_22: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # divide
     # subtract
     movq $int_const_4, %rbx
@@ -1306,8 +1330,8 @@ movq %rax, %r10
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -1315,8 +1339,10 @@ movq %rax, %r10
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_23 # the receiver is not null
+    jne .label_23 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1325,17 +1351,16 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_23: # the receiver is not null
+.label_23: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -1343,8 +1368,10 @@ movq %rax, %r10
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_24 # the receiver is not null
+    jne .label_24 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1353,12 +1380,11 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_24: # the receiver is not null
+.label_24: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_10, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -1366,8 +1392,8 @@ movq %rax, %r10
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -1375,8 +1401,10 @@ movq %rax, %r10
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_25 # the receiver is not null
+    jne .label_25 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1385,12 +1413,11 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_25: # the receiver is not null
+.label_25: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # subtract
     movq $int_const_3, %rbx
     pushq %r10
@@ -1419,8 +1446,8 @@ movq %rax, %r10
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -1428,8 +1455,10 @@ movq %rax, %r10
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_26 # the receiver is not null
+    jne .label_26 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1438,17 +1467,16 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_26: # the receiver is not null
+.label_26: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -1456,8 +1484,10 @@ movq %rax, %r10
     # dispatch IO.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_27 # the receiver is not null
+    jne .label_27 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1466,12 +1496,11 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_27: # the receiver is not null
+.label_27: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_11, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
@@ -1479,8 +1508,8 @@ movq %rax, %r10
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 8(%rbx), %rbx # 'IO.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -1488,8 +1517,10 @@ movq %rax, %r10
     # dispatch IO.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_28 # the receiver is not null
+    jne .label_28 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1498,12 +1529,11 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_28: # the receiver is not null
+.label_28: # the receiver is some
     subq $16, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # subtract
     movq $int_const_3, %rbx
     movq $int_const_3, %r10
@@ -1532,8 +1562,8 @@ movq %rax, %r10
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
     addq $16, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 16(%rbx), %rbx # 'IO.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -1541,8 +1571,10 @@ movq %rax, %r10
     # dispatch IO.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_29 # the receiver is not null
+    jne .label_29 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1551,17 +1583,16 @@ movq %rax, %r10
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_29: # the receiver is not null
+.label_29: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    movq 16(%rdi), %rbx # IO_vtable
+    movq 24(%rbx), %rbx # 'IO.out_nl'
     call *%rbx
     popq %r11
     popq %r10

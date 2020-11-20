@@ -339,13 +339,13 @@ type private ExprTranslator(_context: TranslationContext,
             else
                 
             let result_reg = _context.RegSet.Allocate()
-            let not_equal_branch = sprintfn "    movq $Boolean_true, %s" (_context.RegSet.NameOf(result_reg))
+            let unequal_branch = sprintfn "    movq $Boolean_true, %s" (_context.RegSet.NameOf(result_reg))
             let equal_branch = sprintfn "    movq $Boolean_false, %s" (_context.RegSet.NameOf(result_reg))
             let left_frag, right_frag = operands.Value
             let asm = 
                 emit_eqop_with_branches left_frag
                                         right_frag
-                                        not_equal_branch
+                                        unequal_branch
                                         equal_branch
                                         
             Ok { AsmFragment.Asm = asm

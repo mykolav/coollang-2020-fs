@@ -53,20 +53,47 @@ type Driver(?_writer: IWriteLine) =
                 source_parts.Add({ FileName = arg; Content = File.ReadAllText(arg) })
             i <- i + 1
             
+        let obj_file = out_file.Replace(".exe", ".o")
+            
         let source = Source(source_parts)
         let diags = DiagnosticBag()
 
         let result = Driver.DoCompile(source, diags)
         Driver.RenderDiags(diags, source, _writer)
         
-        if result.IsOk
+        if result.IsError
         then
-            if output_asm
-            then
-                _writer.WriteLine(result.Value)
+            -1
+        else
+
+        if output_asm
+        then
+            _writer.WriteLine(result.Value)
             0
         else
+
+        let as_output = ProcessRunner.Run(file_name="as",
+                                          args=sprintf "-o %s" obj_file,
+                                          stdin=result.Value)
+        if not (String.IsNullOrWhiteSpace(as_output))
+        then
+            _writer.WriteLine(as_output)
             -1
+        else
+
+        let ld_args =
+            sprintf "-o %s -e main %s rt_windows.o -L\"C:/msys64/mingw64/x86_64-w64-mingw32/lib\" -lkernel32"
+                    out_file
+                    obj_file
+        let ld_output = ProcessRunner.Run(file_name="ld",
+                                          args=ld_args,
+                                          stdin=result.Value)
+        if not (String.IsNullOrWhiteSpace(ld_output))
+        then
+            _writer.WriteLine(ld_output)
+            -1
+        else
+        0
 
 
     static member DoCompile(source: Source, diags: DiagnosticBag): Res<string> =

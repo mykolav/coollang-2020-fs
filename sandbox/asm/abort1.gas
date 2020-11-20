@@ -191,9 +191,10 @@ Main..ctor:
     # super dispatch Any..ctor
     pushq %r10
     pushq %r11
-    subq $8, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     movq -8(%rbp), %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
@@ -206,8 +207,10 @@ Main..ctor:
     # dispatch Main.abort
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_0 # the receiver is not null
+    jne .label_0 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -216,17 +219,16 @@ Main..ctor:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_0: # the receiver is not null
+.label_0: # the receiver is some
     subq $8, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
     addq $8, %rsp
-    movq 16(%rdi), %rbx # load vtable
-    movq 0(%rbx), %rbx # load the 'abort' method's addr
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 0(%rbx), %rbx # 'Main.abort'
     call *%rbx
     popq %r11
     popq %r10
