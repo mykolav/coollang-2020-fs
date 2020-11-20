@@ -17,28 +17,43 @@ class Cons(var car : Int, var cdr : List) extends List() {
 }
 
 class Main() extends IO() {
-    def insert(lst : List, i : Int) : List =
-        if (lst.isNil())
+    def insert(lst : List, i : Int) : List = {
+        // out_string("Main.insert: i = "); out_int(i); out_nl();
+        if (lst.isNil()) {
+            // out_string("Main.insert: lst.isNil()"); out_nl();
             new Cons(i, lst)
-        else if (i <= lst.head())
+        }
+        else if (i <= lst.head()) {
+            // out_string("Main.insert: i <= "); out_int(lst.head()); out_nl();
             new Cons(i, lst)
-        else
-            new Cons(lst.head(), insert(lst.tail(), i));
+        }
+        else {
+            // out_string("Main.insert: else"); out_nl();
+            new Cons(lst.head(), insert(lst.tail(), i))
+        }
+    };
     
-    def sort(lst : List) : List =
-        if (lst.isNil())
+    def sort(lst : List) : List = {
+        // out_string("Main.sort"); out_nl();
+        if (lst.isNil()) {
+            // out_string("Main.sort: lst.isNil()"); out_nl();
             lst
-        else
-            insert(sort(lst.tail()), lst.head());
+        }
+        else {
+            // out_string("Main.sort: else"); out_nl();
+            insert(sort(lst.tail()), lst.head())
+        }
+    };
 
-    def out_list(lst : List) : Unit =
+    def out_list(lst : List) : Unit = {
         if (lst.isNil())
             out_nl()
         else {
             out_int(lst.head());
             out_string(" ");
             out_list(lst.tail())
-        };
+        }
+    };
         
     {
         var lst : List = new Cons(30, 

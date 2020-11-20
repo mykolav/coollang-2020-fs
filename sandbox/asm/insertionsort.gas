@@ -304,7 +304,6 @@ List..ctor:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -315,18 +314,21 @@ List..ctor:
     # super dispatch Any..ctor
     pushq %r10
     pushq %r11
-    subq 8, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     movq -8(%rbp), %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
+    addq $8, %rsp
     call Any..ctor
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    # return 'this'
+    movq -8(%rbp), %rbx
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -344,7 +346,6 @@ List.isNil:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -355,8 +356,10 @@ List.isNil:
     # dispatch List.abort
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_0 # the receiver is not null
+    jne .label_0 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -365,17 +368,16 @@ List.isNil:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_0: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_0: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 0(%rbx), %rbx # load the 'abort' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # List_vtable
+    movq 0(%rbx), %rbx # 'List.abort'
     call *%rbx
     popq %r11
     popq %r10
@@ -397,7 +399,6 @@ List.head:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -408,8 +409,10 @@ List.head:
     # dispatch List.abort
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_1 # the receiver is not null
+    jne .label_1 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -418,17 +421,16 @@ List.head:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_1: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_1: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 0(%rbx), %rbx # load the 'abort' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # List_vtable
+    movq 0(%rbx), %rbx # 'List.abort'
     call *%rbx
     popq %r11
     popq %r10
@@ -450,7 +452,6 @@ List.tail:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -461,8 +462,10 @@ List.tail:
     # dispatch List.abort
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_2 # the receiver is not null
+    jne .label_2 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -471,17 +474,16 @@ List.tail:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_2: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_2: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 0(%rbx), %rbx # load the 'abort' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # List_vtable
+    movq 0(%rbx), %rbx # 'List.abort'
     call *%rbx
     popq %r11
     popq %r10
@@ -503,7 +505,6 @@ Nil..ctor:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -514,18 +515,21 @@ Nil..ctor:
     # super dispatch List..ctor
     pushq %r10
     pushq %r11
-    subq 8, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     movq -8(%rbp), %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    call Any..ctor
+    addq $8, %rsp
+    call List..ctor
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    # return 'this'
+    movq -8(%rbp), %rbx
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -543,7 +547,6 @@ Nil.isNil:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -571,7 +574,6 @@ Cons..ctor:
     movq %rdi, -8(%rbp)
     movq %rsi, -16(%rbp)
     movq %rdx, -24(%rbp)
-    movq %rcx, -32(%rbp)
     # save callee-saved registers
     movq %rbx, -32(%rbp)
     movq %r12, -40(%rbp)
@@ -582,26 +584,29 @@ Cons..ctor:
     # super dispatch List..ctor
     pushq %r10
     pushq %r11
-    subq 8, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     movq -8(%rbp), %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    call Any..ctor
+    addq $8, %rsp
+    call List..ctor
     movq %rax, %rbx # store return value
     popq %r11
     popq %r10
     movq -16(%rbp), %rbx
     movq -8(%rbp), %r10
 
-    movq %rbx, 192(%r10)
+    movq %rbx, 24(%r10)
     movq -24(%rbp), %rbx
     movq -8(%rbp), %r10
 
-    movq %rbx, 200(%r10)
+    movq %rbx, 32(%r10)
+    # return 'this'
+    movq -8(%rbp), %rbx
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -619,7 +624,6 @@ Cons.isNil:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -645,7 +649,6 @@ Cons.head:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -654,7 +657,7 @@ Cons.head:
     movq %r15, -48(%rbp)
     # begin body
     movq -8(%rbp), %rbx
-    movq 192(%rbx), %r10
+    movq 24(%rbx), %r10
     movq %r10, %rax
     # end body
     # restore callee-saved registers
@@ -672,7 +675,6 @@ Cons.tail:
     subq $48, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -16(%rbp)
     movq %r12, -24(%rbp)
@@ -681,7 +683,7 @@ Cons.tail:
     movq %r15, -48(%rbp)
     # begin body
     movq -8(%rbp), %rbx
-    movq 200(%rbx), %r10
+    movq 32(%rbx), %r10
     movq %r10, %rax
     # end body
     # restore callee-saved registers
@@ -699,7 +701,6 @@ Main..ctor:
     subq $64, %rsp
     # save actuals on the stack
     movq %rdi, -8(%rbp)
-    movq %rsi, -16(%rbp)
     # save callee-saved registers
     movq %rbx, -24(%rbp)
     movq %r12, -32(%rbp)
@@ -710,14 +711,15 @@ Main..ctor:
     # super dispatch IO..ctor
     pushq %r10
     pushq %r11
-    subq 8, %rsp
-    # actual 0 is 'this'
+    # actual #0 -- 'this'
     movq -8(%rbp), %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
+    addq $8, %rsp
     call IO..ctor
     movq %rax, %rbx # store return value
     popq %r11
@@ -725,176 +727,178 @@ Main..ctor:
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $int_const_1, %rbx
     movq %rbx, 8(%rsp)
-    # actual 1
+    # actual #2
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $int_const_2, %rbx
     movq %rbx, 8(%rsp)
-    # actual 1
+    # actual #2
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $int_const_3, %rbx
     movq %rbx, 8(%rsp)
-    # actual 1
+    # actual #2
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $int_const_4, %rbx
     movq %rbx, 8(%rsp)
-    # actual 1
+    # actual #2
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $int_const_5, %rbx
     movq %rbx, 8(%rsp)
-    # actual 1
+    # actual #2
     # new Nil
     pushq %r10
     pushq %r11
-    subq 8, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Nil_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Nil_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
+    addq $8, %rsp
     call Nil..ctor
-    movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    movq %rax, %rbx # store return value
     movq %rbx, 16(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    movq %rax, %rbx # store return value
     movq %rbx, 16(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    movq %rax, %rbx # store return value
     movq %rbx, 16(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    movq %rax, %rbx # store return value
     movq %rbx, 16(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    movq %rax, %rbx # store return value
     movq %rbx, 16(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    movq %rax, %rbx # store return value
     movq %rbx, -16(%rbp)
     # dispatch Main.out_list
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_3 # the receiver is not null
+    jne .label_3 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -903,21 +907,20 @@ Main..ctor:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_3: # the receiver is not null
-    subq 16, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_3: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq -16(%rbp), %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
-    addq 16, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 72(%rbx), %rbx # load the 'out_list' method's addr
+    addq $16, %rsp
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 64(%rbx), %rbx # 'Main.out_list'
     call *%rbx
     popq %r11
     popq %r10
@@ -925,8 +928,10 @@ Main..ctor:
     # dispatch Main.out_list
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_4 # the receiver is not null
+    jne .label_4 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -935,17 +940,18 @@ Main..ctor:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_4: # the receiver is not null
-    subq 16, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_4: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # dispatch Main.sort
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_5 # the receiver is not null
+    jne .label_5 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -954,21 +960,20 @@ Main..ctor:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_5: # the receiver is not null
-    subq 16, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_5: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq -16(%rbp), %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
-    addq 16, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 64(%rbx), %rbx # load the 'sort' method's addr
+    addq $16, %rsp
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 56(%rbx), %rbx # 'Main.sort'
     call *%rbx
     popq %r11
     popq %r10
@@ -978,13 +983,15 @@ Main..ctor:
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
-    addq 16, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 72(%rbx), %rbx # load the 'out_list' method's addr
+    addq $16, %rsp
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 64(%rbx), %rbx # 'Main.out_list'
     call *%rbx
     popq %r11
     popq %r10
     movq %rax, %r10 # store return value
+    # return 'this'
+    movq -8(%rbp), %rbx
     movq %rbx, %rax
     # end body
     # restore callee-saved registers
@@ -1004,7 +1011,6 @@ Main.insert:
     movq %rdi, -8(%rbp)
     movq %rsi, -16(%rbp)
     movq %rdx, -24(%rbp)
-    movq %rcx, -32(%rbp)
     # save callee-saved registers
     movq %rbx, -32(%rbp)
     movq %r12, -40(%rbp)
@@ -1016,27 +1022,28 @@ Main.insert:
     # dispatch List.isNil
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_12 # the receiver is not null
+    jne .label_12 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $21, %rsi
+    movq $22, %rsi
     movq $13, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_12: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+.label_12: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'isNil' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # List_vtable
+    movq 8(%rbx), %rbx # 'List.isNil'
     call *%rbx
     popq %r11
     popq %r10
@@ -1047,21 +1054,21 @@ Main.insert:
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %rbx
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq -24(%rbp), %rbx
     movq %rbx, 8(%rsp)
-    # actual 1
+    # actual #2
     movq -16(%rbp), %rbx
     movq %rbx, 16(%rsp)
     # load first 6 actuals into registers
@@ -1069,11 +1076,11 @@ Main.insert:
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %rbx # store return value
     popq %r11
     popq %r10
+    movq %rax, %rbx # store return value
     movq %rbx, %r10
     jmp .label_14 # end if_expr
 .label_13: # else
@@ -1082,86 +1089,90 @@ Main.insert:
     # dispatch List.head
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %r11
     cmpq $0, %r11
-    jne .label_9 # the receiver is not null
+    jne .label_9 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $23, %rsi
+    movq $26, %rsi
     movq $23, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_9: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %r11
+.label_9: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %r11, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%r11), %r11 # load vtable
-    movq 24(%r11), %r11 # load the 'head' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %r11 # List_vtable
+    movq 16(%r11), %r11 # 'List.head'
     call *%r11
     popq %r11
     popq %r10
     movq %rax, %r13 # store return value
     movq 24(%r10), %r10
     movq 24(%r13), %r13
-    cmpq %r10, %r13
+    cmpq %r13, %r10
     jle .label_10
     # false / else
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %r11
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %r11, 0(%rsp)
-    # actual 0
+    # actual #1
     # dispatch List.head
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %r11
     cmpq $0, %r11
-    jne .label_6 # the receiver is not null
+    jne .label_6 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $26, %rsi
+    movq $32, %rsi
     movq $22, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_6: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %r11
+.label_6: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %r11, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%r11), %r11 # load vtable
-    movq 24(%r11), %r11 # load the 'head' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %r11 # List_vtable
+    movq 16(%r11), %r11 # 'List.head'
     call *%r11
     popq %r11
     popq %r10
     movq %rax, %r12 # store return value
     movq %r12, 8(%rsp)
-    # actual 1
+    # actual #2
     # dispatch Main.insert
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %r11
     cmpq $0, %r11
-    jne .label_7 # the receiver is not null
+    jne .label_7 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1170,42 +1181,42 @@ Main.insert:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_7: # the receiver is not null
-    subq 24, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %r11
+.label_7: # the receiver is some
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %r11, 0(%rsp)
-    # actual 0
+    # actual #1
     # dispatch List.tail
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %r11
     cmpq $0, %r11
-    jne .label_8 # the receiver is not null
+    jne .label_8 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $26, %rsi
+    movq $32, %rsi
     movq $41, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_8: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %r11
+.label_8: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %r11, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%r11), %r11 # load vtable
-    movq 32(%r11), %r11 # load the 'tail' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %r11 # List_vtable
+    movq 24(%r11), %r11 # 'List.tail'
     call *%r11
     popq %r11
     popq %r10
     movq %rax, %r12 # store return value
     movq %r12, 8(%rsp)
-    # actual 1
+    # actual #2
     movq -24(%rbp), %r11
     movq %r11, 16(%rsp)
     # load first 6 actuals into registers
@@ -1213,9 +1224,9 @@ Main.insert:
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
-    movq 16(%r11), %r11 # load vtable
-    movq 56(%r11), %r11 # load the 'insert' method's addr
+    addq $24, %rsp
+    movq 16(%rdi), %r11 # Main_vtable
+    movq 48(%r11), %r11 # 'Main.insert'
     call *%r11
     popq %r11
     popq %r10
@@ -1226,32 +1237,32 @@ Main.insert:
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %r11 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r11 # store return value
     movq %r11, %r12
     jmp .label_11
 .label_10: # true / then
     # new Cons
     pushq %r10
     pushq %r11
-    subq 24, %rsp
-    # actual 0 is 'this'
     # make a copy of the prototype object
-    movq $Cons_proto_obj, %rdi
     pushq %r10
     pushq %r11
+    movq $Cons_proto_obj, %rdi
     call .Runtime.copy_object
     popq %r11
     popq %r10
     movq %rax, %r10
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %r10, 0(%rsp)
-    # actual 0
+    # actual #1
     movq -24(%rbp), %r10
     movq %r10, 8(%rsp)
-    # actual 1
+    # actual #2
     movq -16(%rbp), %r10
     movq %r10, 16(%rsp)
     # load first 6 actuals into registers
@@ -1259,11 +1270,11 @@ Main.insert:
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
+    addq $24, %rsp
     call Cons..ctor
-    movq %rax, %r10 # store return value
     popq %r11
     popq %r10
+    movq %rax, %r10 # store return value
     movq %r10, %r12
 .label_11: # end cmp op / if_expr
     movq %r12, %r10
@@ -1286,7 +1297,6 @@ Main.sort:
     # save actuals on the stack
     movq %rdi, -8(%rbp)
     movq %rsi, -16(%rbp)
-    movq %rdx, -24(%rbp)
     # save callee-saved registers
     movq %rbx, -24(%rbp)
     movq %r12, -32(%rbp)
@@ -1298,27 +1308,28 @@ Main.sort:
     # dispatch List.isNil
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_19 # the receiver is not null
+    jne .label_19 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $29, %rsi
+    movq $38, %rsi
     movq $13, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_19: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+.label_19: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'isNil' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # List_vtable
+    movq 8(%rbx), %rbx # 'List.isNil'
     call *%rbx
     popq %r11
     popq %r10
@@ -1333,8 +1344,10 @@ Main.sort:
     # dispatch Main.insert
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %r10
     cmpq $0, %r10
-    jne .label_15 # the receiver is not null
+    jne .label_15 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1343,17 +1356,18 @@ Main.sort:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_15: # the receiver is not null
-    subq 24, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %r10
+.label_15: # the receiver is some
+    subq $24, %rsp
+    # store actual #0 'this' on stack
     movq %r10, 0(%rsp)
-    # actual 0
+    # actual #1
     # dispatch Main.sort
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %r10
     cmpq $0, %r10
-    jne .label_16 # the receiver is not null
+    jne .label_16 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1362,36 +1376,36 @@ Main.sort:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_16: # the receiver is not null
-    subq 16, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %r10
+.label_16: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %r10, 0(%rsp)
-    # actual 0
+    # actual #1
     # dispatch List.tail
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %r10
     cmpq $0, %r10
-    jne .label_17 # the receiver is not null
+    jne .label_17 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $32, %rsi
+    movq $44, %rsi
     movq $25, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_17: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %r10
+.label_17: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %r10, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%r10), %r10 # load vtable
-    movq 32(%r10), %r10 # load the 'tail' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %r10 # List_vtable
+    movq 24(%r10), %r10 # 'List.tail'
     call *%r10
     popq %r11
     popq %r10
@@ -1401,39 +1415,40 @@ Main.sort:
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
-    addq 16, %rsp
-    movq 16(%r10), %r10 # load vtable
-    movq 64(%r10), %r10 # load the 'sort' method's addr
+    addq $16, %rsp
+    movq 16(%rdi), %r10 # Main_vtable
+    movq 56(%r10), %r10 # 'Main.sort'
     call *%r10
     popq %r11
     popq %r10
     movq %rax, %r11 # store return value
     movq %r11, 8(%rsp)
-    # actual 1
+    # actual #2
     # dispatch List.head
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %r10
     cmpq $0, %r10
-    jne .label_18 # the receiver is not null
+    jne .label_18 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $32, %rsi
+    movq $44, %rsi
     movq $38, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_18: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %r10
+.label_18: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %r10, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%r10), %r10 # load vtable
-    movq 24(%r10), %r10 # load the 'head' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %r10 # List_vtable
+    movq 16(%r10), %r10 # 'List.head'
     call *%r10
     popq %r11
     popq %r10
@@ -1444,9 +1459,9 @@ Main.sort:
     movq 8(%rsp), %rsi
     movq 16(%rsp), %rdx
     # remove actuals loaded into registers from stack
-    addq 24, %rsp
-    movq 16(%r10), %r10 # load vtable
-    movq 56(%r10), %r10 # load the 'insert' method's addr
+    addq $24, %rsp
+    movq 16(%rdi), %r10 # Main_vtable
+    movq 48(%r10), %r10 # 'Main.insert'
     call *%r10
     popq %r11
     popq %r10
@@ -1471,7 +1486,6 @@ Main.out_list:
     # save actuals on the stack
     movq %rdi, -8(%rbp)
     movq %rsi, -16(%rbp)
-    movq %rdx, -24(%rbp)
     # save callee-saved registers
     movq %rbx, -24(%rbp)
     movq %r12, -32(%rbp)
@@ -1483,27 +1497,28 @@ Main.out_list:
     # dispatch List.isNil
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %r10
     cmpq $0, %r10
-    jne .label_28 # the receiver is not null
+    jne .label_28 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $35, %rsi
+    movq $49, %rsi
     movq $13, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_28: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %r10
+.label_28: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %r10, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%r10), %r10 # load vtable
-    movq 16(%r10), %r10 # load the 'isNil' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %r10 # List_vtable
+    movq 8(%r10), %r10 # 'List.isNil'
     call *%r10
     popq %r11
     popq %r10
@@ -1514,8 +1529,10 @@ Main.out_list:
     # dispatch Main.out_nl
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_22 # the receiver is not null
+    jne .label_22 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1524,17 +1541,16 @@ Main.out_list:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_22: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_22: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'out_nl' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 24(%rbx), %rbx # 'Main.out_nl'
     call *%rbx
     popq %r11
     popq %r10
@@ -1545,8 +1561,10 @@ Main.out_list:
     # dispatch Main.out_int
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_23 # the receiver is not null
+    jne .label_23 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1555,36 +1573,36 @@ Main.out_list:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_23: # the receiver is not null
-    subq 16, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_23: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # dispatch List.head
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_24 # the receiver is not null
+    jne .label_24 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $38, %rsi
+    movq $52, %rsi
     movq $21, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_24: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+.label_24: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 24(%rbx), %rbx # load the 'head' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # List_vtable
+    movq 16(%rbx), %rbx # 'List.head'
     call *%rbx
     popq %r11
     popq %r10
@@ -1594,9 +1612,9 @@ Main.out_list:
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
-    addq 16, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 16(%rbx), %rbx # load the 'out_int' method's addr
+    addq $16, %rsp
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 16(%rbx), %rbx # 'Main.out_int'
     call *%rbx
     popq %r11
     popq %r10
@@ -1604,8 +1622,10 @@ Main.out_list:
     # dispatch Main.out_string
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_25 # the receiver is not null
+    jne .label_25 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1614,21 +1634,20 @@ Main.out_list:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_25: # the receiver is not null
-    subq 16, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_25: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     movq $str_const_2, %rbx
     movq %rbx, 8(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
-    addq 16, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 8(%rbx), %rbx # load the 'out_string' method's addr
+    addq $16, %rsp
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 8(%rbx), %rbx # 'Main.out_string'
     call *%rbx
     popq %r11
     popq %r10
@@ -1636,8 +1655,10 @@ Main.out_list:
     # dispatch Main.out_list
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -8(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_26 # the receiver is not null
+    jne .label_26 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
@@ -1646,36 +1667,36 @@ Main.out_list:
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_26: # the receiver is not null
-    subq 16, %rsp
-    # actual 0 is 'this'
-    movq -8(%rbp), %rbx
+.label_26: # the receiver is some
+    subq $16, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
-    # actual 0
+    # actual #1
     # dispatch List.tail
     pushq %r10
     pushq %r11
+    # actual #0 -- 'this'
+    movq -16(%rbp), %rbx
     cmpq $0, %rbx
-    jne .label_27 # the receiver is not null
+    jne .label_27 # the receiver is some
     pushq %r10
     pushq %r11
     movq $str_const_1, %rdi
-    movq $40, %rsi
+    movq $54, %rsi
     movq $22, %rdx
     call .Runtime.abort_dispatch
     popq %r11
     popq %r10
-.label_27: # the receiver is not null
-    subq 8, %rsp
-    # actual 0 is 'this'
-    movq -16(%rbp), %rbx
+.label_27: # the receiver is some
+    subq $8, %rsp
+    # store actual #0 'this' on stack
     movq %rbx, 0(%rsp)
     # load first 6 actuals into registers
     movq 0(%rsp), %rdi
     # remove actuals loaded into registers from stack
-    addq 8, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 32(%rbx), %rbx # load the 'tail' method's addr
+    addq $8, %rsp
+    movq 16(%rdi), %rbx # List_vtable
+    movq 24(%rbx), %rbx # 'List.tail'
     call *%rbx
     popq %r11
     popq %r10
@@ -1685,9 +1706,9 @@ Main.out_list:
     movq 0(%rsp), %rdi
     movq 8(%rsp), %rsi
     # remove actuals loaded into registers from stack
-    addq 16, %rsp
-    movq 16(%rbx), %rbx # load vtable
-    movq 72(%rbx), %rbx # load the 'out_list' method's addr
+    addq $16, %rsp
+    movq 16(%rdi), %rbx # Main_vtable
+    movq 64(%rbx), %rbx # 'Main.out_list'
     call *%rbx
     popq %r11
     popq %r10

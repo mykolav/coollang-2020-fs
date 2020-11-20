@@ -250,7 +250,13 @@ hProcessDefaultHeap:
     movq OBJ_SIZE(%rdi), %r8
     salq $3, %r8
     call HeapAlloc
+    cmpq $0, %rax
+    jne .Runtime.copy_object.alloc_ok
 
+    movq $0, %rcx
+    call ExitProcess
+
+.Runtime.copy_object.alloc_ok:
     # %rdi - src
     # %rdx - src_end
     # %rsi - dst
@@ -312,18 +318,21 @@ Any.abort:
     movq %rsp, %rbp
 
     # Print "Aborted from " 
-    subq    $(8 + 8 + 32), %rsp # NumberOfBytesWritten + 
-                                # 16 bytes boundary padding + 
-                                # shadow space
+    subq    $(8 + 8 + 8 + 8 + 32), %rsp # 16 bytes boundary pad +
+                                        # hFile +
+                                        # NumberOfBytesWritten + 
+                                        # fifth argument + 
+                                        # shadow space
 
     movl $STD_OUTPUT_HANDLE, %ecx
     call GetStdHandle
-    movq %rax, %rcx
+    movq %rax, -16(%rbp)
   
+    movq -16(%rbp), %rcx
     movq $str_const_aborted_from, %rdx
     movq $13, %r8
-    leaq -8(%rbp), %r9 # lpNumberOfBytesWritten
-    pushq $0
+    leaq -24(%rbp), %r9 # lpNumberOfBytesWritten
+    movq $0, -32(%rbp) # lpOverlapped
     call WriteFile
 
     # Print "{classname}"
@@ -331,15 +340,22 @@ Any.abort:
     salq $3, %rdi # multiply the tag by 8
                   # to get the offset in 'class_name_table'
     addq $class_name_table, %rdi
+    movq (%rdi), %rdi
 
+    movq -16(%rbp), %rcx
     leaq STR_VAL(%rdi), %rdx
     movq STR_LEN(%rdi), %r8
     movq INT_VAL(%r8), %r8
+    leaq -24(%rbp), %r9 # lpNumberOfBytesWritten
+    movq $0, -32(%rbp) # lpOverlapped
     call WriteFile
 
     # Print new line
+    movq -16(%rbp), %rcx
     movq $str_const_new_line, %rdx
     movq $2, %r8
+    leaq -24(%rbp), %r9 # lpNumberOfBytesWritten
+    movq $0, -32(%rbp) # lpOverlapped
     call WriteFile
 
     # Exit the process
@@ -507,7 +523,10 @@ IO.out_int:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $(64 + 32), %rsp # local vars + shadow space
+    subq    $(64 + 8 + 8 + 32), %rsp # local vars + 
+                                     # 16 bytes boundary padding + 
+                                     # fifth argument + 
+                                     # shadow space
     
     movq    %rdi, -8(%rbp) # this
     
@@ -521,7 +540,7 @@ IO.out_int:
 
     # is_negative = i < 0
     cmpq    $0, %rsi
-    setl    %r8b # set r8b to 1 if the int value in %rsi < 0
+    setl   %r8b # set r8b to 1 if the int value in %rsi < 0
     movzbq  %r8b, %rcx # move a byte from %r8b to %cl, 
                        # set all the other bits to 0 
     movq    %rcx, -40(%rbp)
@@ -531,8 +550,7 @@ IO.out_int:
     je      IO.out_int.loop_init
 
     # i = -i;
-    negq    %rcx
-    movq    %rcx, -16(%rbp)
+    negq    -16(%rbp)
 
 IO.out_int.loop_init:
     # digit_pos = 10
@@ -599,7 +617,7 @@ IO.out_int.print:
 
     leaq    -56(%rbp), %r9 # lpNumberOfBytesWritten
 
-    pushq   $0 # lpOverlapped
+    movq    $0, -80(%rbp) # lpOverlapped
     
     call    WriteFile
 
@@ -621,7 +639,7 @@ IO.out_nl:
     movq %rsp, %rbp
 
     subq    $(8 + 8 + 32), %rsp # NumberOfBytesWritten + 
-                                # 16 bytes boundary padding + 
+                                # fifth argument +
                                 # shadow space
 
     movl $STD_OUTPUT_HANDLE, %ecx
@@ -638,7 +656,7 @@ IO.out_nl:
     movq $str_const_new_line, %rdx
     movq $2, %r8
     leaq -8(%rbp), %r9 # lpNumberOfBytesWritten
-    pushq $0
+    movq $0, -16(%rbp) # lpOverlapped
     call WriteFile
 
     movq %rbp, %rsp

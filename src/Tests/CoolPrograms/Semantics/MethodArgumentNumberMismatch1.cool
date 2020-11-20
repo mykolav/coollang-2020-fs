@@ -3,5 +3,5 @@ class B() { def foo() : Int = 0; }
 class Main() {
     { new B().foo("Hello, B!") };
 }
-// DIAG: Semantics/MethodArgumentNumberMismatch1.cool(4,15): Error: 'B.foo' takes 0 actual(s) but was passed 1
+// DIAG: Semantics/MethodArgumentNumberMismatch1.cool(4,15): Error: 'B.foo' takes 0 formal(s) but was passed 1 actual(s)
 // DIAG: Build failed: Errors: 1. Warnings: 0

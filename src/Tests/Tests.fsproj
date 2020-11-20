@@ -35,6 +35,7 @@
         <Content Include="CoolPrograms\Valid\IfElseExprPrecedence.cool" />
         <Content Include="CoolPrograms\Valid\HelloCool1.cool" />
         <Content Include="CoolPrograms\Valid\HelloCool2.cool" />
+        <Content Include="CoolPrograms\Valid\Abort1.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />

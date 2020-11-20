@@ -91,7 +91,7 @@ type ClassSymbol =
                                           formals=defaultArg ctor_formals [||]) with Index = -1
                                                                                      DeclaringClass = class_name }
         
-        method_map.Add(ctor.Name, ctor)
+        // method_map.Add(ctor.Name, ctor)
         
         { Name = class_name
           Super = super_name
