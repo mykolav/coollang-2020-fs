@@ -40,7 +40,7 @@ type Driver(?_writer: IWriteLine) =
         
     member this.PrintUsage(message: string): int =
         _writer.WriteLine("Cool2020 Compiler version 0.1")
-        _writer.WriteLine("Usage: clc file1.cool [file2.cool, ..., fileN.cool] [-o file.exe | -S file.asm]")
+        _writer.WriteLine("Usage: clc file1.cool [file2.cool, ..., fileN.cool] [-o file.exe | -S [file.asm]]")
         _writer.WriteLine("")
         _writer.WriteLine("Error(s):")
         _writer.WriteLine(message)
@@ -90,7 +90,7 @@ type Driver(?_writer: IWriteLine) =
             // which is obviously not always correct.
             // But for now it will do.
             for line in ProcessOutputParser.split_in_lines as_output do
-                diags.Error(line, Span.Invalid)
+                diags.AsError(line)
                 
             Driver.RenderDiags(diags, source, _writer)
             -1
@@ -109,7 +109,7 @@ type Driver(?_writer: IWriteLine) =
             // which is obviously not always correct.
             // But for now it will do.
             for line in ProcessOutputParser.split_in_lines ld_output do
-                diags.Error(line, Span.Invalid)
+                diags.LdError(line)
             Driver.RenderDiags(diags, source, _writer)
             -1
         else
@@ -184,7 +184,7 @@ type Driver(?_writer: IWriteLine) =
         
         if arg_array.Length = 0
         then
-            Cmd.PrintUsage {| Message = "At least one Cool source file name expected" |}
+            Cmd.PrintUsage {| Message = "At least one Cool2020 source file name expected" |}
         else
         
         let mutable message = ""
@@ -192,7 +192,7 @@ type Driver(?_writer: IWriteLine) =
         let source_parts = List<SourcePart>()
         
         let mutable o_seen = 0
-        let mutable exe_file: string voption = ValueNone
+        let mutable exe_file = "a.exe"
 
         let mutable S_seen = 0
         let mutable asm_file: string voption = ValueNone
@@ -211,7 +211,7 @@ type Driver(?_writer: IWriteLine) =
                     parsing_complete <- true
                     message <- "'-o' must be followed by an output file name"
                 else
-                    exe_file <- ValueSome (arg_array.[i + 1])
+                    exe_file <- arg_array.[i + 1]
                     i <- i + 1
             else if arg = "-S"
             then
@@ -256,4 +256,4 @@ type Driver(?_writer: IWriteLine) =
             Cmd.EmitAsm {| SourceParts = source_parts; AsmFile = asm_file |}
         else
             
-        Cmd.EmitExe {| SourceParts = source_parts; ExeFile = exe_file.Value |}
+        Cmd.EmitExe {| SourceParts = source_parts; ExeFile = exe_file |}
