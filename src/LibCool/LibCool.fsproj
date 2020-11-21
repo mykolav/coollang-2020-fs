@@ -34,6 +34,11 @@
         <Compile Include="TranslatorParts\ProgramTranslator.fs" />
         <Compile Include="TranslatorParts\ClassSymbolCollector.fs" />
         <Compile Include="TranslatorParts\Translator.fs" />
+        <Compile Include="DriverParts\IWriteLine.fs" />
+        <Compile Include="DriverParts\DiagRenderer.fs" />
+        <Compile Include="DriverParts\CompileToAsmDriver.fs" />
+        <Compile Include="DriverParts\EmitAsmHandler.fs" />
+        <Compile Include="DriverParts\EmitExeHandler.fs" />
         <Compile Include="DriverParts\Driver.fs" />
     </ItemGroup>
 

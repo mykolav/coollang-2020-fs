@@ -47,11 +47,11 @@ type Sandbox(_test_output: ITestOutputHelper) =
         
         let ast_opt = do_parse()
         
-        Driver.RenderDiags(diagnostic_bag,
-                           source,
-                           { new IWriteLine with
-                               member _.WriteLine(line: string) =
-                                   _test_output.WriteLine(line)})
+        DiagRenderer.Render(diagnostic_bag,
+                            source,
+                            { new IWriteLine with
+                                member _.WriteLine(line: string) =
+                                    _test_output.WriteLine(line)})
         ast_opt
         
 
@@ -74,7 +74,6 @@ type Sandbox(_test_output: ITestOutputHelper) =
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/HelloCool2.cool")
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Abort1.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Heap1.cool")
-        let tc = CompilerTestCase.ReadFrom(path)
 
         // Act
         let clc_output = run_clc_in_process ([ path; "-S" ])

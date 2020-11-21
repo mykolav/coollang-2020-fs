@@ -1,6 +1,8 @@
 namespace Tests.Support
 
+
 open System.Runtime.CompilerServices
+
 
 [<IsReadOnly; Struct>]
 type Snippet = Snippet of content: string
@@ -12,7 +14,8 @@ type Snippet = Snippet of content: string
         then content.[0..49].Replace("\r", "").Replace("\n", " ") + "..."
         else content) +
         "\""
-        
+
+            
     override this.ToString() =
         let (Snippet content) = this
         content
