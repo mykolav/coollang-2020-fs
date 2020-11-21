@@ -21,6 +21,7 @@
         <Compile Include="ParserParts\TokenArray.fs" />
         <Compile Include="ParserParts\Parser.fs" />
         <Compile Include="TranslatorParts\AstExtensions.fs" />
+        <Compile Include="TranslatorParts\Facts.fs" />
         <Compile Include="TranslatorParts\Symbols.fs" />
         <Compile Include="TranslatorParts\SymbolTable.fs" />
         <Compile Include="TranslatorParts\RegisterSet.fs" />
@@ -28,7 +29,6 @@
         <Compile Include="TranslatorParts\ConstSet.fs" />
         <Compile Include="TranslatorParts\TypeComparer.fs" />
         <Compile Include="TranslatorParts\TranslationContext.fs" />
-        <Compile Include="TranslatorParts\Facts.fs" />
         <Compile Include="TranslatorParts\ExprTranslator.fs" />
         <Compile Include="TranslatorParts\ClassTranslator.fs" />
         <Compile Include="TranslatorParts\ProgramTranslator.fs" />

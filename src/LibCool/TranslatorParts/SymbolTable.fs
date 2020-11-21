@@ -75,9 +75,13 @@ type FrameInfo() =
     member val VarsCount: int = 0 with get, set
 
     
+    // We pass these actuals in regs,
+    // but still allocate space and store them in frame.
+    // Otherwise non-leaf functions could not re-use regs
+    // to pass actuals to functions called by them. 
     member this.ActualsInFrameCount: int =
-        if this.ActualsCount >= 6
-        then 6
+        if this.ActualsCount >= SysVAmd64AbiFacts.ActualRegs.Length
+        then SysVAmd64AbiFacts.ActualRegs.Length
         else this.ActualsCount
 
     

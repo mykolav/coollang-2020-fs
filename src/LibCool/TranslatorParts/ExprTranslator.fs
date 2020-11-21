@@ -580,16 +580,11 @@ type private ExprTranslator(_context: TranslationContext,
                
             if pattern_asm_infos |> Seq.exists (fun it -> it.Key <> BasicClassNames.Null)
             then
-                let actuals_in_frame_count = if _sym_table.Frame.ActualsCount >= 6
-                                             then 6
-                                             else _sym_table.Frame.ActualsCount
-                let vars_offset = actuals_in_frame_count * 8
-                
                 // Store the expression's value on stack,
                 // such that a var introduced by a matched case would pick it up.
                 asm.AppendLine(sprintf "    movq %s, -%d(%%rbp) # store the expression's value"
                                        (_context.RegSet.NameOf(expr_frag.Value.Reg))
-                                       (vars_offset + _sym_table.Frame.VarsCount * 8))
+                                       (_sym_table.Frame.VarsOffset + _sym_table.Frame.VarsCount * 8))
                    .Nop()
                   
             asm.AppendLine(sprintf "    movq $%d, %s" expr_frag.Value.Type.Tag
@@ -1257,15 +1252,14 @@ type private ExprTranslator(_context: TranslationContext,
         asm.AppendLine("    # load up to 6 first actuals into regs")
            .Nop()
            
-        let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
         // We store `this` in %rdi, and as a result can only pass 5 actuals in registers. 
-        let actual_in_reg_count = if (actual_frags.Count + 1) > actual_regs.Length
-                                  then actual_regs.Length
+        let actual_in_reg_count = if (actual_frags.Count + 1) > SysVAmd64AbiFacts.ActualRegs.Length
+                                  then SysVAmd64AbiFacts.ActualRegs.Length
                                   else actual_frags.Count + 1 // Add one, to account for passing 'this' as the actual 0. 
                                   
         for actual_index in 0 .. (actual_in_reg_count - 1) do
             asm.AppendLine(sprintf "    movq %d(%%rsp), %s" (actual_index * 8)
-                                                            (actual_regs.[actual_index]))
+                                                            (SysVAmd64AbiFacts.ActualRegs.[actual_index]))
                .Nop()
         
         asm.AppendLine("    # remove the loaded actuals from stack")

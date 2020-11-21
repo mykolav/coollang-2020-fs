@@ -75,36 +75,33 @@ type private ClassTranslator(_context: TranslationContext,
             .AppendLine("    # save actuals on the stack")
             .Nop()
         
-        let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
         for i in 0 .. (_sym_table.Frame.ActualsInFrameCount - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
-                                    actual_regs.[i]
+                                    SysVAmd64AbiFacts.ActualRegs.[i]
                                     (_sym_table.Frame.ActualsOffsetInBytes + 8 * (i + 1)))
                 .Nop()
         
-        _sb_code.AppendLine("    # save callee-saved registers").Nop()
+        _sb_code.AppendLine("    # store callee-saved regs").Nop()
 
-        let callee_saved_regs = [| "%rbx"; "%r12"; "%r13"; "%r14"; "%r15" |]
-        for i in 0 .. (callee_saved_regs.Length - 1) do
+        for i in 0 .. (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
-                                    callee_saved_regs.[i]
+                                    SysVAmd64AbiFacts.CalleeSavedRegs.[i]
                                     (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1)))
                 .Nop()
     
     
     let emit_method_epilogue (): unit =
         _sb_code
-            .AppendLine("    # restore callee-saved registers")
+            .AppendLine("    # restore callee-saved regs")
             .Nop()
 
-        let callee_saved_regs = [| "%rbx"; "%r12"; "%r13"; "%r14"; "%r15" |]
-        for i in 0 .. (callee_saved_regs.Length - 1) do
+        for i in 0 .. (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq -%d(%%rbp), %s"
                                     (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1))
-                                    callee_saved_regs.[i])
+                                    SysVAmd64AbiFacts.CalleeSavedRegs.[i])
                 .Nop()
 
         _sb_code
