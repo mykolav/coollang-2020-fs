@@ -7,6 +7,7 @@ open System.IO
 open System.Runtime.CompilerServices
 open System.Text
 open System.Text.RegularExpressions
+open LibCool.SharedParts
 
 
 [<Sealed>]
@@ -54,7 +55,7 @@ module private CompilerTestCaseParser =
         let sb = StringBuilder()
         lines
         |> Seq.takeWhile (fun it -> not (re_expected_diags.IsMatch(it) || re_expected_output.IsMatch(it)))
-        |> Seq.iteri (fun i it -> sb.AppendLine(sprintf "%d\t%s" (i + 1) it) |> ignore)
+        |> Seq.iteri (fun i it -> sb.AppendLine(sprintf "%d\t%s" (i + 1) it).Nop())
         
         sb.ToString()
 
@@ -69,7 +70,7 @@ type CompilerTestCase =
     
 
     static member ReadFrom(path: string): CompilerTestCase =
-        let lines = File.ReadAllLines(path)
+        let lines = File.ReadAllLines(path) |> Seq.map (fun it -> it.Trim())
         { Path = path
           FileName = Path.GetFileNameWithoutExtension(path)
           ExpectedDiags = take_matching_lines lines re_expected_diags
@@ -112,16 +113,16 @@ module private CompilerOutputParser =
                 at_line_end <- true
             else if i >= clc_output.Length
             then
-                sb_line.Append(ch) |> ignore
+                sb_line.Append(ch).Nop()
                 at_line_end <- true
             
             if at_line_end
             then
-                lines.Add(sb_line.ToString())
+                lines.Add(sb_line.ToString().Trim())
                 sb_line <- StringBuilder()
                 at_line_end <- false
             else
-                sb_line.Append(ch) |> ignore
+                sb_line.Append(ch).Nop()
                 
         lines :> seq<string>
 

@@ -596,12 +596,12 @@ IO.out_int.loop_body:
     movq    %rax, -48(%rbp)
 
 IO.out_int.print:
-    leaq    -28(%rbp), %rax # digits
-    movq    -48(%rbp), %rcx # digit_pos
     # digit_pos is pointing to a vacant digit slot, 
     # move it to the leftmost digit (or '-')
-    addq    $1, %rcx
-    addq    %rcx, %rax # digits + digit_pos
+    addq    $1, -48(%rbp) # digit_pos
+
+    leaq    -28(%rbp), %rax # digits
+    addq    -48(%rbp), %rax # digits + digit_pos
     movq    %rax, -64(%rbp) # lpBuffer
 
     # GetStdHandle
