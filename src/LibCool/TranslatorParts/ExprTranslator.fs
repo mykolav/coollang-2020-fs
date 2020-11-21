@@ -1509,7 +1509,7 @@ type private ExprTranslator(_context: TranslationContext,
                    Type = _context.ClassSymMap.[sym.Type]
                    Reg = Reg.Null |}
             else
-                {| Addr = sprintf "%d(%%rbp)" (_sym_table.Frame.ActualsOutOfFrameOffset + (sym.Index - 7) * 8)
+                {| Addr = sprintf "%d(%%rbp)" (FrameLayoutFacts.ActualsOutOfFrameOffset + (sym.Index - 7) * 8)
                    Asm = ValueNone
                    Type = _context.ClassSymMap.[sym.Type]
                    Reg = Reg.Null |}

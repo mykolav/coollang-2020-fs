@@ -79,7 +79,7 @@ type private ClassTranslator(_context: TranslationContext,
             _sb_code
                 .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
                                     SysVAmd64AbiFacts.ActualRegs.[i]
-                                    (_sym_table.Frame.ActualsOffsetInBytes + 8 * (i + 1)))
+                                    (FrameLayoutFacts.ActualsOffsetInBytes + 8 * (i + 1)))
                 .Nop()
         
         _sb_code.AppendLine("    # store callee-saved regs").Nop()

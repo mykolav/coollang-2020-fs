@@ -87,13 +87,12 @@ type FrameInfo() =
     
     member this.ActualsSizeInBytes: int = this.ActualsInFrameCount * 8
     member this.VarsSizeInBytes: int = this.VarsCount * 8
-    member this.CalleeSavedRegsSizeInBytes: int = 5 (* number of the callee-saved regs *) * 8
 
 
     member this.FrameSizeInBytes: int =
         this.ActualsSizeInBytes +
         this.VarsSizeInBytes +
-        this.CalleeSavedRegsSizeInBytes
+        FrameLayoutFacts.CalleeSavedRegsSizeInBytes
 
 
     member this.PadSizeInBytes: int =
@@ -102,8 +101,6 @@ type FrameInfo() =
         else 16 - (this.FrameSizeInBytes % 16)
                             
 
-    member val ActualsOutOfFrameOffset: int = 16 // skip saved %rbp, and return addr
-    member val ActualsOffsetInBytes: int = 0
     member this.CalleeSavedRegsOffsetInBytes: int = this.ActualsSizeInBytes + this.VarsSizeInBytes
     member this.VarsOffset: int = this.ActualsInFrameCount * 8
 
