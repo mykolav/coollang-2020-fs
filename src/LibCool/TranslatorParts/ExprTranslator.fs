@@ -178,16 +178,16 @@ type private ExprTranslator(_context: TranslationContext,
 
             let asm = StringBuilder()
             
-            asm.AppendLine("    # if_expr")
+            asm.AppendLine("    #. if")
                .Append(condition_frag.Value.Asm.ToString())
                .AppendLine(sprintf "    cmpq $0, 24(%s)" (_context.RegSet.NameOf(condition_frag.Value.Reg)))
                .AppendLine(sprintf "    je %s # else" (_context.LabelGen.NameOf(else_label)))
                .AppendLine("    # then")
                .Append(then_asm)
-               .AppendLine(sprintf "    jmp %s # end if_expr" (_context.LabelGen.NameOf(done_label)))
+               .AppendLine(sprintf "    jmp %s #. end if" (_context.LabelGen.NameOf(done_label)))
                .AppendLine(sprintf "%s: # else" (_context.LabelGen.NameOf(else_label)))
                .Append(else_asm)
-               .AppendLine(sprintf "%s: # end if_expr" (_context.LabelGen.NameOf(done_label)))
+               .AppendLine(sprintf "%s: #. end if" (_context.LabelGen.NameOf(done_label)))
                .Nop()
             
             _context.RegSet.Free(condition_frag.Value.Reg)
@@ -580,16 +580,16 @@ type private ExprTranslator(_context: TranslationContext,
                
             if pattern_asm_infos |> Seq.exists (fun it -> it.Key <> BasicClassNames.Null)
             then
-                let actuals_in_frame_count = if _sym_table.MethodFrame.ActualsCount >= 6
+                let actuals_in_frame_count = if _sym_table.Frame.ActualsCount >= 6
                                              then 6
-                                             else _sym_table.MethodFrame.ActualsCount
+                                             else _sym_table.Frame.ActualsCount
                 let vars_offset = actuals_in_frame_count * 8
                 
                 // Store the expression's value on stack,
                 // such that a var introduced by a matched case would pick it up.
                 asm.AppendLine(sprintf "    movq %s, -%d(%%rbp) # store the expression's value"
                                        (_context.RegSet.NameOf(expr_frag.Value.Reg))
-                                       (vars_offset + _sym_table.MethodFrame.VarsCount * 8))
+                                       (vars_offset + _sym_table.Frame.VarsCount * 8))
                    .Nop()
                   
             asm.AppendLine(sprintf "    movq $%d, %s" expr_frag.Value.Type.Tag
@@ -677,7 +677,7 @@ type private ExprTranslator(_context: TranslationContext,
                         | PatternSyntax.IdType (id, ty) ->
                             _sym_table.AddVar({ Symbol.Name = id.Syntax
                                                 Type = ty.Syntax
-                                                Index = _sym_table.MethodFrame.VarsCount
+                                                Index = _sym_table.Frame.VarsCount
                                                 SyntaxSpan = case.Syntax.Pattern.Span
                                                 Kind = SymbolKind.Var })
                             ty.Syntax
@@ -898,8 +898,9 @@ type private ExprTranslator(_context: TranslationContext,
                 then
                     asm.Append(addr_frag.Asm.Value).Nop()
                 
-                asm.AppendLine(sprintf "    movq %s, %s" addr_frag.Addr
-                                                         (_context.RegSet.NameOf(result_reg)))
+                asm.AppendLine(sprintf "    movq %s, %s # %O" addr_frag.Addr
+                                                              (_context.RegSet.NameOf(result_reg))
+                                                              sym.Name)
                    .Nop()
                 
                 _context.RegSet.Free(addr_frag.Reg)
@@ -958,7 +959,8 @@ type private ExprTranslator(_context: TranslationContext,
             then
                 asm.Append(addr_frag.Asm.Value).Nop()
             
-            asm.AppendLine(sprintf "    movq %s, %s" addr_frag.Addr (_context.RegSet.NameOf(result_reg)))
+            asm.AppendLine(sprintf "    movq %s, %s # this" addr_frag.Addr
+                                                            (_context.RegSet.NameOf(result_reg)))
                .Nop()
                
             _context.RegSet.Free(addr_frag.Reg)
@@ -1019,9 +1021,9 @@ type private ExprTranslator(_context: TranslationContext,
         then
             asm.AppendLine(addr_frag.Asm.Value).Nop()
             
-        asm.AppendLine(sprintf "    movq %s, %s"
-                               (_context.RegSet.NameOf(expr_frag.Value.Reg))
-                               addr_frag.Addr)
+        asm.AppendLine(sprintf "    movq %s, %s # %O" (_context.RegSet.NameOf(expr_frag.Value.Reg))
+                                                      addr_frag.Addr
+                                                      id.Syntax)
            .Nop()
         
         _context.RegSet.Free(addr_frag.Reg)
@@ -1252,7 +1254,7 @@ type private ExprTranslator(_context: TranslationContext,
 
             actual_frags.Add(actual_frag)
         
-        asm.AppendLine("    # load first 6 actuals into registers")
+        asm.AppendLine("    # load up to 6 first actuals into regs")
            .Nop()
            
         let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
@@ -1266,7 +1268,7 @@ type private ExprTranslator(_context: TranslationContext,
                                                             (actual_regs.[actual_index]))
                .Nop()
         
-        asm.AppendLine("    # remove actuals loaded into registers from stack")
+        asm.AppendLine("    # remove the loaded actuals from stack")
            .AppendLine(sprintf "    addq $%d, %%rsp" (actual_in_reg_count * 8))
            .Nop()
             
@@ -1321,7 +1323,7 @@ type private ExprTranslator(_context: TranslationContext,
         // before translating the init expression.
         // As a result, the var will be visible to the init expression.
         // TODO: Does this correspond to Cool2020's operational semantics?
-        _sym_table.AddVar(Symbol.Of(var_node, _sym_table.MethodFrame.VarsCount))
+        _sym_table.AddVar(Symbol.Of(var_node, _sym_table.Frame.VarsCount))
         let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
         then
@@ -1384,7 +1386,7 @@ type private ExprTranslator(_context: TranslationContext,
         
         let asm = StringBuilder()
         
-        asm.AppendLine("    # cmp op / if_expr")
+        asm.AppendLine("    #. cmp op / if")
            .Append(left_frag.Asm.ToString())
            .Append(right_frag.Asm.ToString())
            .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(left_frag.Reg))
@@ -1393,13 +1395,13 @@ type private ExprTranslator(_context: TranslationContext,
                                                      (_context.RegSet.NameOf(right_frag.Reg)))
            .AppendLine(sprintf "    cmpq %s, %s" (_context.RegSet.NameOf(right_frag.Reg))
                                                  (_context.RegSet.NameOf(left_frag.Reg)))
-           .AppendLine(sprintf "    %s %s" jmp (_context.LabelGen.NameOf(true_label)))
+           .AppendLine(sprintf "    %s %s # true / then" jmp (_context.LabelGen.NameOf(true_label)))
            .AppendLine("    # false / else")
            .Append(false_branch)
-           .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
+           .AppendLine(sprintf "    jmp %s # done" (_context.LabelGen.NameOf(done_label)))
            .AppendLine(sprintf "%s: # true / then" (_context.LabelGen.NameOf(true_label)))
            .Append(true_branch)
-           .AppendLine(sprintf "%s: # end cmp op / if_expr" (_context.LabelGen.NameOf(done_label)))
+           .AppendLine(sprintf "%s: #. end cmp op / if" (_context.LabelGen.NameOf(done_label)))
            .Nop()
         
         _context.RegSet.Free(left_frag.Reg)
@@ -1425,7 +1427,7 @@ type private ExprTranslator(_context: TranslationContext,
                 .AppendLine("    # try ptr equality first")
                 .AppendLine(sprintf "    cmpq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
                                                       (_context.RegSet.NameOf(right_frag.Reg)))
-                .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(equal_label)))
+                .AppendLine(sprintf "    je %s # equal" (_context.LabelGen.NameOf(equal_label)))
                 .AppendLine("    pushq %r10")
                 .AppendLine("    pushq %r11")
                 .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(left_frag.Reg)))
@@ -1434,7 +1436,7 @@ type private ExprTranslator(_context: TranslationContext,
                 .AppendLine("    popq %r11")
                 .AppendLine("    popq %r10")
                 .AppendLine("    cmpq $Boolean_true, %rax")
-                .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(equal_label)))
+                .AppendLine(sprintf "    je %s # equal" (_context.LabelGen.NameOf(equal_label)))
                 .AppendLine("    # unequal")
                 .Append(unequal_branch)
                 .AppendLine(sprintf "    jmp %s # done" (_context.LabelGen.NameOf(done_label)))
@@ -1513,18 +1515,14 @@ type private ExprTranslator(_context: TranslationContext,
                    Type = _context.ClassSymMap.[sym.Type]
                    Reg = Reg.Null |}
             else
-                let actuals_out_of_frame_offset = 16 // skip saved %rbp, and return addr
-                {| Addr = sprintf "%d(%%rbp)" (actuals_out_of_frame_offset + (sym.Index - 7) * 8)
+                {| Addr = sprintf "%d(%%rbp)" (_sym_table.Frame.ActualsOutOfFrameOffset + (sym.Index - 7) * 8)
                    Asm = ValueNone
                    Type = _context.ClassSymMap.[sym.Type]
                    Reg = Reg.Null |}
                 
         | SymbolKind.Var ->
-            let actuals_in_frame_count = if _sym_table.MethodFrame.ActualsCount >= 6
-                                         then 6
-                                         else _sym_table.MethodFrame.ActualsCount
-            let vars_offset = actuals_in_frame_count * 8
-            {| Addr = sprintf "-%d(%%rbp)" (vars_offset + (sym.Index + 1) * 8)
+            
+            {| Addr = sprintf "-%d(%%rbp)" (_sym_table.Frame.VarsOffset + (sym.Index + 1) * 8)
                Asm = ValueNone
                Type = _context.ClassSymMap.[sym.Type]
                Reg = Reg.Null |}

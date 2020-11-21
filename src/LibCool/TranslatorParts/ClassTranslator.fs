@@ -55,8 +55,9 @@ type private ClassTranslator(_context: TranslationContext,
         then
             asm.Append(addr_frag.Asm.Value).Nop()
             
-        asm.AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(initial_frag.Value.Reg))
-                                                 (addr_frag.Asm.ToString()))
+        asm.AppendLine(sprintf "    movq %s, %s # %O" (_context.RegSet.NameOf(initial_frag.Value.Reg))
+                                                      (addr_frag.Asm.ToString())
+                                                      attr_sym.Name)
            .Nop()
             
         _context.RegSet.Free(initial_frag.Value.Reg)
@@ -66,63 +67,50 @@ type private ClassTranslator(_context: TranslationContext,
 
 
     let emit_method_prologue (): unit =
-        let actuals_in_frame_count = if _sym_table.MethodFrame.ActualsCount >= 6
-                                     then 6
-                                     else _sym_table.MethodFrame.ActualsCount
-        let actuals_size_in_bytes = actuals_in_frame_count * 8
-
-        let vars_size_in_bytes = _sym_table.MethodFrame.VarsCount * 8
-        let callee_saved_regs_size_in_bytes = 5 (* number of the callee-saved regs *) * 8
-
-        let frame_size_in_bytes =
-            actuals_size_in_bytes +
-            vars_size_in_bytes +
-            callee_saved_regs_size_in_bytes
-
-        let pad_size_in_bytes = if (frame_size_in_bytes % 16) = 0
-                                then 0
-                                else 16 - (frame_size_in_bytes % 16)
-                                
-        let actuals_offset_in_bytes = 0
-        // let vars_offset_in_bytes = actuals_size_in_bytes
-        let callee_saved_regs_offset_in_bytes = actuals_size_in_bytes + vars_size_in_bytes
-
         _sb_code
             .AppendLine("    pushq %rbp # save the base pointer")
             .AppendLine("    movq %rsp, %rbp # set new base pointer to rsp")
-            .AppendLine(sprintf "    subq $%d, %%rsp" (frame_size_in_bytes + pad_size_in_bytes))
+            .AppendLine(sprintf "    subq $%d, %%rsp" (_sym_table.Frame.FrameSizeInBytes +
+                                                       _sym_table.Frame.PadSizeInBytes))
             .AppendLine("    # save actuals on the stack")
             .Nop()
         
         let actual_regs = [| "%rdi"; "%rsi"; "%rdx"; "%rcx"; "%r8"; "%r9" |]
-        for i in 0 .. (actuals_in_frame_count - 1) do
+        for i in 0 .. (_sym_table.Frame.ActualsInFrameCount - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
                                     actual_regs.[i]
-                                    (actuals_offset_in_bytes + 8 * (i + 1)))
+                                    (_sym_table.Frame.ActualsOffsetInBytes + 8 * (i + 1)))
                 .Nop()
         
         _sb_code.AppendLine("    # save callee-saved registers").Nop()
 
         let callee_saved_regs = [| "%rbx"; "%r12"; "%r13"; "%r14"; "%r15" |]
-        for i in 0..(callee_saved_regs.Length-1) do
+        for i in 0 .. (callee_saved_regs.Length - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
                                     callee_saved_regs.[i]
-                                    (callee_saved_regs_offset_in_bytes + 8 * (i + 1)))
+                                    (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1)))
                 .Nop()
     
     
     let emit_method_epilogue (): unit =
         _sb_code
             .AppendLine("    # restore callee-saved registers")
-            .AppendLine("    popq %r15 ")
-            .AppendLine("    popq %r14")
-            .AppendLine("    popq %r13")
-            .AppendLine("    popq %r12")
-            .AppendLine("    popq %rbx")
-            .AppendLine("    movq %rbp, %rsp # reset stack to base pointer")
-            .AppendLine("    popq %rbp # restore the old base pointer")
+            .Nop()
+
+        let callee_saved_regs = [| "%rbx"; "%r12"; "%r13"; "%r14"; "%r15" |]
+        for i in 0 .. (callee_saved_regs.Length - 1) do
+            _sb_code
+                .AppendLine(sprintf "    movq -%d(%%rbp), %s"
+                                    (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1))
+                                    callee_saved_regs.[i])
+                .Nop()
+
+        _sb_code
+            .AppendLine("    # restore the previous frame")
+            .AppendLine("    movq %rbp, %rsp")
+            .AppendLine("    popq %rbp")
             .AppendLine("    ret")
             .Nop()
     
@@ -151,7 +139,7 @@ type private ClassTranslator(_context: TranslationContext,
         _class_syntax.VarFormals
         |> Seq.iter (fun vf_node ->
             let sym = Symbol.Of(formal_node=vf_node.Map(fun vf -> vf.AsFormalSyntax(id_prefix=".")),
-                                index=_sym_table.MethodFrame.ActualsCount)
+                                index=_sym_table.Frame.ActualsCount)
             _sym_table.AddFormal(sym))
         
         // We're entering .ctor's body, which is a block.
@@ -303,7 +291,7 @@ type private ClassTranslator(_context: TranslationContext,
             
             method_node.Syntax.Formals
             |> Seq.iter (fun formal_node ->
-                let sym = Symbol.Of(formal_node, index=_sym_table.MethodFrame.ActualsCount)
+                let sym = Symbol.Of(formal_node, index=_sym_table.Frame.ActualsCount)
                 _sym_table.AddFormal(sym))
             
             // Translate the method's body

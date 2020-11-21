@@ -68,15 +68,51 @@ type Scope() =
         else ValueNone
 
 
+type FrameInfo() =
+    
+    
+    member val ActualsCount: int = 0 with get, set
+    member val VarsCount: int = 0 with get, set
+
+    
+    member this.ActualsInFrameCount: int =
+        if this.ActualsCount >= 6
+        then 6
+        else this.ActualsCount
+
+    
+    member this.ActualsSizeInBytes: int = this.ActualsInFrameCount * 8
+    member this.VarsSizeInBytes: int = this.VarsCount * 8
+    member this.CalleeSavedRegsSizeInBytes: int = 5 (* number of the callee-saved regs *) * 8
+
+
+    member this.FrameSizeInBytes: int =
+        this.ActualsSizeInBytes +
+        this.VarsSizeInBytes +
+        this.CalleeSavedRegsSizeInBytes
+
+
+    member this.PadSizeInBytes: int =
+        if (this.FrameSizeInBytes % 16) = 0
+        then 0
+        else 16 - (this.FrameSizeInBytes % 16)
+                            
+
+    member val ActualsOutOfFrameOffset: int = 16 // skip saved %rbp, and return addr
+    member val ActualsOffsetInBytes: int = 0
+    member this.CalleeSavedRegsOffsetInBytes: int = this.ActualsSizeInBytes + this.VarsSizeInBytes
+    member this.VarsOffset: int = this.ActualsInFrameCount * 8
+
+
 [<Sealed>]
 type SymbolTable(_class_sym: ClassSymbol) =
 
 
-    let _method_frame = List<struct {| ActualsCount: int; VarsCount: int |}>()
+    let _method_frame = List<FrameInfo>()
     let _scopes = List<Scope>()
     
     
-    member this.MethodFrame
+    member this.Frame
         with get() = _method_frame.[_method_frame.Count - 1]
         and private set count = _method_frame.[_method_frame.Count - 1] <- count
 
@@ -86,7 +122,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.EnterMethod(): unit =
-        _method_frame.Add({| ActualsCount = 0; VarsCount = 0 |})
+        _method_frame.Add(FrameInfo())
         _scopes.Add(Scope())
     
     
@@ -113,7 +149,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
         
     member this.AddFormal(sym: Symbol): unit =
         this.CurrentScope.Add(sym)
-        this.MethodFrame <- {| this.MethodFrame with ActualsCount = this.MethodFrame.ActualsCount + 1 |}
+        this.Frame.ActualsCount <- this.Frame.ActualsCount + 1
         
         
     member this.AddVar(sym: Symbol): unit =
@@ -124,9 +160,9 @@ type SymbolTable(_class_sym: ClassSymbol) =
         // as a result we need only one temporary on stack.
         // That's why we don't increase `MethodSyms.VarsCount`,
         // if `sym.Index < this.MethodSym.VarCount`.
-        if sym.Index >= this.MethodFrame.VarsCount
+        if sym.Index >= this.Frame.VarsCount
         then
-            this.MethodFrame <- {| this.MethodFrame with VarsCount = this.MethodFrame.VarsCount + 1 |}
+            this.Frame.VarsCount <- this.Frame.VarsCount + 1
     
     
     member this.Resolve(name: ID): Symbol =
