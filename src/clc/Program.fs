@@ -3,4 +3,4 @@
 
 [<EntryPoint>]
 let main argv =
-    Driver().Compile(argv)
+    Driver().Invoke(argv)

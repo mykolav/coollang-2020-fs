@@ -64,7 +64,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
 
 
     [<Fact>]
-    member _.PrintCompilerOutput() =
+    member _.PrintAsm() =
         // Arrange
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/ArithExprPrecedence.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/IfElseExprPrecedence.cool")
@@ -77,7 +77,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
         let tc = CompilerTestCase.ReadFrom(path)
 
         // Act
-        let clc_output = run_clc_in_process ([ "-S"; path; "-o"; tc.FileName + ".exe" ])
+        let clc_output = run_clc_in_process ([ path; "-S" ])
         
         _test_output.WriteLine("===== clc: =====")
         _test_output.WriteLine(clc_output)

@@ -44,11 +44,10 @@ type ParserTests() =
 
         // Act
         let ast = Parser.Parse(TokenArray.ofLexer lexer, diagnostic_bag)
-        let diags = diagnostic_bag.ToReadOnlyList()
-        let rendered = if diags.Count = 0 then CoolRenderer.Render(ast) else ""
+        let rendered = if diagnostic_bag.ErrorsCount = 0 then CoolRenderer.Render(ast) else ""
         
         // Assert
-        Assert.Empty(diags)
+        Assert.Equal(expected=0, actual=diagnostic_bag.ErrorsCount)
         AssertSnippets.EqualIgnoringWhitespace(
             expected = tc.Snippet.ToString(),
             actual = rendered)

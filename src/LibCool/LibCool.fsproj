@@ -9,6 +9,7 @@
         <Compile Include="SharedParts\PrintfExtensions.fs" />
         <Compile Include="SharedParts\Res.fs" />
         <Compile Include="SharedParts\ProcessRunner.fs" />
+        <Compile Include="SharedParts\ProcessOutputParser.fs" />
         <Compile Include="SourceParts\Types.fs" />
         <Compile Include="SourceParts\Source.fs" />
         <Compile Include="DiagnosticParts\DiagnosticParts.fs" />

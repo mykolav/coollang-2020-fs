@@ -90,45 +90,11 @@ type ProgramOutput =
 
 
 [<AutoOpen>]
-module private CompilerOutputParser =
+module private CompilerTestCaseOutputParser =
     
     
-    let private split_in_lines (clc_output: string): seq<string> =
-        let lines = List<string>()
-
-        let mutable sb_line = StringBuilder()
-        let mutable i = 0
-        let mutable at_line_end = false
-        
-        while i < clc_output.Length do
-            let ch = clc_output.[i]
-            i <- i + 1
-            
-            if ch = '\r' && (i < clc_output.Length && clc_output.[i] = '\n')
-            then
-                i <- i + 1
-                at_line_end <- true
-            else if ch = '\r' || ch = '\n'
-            then
-                at_line_end <- true
-            else if i >= clc_output.Length
-            then
-                sb_line.Append(ch).Nop()
-                at_line_end <- true
-            
-            if at_line_end
-            then
-                lines.Add(sb_line.ToString().Trim())
-                sb_line <- StringBuilder()
-                at_line_end <- false
-            else
-                sb_line.Append(ch).Nop()
-                
-        lines :> seq<string>
-
-
     let parse_clc_output (clc_output: string): CompilerOutput =
-        let lines = split_in_lines clc_output
+        let lines = ProcessOutputParser.split_in_lines clc_output
         
         let diags = List<string>()
         let binutils_diags = List<string>()
@@ -141,10 +107,8 @@ module private CompilerOutputParser =
             then
                 diags.Add(line)
             else
-                if not (String.IsNullOrWhiteSpace(line))
-                then 
-                    build_succeeded <- false
-                    binutils_diags.Add(line)
+                build_succeeded <- false
+                binutils_diags.Add(line)
                 
             if line.StartsWith("Build ")
             then
@@ -157,9 +121,7 @@ module private CompilerOutputParser =
 
 
     let parse_program_output (program_output: string): ProgramOutput =
-        { Output = split_in_lines program_output
-                   |> Seq.where (fun it -> not (String.IsNullOrWhiteSpace(it)))
-                   |> Seq.map (fun it -> it.TrimEnd()) }
+        { Output = ProcessOutputParser.split_in_lines program_output }
 
     
 type CompilerOutput

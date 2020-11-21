@@ -18,7 +18,7 @@ module ClcRunner =
         Driver({ new IWriteLine with
                      member _.WriteLine(line: string) =
                          output.WriteLine(line) })
-            .Compile(driver_args)
+            .Invoke(driver_args)
             |> ignore
         
         output.ToString()

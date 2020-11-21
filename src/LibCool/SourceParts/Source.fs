@@ -15,7 +15,7 @@ type SourcePart =
 
 
 [<DebuggerDisplay("FL: [{_file_names.Length}] - S: [{_size}]")>]
-type Source(partSeq: SourcePart seq) =
+type Source(partSeq: seq<SourcePart>) =
     
     
     let parts = Array.ofSeq partSeq
