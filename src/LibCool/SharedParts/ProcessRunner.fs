@@ -14,9 +14,9 @@ type StringBuilderWriter() =
     
     override _.Encoding = stdout.Encoding
     
-    override _.Write (s: string) = _sb_out.Append(s) |> ignore
-    override _.WriteLine (s: string) = _sb_out.AppendLine(s) |> ignore
-    override _.WriteLine() = _sb_out.AppendLine() |> ignore
+    override _.Write (s: string) = _sb_out.Append(s).Nop()
+    override _.WriteLine (s: string) = _sb_out.AppendLine(s).Nop()
+    override _.WriteLine() = _sb_out.AppendLine().Nop()
     
     override _.ToString() = _sb_out.ToString()
 
@@ -25,13 +25,13 @@ type StringBuilderWriter() =
 type ProcessRunner private () =
 
 
-    static member Run(file_name: string, args: string, ?stdin: string): string =
+    static member Run(exe_name: string, args: string, ?stdin: string): string =
         let sb_output = StringBuilder()
 
         use theProcess =
             new Process(StartInfo =
                             ProcessStartInfo
-                                (FileName = file_name,
+                                (FileName = exe_name,
                                  Arguments = args,
                                  UseShellExecute = false,
                                  RedirectStandardOutput = true,
