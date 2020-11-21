@@ -114,43 +114,6 @@ IO_proto_obj:
     .quad 3 # size in quads
     .quad IO_vtable
 
-    .quad -1
-int_const_src_path_len:
-    .quad 2 # tag
-    .quad 4 # size in quads
-    .quad Int_vtable
-    .quad 43 # value
-
-    .quad -1
-int_const_hello_cool_len:
-    .quad 2 # tag
-    .quad 4 # size in quads
-    .quad Int_vtable
-    .quad 16 # value
-
-    .quad -1
-str_const_src_path:
-    .quad 3 # tag
-    .quad 9 # size in quads
-    .quad String_vtable
-    .quad int_const_src_path_len # length = 43
-    # '../../../CoolPrograms/Valid/HelloCool1.cool'
-    .byte 46, 46, 47, 46, 46, 47, 46, 46, 47, 67, 111, 111, 108, 80, 114, 111, 103, 114, 97, 109, 115, 47, 86, 97, 108, 105, 100, 47, 72, 101, 108, 108, 111, 67, 111, 111, 108, 49, 46, 99, 111, 111, 108
-    .byte 0 # terminator
-    .zero 4 # payload's size in bytes = 68, pad to an 8 byte boundary
-
-    .quad -1
-str_const_hello_cool:
-    .quad 3 # tag
-    .quad 6 # size in quads
-    .quad String_vtable
-    .quad int_const_hello_cool_len # length = 16
-    # 'Hello, Cool2020!'
-    .byte 72, 101, 108, 108, 111, 44, 32, 67, 111, 111, 108, 50, 48, 50, 48, 33
-    .byte 0 # terminator
-    .zero 7 # payload's size in bytes = 41, pad to an 8 byte boundary
-    .quad -1
-
 ########################################
 # Global vars
 ########################################
@@ -708,9 +671,6 @@ main:
     # Invoke the constructor.
     movq %rax, %rdi
     call Main..ctor
-
-    # movq $str_const_hello_cool, %rsi
-    # call IO.out_string
 
     movq %rbp, %rsp
     popq %rbp
