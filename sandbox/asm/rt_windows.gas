@@ -250,13 +250,104 @@ hProcessDefaultHeap:
 
     ret
 
+#
+#  Polymorphic equality testing function:
+#  Two objects are equal if they
+#    - are both null (pointer equality)
+#    - are identical (pointer equality)
+#    - have same tag and are of type BOOL, STRING, INT, UNIT 
+#      and contain the same data.
+#
+#  INPUT: 
+#      obj1 in %rdi
+#      obj2 in %rsi
+#  OUTPUT: 
+#      $1 in %rax, if the objects are equal.
+#      $0 in %rax, if the objects are unequal.
+#
     .global .Runtime.are_equal
 .Runtime.are_equal:
-    pushq %rbp
-    movq %rsp, %rbp
+    # pushq   %rbp
+    # movq    %rsp, %rbp
 
-    movq %rbp, %rsp
-    popq %rbp
+    # pointer equality
+    cmpq    %rdi, %rsi
+    je      .Runtime.are_equal.true
+
+    # get tags
+    movq    (%rdi), %rdx
+    movq    (%rsi), %rcx
+
+    #. if the tags are not equal, the objects are unequal
+    cmpq    %rdx, %rcx
+    jne     .Runtime.are_equal.false
+
+    cmpq    $Int_tag, %rdx
+    je      .Runtime.are_equal.int
+
+    cmpq    $Boolean_tag, %rdx
+    je      .Runtime.are_equal.int
+
+    cmpq    $Unit_tag, %rdx
+    je      .Runtime.are_equal.unit
+
+    cmpq    $String_tag, %rdx
+    jne     .Runtime.are_equal.false    # Not a primitive type, return false
+
+#.Runtime.are_equal.string:
+    movq    STR_LEN(%rdi), %rdx
+    movq    INT_VAL(%rdx), %rdx
+    movq    STR_LEN(%rsi), %rcx
+    movq    INT_VAL(%rcx), %rcx
+    
+    # If strings have different lengths, they cannot be equal
+    cmpq    %rdx, %rcx
+    jne     .Runtime.are_equal.false
+    
+    # If both strings' lengths are 0, they are equal
+    cmpq    $0, %rdx
+    je      .Runtime.are_equal.true
+
+    movq    STR_VAL(%rdi), %rdi
+    movq    STR_VAL(%rsi), %rsi
+    # - %rdx contains strings' length,
+    #   we'll use it as a counter of remaining chars to compare
+    # - string1's current char ptr will be in %rdi
+    #             current char will be in %rcx
+    # - string2's current char ptr will be in %rsi
+    #             current char will be accessed indirectly
+
+.Runtime.are_equal.cmp_string_content:
+    movq    (%rdi), %rcx
+    cmpq    %rcx, (%rsi)
+    # We found a pair of unequal chars, the strings are unequal
+    jne     .Runtime.are_equal.false
+    addq    $1, %rdi # move string1's ptr to next char
+    addq    $1, %rsi # move string2's ptr to next char
+    subq    $1, %rdx # decrease the number of chars remaining to compare
+    jnz     .Runtime.are_equal.cmp_string_content
+    # We didn't find a pair of unequal chars, the strings are equal
+    jmp     .Runtime.are_equal.true
+
+.Runtime.are_equal.int: # Handles int and bool values
+    movq    INT_VAL(%rdi), %rdx
+    cmpq    %rdx, INT_VAL(%rsi)
+    jne      .Runtime.are_equal.false
+    # fall through to .Runtime.are_equal.true
+
+.Runtime.are_equal.unit:
+    # fall through to .Runtime.are_equal.true
+
+.Runtime.are_equal.true:
+    movq    $Boolean_true, %rax
+    jmp     .Runtime.are_equal.return
+
+.Runtime.are_equal.false:
+    movq    $Boolean_false, %rax
+
+.Runtime.are_equal.return:
+    # movq    %rbp, %rsp
+    # popq    %rbp
 
     ret
 
