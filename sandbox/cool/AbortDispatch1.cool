@@ -1,0 +1,8 @@
+class Main() {
+  {
+    var io: IO = null;
+    io.out_string("Hello, World!")
+  };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: Dispatch on null in Runtime/AbortDispatch.cool(4,5)

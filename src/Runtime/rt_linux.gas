@@ -1,0 +1,636 @@
+#################################################
+# THIS IS JUST A SCAFFOLDING OF A FUTURE RUNTIME!
+#################################################
+
+########################################
+# Data
+########################################
+    .data
+
+########################################
+# Strings
+########################################
+str_const_new_line:
+    .ascii "\n"
+
+str_const_aborted_from:
+    .ascii "Aborted from "
+
+########################################
+# Virtual tables
+########################################
+    .global Any_vtable
+Any_vtable:
+    .quad Any.abort
+
+    .global Unit_vtable
+Unit_vtable:
+    .quad Any.abort
+
+    .global Int_vtable
+Int_vtable:
+    .quad Any.abort
+
+    .global String_vtable
+String_vtable:
+    .quad Any.abort
+    .quad String.length
+    .quad String.concat
+    .quad String.substring
+
+    .global Boolean_vtable
+Boolean_vtable:
+    .quad Any.abort
+
+    .global ArrayAny_vtable
+ArrayAny_vtable:
+    .quad Any.abort
+    .quad ArrayAny.get
+    .quad ArrayAny.set
+    .quad ArrayAny.length
+
+    .global IO_vtable
+IO_vtable:
+    .quad Any.abort
+    .quad IO.out_string
+    .quad IO.out_int
+    .quad IO.out_nl
+    .quad IO.in_string
+    .quad IO.in_int
+
+########################################
+# Tags
+########################################
+    .set Unit_tag, 1
+    .set Int_tag, 2
+    .set String_tag, 3
+    .set Boolean_tag, 4
+    .set ArrayAny_tag, 5
+    .set IO_tag, 6
+
+########################################
+# Prototype objects
+########################################
+    .quad -1
+    .global Int_proto_obj
+Int_proto_obj:
+    .quad Int_tag # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 0 # value
+
+    .quad -1
+    .global Unit_value
+Unit_value:
+    .quad Unit_tag # tag
+    .quad 3 # size in quads
+    .quad Unit_vtable
+    
+    .quad -1
+    .global Boolean_true
+Boolean_true:
+    .quad Boolean_tag # tag
+    .quad 4 # size in quads
+    .quad Boolean_vtable
+    .quad 1 # value
+
+    .quad -1
+    .global Boolean_false
+Boolean_false:
+    .quad Boolean_tag # tag
+    .quad 4 # size in quads
+    .quad Boolean_vtable
+    .quad 0 # value
+    
+    .quad -1
+    .global ArrayAny_proto_obj
+ArrayAny_proto_obj:
+    .quad ArrayAny_tag # tag
+    .quad 4 # size in quads
+    .quad ArrayAny_vtable
+    .quad Int_proto_obj # array length
+    
+    .quad -1
+    .global IO_proto_obj
+IO_proto_obj:
+    .quad IO_tag # tag
+    .quad 3 # size in quads
+    .quad IO_vtable
+
+########################################
+# Global vars
+########################################
+
+hProcessDefaultHeap:
+    .quad 0
+
+########################################
+# Text
+#
+# Under the SysV AMD64 calling convention:
+# First 6 int arguments are passed in %rdi %rsi %rdx %rcx %r8 %r9
+# Callee saved regs are %rbx %r12 %r13 %r14 %r15
+# Caller saved regs are %r10 %r11
+########################################
+    .text
+
+    .set OBJ_TAG, 0
+    .set OBJ_SIZE, 8
+    .set OBJ_VTAB, 16
+    
+    .set STR_LEN, 24
+    .set STR_VAL, 32
+
+    .set ARR_LEN, 24
+    .set ARR_ITEMS, 32
+
+    .set BOOL_VAL, 24
+
+    .set INT_VAL, 24
+
+########################################
+# .Runtime
+########################################
+    .global .Runtime.abort_dispatch
+.Runtime.abort_dispatch:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global .Runtime.abort_match
+.Runtime.abort_match:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global .Runtime.type_name
+.Runtime.type_name:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+#
+#  .Runtime.copy_object
+#
+#      a prototype in %rdi
+#  
+#  Allocates memory on heap and copies the prototype.
+#  Returns a pointer to the copy in %rax.
+#
+    .global .Runtime.copy_object
+.Runtime.copy_object:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    # ...
+
+.Runtime.copy_object.alloc_ok:
+    # %rdi - src
+    # %rdx - src_end
+    # %rsi - dst
+    # %rcx - tmp
+
+    # dst
+    movq %rax, %rsi
+
+    # src_end
+    movq OBJ_SIZE(%rdi), %rdx
+    salq $3, %rdx
+    addq %rdi, %rdx
+    
+    jmp .Runtime.copy_object.loop_cond
+
+.Runtime.copy_object.loop_body:
+    movq (%rdi), %rcx
+    movq %rcx, (%rsi)
+    addq $8, %rdi
+    addq $8, %rsi
+
+.Runtime.copy_object.loop_cond:
+    cmpq %rdi, %rdx
+    jne .Runtime.copy_object.loop_body
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+#
+#  Polymorphic equality testing function:
+#  Two objects are equal if they
+#    - are both null (pointer equality)
+#    - are identical (pointer equality)
+#    - have same tag and are of type BOOL, STRING, INT, UNIT 
+#      and contain the same data.
+#
+#  INPUT: 
+#      obj1 in %rdi
+#      obj2 in %rsi
+#  OUTPUT: 
+#      $1 in %rax, if the objects are equal.
+#      $0 in %rax, if the objects are unequal.
+#
+    .global .Runtime.are_equal
+.Runtime.are_equal:
+    # pushq   %rbp
+    # movq    %rsp, %rbp
+
+    # pointer equality
+    cmpq    %rdi, %rsi
+    je      .Runtime.are_equal.true
+
+    # get tags
+    movq    (%rdi), %rdx
+    movq    (%rsi), %rcx
+
+    #. if the tags are not equal, the objects are unequal
+    cmpq    %rdx, %rcx
+    jne     .Runtime.are_equal.false
+
+    cmpq    $Int_tag, %rdx
+    je      .Runtime.are_equal.int
+
+    cmpq    $Boolean_tag, %rdx
+    je      .Runtime.are_equal.int
+
+    cmpq    $Unit_tag, %rdx
+    je      .Runtime.are_equal.unit
+
+    cmpq    $String_tag, %rdx
+    jne     .Runtime.are_equal.false    # Not a primitive type, return false
+
+#.Runtime.are_equal.string:
+    movq    STR_LEN(%rdi), %rdx
+    movq    INT_VAL(%rdx), %rdx
+    movq    STR_LEN(%rsi), %rcx
+    movq    INT_VAL(%rcx), %rcx
+    
+    # If strings have different lengths, they cannot be equal
+    cmpq    %rdx, %rcx
+    jne     .Runtime.are_equal.false
+    
+    # If both strings' lengths are 0, they are equal
+    cmpq    $0, %rdx
+    je      .Runtime.are_equal.true
+
+    movq    STR_VAL(%rdi), %rdi
+    movq    STR_VAL(%rsi), %rsi
+    # - %rdx contains strings' length,
+    #   we'll use it as a counter of remaining chars to compare
+    # - string1's current char ptr will be in %rdi
+    #             current char will be in %rcx
+    # - string2's current char ptr will be in %rsi
+    #             current char will be accessed indirectly
+
+.Runtime.are_equal.cmp_string_content:
+    movq    (%rdi), %rcx
+    cmpq    %rcx, (%rsi)
+    # We found a pair of unequal chars, the strings are unequal
+    jne     .Runtime.are_equal.false
+    addq    $1, %rdi # move string1's ptr to next char
+    addq    $1, %rsi # move string2's ptr to next char
+    subq    $1, %rdx # decrease the number of chars remaining to compare
+    jnz     .Runtime.are_equal.cmp_string_content
+    # We didn't find a pair of unequal chars, the strings are equal
+    jmp     .Runtime.are_equal.true
+
+.Runtime.are_equal.int: # Handles int and bool values
+    movq    INT_VAL(%rdi), %rdx
+    cmpq    %rdx, INT_VAL(%rsi)
+    jne      .Runtime.are_equal.false
+    # fall through to .Runtime.are_equal.true
+
+.Runtime.are_equal.unit:
+    # fall through to .Runtime.are_equal.true
+
+.Runtime.are_equal.true:
+    movq    $Boolean_true, %rax
+    jmp     .Runtime.are_equal.return
+
+.Runtime.are_equal.false:
+    movq    $Boolean_false, %rax
+
+.Runtime.are_equal.return:
+    # movq    %rbp, %rsp
+    # popq    %rbp
+
+    ret
+
+########################################
+# Any
+########################################
+    .global Any..ctor
+Any..ctor:
+    movq %rdi, %rax
+    ret
+
+#
+#  Any.abort
+#
+#      'this' in %rdi
+#  
+#  Prints "Aborted from {classname}" and exits.
+#
+    .global Any.abort
+Any.abort:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+########################################
+# String
+########################################
+    .global String..ctor
+String..ctor:
+    movq %rdi, %rax
+    ret
+
+    .global String.length
+String.length:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global String.concat
+String.concat:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global String.substring
+String.substring:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+########################################
+# ArrayAny
+########################################
+
+#
+#  ArrayAny..ctor
+#
+#      'null' in %rdi
+#      a size in %rsi
+#
+#  Allocates memory for %rsi elements array.
+#  Initializes the array's attributes.
+#
+
+    .global ArrayAny..ctor
+ArrayAny..ctor:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global ArrayAny.get
+ArrayAny.get:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global ArrayAny.set
+ArrayAny.set:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global ArrayAny.length
+ArrayAny.length:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+########################################
+# IO
+########################################
+    .global IO..ctor
+IO..ctor:
+    movq %rdi, %rax
+    ret
+
+    .global IO.out_string
+
+#
+#  IO.out_string
+#
+#      'this' in %rdi
+#      a string object in %rsi
+#
+#  Prints out the content of a string object argument.
+#
+IO.out_string:
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    movq    %rbp, %rsp
+    popq    %rbp
+
+    ret
+
+#
+#  IO.out_int
+#
+#      'this' in %rdi
+#      an int object in %rsi
+#
+#  Prints out the value of an int object argument.
+#
+    .global IO.out_int
+IO.out_int:
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    subq    $(64 + 8 + 8 + 32), %rsp # local vars + 
+                                     # 16 bytes boundary padding + 
+                                     # fifth argument + 
+                                     # shadow space
+    
+    movq    %rdi, -8(%rbp) # this
+    
+    movq    INT_VAL(%rsi), %rsi
+    movq    %rsi, -16(%rbp) # i -- the int value
+
+    # Int32.MaxValue = 2147483647 -- (minus sign)? + 10 digits + 0 terminator
+    # char digits[12] = { 0 };
+    movl    $0, -28(%rbp)
+    movq    $0, -24(%rbp)
+
+    # is_negative = i < 0
+    cmpq    $0, %rsi
+    setl   %r8b # set r8b to 1 if the int value in %rsi < 0
+    movzbq  %r8b, %rcx # move a byte from %r8b to %cl, 
+                       # set all the other bits to 0 
+    movq    %rcx, -40(%rbp)
+
+    ## if (is_negative) { i = -i; }
+    cmpq    $0, %rcx
+    je      IO.out_int.loop_init
+
+    # i = -i;
+    negq    -16(%rbp)
+
+IO.out_int.loop_init:
+    # digit_pos = 10
+    # terminating 0 is at index 11
+    movq    $10, -48(%rbp)
+
+IO.out_int.loop_body:
+    movq    -16(%rbp), %rax # i
+    cqto # sign-extend %rax to %rdx:%rax
+    movq    $10, %rcx # divisor
+    idivq   %rcx # remainder is in %rdx
+    addq    $48, %rdx # remainder + '0'
+
+    movq    -48(%rbp), %rsi # digit_pos
+    movb    %dl, -28(%rbp,%rsi) # digits[digit_pos] = remainder
+
+    # --digit_pos
+    addq    $-1, %rsi
+    movq    %rsi, -48(%rbp)
+
+    # i = i / 10
+    movq    -16(%rbp), %rax # i
+    cqto  # sign-extend %rax to %rdx:%rax
+    idivq   %rcx # quotient is in %rax
+    movq    %rax, -16(%rbp)
+
+    # } while (i > 0);
+    cmpq    $0, -16(%rbp)
+    jg      IO.out_int.loop_body
+
+    ## if (is_negative) {
+    #     digits[digit_pos] = '-';
+    #     --digit_pos;
+    # }
+    cmpq    $0, -40(%rbp)
+    je      IO.out_int.print
+    
+    movq    -48(%rbp), %rax
+    # digits[digit_pos] = '-';
+    movb    $45, -28(%rbp,%rax)
+    # --digit_pos;
+    addq    $-1, %rax
+    movq    %rax, -48(%rbp)
+
+IO.out_int.print:
+    # digit_pos is pointing to a vacant digit slot, 
+    # move it to the leftmost digit (or '-')
+    addq    $1, -48(%rbp) # digit_pos
+
+    leaq    -28(%rbp), %rax # digits
+    addq    -48(%rbp), %rax # digits + digit_pos
+    movq    %rax, -64(%rbp) # buffer
+
+    movq    $11, %r8 # number of bytes to write
+    subq    -48(%rbp), %r8 # 11 - digit_pos
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+#
+#  IO.out_nl
+#
+#      'this' in %rdi
+#
+#  Prints out "\r\n"
+#
+    .global IO.out_nl
+IO.out_nl:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global IO.in_string
+IO.in_string:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+    .global IO.in_int
+IO.in_int:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    movq %rbp, %rsp
+    popq %rbp
+
+    ret
+
+########################################
+# Process entry point
+########################################
+    .global main
+main:
+    pushq %rbp
+    movq %rsp, %rbp
+
+    # A class 'Main' must be present in every Cool2020 program.
+    # Create a new instance of 'Main'.
+    movq $Main_proto_obj, %rdi
+    call .Runtime.copy_object
+
+    # 'Main..ctor' is a Cool2020 program's entry point.
+    # Pass a reference to the newly created 'Main' instance in %rdi.
+    # Invoke the constructor.
+    movq %rax, %rdi
+    call Main..ctor
+
+    movq %rbp, %rsp
+    popq %rbp
+    
+    ret

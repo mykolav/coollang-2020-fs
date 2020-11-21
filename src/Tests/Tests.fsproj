@@ -36,6 +36,7 @@
         <Content Include="CoolPrograms\Runtime\HelloCool1.cool" />
         <Content Include="CoolPrograms\Runtime\HelloCool2.cool" />
         <Content Include="CoolPrograms\Runtime\Abort1.cool" />
+        <Content Include="CoolPrograms\Runtime\AbortDispatch1.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />
