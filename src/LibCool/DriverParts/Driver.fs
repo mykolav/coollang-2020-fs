@@ -86,6 +86,10 @@ type Driver(?_writer: IWriteLine) =
                     else
                         asm_file <- ValueSome (arg_array.[i + 1])
                         i <- i + 1
+            else if arg.StartsWith('-')
+            then
+                have_error <- true
+                message <- sprintf "An unrecognized option '%s'" arg
             else
                 source_parts.Add({ FileName = arg; Content = File.ReadAllText(arg) })
             i <- i + 1
