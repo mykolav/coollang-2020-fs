@@ -691,53 +691,28 @@ Any..ctor:
 #
 #      'this' in %rdi
 #  
-#  Prints "Aborted from {classname}" and exits.
+#  Prints "Aborted from {class}" and exits.
 #
     .global Any.abort
 Any.abort:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    subq    $(8 + 8 + 32), %rsp # 16 bytes boundary pad +
+                                # 'this' +
+                                # shadow space
+
+    movq    %rdi, -16(%rbp)
 
     # Print "Aborted from " 
-    subq    $(8 + 8 + 8 + 8 + 32), %rsp # 16 bytes boundary pad +
-                                        # hFile +
-                                        # NumberOfBytesWritten + 
-                                        # fifth argument + 
-                                        # shadow space
-
-    movl $STD_OUTPUT_HANDLE, %ecx
-    call GetStdHandle
-    movq %rax, -16(%rbp)
-  
-    movq -16(%rbp), %rcx
-    movq $str_const_aborted_from, %rdx
-    movq $13, %r8
-    leaq -24(%rbp), %r9 # lpNumberOfBytesWritten
-    movq $0, -32(%rbp) # lpOverlapped
-    call WriteFile
-
-    # Print "{classname}"
-    movq OBJ_TAG(%rdi), %rdi
-    salq $3, %rdi # multiply the tag by 8
-                  # to get the offset in 'class_name_table'
-    addq $class_name_table, %rdi
-    movq (%rdi), %rdi
-
-    movq -16(%rbp), %rcx
-    leaq STR_VAL(%rdi), %rdx
-    movq STR_LEN(%rdi), %r8
-    movq INT_VAL(%r8), %r8
-    leaq -24(%rbp), %r9 # lpNumberOfBytesWritten
-    movq $0, -32(%rbp) # lpOverlapped
-    call WriteFile
-
+    movq    $str_const_aborted_from, %rdi
+    movq    $13, %rsi
+    call    .Runtime.out_string
+    # Print "{class}"
+    movq    -16(%rbp), %rdi
+    call    .Runtime.out_type_name
     # Print new line
-    movq -16(%rbp), %rcx
-    movq $str_const_new_line, %rdx
-    movq $2, %r8
-    leaq -24(%rbp), %r9 # lpNumberOfBytesWritten
-    movq $0, -32(%rbp) # lpOverlapped
-    call WriteFile
+    call    .Runtime.out_nl
 
     # Exit the process
     movq $0, %rcx
