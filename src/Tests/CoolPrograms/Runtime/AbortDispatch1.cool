@@ -5,4 +5,4 @@ class Main() {
   };
 }
 // DIAG: Build succeeded: Errors: 0. Warnings: 0
-// OUT: Dispatch on null in Runtime/AbortDispatch.cool(4,5)
+// OUT: ../CoolPrograms/Runtime/AbortDispatch1.cool(4,5): Dispatch to null
