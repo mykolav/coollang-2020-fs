@@ -582,24 +582,22 @@ hProcessDefaultHeap:
     movq    $10, -48(%rbp) # digit_pos
 
 .Runtime.out_int.loop_body:
+    # i = i / 10
     movq    -16(%rbp), %rax # i
-    cqto # sign-extend %rax to %rdx:%rax
-    movq    $10, %rcx # divisor
-    idivq   %rcx # remainder is in %rdx
-    addq    $48, %rdx # remainder + '0'
+    cqto                    # sign-extend %rax to %rdx:%rax
+    movq    $10, %rcx       # divisor
+    idivq   %rcx            # quotient is in %rax
+                            # remainder is in %rdx
 
-    movq    -48(%rbp), %rdi # digit_pos
-    movb    %dl, -28(%rbp,%rdi) # digits[digit_pos] = remainder
+    movq    %rax, -16(%rbp) # i
+
+    movq    -48(%rbp), %rdi     # digit_pos
+    addq    $48, %rdx           # remainder + '0'
+    movb    %dl, -28(%rbp,%rdi) # digits[digit_pos] = remainder + '0'
 
     # --digit_pos
     decq    %rdi
     movq    %rdi, -48(%rbp) # digit_pos
-
-    # i = i / 10
-    movq    -16(%rbp), %rax # i
-    cqto  # sign-extend %rax to %rdx:%rax
-    idivq   %rcx # quotient is in %rax
-    movq    %rax, -16(%rbp) # i
 
     # } while (i > 0);
     cmpq    $0, -16(%rbp) # i
@@ -612,39 +610,26 @@ hProcessDefaultHeap:
     cmpq    $0, -40(%rbp) # is_negative
     je      .Runtime.out_int.print
     
-    movq    -48(%rbp), %rax # digit_pos
+    movq    -48(%rbp), %rax     # digit_pos
     movb    $45, -28(%rbp,%rax) # digits[digit_pos] = '-';
-    decq    %rax # --digit_pos;
-    movq    %rax, -48(%rbp) # digit_pos
+    decq    %rax                # --digit_pos;
+    movq    %rax, -48(%rbp)     # digit_pos
 
 .Runtime.out_int.print:
     # digit_pos is pointing to a vacant digit slot, 
     # move it to the leftmost digit (or '-')
     incq    -48(%rbp) # digit_pos
 
-    leaq    -28(%rbp), %rax # digits
-    addq    -48(%rbp), %rax # digits + digit_pos
-    movq    %rax, -64(%rbp) # lpBuffer
+    leaq    -28(%rbp), %rdi # digits
+    addq    -48(%rbp), %rdi # digits + digit_pos
 
-    # GetStdHandle
-    movq    $STD_OUTPUT_HANDLE, %rcx
-    call    GetStdHandle
-    movq    %rax, %rcx # hFile
-  
-    # WriteFile
-    movq    -64(%rbp), %rdx # lpBuffer
-    
-    movq    $11, %r8 # nNumberOfBytesToWrite
-    subq    -48(%rbp), %r8 # 11 - digit_pos
+    movq    $11, %rsi # length
+    subq    -48(%rbp), %rsi # 11 - digit_pos
 
-    leaq    -56(%rbp), %r9 # lpNumberOfBytesWritten
+    call    .Runtime.out_string
 
-    movq    $0, -64(%rbp) # lpOverlapped
-    
-    call    WriteFile
-
-    movq %rbp, %rsp
-    popq %rbp
+    movq    %rbp, %rsp
+    popq    %rbp
 
     ret
 
