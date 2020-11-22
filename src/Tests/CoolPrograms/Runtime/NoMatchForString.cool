@@ -1,0 +1,9 @@
+class Main() {
+    {
+        var io: IO = new IO();
+        var it: Any = "Hello!";
+        it match { case i: Int => () }
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: ../CoolPrograms/Runtime/NoMatchForString.cool(5,9): No match for String

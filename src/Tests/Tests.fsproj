@@ -40,6 +40,8 @@
         <Content Include="CoolPrograms\Runtime\NoMatchForNull.cool" />
         <Content Include="CoolPrograms\Runtime\Match1.cool" />
         <Content Include="CoolPrograms\Runtime\Match2.cool" />
+        <Content Include="CoolPrograms\Runtime\Match3.cool" />
+        <Content Include="CoolPrograms\Runtime\NoMatchForString.cool" />
         <Content Include="CoolPrograms\Runtime\MatchNull.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />

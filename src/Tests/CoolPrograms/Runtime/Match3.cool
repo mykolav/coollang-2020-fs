@@ -1,0 +1,25 @@
+class Main() {
+    {
+        var io: IO = new IO();
+        
+        var it: String = "Hello, Cool2020!";
+        it match { 
+            case s: String => io.out_string("String: "); io.out_string(s); io.out_nl() 
+            case null      => io.out_string("Null"); io.out_nl()
+        };
+        
+        it = null;
+        it match { 
+            case s: String => io.out_string("String: "); io.out_string(s); io.out_nl() 
+            case null      => io.out_string("Null"); io.out_nl()
+        };
+        
+        it match { 
+            case s: String => io.out_string("String: "); io.out_string(s); io.out_nl() 
+        }
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: String: Hello, Cool2020!
+// OUT: Null
+// OUT: ../CoolPrograms/Runtime/Match3.cool(17,9): No match for null
