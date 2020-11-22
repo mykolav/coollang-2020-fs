@@ -611,8 +611,8 @@ type private ExprTranslator(_context: TranslationContext,
                 then
                     _context.Diags.Error(
                         sprintf "'%O' and '%O' are not parts of the same inheritance chain. As a result this case is unreachable"
-                                expr_frag.Value.Type
-                                pattern_ty,
+                                expr_frag.Value.Type.Name
+                                pattern_ty.Name,
                         pattern.Span)
                     pattern_error <- true
                 else
@@ -673,6 +673,7 @@ type private ExprTranslator(_context: TranslationContext,
             
             if pattern_error || (block_frags |> Seq.exists (fun it -> it.IsError))
             then
+                _context.RegSet.Free(result_reg)
                 Error
             else
                 

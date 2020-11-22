@@ -1,0 +1,7 @@
+class Main() {
+    {
+        null match { case i: Int => () }
+    };
+}
+// DIAG: Semantics/Match1.cool(3,30): Error: 'Null' and 'Int' are not parts of the same inheritance chain. As a result this case is unreachable
+// DIAG: Build failed: Errors: 1. Warnings: 0
