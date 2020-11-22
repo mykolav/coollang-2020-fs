@@ -533,7 +533,7 @@ hProcessDefaultHeap:
 #
 #  .Runtime.out_int
 #
-#      int value in %rdi
+#      an int value in %rdi
 #
 #  Prints out the value of an int object argument.
 #
@@ -542,11 +542,19 @@ hProcessDefaultHeap:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $(64 + 8 + 8 + 32), %rsp # local vars + 
-                                     # 16 bytes boundary padding + 
+    subq    $(48 + 8 + 8 + 32), %rsp # local vars + 
+                                     # NumberOfBytesWritten + 
                                      # fifth argument + 
                                      # shadow space
-    
+    # -16 - i
+    # -24
+    # -28 - digits
+    # -40 - is_negative
+    # -48 - digit_pos
+    # -56 - NumberOfBytesWritten
+    # -64 - fifth argument (lpOverlapped)
+    # -96 - shadow space
+
     movq    %rdi, -16(%rbp) # i -- the int value
 
     # Int32.MaxValue = 2147483647 -- (minus sign)? + 10 digits + 0 terminator
@@ -631,7 +639,7 @@ hProcessDefaultHeap:
 
     leaq    -56(%rbp), %r9 # lpNumberOfBytesWritten
 
-    movq    $0, -80(%rbp) # lpOverlapped
+    movq    $0, -64(%rbp) # lpOverlapped
     
     call    WriteFile
 
