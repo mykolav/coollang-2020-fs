@@ -50,7 +50,7 @@ type private ClassTranslator(_context: TranslationContext,
             Error
         else
             
-        let asm = initial_frag.Value.Asm
+        let asm = StringBuilder(initial_frag.Value.Asm)
         if addr_frag.Asm.IsSome
         then
             asm.Append(addr_frag.Asm.Value).Nop()

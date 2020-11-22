@@ -11,6 +11,21 @@ module MemoryLayoutFacts =
     let QuadSizeInBytes = 8
 
 
+module ObjectLayoutFacts =
+    let Tag = 0
+    let Size = 8
+    let VTable = 16
+    
+    let StringLength = 24
+    let StringContent = 32
+    
+    let ArrayLength = 24
+    let ArrayItems = 32
+    
+    let BooleanValue = 24
+    let IntValue = 24
+
+
 module FrameLayoutFacts =
     let CalleeSavedRegsSizeInBytes = SysVAmd64AbiFacts.CalleeSavedRegs.Length *
                                      MemoryLayoutFacts.QuadSizeInBytes
