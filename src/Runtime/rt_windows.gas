@@ -7,20 +7,16 @@
 ########################################
 # Strings
 ########################################
-str_const_new_line:
-    .ascii "\r\n"
+str_const_new_line:             .ascii "\r\n"
 
-str_const_aborted_from:
-    .ascii "Aborted from "
+str_const_aborted_from:         .ascii "Aborted from "
 
-str_const_dispatch_to_null:
-    .ascii "Dispatch to null"
-str_const_lparen:
-    .ascii "("
-str_const_comma:
-    .ascii ","
-str_const_rparen_colon_space:
-    .ascii "): "
+str_const_dispatch_to_null:     .ascii "Dispatch to null"
+str_const_lparen:               .ascii "("
+str_const_comma:                .ascii ","
+str_const_rparen_colon_space:   .ascii "): "
+
+str_const_out_of_memory:         .ascii "Out of memory"
 
 ########################################
 # Virtual tables
@@ -333,10 +329,10 @@ hProcessDefaultHeap:
 #
     .global .Runtime.copy_object
 .Runtime.copy_object:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
 
-    subq $32, %rsp # shadow space!
+    subq    $32, %rsp # shadow space!
 
     # DECLSPEC_ALLOCATOR LPVOID HeapAlloc(
     #   HANDLE hHeap,
@@ -344,47 +340,56 @@ hProcessDefaultHeap:
     #   SIZE_T dwBytes
     # );
     # hHeap
-    movq hProcessDefaultHeap, %rcx
+    movq    hProcessDefaultHeap, %rcx
     # dwFlags
-    movq $HEAP_ZERO_MEMORY, %rdx
+    movq    $HEAP_ZERO_MEMORY, %rdx
     # dwBytes
-    movq OBJ_SIZE(%rdi), %r8
-    salq $3, %r8
-    call HeapAlloc
-    cmpq $0, %rax
-    jne .Runtime.copy_object.alloc_ok
+    movq    OBJ_SIZE(%rdi), %r8 # size in quads
+    incq    %r8                 # add a quad for the eyecatch
+    salq    $3, %r8             # convert quads to to bytes
+    call    HeapAlloc
+    cmpq    $0, %rax
+    jne     .Runtime.copy_object.alloc_ok
 
-    movq $0, %rcx
-    call ExitProcess
+    # Allocation failed
+    movq    $str_const_out_of_memory, %rdi
+    movq    $0, %rsi
+    call    .Runtime.out_string
+
+    movq    $0, %rcx
+    call    ExitProcess
 
 .Runtime.copy_object.alloc_ok:
+    movq    $-1, (%rax) # write the eyecatch value
+    incq    %rax        # move ptr to the beginning of object
+
     # %rdi - src
     # %rdx - src_end
     # %rsi - dst
     # %rcx - tmp
 
     # dst
-    movq %rax, %rsi
+    movq    %rax, %rsi
 
     # src_end
-    movq OBJ_SIZE(%rdi), %rdx
-    salq $3, %rdx
-    addq %rdi, %rdx
+    movq    OBJ_SIZE(%rdi), %rdx
+    salq    $3, %rdx
+    addq    %rdi, %rdx
     
-    jmp .Runtime.copy_object.loop_cond
+    jmp     .Runtime.copy_object.loop_cond
 
 .Runtime.copy_object.loop_body:
-    movq (%rdi), %rcx
-    movq %rcx, (%rsi)
-    addq $8, %rdi
-    addq $8, %rsi
+    movq    (%rdi), %rcx
+    movq    %rcx, (%rsi)
+    addq    $8, %rdi
+    addq    $8, %rsi
 
 .Runtime.copy_object.loop_cond:
-    cmpq %rdi, %rdx
-    jne .Runtime.copy_object.loop_body
+    cmpq    %rdi, %rdx
+    jne     .Runtime.copy_object.loop_body
 
-    movq %rbp, %rsp
-    popq %rbp
+    movq    %rbp, %rsp
+    popq    %rbp
 
     ret
 
@@ -666,8 +671,8 @@ Any.abort:
     call    .Runtime.out_nl
 
     # Exit the process
-    movq $0, %rcx
-    call ExitProcess
+    movq    $0, %rcx
+    call    ExitProcess
 
     # movq %rbp, %rsp
     # popq %rbp
@@ -839,27 +844,27 @@ IO.in_int:
 ########################################
     .global main
 main:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
 
-    subq $32, %rsp # allocate shadow space!
+    subq    $32, %rsp # allocate shadow space!
 
     # Initialize the heap.
-    call GetProcessHeap
-    movq %rax, hProcessDefaultHeap
+    call    GetProcessHeap
+    movq    %rax, hProcessDefaultHeap
 
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.
-    movq $Main_proto_obj, %rdi
-    call .Runtime.copy_object
+    movq    $Main_proto_obj, %rdi
+    call    .Runtime.copy_object
 
     # 'Main..ctor' is a Cool2020 program's entry point.
     # Pass a reference to the newly created 'Main' instance in %rdi.
     # Invoke the constructor.
-    movq %rax, %rdi
-    call Main..ctor
+    movq    %rax, %rdi
+    call    Main..ctor
 
-    movq %rbp, %rsp
-    popq %rbp
+    movq    %rbp, %rsp
+    popq    %rbp
     
     ret
