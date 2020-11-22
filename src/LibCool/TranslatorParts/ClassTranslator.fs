@@ -68,8 +68,8 @@ type private ClassTranslator(_context: TranslationContext,
 
     let emit_method_prologue (): unit =
         _sb_code
-            .AppendLine("    pushq %rbp # save the base pointer")
-            .AppendLine("    movq %rsp, %rbp # set new base pointer to rsp")
+            .AppendLine("    pushq %rbp")
+            .AppendLine("    movq %rsp, %rbp")
             .AppendLine(sprintf "    subq $%d, %%rsp" (_sym_table.Frame.FrameSizeInBytes +
                                                        _sym_table.Frame.PadSizeInBytes))
             .AppendLine("    # save actuals on the stack")
