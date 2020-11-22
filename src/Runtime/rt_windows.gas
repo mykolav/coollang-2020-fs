@@ -557,16 +557,12 @@ hProcessDefaultHeap:
     movl    $0, -12(%rbp)
 
     xor     %rcx, %rcx
-    # is_negative = i < 0
+    #. if (is_negative) { i = -i; }
     cmpq    $0, %rdi
-    setl    %cl # set %cl to 1 if the int value in %rsi < 0
+    jge     .Runtime.out_int.loop_init
 
-    ## if (is_negative) { i = -i; }
-    cmpq    $0, %rcx
-    je      .Runtime.out_int.loop_init
-
-    # i = -i;
-    negq    %rdi # i
+    movq    $1, %rcx # is_negative
+    negq    %rdi # i = -i;
 
 .Runtime.out_int.loop_init:
     # digit_pos = 10
@@ -609,9 +605,9 @@ hProcessDefaultHeap:
 
     leaq    -12(%rbp, %rsi), %rdi # digits
 
-    movq    $11, %r8  # length
+    movq    $11, %r8
     subq    %rsi, %r8 # 11 - digit_pos
-    movq    %r8, %rsi
+    movq    %r8, %rsi # length
 
     call    .Runtime.out_string
 
