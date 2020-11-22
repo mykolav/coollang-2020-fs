@@ -531,11 +531,13 @@ type private ExprTranslator(_context: TranslationContext,
                                          Tag = pattern_ty.Tag |})
                 
             let expr_location = _context.Source.Map(expr.Span.First)
+            let init_match_label = _context.LabelGen.Generate()
+            let is_valid_tag_label = _context.LabelGen.Generate()
             let try_match_label = _context.LabelGen.Generate()
             
-            asm.AppendLine("    # handle 'null'")
+            asm.AppendLine("    # handle null")
                .AppendLine(sprintf "    cmpq $0, %s" (_context.RegSet.NameOf(expr_frag.Value.Reg)))
-               .AppendLine(sprintf "    jne %s # try match" (_context.LabelGen.NameOf(try_match_label)))
+               .AppendLine(sprintf "    jne %s # match init" (_context.LabelGen.NameOf(init_match_label)))
                .Nop()
                
             if pattern_asm_infos.ContainsKey(BasicClassNames.Null)
@@ -551,7 +553,7 @@ type private ExprTranslator(_context: TranslationContext,
                    .AppendLine("    call .Runtime.abort_match")
                    .Nop()
 
-            asm.AppendLine("    # prepare")
+            asm.AppendLine(sprintf "%s: # match init" (_context.LabelGen.NameOf(init_match_label)))
                .Nop()
                
             if pattern_asm_infos |> Seq.exists (fun it -> it.Key <> BasicClassNames.Null)
@@ -560,13 +562,12 @@ type private ExprTranslator(_context: TranslationContext,
                 // such that a var introduced by a matched case would pick it up.
                 asm.AppendLine(sprintf "    movq %s, -%d(%%rbp) # store the expression's value"
                                        (_context.RegSet.NameOf(expr_frag.Value.Reg))
-                                       (_sym_table.Frame.VarsOffset + _sym_table.Frame.VarsCount * 8))
+                                       (_sym_table.Frame.VarsOffset + (_sym_table.Frame.VarsCount + 1) * 8))
                    .Nop()
                   
-            asm.AppendLine(sprintf "    movq $%d, %s" expr_frag.Value.Type.Tag
-                                                     (_context.RegSet.NameOf(tag_reg)))
-               .AppendLine(sprintf "%s: # try match"
-                                  (_context.LabelGen.NameOf(try_match_label)))
+            asm.AppendLine(sprintf "    movq (%s), %s # tag" (_context.RegSet.NameOf(expr_frag.Value.Reg))
+                                                             (_context.RegSet.NameOf(tag_reg)))
+               .AppendLine(sprintf "%s: # no match?" (_context.LabelGen.NameOf(is_valid_tag_label)))
                .AppendLine(sprintf "    cmpq $-1, %s" (_context.RegSet.NameOf(tag_reg)))
                .AppendLine(sprintf "    jne %s # try match" (_context.LabelGen.NameOf(try_match_label)))
                .AppendLine(sprintf "    movq $%s, %%rdi" (_context.StrConsts.GetOrAdd(expr_location.FileName)))
@@ -574,6 +575,7 @@ type private ExprTranslator(_context: TranslationContext,
                .AppendLine(sprintf "    movq $%d, %%rdx" expr_location.Col)
                .AppendLine(sprintf "    movq %s, %%rcx" (_context.RegSet.NameOf(expr_frag.Value.Reg)))
                .AppendLine("    call .Runtime.abort_match")
+               .AppendLine(sprintf "%s: # try match" (_context.LabelGen.NameOf(try_match_label)))
                .Nop()
                
             for pattern_asm_info in pattern_asm_infos do
@@ -581,8 +583,8 @@ type private ExprTranslator(_context: TranslationContext,
                 if pattern_asm_info.Key <> BasicClassNames.Null
                 then
                     asm.AppendLine(sprintf "    cmpq $%d, %s # %O" pattern_asm_info.Value.Tag
-                                                                  (_context.RegSet.NameOf(tag_reg))
-                                                                  pattern_asm_info.Key)
+                                                                   (_context.RegSet.NameOf(tag_reg))
+                                                                   pattern_asm_info.Key)
                        .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(pattern_asm_info.Value.Label)))
                        .Nop()
             
@@ -590,7 +592,7 @@ type private ExprTranslator(_context: TranslationContext,
                .AppendLine(sprintf "    addq $class_parent_table, %s" (_context.RegSet.NameOf(tag_reg)))
                .AppendLine(sprintf "    movq (%s), %s" (_context.RegSet.NameOf(tag_reg))
                                                        (_context.RegSet.NameOf(tag_reg)))
-               .AppendLine(sprintf "    jmp %s # try match" (_context.LabelGen.NameOf(try_match_label)))
+               .AppendLine(sprintf "    jmp %s # no match?" (_context.LabelGen.NameOf(is_valid_tag_label)))
                .Nop()
             
             _context.RegSet.Free(expr_frag.Value.Reg)
@@ -635,6 +637,7 @@ type private ExprTranslator(_context: TranslationContext,
             let done_label = _context.LabelGen.Generate()
             let result_reg = _context.RegSet.Allocate()
             
+            let pattern_var_index = _sym_table.Frame.VarsCount
             let block_frags =
                 cases |> Array.map (fun case ->
                     _sym_table.EnterBlock()
@@ -644,7 +647,7 @@ type private ExprTranslator(_context: TranslationContext,
                         | PatternSyntax.IdType (id, ty) ->
                             _sym_table.AddVar({ Symbol.Name = id.Syntax
                                                 Type = ty.Syntax
-                                                Index = _sym_table.Frame.VarsCount
+                                                Index = pattern_var_index
                                                 SyntaxSpan = case.Syntax.Pattern.Span
                                                 Kind = SymbolKind.Var })
                             ty.Syntax
@@ -712,7 +715,7 @@ type private ExprTranslator(_context: TranslationContext,
                                                                 method_id.Syntax)
                .AppendLine("    pushq %r10")
                .AppendLine("    pushq %r11")
-               .AppendLine("    # actual #0 -- 'this'")
+               .AppendLine("    # actual #0")
                .Append(this_frag.Value.Asm.ToString())
                .Nop()
                 
@@ -1128,7 +1131,7 @@ type private ExprTranslator(_context: TranslationContext,
                                                       method_id.Syntax)
            .AppendLine("    pushq %r10")
            .AppendLine("    pushq %r11")
-           .AppendLine("    # actual #0 -- 'this'")
+           .AppendLine("    # actual #0")
            .Append(receiver_frag.Value.Asm.ToString())
            .AppendLine(sprintf "    cmpq $0, %s" (_context.RegSet.NameOf(receiver_frag.Value.Reg)))
            .AppendLine(sprintf "    jne %s # the receiver is some" (_context.LabelGen.NameOf(receiver_is_some_label)))
@@ -1197,7 +1200,7 @@ type private ExprTranslator(_context: TranslationContext,
         let asm = StringBuilder()
         asm.AppendLine(sprintf "    subq $%d, %%rsp" ((actual_nodes.Length + 1) * 8))
             // store 'this'.
-           .AppendLine("    # store actual #0 'this' on stack")
+           .AppendLine("    # store actual #0")
            .AppendLine(sprintf "    movq %s, 0(%%rsp)" (_context.RegSet.NameOf(this_frag.Reg)))
            .Nop()
            

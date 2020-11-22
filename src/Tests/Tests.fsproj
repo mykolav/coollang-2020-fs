@@ -38,6 +38,9 @@
         <Content Include="CoolPrograms\Runtime\Abort1.cool" />
         <Content Include="CoolPrograms\Runtime\AbortDispatch1.cool" />
         <Content Include="CoolPrograms\Runtime\NoMatchForNull.cool" />
+        <Content Include="CoolPrograms\Runtime\Match1.cool" />
+        <Content Include="CoolPrograms\Runtime\Match2.cool" />
+        <Content Include="CoolPrograms\Runtime\MatchNull.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />
