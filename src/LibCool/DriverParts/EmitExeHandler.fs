@@ -84,14 +84,18 @@ type EmitExeHandler(_writer: IWriteLine) =
 
 
     static member Link(obj_file: string, exe_file: string): string[] =
-        let ld_args = StringBuilder(sprintf "-o %s -e main %s " exe_file obj_file)
+        let rt_dir = EmitExeHandler.ResolveRtDir()
+        let rt_common_path = Path.Combine(rt_dir, "rt_common.o")
+        let ld_args = StringBuilder(sprintf "-o %s -e main %s \"%s\" " exe_file obj_file rt_common_path)
         
         if RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
         then
-            ld_args.Append(sprintf "rt_windows.o -L\"%s\" -lkernel32" (EmitExeHandler.ResolveLibDir())).Nop()
+            ld_args.Append(sprintf "\"%s\" -L\"%s\" -lkernel32" (Path.Combine(rt_dir, "rt_windows.o"))
+                                                                (EmitExeHandler.ResolveLibDir()))
+                   .Nop()
         else if RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
         then
-            ld_args.Append("rt_linux.o").Nop()
+            ld_args.Append(sprintf "\"%s\"" (Path.Combine(rt_dir, "rt_linux.o"))).Nop()
         else
             invalidOp (sprintf "'%s' is not supported.%sUse '-S' to emit assembly anyway.%s"
                                RuntimeInformation.OSDescription
@@ -102,6 +106,21 @@ type EmitExeHandler(_writer: IWriteLine) =
                           args=ld_args.ToString())
         |> ProcessOutputParser.split_in_lines
         |> Array.ofSeq
+    
+    
+    static member ResolveRtDir(): string =
+        // We assume the 'src/Runtime' folder is 4 levels up
+        // relative to where our assembly is.
+        // I.e. if we are in 'src/Somewhere/bin/Debug/netcoreapp3.1'
+        // a relative path to 'src/Runtime' is '../../../../Runtime'
+        let assembly_path = typeof<EmitExeHandler>.Assembly.CodeBase.Substring("file:\\\\\\".Length)
+        let assembly_dir = Path.GetDirectoryName(assembly_path)
+        let rt_parent_dir = assembly_dir
+                            |> Path.GetDirectoryName
+                            |> Path.GetDirectoryName
+                            |> Path.GetDirectoryName
+                            |> Path.GetDirectoryName
+        Path.Combine(rt_parent_dir, "Runtime")
     
     
     // This function is only relevant for Windows.
