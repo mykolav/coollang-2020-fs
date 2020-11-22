@@ -1,0 +1,11 @@
+class Main() {
+    {
+        var it: Any = 9001;
+        it match { 
+            case a: Any => ()
+            case i: Int => () 
+        }
+    };
+}
+// DIAG: Semantics/Match2.cool(6,21): Error: This case is shadowed by an earlier case at Semantics/Match2.cool(5,21)
+// DIAG: Build failed: Errors: 1. Warnings: 0
