@@ -542,83 +542,76 @@ hProcessDefaultHeap:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $48, %rsp
-    # -16 - i            - %rdi
-    # -24
-    # -28 - digits
-    # -40 - is_negative  - %rdx
-    # -48 - digit_pos    - %rsi
+    subq    $16, %rsp
+    # -8
+    # -12 - digits
+    # -16 - 16 bytes boundary padding
 
-    movq    %rdi, -16(%rbp) # i -- the int value
+    # i            - %rdi
+    # is_negative  - %rcx
+    # digit_pos    - %rsi
 
     # Int32.MaxValue = 2147483647 -- (minus sign)? + 10 digits + 0 terminator
     # char digits[12] = { 0 };
-    movl    $0, -28(%rbp)
-    movq    $0, -24(%rbp)
+    movq    $0, -8(%rbp)
+    movl    $0, -12(%rbp)
 
+    xor     %rcx, %rcx
     # is_negative = i < 0
     cmpq    $0, %rdi
-    setl   %r8b # set r8b to 1 if the int value in %rsi < 0
-    movzbq  %r8b, %rcx # move a byte from %r8b to %cl, 
-                       # set all the other bits to 0 
-    movq    %rcx, -40(%rbp) # is_negative
+    setl    %cl # set %cl to 1 if the int value in %rsi < 0
 
     ## if (is_negative) { i = -i; }
     cmpq    $0, %rcx
     je      .Runtime.out_int.loop_init
 
     # i = -i;
-    negq    -16(%rbp) # i
+    negq    %rdi # i
 
 .Runtime.out_int.loop_init:
     # digit_pos = 10
     # terminating 0 is at index 11
-    movq    $10, -48(%rbp) # digit_pos
+    movq    $10, %rsi # digit_pos
 
 .Runtime.out_int.loop_body:
     # i = i / 10
-    movq    -16(%rbp), %rax # i
+    movq    %rdi, %rax # i
     cqto                    # sign-extend %rax to %rdx:%rax
-    movq    $10, %rcx       # divisor
-    idivq   %rcx            # quotient is in %rax
+    movq    $10, %r8        # divisor
+    idivq   %r8             # quotient is in %rax
                             # remainder is in %rdx
 
-    movq    %rax, -16(%rbp) # i
+    movq    %rax, %rdi # i
 
-    movq    -48(%rbp), %rdi     # digit_pos
     addq    $48, %rdx           # remainder + '0'
-    movb    %dl, -28(%rbp,%rdi) # digits[digit_pos] = remainder + '0'
+    movb    %dl, -12(%rbp, %rsi) # digits[digit_pos] = remainder + '0'
 
-    # --digit_pos
-    decq    %rdi
-    movq    %rdi, -48(%rbp) # digit_pos
+    decq    %rsi # --digit_pos
 
     # } while (i > 0);
-    cmpq    $0, -16(%rbp) # i
+    cmpq    $0, %rdi # i
     jg      .Runtime.out_int.loop_body
 
     ## if (is_negative) {
     #     digits[digit_pos] = '-';
     #     --digit_pos;
     # }
-    cmpq    $0, -40(%rbp) # is_negative
+    cmpq    $0, %rcx # is_negative
     je      .Runtime.out_int.print
     
-    movq    -48(%rbp), %rax     # digit_pos
-    movb    $45, -28(%rbp,%rax) # digits[digit_pos] = '-';
-    decq    %rax                # --digit_pos;
-    movq    %rax, -48(%rbp)     # digit_pos
+    movb    $45, -12(%rbp, %rsi) # digits[digit_pos] = '-';
+    decq    %rsi                 # --digit_pos;
 
 .Runtime.out_int.print:
     # digit_pos is pointing to a vacant digit slot, 
     # move it to the leftmost digit (or '-')
-    incq    -48(%rbp) # digit_pos
+    incq    %rsi # digit_pos
 
-    leaq    -28(%rbp), %rdi # digits
-    addq    -48(%rbp), %rdi # digits + digit_pos
+    leaq    -12(%rbp, %rsi), %rdi # digits
 
-    movq    $11, %rsi # length
-    subq    -48(%rbp), %rsi # 11 - digit_pos
+    movq    $11, %r8  # length
+    subq    %rsi, %r8 # 11 - digit_pos
+    movq    %r8, %rsi
 
     call    .Runtime.out_string
 
