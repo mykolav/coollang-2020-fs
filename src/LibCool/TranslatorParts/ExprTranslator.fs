@@ -625,8 +625,11 @@ type private ExprTranslator(_context: TranslationContext,
                     let prev_pattern = patterns.[j]
                     if _context.ClassSymMap.ContainsKey(prev_pattern.Syntax)
                     then
-                        let prev_pattern_ty = _context.ClassSymMap.[prev_pattern.Syntax]    
-                        if _context.TypeCmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
+                        let prev_pattern_ty = _context.ClassSymMap.[prev_pattern.Syntax]
+                        // Null conforms to Any and other non-primitive types,
+                        // but we still allowed `case null => ...` to be the last branch.
+                        if not (pattern_ty.Is(BasicClasses.Null)) &&
+                           _context.TypeCmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
                         then
                             _context.Diags.Error(
                                 sprintf "This case is shadowed by an earlier case at %O"
