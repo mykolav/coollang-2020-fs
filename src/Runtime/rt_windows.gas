@@ -649,34 +649,9 @@ hProcessDefaultHeap:
 #
     .global .Runtime.out_nl
 .Runtime.out_nl:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    subq    $(8 + 8 + 32), %rsp # NumberOfBytesWritten + 
-                                # fifth argument +
-                                # shadow space
-
-    movl $STD_OUTPUT_HANDLE, %ecx
-    call GetStdHandle
-    movq %rax, %rcx
-  
-    # BOOL WriteFile(
-    #   HANDLE       hFile,
-    #   LPCVOID      lpBuffer,
-    #   DWORD        nNumberOfBytesToWrite,
-    #   LPDWORD      lpNumberOfBytesWritten,
-    #   LPOVERLAPPED lpOverlapped
-    # );
-    movq $str_const_new_line, %rdx
-    movq $2, %r8
-    leaq -8(%rbp), %r9 # lpNumberOfBytesWritten
-    movq $0, -16(%rbp) # lpOverlapped
-    call WriteFile
-
-    movq %rbp, %rsp
-    popq %rbp
-
-    ret
+    movq    $str_const_new_line, %rdi
+    movq    $2, %rsi
+    jmp     .Runtime.out_string
 
 ########################################
 # Any
