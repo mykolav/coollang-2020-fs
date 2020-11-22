@@ -542,18 +542,12 @@ hProcessDefaultHeap:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $(48 + 8 + 8 + 32), %rsp # local vars + 
-                                     # NumberOfBytesWritten + 
-                                     # fifth argument + 
-                                     # shadow space
-    # -16 - i
+    subq    $48, %rsp
+    # -16 - i            - %rdi
     # -24
     # -28 - digits
-    # -40 - is_negative
-    # -48 - digit_pos
-    # -56 - NumberOfBytesWritten
-    # -64 - fifth argument (lpOverlapped)
-    # -96 - shadow space
+    # -40 - is_negative  - %rdx
+    # -48 - digit_pos    - %rsi
 
     movq    %rdi, -16(%rbp) # i -- the int value
 
