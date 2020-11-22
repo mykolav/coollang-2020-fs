@@ -11,10 +11,14 @@ str_const_new_line:             .ascii "\r\n"
 
 str_const_aborted_from:         .ascii "Aborted from "
 
-str_const_dispatch_to_null:     .ascii "Dispatch to null"
 str_const_lparen:               .ascii "("
 str_const_comma:                .ascii ","
 str_const_rparen_colon_space:   .ascii "): "
+
+str_const_dispatch_to_null:     .ascii "Dispatch to null"
+
+str_const_no_match:             .ascii "No match for "
+str_const_null:                 .ascii "null"
 
 str_const_out_of_memory:         .ascii "Out of memory"
 
@@ -217,8 +221,8 @@ hProcessDefaultHeap:
     # Print "{file}({line},{column}): "
     call    .Runtime.out_location
     # Print "No match for "
-    movq    $str_const_dispatch_to_null, %rdi
-    movq    $16, %rsi
+    movq    $str_const_no_match, %rdi
+    movq    $13, %rsi
     call    .Runtime.out_string
     # Print "{class}"
     movq    -16(%rbp), %rdi
@@ -303,6 +307,15 @@ hProcessDefaultHeap:
     pushq   %rbp
     movq    %rsp, %rbp
 
+    # handle null
+    cmpq    $0, %rdi
+    jne     .Runtime.out_type_name.is_some
+
+    movq    $str_const_null, %rdi
+    movq    $4, %rsi
+    jmp     .Runtime.out_type_name.out_string
+
+.Runtime.out_type_name.is_some:
     movq    OBJ_TAG(%rdi), %rdi
     salq    $3, %rdi # multiply the tag by 8
                      # to get the offset in 'class_name_table'
@@ -312,6 +325,8 @@ hProcessDefaultHeap:
     movq    STR_LEN(%rdi), %rsi
     movq    INT_VAL(%rsi), %rsi
     leaq    STR_VAL(%rdi), %rdi
+
+.Runtime.out_type_name.out_string:
     call    .Runtime.out_string
  
     movq    %rbp, %rsp

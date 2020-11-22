@@ -1,0 +1,9 @@
+class Main() {
+    {
+        var io: IO = new IO();
+        var it: Any = null;
+        it match { case i: Int => io.out_int(i); io.out_nl() }
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: ../CoolPrograms/Runtime/NoMatchForNull.cool(5,9): No match for null
