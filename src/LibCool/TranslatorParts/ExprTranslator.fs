@@ -353,8 +353,6 @@ type private ExprTranslator(_context: TranslationContext,
             
             let left_frag, right_frag = operands.Value    
 
-            let result_reg = _context.RegSet.Allocate()
-            
             let asm = StringBuilder()
             asm.AppendLine("    # multiply")
                .Append(left_frag.Asm)
@@ -364,19 +362,18 @@ type private ExprTranslator(_context: TranslationContext,
                .AppendLine("    call .Runtime.copy_object")
                .AppendLine("    popq %r11")
                .AppendLine("    popq %r10")
-               .AppendLine(sprintf "movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+               .AppendLine(sprintf "movq %%rax, %s" (_context.RegSet.NameOf(left_frag.Reg)))
                .Append(right_frag.Asm)
                .AppendLine(sprintf "    movq 24(%s), %%rax" (_context.RegSet.NameOf(left_frag.Reg)))
                .AppendLine(sprintf "    imulq 24(%s)" (_context.RegSet.NameOf(right_frag.Reg)))
-               .AppendLine(sprintf "    movq %%rax, 24(%s)" (_context.RegSet.NameOf(result_reg)))
+               .AppendLine(sprintf "    movq %%rax, 24(%s)" (_context.RegSet.NameOf(left_frag.Reg)))
                .Nop()
 
-            _context.RegSet.Free(left_frag.Reg)
             _context.RegSet.Free(right_frag.Reg)
             
             Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Int
-                 Reg = result_reg }
+                 Reg = left_frag.Reg }
         
         | ExprSyntax.Div (left, right) ->
             let operands = translate_infixop_int_operands left right "/"
@@ -387,8 +384,6 @@ type private ExprTranslator(_context: TranslationContext,
             
             let left_frag, right_frag = operands.Value    
 
-            let result_reg = _context.RegSet.Allocate()
-            
             let asm = StringBuilder()
             asm.AppendLine("    # divide")
                .Append(left_frag.Asm)
@@ -398,21 +393,20 @@ type private ExprTranslator(_context: TranslationContext,
                .AppendLine("    call .Runtime.copy_object")
                .AppendLine("    popq %r11")
                .AppendLine("    popq %r10")
-               .AppendLine(sprintf "movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+               .AppendLine(sprintf "movq %%rax, %s" (_context.RegSet.NameOf(left_frag.Reg)))
                .Append(right_frag.Asm)
                // left / right
                .AppendLine(sprintf "    movq 24(%s), %%rax" (_context.RegSet.NameOf(left_frag.Reg)))
                .AppendLine("    cqto # sign-extend %rax to %rdx:%rax")
                .AppendLine(sprintf "    idivq 24(%s)" (_context.RegSet.NameOf(right_frag.Reg)))
-               .AppendLine(sprintf "    movq %%rax, 24(%s)" (_context.RegSet.NameOf(result_reg)))
+               .AppendLine(sprintf "    movq %%rax, 24(%s)" (_context.RegSet.NameOf(left_frag.Reg)))
                .Nop()
 
-            _context.RegSet.Free(left_frag.Reg)
             _context.RegSet.Free(right_frag.Reg)
             
             Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Int
-                 Reg = result_reg }
+                 Reg = left_frag.Reg }
         
         | ExprSyntax.Sum (left, right) ->
             let check_operands left_frag right_frag: bool =
@@ -438,8 +432,6 @@ type private ExprTranslator(_context: TranslationContext,
             
             let left_frag, right_frag = operands.Value
             
-            let result_reg = _context.RegSet.Allocate()
-            
             let asm = StringBuilder()
             asm.AppendLine("    # add / concatenate")
                .Append(left_frag.Asm)
@@ -451,19 +443,15 @@ type private ExprTranslator(_context: TranslationContext,
             then
                 asm.AppendLine("    pushq %r10")
                    .AppendLine("    pushq %r11")
-                   .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(left_frag.Reg)))
+                   .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(right_frag.Reg)))
                    .AppendLine("    call .Runtime.copy_object")
                    .AppendLine("    popq %r11")
                    .AppendLine("    popq %r10")
-                   .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+                   .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(right_frag.Reg)))
                    .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(left_frag.Reg))
                                                              (_context.RegSet.NameOf(left_frag.Reg)))
-                   .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(right_frag.Reg))
+                   .AppendLine(sprintf "    addq %s, 24(%s)" (_context.RegSet.NameOf(left_frag.Reg))
                                                              (_context.RegSet.NameOf(right_frag.Reg)))
-                   .AppendLine(sprintf "    addq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
-                                                         (_context.RegSet.NameOf(right_frag.Reg)))
-                   .AppendLine(sprintf "    movq %s, 24(%s)" (_context.RegSet.NameOf(right_frag.Reg))
-                                                             (_context.RegSet.NameOf(result_reg)))
                    .Nop()
             else // string concatenation
                 asm.AppendLine("    pushq %r10")
@@ -473,15 +461,14 @@ type private ExprTranslator(_context: TranslationContext,
                    .AppendLine("    call String.concat")
                    .AppendLine("    popq %r11")
                    .AppendLine("    popq %r10")
-                   .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
+                   .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(right_frag.Reg)))
                    .Nop()
 
             _context.RegSet.Free(left_frag.Reg)
-            _context.RegSet.Free(right_frag.Reg)
             
             Ok { AsmFragment.Asm = asm
-                 Type = left_frag.Type
-                 Reg = result_reg }
+                 Type = right_frag.Type
+                 Reg = right_frag.Reg }
         
         | ExprSyntax.Sub (left, right) ->
             let operands = translate_infixop_int_operands left right "-"
@@ -492,8 +479,6 @@ type private ExprTranslator(_context: TranslationContext,
             
             let left_frag, right_frag = operands.Value    
 
-            let result_reg = _context.RegSet.Allocate()
-            
             let asm = StringBuilder()
             asm.AppendLine("    # subtract")
                .Append(left_frag.Asm)
@@ -505,23 +490,18 @@ type private ExprTranslator(_context: TranslationContext,
                .AppendLine("    call .Runtime.copy_object")
                .AppendLine("    popq %r11")
                .AppendLine("    popq %r10")
-               .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(result_reg)))
-               .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(left_frag.Reg))
-                                                         (_context.RegSet.NameOf(left_frag.Reg)))
+               .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(left_frag.Reg)))
                .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(right_frag.Reg))
                                                          (_context.RegSet.NameOf(right_frag.Reg)))
-               .AppendLine(sprintf "    subq %s, %s" (_context.RegSet.NameOf(right_frag.Reg))
-                                                     (_context.RegSet.NameOf(left_frag.Reg)))
-               .AppendLine(sprintf "    movq %s, 24(%s)" (_context.RegSet.NameOf(left_frag.Reg))
-                                                         (_context.RegSet.NameOf(result_reg)))
+               .AppendLine(sprintf "    subq %s, 24(%s)" (_context.RegSet.NameOf(right_frag.Reg))
+                                                         (_context.RegSet.NameOf(left_frag.Reg)))
                .Nop()
 
-            _context.RegSet.Free(left_frag.Reg)
             _context.RegSet.Free(right_frag.Reg)
             
             Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Int
-                 Reg = result_reg }
+                 Reg = left_frag.Reg }
         
         | ExprSyntax.Match (expr, cases_hd, cases_tl) ->
             let expr_frag = translate_expr expr

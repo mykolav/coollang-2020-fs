@@ -16,4 +16,5 @@ int_const0:
     movzbq %r8b, %rax
     movq    $11, %r8
     subq    -48(%rbp), %r8 # 11 - digit_pos
+    addq    %rax, -48(%rbp)
     retq
