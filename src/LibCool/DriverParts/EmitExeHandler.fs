@@ -76,11 +76,9 @@ type EmitExeHandler(_writer: IWriteLine) =
         
     
     static member Assemble(asm: string, obj_file: string) : string[] =
-                       
         ProcessRunner.Run(exe_name="as", args=sprintf "-o %s" obj_file, stdin=asm)
         |> ProcessOutputParser.split_in_lines
         |> Array.ofSeq
-
 
 
     static member Link(obj_file: string, exe_file: string): string[] =
@@ -114,8 +112,8 @@ type EmitExeHandler(_writer: IWriteLine) =
         // I.e. if we are in 'src/Somewhere/bin/Debug/netcoreapp3.1'
         // a relative path to 'src/Runtime' is '../../../../Runtime'
         let assembly_path = typeof<EmitExeHandler>.Assembly.CodeBase.Substring("file:\\\\\\".Length)
-        let assembly_dir = Path.GetDirectoryName(assembly_path)
-        let rt_parent_dir = assembly_dir
+        let rt_parent_dir = assembly_path
+                            |> Path.GetDirectoryName
                             |> Path.GetDirectoryName
                             |> Path.GetDirectoryName
                             |> Path.GetDirectoryName
