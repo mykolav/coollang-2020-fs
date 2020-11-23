@@ -32,3 +32,10 @@ module FrameLayoutFacts =
     // skip saved %rbp, and return addr
     let ActualsOutOfFrameOffset = 2 * MemoryLayoutFacts.QuadSizeInBytes
     let ActualsOffsetInBytes = 0
+
+
+module RuntimeNames =
+    let BoolFalse = "Boolean_false"
+    let BoolTrue = "Boolean_true"
+    
+    let RtCopyObject = ".Runtime.copy_object"

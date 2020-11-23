@@ -58,6 +58,11 @@ type RegisterSet() =
                 invalidOp (sprintf "The register %i '%s' has not been allocated" index item.Name)
             
             item.IsFree <- true
+            
+            
+    member this.IsAllocated(reg: string): bool =
+        let item = _regs |> Seq.find (fun it -> it.Name = reg)
+        not item.IsFree
         
         
     member this.NameOf(reg: Reg): string =

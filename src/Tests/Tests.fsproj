@@ -43,6 +43,8 @@
         <Content Include="CoolPrograms\Runtime\Match3.cool" />
         <Content Include="CoolPrograms\Runtime\NoMatchForString.cool" />
         <Content Include="CoolPrograms\Runtime\MatchNull.cool" />
+        <Content Include="CoolPrograms\Runtime\BoolNegation.cool" />
+        <Content Include="CoolPrograms\Runtime\UnaryMinus.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />

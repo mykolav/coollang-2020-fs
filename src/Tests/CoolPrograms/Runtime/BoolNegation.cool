@@ -1,0 +1,18 @@
+class Main() {
+    {
+        var io: IO = new IO();
+        
+        var it: Boolean = true;
+        io.out_string("!true = "); io.out_string(if (!it) "true" else "false"); io.out_nl();
+        io.out_string("!!true = "); io.out_string(if (!!it) "true" else "false"); io.out_nl();
+        
+        it = false;
+        io.out_string("!false = "); io.out_string(if (!it) "true" else "false"); io.out_nl();
+        io.out_string("!!false = "); io.out_string(if (!!it) "true" else "false"); io.out_nl()
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: !true = false
+// OUT: !!true = true
+// OUT: !false = true
+// OUT: !!false = false

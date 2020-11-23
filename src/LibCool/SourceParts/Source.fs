@@ -118,6 +118,25 @@ type Source(partSeq: seq<SourcePart>) =
         _content.[int offset]
         
     
+    member _.GetSlice(start: uint32 option, finish: uint32 option): string =
+        let start = defaultArg start 0u
+        
+        let content_finish = uint32 _content.Length - 1u
+        let finish = defaultArg finish content_finish
+        let finish = if finish <= content_finish
+                     then finish
+                     else content_finish
+        
+        // Wny do we add 1u to get the slice's length?
+        // [first, start] is a closed interval (includes its endpoints).
+        // So, the length of [0, 0] is 1 = (0 - 0) + 1
+        //     the length of [0, 1] is 2 = (1 - 0) + 1
+        //     etc ...
+        let length = (finish - start) + 1u
+                     
+        _content.Substring(startIndex=int start, length=int length)
+
+
     member this.Map(offset: uint32): Location =
         let part = part_index_of offset
         let lc = line_col_of offset

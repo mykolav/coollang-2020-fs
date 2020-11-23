@@ -2,24 +2,12 @@ namespace rec LibCool.TranslatorParts
 
 
 open System.Collections.Generic
-open System.Runtime.CompilerServices
 open System.Text
 open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.AstParts
 open LibCool.TranslatorParts
 open AstExtensions
-
-
-[<Sealed>]
-type AsmBuilder(_context: TranslationContext) = class end
-
-
-[<IsReadOnly; Struct>]
-type AsmFragment =
-    { Type: ClassSymbol
-      Asm: string
-      Reg: Reg }
 
 
 [<Sealed>]
@@ -31,53 +19,13 @@ type private ExprTranslator(_context: TranslationContext,
     let rec translate_expr (expr_node: AstNode<ExprSyntax>): Res<AsmFragment> =
         match expr_node.Syntax with
         | ExprSyntax.Assign (id, expr) ->
-            translate_assign id expr
+            translate_assign expr_node.Span id expr
 
         | ExprSyntax.BoolNegation expr ->
-            let expr_frag = translate_unaryop_operand expr (*op=*)"!" (*expected_ty=*)BasicClasses.Boolean
-            if expr_frag.IsError
-            then
-                Error
-
-            else
-
-            let expr_frag = expr_frag.Value
-            
-            let false_label = _context.LabelGen.Generate()
-            let done_label = _context.LabelGen.Generate()
-            
-            let asm =
-               StringBuilder(expr_frag.Asm)
-                   .AppendLine(sprintf "    cmpq $0, 24(%s)" (_context.RegSet.NameOf(expr_frag.Reg)))
-                   .AppendLine(sprintf "    je %s" (_context.LabelGen.NameOf(false_label)))
-                   .AppendLine(sprintf "    movq $Boolean_false, %s" (_context.RegSet.NameOf(expr_frag.Reg)))
-                   .AppendLine(sprintf "    jmp %s" (_context.LabelGen.NameOf(done_label)))
-                   .AppendLine(sprintf "%s:" (_context.LabelGen.NameOf(false_label)))
-                   .AppendLine(sprintf "    movq $Boolean_true, %s" (_context.RegSet.NameOf(expr_frag.Reg)))
-                   .AppendLine(sprintf "%s:" (_context.LabelGen.NameOf(done_label)))
-                   .ToString()
-            Ok { expr_frag with Asm = asm }
+            translate_bool_negation expr_node expr
         
         | ExprSyntax.UnaryMinus expr ->
-            let expr_frag = translate_unaryop_operand expr (*op=*)"-" (*expected_ty=*)BasicClasses.Int
-            if expr_frag.IsError
-            then
-                Error
-            else
-            
-            let expr_frag = expr_frag.Value
-            let asm =
-                StringBuilder(expr_frag.Asm)
-                    .AppendLine("    pushq %r10")
-                    .AppendLine("    pushq %r11")
-                    .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(expr_frag.Reg)))
-                    .AppendLine("    call .Runtime.copy_object")
-                    .AppendLine("    popq %r11")
-                    .AppendLine("    popq %r10")
-                    .AppendLine(sprintf "    movq %%rax, %s" (_context.RegSet.NameOf(expr_frag.Reg)))
-                    .AppendLine(sprintf "    negq 24(%s)" (_context.RegSet.NameOf(expr_frag.Reg)))
-                    .ToString()
-            Ok { expr_frag with Asm = asm }
+            translate_unary_minus expr_node expr
             
         | ExprSyntax.If (condition, then_branch, else_branch) ->
             let then_frag = translate_expr then_branch
@@ -93,15 +41,15 @@ type private ExprTranslator(_context: TranslationContext,
             let result_reg = _context.RegSet.Allocate()
             
             let then_asm =
-                StringBuilder(then_frag.Value.Asm)
-                    .AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(then_frag.Value.Reg))
-                                                          (_context.RegSet.NameOf(result_reg)))
+                this.Asm()
+                    .Paste(then_frag.Value.Asm)
+                    .In("movq    {0}, {1}", then_frag.Value.Reg, result_reg)
                     .ToString()
             
             let else_asm =
-                StringBuilder(else_frag.Value.Asm)
-                    .AppendLine(sprintf "    movq %s, %s" (_context.RegSet.NameOf(else_frag.Value.Reg))
-                                                          (_context.RegSet.NameOf(result_reg)))
+                this.Asm()
+                    .Paste(else_frag.Value.Asm)
+                    .In("movq    {0}, {1}", else_frag.Value.Reg, result_reg)
                     .ToString()
 
             // It's OK to free up these registers early,
@@ -418,7 +366,7 @@ type private ExprTranslator(_context: TranslationContext,
                  Reg = left_frag.Reg }
         
         | ExprSyntax.Sum (left, right) ->
-            let check_operands left_frag right_frag: bool =
+            let check_operands (left_frag: AsmFragment) (right_frag: AsmFragment): bool =
                 if not ((left_frag.Type.Is(BasicClasses.Int) &&
                          right_frag.Type.Is(BasicClasses.Int)) ||
                         (left_frag.Type.Is(BasicClasses.String) &&
@@ -962,15 +910,28 @@ type private ExprTranslator(_context: TranslationContext,
                  Reg = result_reg }
         
         
-    and translate_assign (id: AstNode<ID>) (expr: AstNode<ExprSyntax>): Res<AsmFragment> =
-        
-        let expr_frag = translate_expr expr
+    and translate_assign (assign_node_span: Span)
+                         (id: AstNode<ID>)
+                         (rvalue_expr: AstNode<ExprSyntax>)
+                         : Res<AsmFragment> =
+        let expr_frag = translate_expr rvalue_expr
         if expr_frag.IsError
         then
             Error
         else
         
-        let addr_frag = this.AddrOf(_sym_table.Resolve(id.Syntax))
+        let id_sym = _sym_table.TryResolve(id.Syntax)
+        if id_sym.IsNone
+        then
+            _context.Diags.Error(
+                sprintf "The name '%O' does not exist in the current context" id.Syntax,
+                id.Span)
+            
+            _context.RegSet.Free(expr_frag.Value.Reg)
+            Error
+        else
+            
+        let addr_frag = this.AddrOf(id_sym.Value)
 
         if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Value.Type))
         then
@@ -979,23 +940,18 @@ type private ExprTranslator(_context: TranslationContext,
                         expr_frag.Value.Type.Name
                         addr_frag.Type.Name
                         id.Syntax,
-                expr.Span)
+                rvalue_expr.Span)
             
             _context.RegSet.Free(addr_frag.Reg)
             _context.RegSet.Free(expr_frag.Value.Reg)
             Error
         else
 
-        let asm = StringBuilder(expr_frag.Value.Asm)
-        
-        if addr_frag.Asm.IsSome
-        then
-            asm.AppendLine(addr_frag.Asm.Value).Nop()
-            
-        asm.AppendLine(sprintf "    movq %s, %s # %O" (_context.RegSet.NameOf(expr_frag.Value.Reg))
-                                                      addr_frag.Addr
-                                                      id.Syntax)
-           .Nop()
+        let asm =
+            this.Asm()
+                .Paste(expr_frag.Value.Asm)
+                .In("movq    {0}, {1}", expr_frag.Value.Reg, addr_frag, comment=id.Syntax.ToString())
+                .ToString()
         
         _context.RegSet.Free(addr_frag.Reg)
 
@@ -1007,6 +963,59 @@ type private ExprTranslator(_context: TranslationContext,
              Type = addr_frag.Type }
         
         
+    and translate_bool_negation (bool_negation_node: AstNode<ExprSyntax>)
+                                (negated_node: AstNode<ExprSyntax>)
+                                : Res<AsmFragment> =
+        let negated_frag = translate_unaryop_operand negated_node (*op=*)"!" (*expected_ty=*)BasicClasses.Boolean
+        if negated_frag.IsError
+        then
+            Error
+
+        else
+
+        let negated_frag = negated_frag.Value
+        
+        let false_label = _context.LabelGen.Generate()
+        let done_label = _context.LabelGen.Generate()
+        
+        let asm =
+            this.Asm()
+                .Location(bool_negation_node.Span.First)
+                .Paste(negated_frag.Asm)
+                .In("cmpq    $0, {0}({1})", ObjectLayoutFacts.BooleanValue, negated_frag.Reg)
+                .Je(false_label, "false")
+                .Comment("true:")
+                .In("movq    ${0}, {1}", RuntimeNames.BoolFalse, negated_frag.Reg)
+                .Jmp(done_label, "done")
+                .Label(false_label, "false")
+                .In("movq    ${0}, {1}", RuntimeNames.BoolTrue, negated_frag.Reg)
+                .Label(done_label, "done")
+                .ToString()
+                
+        Ok { negated_frag with Asm = asm }
+        
+        
+    and translate_unary_minus (unary_minus_node: AstNode<ExprSyntax>)
+                              (negated_node: AstNode<ExprSyntax>)
+                              : Res<AsmFragment> =
+        let negated_frag = translate_unaryop_operand negated_node (*op=*)"-" (*expected_ty=*)BasicClasses.Int
+        if negated_frag.IsError
+        then
+            Error
+        else
+        
+        let negated_frag = negated_frag.Value
+        let asm =
+            this.Asm()
+                .Location(unary_minus_node.Span.First)
+                .Paste(negated_frag.Asm)
+                .RtCopyObject(proto_reg=negated_frag.Reg, copy_reg=negated_frag.Reg)
+                .In("negq    24({0})", negated_frag.Reg)
+                .ToString()
+
+        Ok { negated_frag with Asm = asm }
+
+
     and translate_unaryop_operand (expr: AstNode<ExprSyntax>)
                                   (op: string)
                                   (expected_ty: ClassSymbol)
@@ -1037,7 +1046,7 @@ type private ExprTranslator(_context: TranslationContext,
                                        (right: AstNode<ExprSyntax>)
                                        (op: string)
                                        : Res<(AsmFragment * AsmFragment)> =
-        let check_operands left_frag right_frag: bool =
+        let check_operands (left_frag: AsmFragment) (right_frag: AsmFragment): bool =
             if not (left_frag.Type.Is(BasicClasses.Int) &&
                     right_frag.Type.Is(BasicClasses.Int))
             then
@@ -1058,7 +1067,7 @@ type private ExprTranslator(_context: TranslationContext,
                                 (right: AstNode<ExprSyntax>)
                                 (op: string)
                                 : Res<(AsmFragment * AsmFragment)> =
-        let check_operands left_frag right_frag: bool =
+        let check_operands (left_frag: AsmFragment) (right_frag: AsmFragment): bool =
             if not (_context.TypeCmp.Conforms(left_frag.Type, right_frag.Type) ||
                     _context.TypeCmp.Conforms(right_frag.Type, left_frag.Type))
             then
@@ -1291,7 +1300,7 @@ type private ExprTranslator(_context: TranslationContext,
         // As a result, the var will be visible to the init expression.
         // TODO: Does this correspond to Cool2020's operational semantics?
         _sym_table.AddVar(Symbol.Of(var_node, _sym_table.Frame.VarsCount))
-        let assign_frag = translate_assign var_node.Syntax.ID var_node.Syntax.Expr
+        let assign_frag = translate_assign var_node.Span var_node.Syntax.ID var_node.Syntax.Expr
         if assign_frag.IsError
         then
             Error
@@ -1469,41 +1478,36 @@ type private ExprTranslator(_context: TranslationContext,
                  Reg = expr_frag.Value.Reg }
         
         
-    member this.AddrOf(sym: Symbol)
-        : struct {| Asm: string voption
-                    Addr: string
-                    Type: ClassSymbol
-                    Reg: Reg |} =
+    member this.AddrOf(sym: Symbol) : AddrFragment =
         match sym.Kind with
         | SymbolKind.Formal ->
             if sym.Index <= 6
             then
-                {| Addr = sprintf "-%d(%%rbp)" ((sym.Index + 1) * 8)
-                   Asm = ValueNone
-                   Type = _context.ClassSymMap.[sym.Type]
-                   Reg = Reg.Null |}
+                { Addr = sprintf "-%d(%%rbp)" ((sym.Index + 1) * 8)
+                  Asm = ValueNone
+                  Type = _context.ClassSymMap.[sym.Type]
+                  Reg = Reg.Null }
             else
-                {| Addr = sprintf "%d(%%rbp)" (FrameLayoutFacts.ActualsOutOfFrameOffset + (sym.Index - 7) * 8)
-                   Asm = ValueNone
-                   Type = _context.ClassSymMap.[sym.Type]
-                   Reg = Reg.Null |}
+                { Addr = sprintf "%d(%%rbp)" (FrameLayoutFacts.ActualsOutOfFrameOffset + (sym.Index - 7) * 8)
+                  Asm = ValueNone
+                  Type = _context.ClassSymMap.[sym.Type]
+                  Reg = Reg.Null }
                 
         | SymbolKind.Var ->
-            
-            {| Addr = sprintf "-%d(%%rbp)" (_sym_table.Frame.VarsOffset + (sym.Index + 1) * 8)
-               Asm = ValueNone
-               Type = _context.ClassSymMap.[sym.Type]
-               Reg = Reg.Null |}
+            { Addr = sprintf "-%d(%%rbp)" (_sym_table.Frame.VarsOffset + (sym.Index + 1) * 8)
+              Asm = ValueNone
+              Type = _context.ClassSymMap.[sym.Type]
+              Reg = Reg.Null }
             
         | SymbolKind.Attr ->
             let attrs_offset_in_quads = 3 // skip tag, obj_size, and vtable_ptr
             let this_reg = _context.RegSet.Allocate()
-            {| Addr = sprintf "%d(%s)"
-                              ((attrs_offset_in_quads + sym.Index) * 8)
-                              (_context.RegSet.NameOf(this_reg))
-               Asm = ValueSome (sprintfn "    movq -8(%%rbp), %s" (_context.RegSet.NameOf(this_reg)))
-               Type = _context.ClassSymMap.[sym.Type]
-               Reg = this_reg |}
+            { Addr = sprintf "%d(%s)"
+                             ((attrs_offset_in_quads + sym.Index) * 8)
+                             (_context.RegSet.NameOf(this_reg))
+              Asm = ValueSome (sprintfn "    movq -8(%%rbp), %s" (_context.RegSet.NameOf(this_reg)))
+              Type = _context.ClassSymMap.[sym.Type]
+              Reg = this_reg }
                
                
     member this.Asm(): AsmBuilder = AsmBuilder(_context)

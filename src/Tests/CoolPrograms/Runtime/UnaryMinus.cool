@@ -1,0 +1,34 @@
+class Main() {
+    {
+        var io: IO = new IO();
+        
+        io.out_string("-0 = "); io.out_int(-0); io.out_nl();
+        io.out_string("--0 = "); io.out_int(--0); io.out_nl();
+        io.out_string("-1 = "); io.out_int(-1); io.out_nl();
+        io.out_string("--1 = "); io.out_int(--1); io.out_nl();
+        io.out_string("-9001 = "); io.out_int(-9001); io.out_nl();
+        io.out_string("--9001 = "); io.out_int(--9001); io.out_nl();
+        
+        var it: Int = 0;
+        
+        it = 0; io.out_string("-0 = "); io.out_int(-it); io.out_nl();
+        it = 0; io.out_string("--0 = "); io.out_int(--it); io.out_nl();
+        it = 1; io.out_string("-1 = "); io.out_int(-it); io.out_nl();
+        it = 1; io.out_string("--1 = "); io.out_int(--it); io.out_nl();
+        it = 9001; io.out_string("-9001 = "); io.out_int(-it); io.out_nl();
+        it = 9001; io.out_string("--9001 = "); io.out_int(--it); io.out_nl()
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: -0 = 0
+// OUT: --0 = 0
+// OUT: -1 = -1
+// OUT: --1 = 1
+// OUT: -9001 = -9001
+// OUT: --9001 = 9001
+// OUT: -0 = 0
+// OUT: --0 = 0
+// OUT: -1 = -1
+// OUT: --1 = 1
+// OUT: -9001 = -9001
+// OUT: --9001 = 9001
