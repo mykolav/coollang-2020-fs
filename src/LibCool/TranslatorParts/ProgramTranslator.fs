@@ -4,6 +4,7 @@ namespace rec LibCool.TranslatorParts
 open System
 open System.Collections.Generic
 open System.Text
+open LibCool.SemanticParts
 open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.DiagnosticParts

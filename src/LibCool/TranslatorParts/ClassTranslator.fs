@@ -4,7 +4,7 @@ namespace rec LibCool.TranslatorParts
 open System.Text
 open LibCool.AstParts
 open LibCool.TranslatorParts
-open AstExtensions
+open LibCool.SemanticParts.AstExtensions
 open LibCool.SharedParts
 
 

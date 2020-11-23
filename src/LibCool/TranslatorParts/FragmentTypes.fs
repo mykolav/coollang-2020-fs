@@ -2,6 +2,7 @@ namespace LibCool.TranslatorParts
 
 
 open System.Runtime.CompilerServices
+open LibCool.SemanticParts
 
 
 [<IsReadOnly; Struct>]

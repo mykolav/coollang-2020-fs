@@ -1,9 +1,8 @@
-namespace rec LibCool.TranslatorParts
+namespace rec LibCool.SemanticParts
 
 
 open System.Collections.Generic
 open LibCool.AstParts
-open LibCool.TranslatorParts
 
 
 [<Sealed>]

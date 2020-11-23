@@ -6,8 +6,9 @@ open System.Text
 open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.AstParts
+open LibCool.SemanticParts
+open LibCool.SemanticParts.AstExtensions
 open LibCool.TranslatorParts
-open AstExtensions
 
 
 [<Sealed>]
