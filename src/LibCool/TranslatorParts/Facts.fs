@@ -11,7 +11,7 @@ module MemoryLayoutFacts =
     let QuadSizeInBytes = 8
 
 
-module ObjectLayoutFacts =
+module ObjLayoutFacts =
     let Tag = 0
     let Size = 8
     let VTable = 16
@@ -22,7 +22,7 @@ module ObjectLayoutFacts =
     let ArrayLength = 24
     let ArrayItems = 32
     
-    let BooleanValue = 24
+    let BoolValue = 24
     let IntValue = 24
 
 
@@ -38,4 +38,7 @@ module RuntimeNames =
     let BoolFalse = "Boolean_false"
     let BoolTrue = "Boolean_true"
     
+    let UnitValue = "Unit_value"
+    
     let RtCopyObject = ".Runtime.copy_object"
+    let StringConcat = "String.concat"

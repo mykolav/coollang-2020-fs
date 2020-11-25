@@ -28,7 +28,7 @@
         <Compile Include="Compiler\CompilerTests.fs" />
         <Compile Include="Compiler\Sandbox.fs" />
         <Compile Include="Program.fs" />
-        <Content Include="CoolPrograms\Runtime\QuickSort.cool" />
+        <Content Include="CoolPrograms\Runtime\QuickSort.cl" />
         <Content Include="CoolPrograms\Runtime\InsertionSort.cool" />
         <Content Include="CoolPrograms\Runtime\Fibonacci.cool" />
         <Content Include="CoolPrograms\Runtime\ArithExprPrecedence.cool" />

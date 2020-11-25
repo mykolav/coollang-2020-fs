@@ -20,7 +20,7 @@ type AsmBuilder(_context: TranslationContext) =
 
         
     // In[struction]
-    member private this.In(instruction: string, comment: string option): AsmBuilder =
+    member this.In(instruction: string, comment: string option): AsmBuilder =
         _asm.Append(_indent)
             .Append(instruction)
             .Nop()
@@ -28,8 +28,8 @@ type AsmBuilder(_context: TranslationContext) =
 
         
     // In[struction]
-    member this.In(instruction: string, arg: obj, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, arg), comment)
+    member this.In(instruction: string, value: obj, ?comment: string): AsmBuilder =
+        this.In(String.Format(instruction, value), comment)
 
         
     // In[struction]
@@ -38,13 +38,31 @@ type AsmBuilder(_context: TranslationContext) =
 
 
     // In[struction]
-    member this.In(instruction: string, src: obj, dst: Reg, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, src, _context.RegSet.NameOf(dst)), comment)
+    member this.In(instruction: string, value: obj, reg: Reg, ?comment: string): AsmBuilder =
+        this.In(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment)
 
 
     // In[struction]
-    member this.In(instruction: string, src: Reg, dst: obj, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, _context.RegSet.NameOf(src), dst), comment)
+    member this.In(instruction: string, value: obj, reg0: Reg, reg1: Reg, ?comment: string): AsmBuilder =
+        this.In(String.Format(instruction,
+                              value,
+                              _context.RegSet.NameOf(reg0),
+                              _context.RegSet.NameOf(reg1)),
+                comment)
+
+
+    // In[struction]
+    member this.In(instruction: string, reg0: Reg, value: obj, reg1: Reg, ?comment: string): AsmBuilder =
+        this.In(String.Format(instruction,
+                              _context.RegSet.NameOf(reg0),
+                              value,
+                              _context.RegSet.NameOf(reg1)),
+                comment)
+
+
+    // In[struction]
+    member this.In(instruction: string, reg: Reg, value: obj, ?comment: string): AsmBuilder =
+        this.In(String.Format(instruction, _context.RegSet.NameOf(reg), value), comment)
 
 
     // In[struction]
@@ -71,6 +89,11 @@ type AsmBuilder(_context: TranslationContext) =
                 .Nop()
         
         this.In(instruction, src.Addr, dst, ?comment=comment)    
+
+
+    // In[struction]
+    member this.Single(instruction: string, value: obj, reg: Reg, ?comment: string): string =
+        this.In(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment).ToString()
 
         
     member this.Jmp(jmp: string, label: Label, comment: string) =
@@ -121,8 +144,17 @@ type AsmBuilder(_context: TranslationContext) =
         this.PushCallerSavedRegs()
             .In("movq    {0}, %rdi", proto_reg)
             .In("call    {0}", RuntimeNames.RtCopyObject)
+            .PopCallerSavedRegs()
             .In("movq    %rax, {0}", copy_reg)
-            .PopCallerSavedRegs()            
+        
+        
+    member this.StringConcat(str0_reg: Reg, str1_reg: Reg, result_reg: Reg): AsmBuilder =
+        this.PushCallerSavedRegs()
+            .In("movq    {0}, %rdi", str0_reg)
+            .In("movq    {0}, %rsi", str1_reg)
+            .In("call    {0}", RuntimeNames.StringConcat)
+            .PopCallerSavedRegs()
+            .In("movq    %rax, {0}", result_reg)
     
     
     member private this.PushCallerSavedRegs(): AsmBuilder =
