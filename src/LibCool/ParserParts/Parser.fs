@@ -541,7 +541,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     | '.' ID actuals infixop_rhs?
     //     ;
     and infixop_rhs (prec_threshold: sbyte) (atom: AstNode<ExprSyntax>): AstNode<ExprSyntax> voption =
-        let span_start = _token.Span.First
+        let span_start = atom.Span.First
         
         let mutable have_errors = false
         let mutable lhs = atom

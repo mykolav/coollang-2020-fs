@@ -100,12 +100,16 @@ type AsmBuilder(_context: TranslationContext) =
         this.In(String.Format("{0}    {1}", jmp, _context.LabelGen.NameOf(label)), comment)
 
 
+    member this.Jmp(label: Label, comment: string) =
+        this.Jmp("jmp", label, comment)
+
+
     member this.Je(label: Label, comment: string) =
         this.Jmp("je", label, comment)
 
 
-    member this.Jmp(label: Label, comment: string) =
-        this.Jmp("jmp", label, comment)
+    member this.Jne(label: Label, comment: string) =
+        this.Jmp("jne", label, comment)
         
         
     member this.Label(label: Label, comment: string) =
@@ -118,7 +122,7 @@ type AsmBuilder(_context: TranslationContext) =
         let location = _context.Source.Map(offset)
         
         let slice_start = offset
-        let slice_end = offset + 40u
+        let slice_end = offset + 20u
                        
         let code_slice = _context.Source.[slice_start .. slice_end]
                                         .Replace("\r", "")
@@ -140,10 +144,18 @@ type AsmBuilder(_context: TranslationContext) =
         this
         
         
+    member this.RtAbortMatch(filename_label: string, line: uint32, col: uint32, expr_reg: Reg): AsmBuilder =
+        this.In("movq    ${0}, %rdi", value=filename_label)
+            .In("movq    ${0}, %rsi", value=line)
+            .In("movq    ${0}, %rdx", value=col)
+            .In("movq    {0}, %rcx", expr_reg)
+            .In("call    {0}", RtNames.RtAbortMatch)
+
+
     member this.RtCopyObject(proto_reg: Reg, copy_reg: Reg): AsmBuilder =
         this.PushCallerSavedRegs()
             .In("movq    {0}, %rdi", proto_reg)
-            .In("call    {0}", RuntimeNames.RtCopyObject)
+            .In("call    {0}", RtNames.RtCopyObject)
             .PopCallerSavedRegs()
             .In("movq    %rax, {0}", copy_reg)
         
@@ -152,7 +164,7 @@ type AsmBuilder(_context: TranslationContext) =
         this.PushCallerSavedRegs()
             .In("movq    {0}, %rdi", str0_reg)
             .In("movq    {0}, %rsi", str1_reg)
-            .In("call    {0}", RuntimeNames.StringConcat)
+            .In("call    {0}", RtNames.StringConcat)
             .PopCallerSavedRegs()
             .In("movq    %rax, {0}", result_reg)
     

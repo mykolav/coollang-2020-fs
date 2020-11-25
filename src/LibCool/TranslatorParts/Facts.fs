@@ -34,11 +34,15 @@ module FrameLayoutFacts =
     let ActualsOffsetInBytes = 0
 
 
-module RuntimeNames =
+module RtNames =
+    let ClassParentTable = "class_parent_table"
+    
     let BoolFalse = "Boolean_false"
     let BoolTrue = "Boolean_true"
     
     let UnitValue = "Unit_value"
     
     let RtCopyObject = ".Runtime.copy_object"
+    let RtAbortMatch = ".Runtime.abort_match"
+    
     let StringConcat = "String.concat"
