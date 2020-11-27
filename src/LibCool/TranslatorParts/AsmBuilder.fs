@@ -2,6 +2,7 @@ namespace LibCool.TranslatorParts
 
 
 open System
+open System.Collections.Generic
 open System.Text
 open LibCool.SharedParts
 
@@ -12,6 +13,9 @@ type AsmBuilder(_context: TranslationContext) =
     
     let _asm = StringBuilder()
     let _indent = "    "
+    
+    
+    let _pushed_caller_saved_regs = Stack<string>()
     
     
     member this.Paste(asm: string): AsmBuilder =
@@ -152,6 +156,13 @@ type AsmBuilder(_context: TranslationContext) =
             .In("call    {0}", RtNames.RtAbortMatch)
 
 
+    member this.RtAbortDispatch(filename_label: string, line: uint32, col: uint32): AsmBuilder =
+        this.In("movq    ${0}, %rdi", filename_label)
+            .In("movq    ${0}, %rsi", line)
+            .In("movq    ${0}, %rdx", col)
+            .In("call    {0}", RtNames.RtAbortDispatch)
+    
+    
     member this.RtCopyObject(proto_reg: Reg, copy_reg: Reg): AsmBuilder =
         this.PushCallerSavedRegs()
             .In("movq    {0}, %rdi", proto_reg)
@@ -168,20 +179,22 @@ type AsmBuilder(_context: TranslationContext) =
             .PopCallerSavedRegs()
             .In("movq    %rax, {0}", result_reg)
     
-    
-    member private this.PushCallerSavedRegs(): AsmBuilder =
-        this.EachAllocatedCallerSavedReg("pushq    {0}")
-            
-            
-    member private this.PopCallerSavedRegs(): AsmBuilder =
-        this.EachAllocatedCallerSavedReg("popq    {0}")
-        
-        
-    member private this.EachAllocatedCallerSavedReg(instruction: string): AsmBuilder =
+
+    member this.PushCallerSavedRegs(): AsmBuilder =
         for reg in SysVAmd64AbiFacts.CallerSavedRegs do
             if _context.RegSet.IsAllocated(reg)
             then
-                this.In(instruction, reg, ?comment=None).AsUnit()
+                this.In("pushq   {0}", reg, ?comment=None).AsUnit()
+                _pushed_caller_saved_regs.Push(reg)
+        this
+            
+            
+    member this.PopCallerSavedRegs(): AsmBuilder =
+        while _pushed_caller_saved_regs.Count > 0 do
+            let reg = _pushed_caller_saved_regs.Pop()
+            this.In("popq    {0}", reg, ?comment=None).AsUnit()
+                
+        _pushed_caller_saved_regs.Clear()
         this
         
         

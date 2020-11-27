@@ -86,8 +86,8 @@ type FrameInfo() =
         else this.ActualsCount
 
     
-    member this.ActualsSizeInBytes: int = this.ActualsInFrameCount * 8
-    member this.VarsSizeInBytes: int = this.VarsCount * 8
+    member this.ActualsSizeInBytes: int = this.ActualsInFrameCount * FrameLayoutFacts.ElemSizeInBytes
+    member this.VarsSizeInBytes: int = this.VarsCount * FrameLayoutFacts.ElemSizeInBytes
 
 
     member this.FrameSizeInBytes: int =
@@ -103,7 +103,7 @@ type FrameInfo() =
                             
 
     member this.CalleeSavedRegsOffsetInBytes: int = this.ActualsSizeInBytes + this.VarsSizeInBytes
-    member this.VarsOffset: int = this.ActualsInFrameCount * 8
+    member this.VarsOffset: int = this.ActualsInFrameCount * FrameLayoutFacts.ElemSizeInBytes
 
 
 [<Sealed>]

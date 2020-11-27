@@ -39,8 +39,14 @@ type private ExprTranslator(_context: TranslationContext,
         | ExprSyntax.Sum (left, right)                         -> translate_sum expr_node left right
         | ExprSyntax.Sub (left, right)                         -> translate_sub expr_node left right
         | ExprSyntax.Match (expr, cases_hd, cases_tl)          -> translate_match expr_node expr cases_hd cases_tl
-        | ExprSyntax.Dispatch (receiver, method_id, actuals)   -> translate_dispatch receiver method_id actuals
-        | ExprSyntax.ImplicitThisDispatch (method_id, actuals) -> translate_dispatch (AstNode.Virtual(ExprSyntax.This)) method_id actuals
+        | ExprSyntax.Dispatch (receiver, method_id, actuals)   -> translate_dispatch expr_node
+                                                                                     receiver
+                                                                                     method_id
+                                                                                     actuals
+        | ExprSyntax.ImplicitThisDispatch (method_id, actuals) -> translate_dispatch expr_node
+                                                                                     (AstNode.Virtual(ExprSyntax.This))
+                                                                                     method_id
+                                                                                     actuals
         | ExprSyntax.SuperDispatch (method_id, actuals)        -> translate_super_dispatch expr_node method_id actuals
         | ExprSyntax.New (type_name, actuals)                  -> translate_new expr_node type_name actuals
         | ExprSyntax.BracedBlock block                         -> this.TranslateBlock(block)
@@ -847,7 +853,8 @@ type private ExprTranslator(_context: TranslationContext,
         Ok (left_frag.Value, right_frag.Value)
     
     
-    and translate_dispatch (receiver: AstNode<ExprSyntax>)
+    and translate_dispatch (dispatch_node: AstNode<ExprSyntax>)
+                           (receiver: AstNode<ExprSyntax>)
                            (method_id: AstNode<ID>)
                            (actuals: AstNode<ExprSyntax>[])
                            : Res<AsmFragment> =
@@ -874,21 +881,18 @@ type private ExprTranslator(_context: TranslationContext,
         let receiver_location = _context.Source.Map(receiver.Span.First)
         let receiver_is_some_label = _context.LabelGen.Generate()
         
-        let asm = StringBuilder()
-        asm.AppendLine(sprintf "    # dispatch %O.%O" receiver_frag.Value.Type.Name
-                                                      method_id.Syntax)
-           .AppendLine("    pushq %r10")
-           .AppendLine("    pushq %r11")
-           .AppendLine("    # actual #0")
-           .Append(receiver_frag.Value.Asm.ToString())
-           .AppendLine(sprintf "    cmpq $0, %s" (_context.RegSet.NameOf(receiver_frag.Value.Reg)))
-           .AppendLine(sprintf "    jne %s # the receiver is some" (_context.LabelGen.NameOf(receiver_is_some_label)))
-           .AppendLine(sprintf "    movq $%s, %%rdi" (_context.StrConsts.GetOrAdd(receiver_location.FileName)))
-           .AppendLine(sprintf "    movq $%d, %%rsi" receiver_location.Line)
-           .AppendLine(sprintf "    movq $%d, %%rdx" receiver_location.Col)
-           .AppendLine("    call .Runtime.abort_dispatch")
-           .AppendLine(sprintf "%s: # the receiver is some" (_context.LabelGen.NameOf(receiver_is_some_label)))
-           .Nop()
+        let asm =
+            this.EmitAsm()
+                .Location(dispatch_node.Span.First)
+                .PushCallerSavedRegs()
+                .Comment("actual #0")
+                .Paste(receiver_frag.Value.Asm)
+                .In("cmpq    $0, {0}", receiver_frag.Value.Reg)
+                .Jne(receiver_is_some_label, "the receiver is some")
+                .RtAbortDispatch(filename_label=_context.StrConsts.GetOrAdd(receiver_location.FileName),
+                                 line=receiver_location.Line,
+                                 col=receiver_location.Col)
+                .Label(receiver_is_some_label, "the receiver is some")
 
         let method_sym = receiver_ty.Methods.[method_id.Syntax]
         let method_name = sprintf "'%O.%O'" receiver_ty.Name method_sym.Name
@@ -907,33 +911,34 @@ type private ExprTranslator(_context: TranslationContext,
         let method_reg = _context.RegSet.Allocate()
         let result_reg = _context.RegSet.Allocate()
         
-        asm.Append(actuals_frag.Value)
-           .AppendLine(sprintf "    movq 16(%%rdi), %s # %O_vtable" (_context.RegSet.NameOf(method_reg))
-                                                                    (receiver_ty.Name))
-           .AppendLine(sprintf "    movq %d(%s), %s # %O.%O"
-                               (method_sym.Index * 8)
-                               (_context.RegSet.NameOf(method_reg))
-                               (_context.RegSet.NameOf(method_reg))
-                               receiver_ty.Name
-                               method_sym.Name)
-           .AppendLine(sprintf "    call *%s" (_context.RegSet.NameOf(method_reg)))
-           .Nop()
+        asm.Paste(actuals_frag.Value)
+           .In("movq    {0}(%rdi), {1}", ObjLayoutFacts.VTable,
+                                         method_reg,
+                                         comment=receiver_ty.Name.ToString() + "_vtable")
+           .In("movq    {0}({1}), {2}", method_sym.Index * MemLayoutFacts.VTableEntrySizeInBytes,
+                                        method_reg,
+                                        method_reg,
+                                        comment=receiver_ty.Name.ToString() + "." + method_sym.Name.ToString())
+           .In("call    *{0}", method_reg)
+           .AsUnit()
         
-        // We only store 5 actuals in registers,
+        // We only have (ActualRegs.Length - 1) registers to store actuals,
         // as we always use %rdi to store `this`.
-        let actual_on_stack_count = actuals.Length - 5
+        let actual_on_stack_count = actuals.Length - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
         if actual_on_stack_count > 0
         then
-            asm.AppendLine(sprintf "    addq $%d, %%rsp" (actual_on_stack_count * 8))
-               .Nop()
+            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSizeInBytes,
+                                         comment="remove " +
+                                                 actual_on_stack_count.ToString() +
+                                                 " actual(s) from stack")
+               .AsUnit()
         
-        asm.AppendLine("    popq %r11")
-           .AppendLine("    popq %r10")
-           .AppendLine(sprintf "    movq %%rax, %s # store return value" (_context.RegSet.NameOf(result_reg)))
-           .Nop()
+        asm.PopCallerSavedRegs()
+           .In("movq    %rax, {0}", result_reg, "returned value")
+           .AsUnit()
 
         _context.RegSet.Free(method_reg)
-    
+
         Ok { AsmFragment.Asm = asm.ToString()
              Type = _context.ClassSymMap.[method_sym.ReturnType]
              Reg = result_reg }

@@ -7,8 +7,8 @@ module SysVAmd64AbiFacts =
     let CallerSavedRegs = [| "%r10"; "%r11" |]
 
 
-module MemoryLayoutFacts =
-    let QuadSizeInBytes = 8
+module MemLayoutFacts =
+    let VTableEntrySizeInBytes = 8
 
 
 module ObjLayoutFacts =
@@ -27,10 +27,10 @@ module ObjLayoutFacts =
 
 
 module FrameLayoutFacts =
-    let CalleeSavedRegsSizeInBytes = SysVAmd64AbiFacts.CalleeSavedRegs.Length *
-                                     MemoryLayoutFacts.QuadSizeInBytes
+    let ElemSizeInBytes = 8
+    let CalleeSavedRegsSizeInBytes = SysVAmd64AbiFacts.CalleeSavedRegs.Length * ElemSizeInBytes
     // skip saved %rbp, and return addr
-    let ActualsOutOfFrameOffset = 2 * MemoryLayoutFacts.QuadSizeInBytes
+    let ActualsOutOfFrameOffset = 2 * ElemSizeInBytes
     let ActualsOffsetInBytes = 0
 
 
@@ -44,5 +44,6 @@ module RtNames =
     
     let RtCopyObject = ".Runtime.copy_object"
     let RtAbortMatch = ".Runtime.abort_match"
+    let RtAbortDispatch = ".Runtime.abort_dispatch"
     
     let StringConcat = "String.concat"
