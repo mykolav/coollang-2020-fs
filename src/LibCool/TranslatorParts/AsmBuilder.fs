@@ -47,6 +47,11 @@ type AsmBuilder(_context: TranslationContext) =
 
 
     // In[struction]
+    member this.In(instruction: string, value0: obj, value1: obj, ?comment: string): AsmBuilder =
+        this.In(String.Format(instruction, value0, value1), comment)
+
+
+    // In[struction]
     member this.In(instruction: string, value: obj, reg0: Reg, reg1: Reg, ?comment: string): AsmBuilder =
         this.In(String.Format(instruction,
                               value,
@@ -164,8 +169,13 @@ type AsmBuilder(_context: TranslationContext) =
     
     
     member this.RtCopyObject(proto_reg: Reg, copy_reg: Reg): AsmBuilder =
+        this.RtCopyObject(proto=_context.RegSet.NameOf(proto_reg),
+                          copy_reg=copy_reg)
+    
+    
+    member this.RtCopyObject(proto: string, copy_reg: Reg): AsmBuilder =
         this.PushCallerSavedRegs()
-            .In("movq    {0}, %rdi", proto_reg)
+            .In("movq    {0}, %rdi", proto)
             .In("call    {0}", RtNames.RtCopyObject)
             .PopCallerSavedRegs()
             .In("movq    %rax, {0}", copy_reg)

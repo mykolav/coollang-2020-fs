@@ -68,16 +68,16 @@ type private ClassTranslator(_context: TranslationContext,
 
     let emit_method_prologue (): unit =
         _sb_code
-            .AppendLine("    pushq %rbp")
-            .AppendLine("    movq %rsp, %rbp")
-            .AppendLine(sprintf "    subq $%d, %%rsp" (_sym_table.Frame.FrameSizeInBytes +
+            .AppendLine("    pushq   %rbp")
+            .AppendLine("    movq    %rsp, %rbp")
+            .AppendLine(sprintf "    subq    $%d, %%rsp" (_sym_table.Frame.FrameSizeInBytes +
                                                        _sym_table.Frame.PadSizeInBytes))
             .AppendLine("    # save actuals on the stack")
             .Nop()
         
         for i in 0 .. (_sym_table.Frame.ActualsInFrameCount - 1) do
             _sb_code
-                .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
+                .AppendLine(sprintf "    movq    %s, -%d(%%rbp)"
                                     SysVAmd64AbiFacts.ActualRegs.[i]
                                     (FrameLayoutFacts.ActualsOffsetInBytes + 8 * (i + 1)))
                 .Nop()
@@ -86,7 +86,7 @@ type private ClassTranslator(_context: TranslationContext,
 
         for i in 0 .. (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
             _sb_code
-                .AppendLine(sprintf "    movq %s, -%d(%%rbp)"
+                .AppendLine(sprintf "    movq    %s, -%d(%%rbp)"
                                     SysVAmd64AbiFacts.CalleeSavedRegs.[i]
                                     (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1)))
                 .Nop()
@@ -99,15 +99,15 @@ type private ClassTranslator(_context: TranslationContext,
 
         for i in 0 .. (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
             _sb_code
-                .AppendLine(sprintf "    movq -%d(%%rbp), %s"
+                .AppendLine(sprintf "    movq    -%d(%%rbp), %s"
                                     (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1))
                                     SysVAmd64AbiFacts.CalleeSavedRegs.[i])
                 .Nop()
 
         _sb_code
             .AppendLine("    # restore the previous frame")
-            .AppendLine("    movq %rbp, %rsp")
-            .AppendLine("    popq %rbp")
+            .AppendLine("    movq    %rbp, %rsp")
+            .AppendLine("    popq    %rbp")
             .AppendLine("    ret")
             .Nop()
     
@@ -220,9 +220,7 @@ type private ClassTranslator(_context: TranslationContext,
                         
         emit_method_prologue ()
         _sb_code
-            .AppendLine("    # begin body")
             .Append(sb_ctor_body.ToString())
-            .AppendLine("    # end body")
             .Nop()
         emit_method_epilogue ()
 
@@ -316,13 +314,11 @@ type private ClassTranslator(_context: TranslationContext,
                         
                     emit_method_prologue ()
                     _sb_code
-                        .AppendLine("    # begin body")
-                        .Append(body_frag.Value.Asm.ToString())
+                        .Append(body_frag.Value.Asm)
                         .AppendLine(sprintf "    movq %s, %%rax"
                                             (if body_frag.Value.Reg = Reg.Null
                                              then "$0"
                                              else _context.RegSet.NameOf(body_frag.Value.Reg)))
-                        .AppendLine("    # end body")
                         .Nop()
                     _context.RegSet.Free(body_frag.Value.Reg)
                     emit_method_epilogue ()
