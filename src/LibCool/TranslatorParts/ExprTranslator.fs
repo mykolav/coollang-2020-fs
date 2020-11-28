@@ -1216,7 +1216,11 @@ type private ExprTranslator(_context: TranslationContext,
     and translate_int int_node int_syntax =
         let const_label = _context.IntConsts.GetOrAdd(int_syntax.Value)
         let reg = _context.RegSet.Allocate()
-        let asm = sprintfn "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+        let asm =
+            this.EmitAsm()
+                .Location(int_node.Span.First)
+                .In("movq    ${0}, {1}", const_label, reg)
+                .ToString()
         
         Ok { AsmFragment.Asm = asm
              Type = BasicClasses.Int
@@ -1226,7 +1230,11 @@ type private ExprTranslator(_context: TranslationContext,
     and translate_str str_node str_syntax =
         let const_label = _context.StrConsts.GetOrAdd(str_syntax.Value)
         let reg = _context.RegSet.Allocate()
-        let asm = sprintfn "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+        let asm =
+            this.EmitAsm()
+                .Location(str_node.Span.First)
+                .In("movq    ${0}, {1}", const_label, reg)
+                .ToString()
         
         Ok { AsmFragment.Asm = asm
              Type = BasicClasses.String
@@ -1238,7 +1246,11 @@ type private ExprTranslator(_context: TranslationContext,
                           then "Boolean_true"
                           else "Boolean_false"
         let reg = _context.RegSet.Allocate()
-        let asm = sprintfn "    movq $%s, %s" const_label (_context.RegSet.NameOf(reg))
+        let asm =
+            this.EmitAsm()
+                .Location(bool_node.Span.First)
+                .In("movq    ${0}, {1}", const_label, reg)
+                .ToString()
                           
         Ok { AsmFragment.Asm = asm
              Type = BasicClasses.Boolean
@@ -1249,29 +1261,28 @@ type private ExprTranslator(_context: TranslationContext,
         let sym = _sym_table.Resolve(ID "this")
         let ty = _context.ClassSymMap.[sym.Type]
 
-        let asm = StringBuilder()
         let addr_frag = this.AddrOf(sym)
         let result_reg = _context.RegSet.Allocate()
         
-        if addr_frag.Asm.IsSome
-        then
-            asm.Append(addr_frag.Asm.Value).Nop()
-        
-        asm.AppendLine(sprintf "    movq %s, %s # this" addr_frag.Addr
-                                                        (_context.RegSet.NameOf(result_reg)))
-           .Nop()
+        let asm =
+            this.EmitAsm()
+                .Location(this_node.Span.First)
+                .In("movq    {0}, {1}", addr_frag, result_reg)
+                .ToString()
            
         _context.RegSet.Free(addr_frag.Reg)
         
-        Ok { AsmFragment.Asm = asm.ToString()
+        Ok { AsmFragment.Asm = asm
              Type = ty
              Reg = result_reg }
         
         
-    and translate_null this_node =
+    and translate_null null_node =
         let result_reg = _context.RegSet.Allocate()
-        let asm = sprintfn "    xorq %s, %s" (_context.RegSet.NameOf(result_reg))
-                                             (_context.RegSet.NameOf(result_reg))
+        let asm = this.EmitAsm()
+                      .Location(null_node.Span.First)
+                      .In("xorq    {0}, {1}", result_reg, result_reg)
+                      .ToString()
         
         Ok { AsmFragment.Asm = asm
              Type = BasicClasses.Null 
@@ -1280,7 +1291,10 @@ type private ExprTranslator(_context: TranslationContext,
         
     and translate_unit unit_node =
         let result_reg = _context.RegSet.Allocate()
-        let asm = sprintfn "    movq $Unit_value, %s" (_context.RegSet.NameOf(result_reg))
+        let asm = this.EmitAsm()
+                      .Location(unit_node.Span.First)
+                      .In("movq    ${0}, {1}", RtNames.UnitValue, result_reg)
+                      .ToString()
         
         Ok { AsmFragment.Asm = asm
              Type = BasicClasses.Unit

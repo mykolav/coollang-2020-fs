@@ -110,15 +110,15 @@ type AsmBuilder(_context: TranslationContext) =
 
 
     member this.Jmp(label: Label, comment: string) =
-        this.Jmp("jmp", label, comment)
+        this.Jmp("jmp ", label, comment)
 
 
     member this.Je(label: Label, comment: string) =
-        this.Jmp("je ", label, comment)
+        this.Jmp("je  ", label, comment)
 
 
     member this.Jne(label: Label, comment: string) =
-        this.Jmp("jne", label, comment)
+        this.Jmp("jne ", label, comment)
         
         
     member this.Label(label: Label, comment: string) =
