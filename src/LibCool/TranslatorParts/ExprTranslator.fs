@@ -1197,22 +1197,18 @@ type private ExprTranslator(_context: TranslationContext,
         | ValueSome sym ->
             let ty = _context.ClassSymMap.[sym.Type]
             
-            let asm = StringBuilder()
             let addr_frag = this.AddrOf(sym)
             let result_reg = _context.RegSet.Allocate()
             
-            if addr_frag.Asm.IsSome
-            then
-                asm.Append(addr_frag.Asm.Value).Nop()
-            
-            asm.AppendLine(sprintf "    movq %s, %s # %O" addr_frag.Addr
-                                                          (_context.RegSet.NameOf(result_reg))
-                                                          sym.Name)
-               .Nop()
-            
+            let asm =
+                this.EmitAsm()
+                    .Location(id_node.Span.First)
+                    .In("movq    {0}, {1}", addr_frag, result_reg, comment=sym.Name.ToString())
+                    .ToString()
+                    
             _context.RegSet.Free(addr_frag.Reg)
             
-            Ok { AsmFragment.Asm = asm.ToString()
+            Ok { AsmFragment.Asm = asm
                  Type = ty
                  Reg = result_reg }
             
