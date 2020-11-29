@@ -45,7 +45,7 @@ type Symbol =
         { Symbol.Name = ID "this"
           Type = class_syntax.NAME.Syntax
           Index = 0
-          SyntaxSpan = Span.Invalid
+          SyntaxSpan = Span.Virtual
           Kind = SymbolKind.Formal }        
 
 [<Sealed>]

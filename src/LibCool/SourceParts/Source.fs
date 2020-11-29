@@ -138,6 +138,11 @@ type Source(partSeq: seq<SourcePart>) =
 
 
     member this.Map(offset: uint32): Location =
+        if offset = UInt32.MaxValue
+        then
+            { FileName = "Virtual"; Line = 0u; Col = 0u }
+        else
+            
         let part = part_index_of offset
         let lc = line_col_of offset
         { FileName = _file_names.[part]; Line = lc.Line; Col = lc.Col }

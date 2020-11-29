@@ -100,7 +100,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(assign_node_span.First)
+                .Location(assign_node_span)
                 .Paste(expr_frag.Value.Asm)
                 .In("movq    {0}, {1}", expr_frag.Value.Reg, addr_frag, comment=id.Syntax.ToString())
                 .ToString()
@@ -132,7 +132,7 @@ type private ExprTranslator(_context: TranslationContext,
         
         let asm =
             this.EmitAsm()
-                .Location(bool_negation_node.Span.First)
+                .Location(bool_negation_node.Span)
                 .Paste(negated_frag.Asm)
                 .In("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, negated_frag.Reg)
                 .Je(false_label, "false")
@@ -159,7 +159,7 @@ type private ExprTranslator(_context: TranslationContext,
         let negated_frag = negated_frag.Value
         let asm =
             this.EmitAsm()
-                .Location(unary_minus_node.Span.First)
+                .Location(unary_minus_node.Span)
                 .Paste(negated_frag.Asm)
                 .RtCopyObject(proto_reg=negated_frag.Reg, copy_reg=negated_frag.Reg)
                 .In("negq    {0}({1})", ObjLayoutFacts.IntValue, negated_frag.Reg)
@@ -219,7 +219,8 @@ type private ExprTranslator(_context: TranslationContext,
             else
                 
             let left_frag, right_frag = operands.Value
-            let asm = emit_cmpop_with_branches left_frag
+            let asm = emit_cmpop_with_branches if_node
+                                               left_frag
                                                right_frag
                                                jmp
                                                (*false_branch*)else_asm
@@ -277,7 +278,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(if_node.Span.First)
+                .Location(if_node.Span)
                 .Paste(condition_frag.Value.Asm)
                 .In("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, condition_frag.Value.Reg)
                 .Je(else_label, "else")
@@ -331,7 +332,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(while_node.Span.First)
+                .Location(while_node.Span)
                 .Label(while_cond_label, "while cond")
                 .Paste(condition_frag.Value.Asm)
                 .In("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, condition_frag.Value.Reg)
@@ -355,7 +356,7 @@ type private ExprTranslator(_context: TranslationContext,
         else
         
         let left_frag, right_frag = operands.Value
-        let asm_frag = emit_cmpop left_frag right_frag "jle"
+        let asm_frag = emit_cmpop lt_eq_node left_frag right_frag "jle "
         
         Ok { AsmFragment.Asm = asm_frag.Asm
              Type = BasicClasses.Boolean
@@ -370,7 +371,7 @@ type private ExprTranslator(_context: TranslationContext,
         else
         
         let left_frag, right_frag = operands.Value
-        let asm_frag = emit_cmpop left_frag right_frag "jge"
+        let asm_frag = emit_cmpop gt_eq_node left_frag right_frag "jge "
         
         Ok { AsmFragment.Asm = asm_frag.Asm
              Type = BasicClasses.Boolean
@@ -385,7 +386,7 @@ type private ExprTranslator(_context: TranslationContext,
         else
         
         let left_frag, right_frag = operands.Value
-        let asm_frag = emit_cmpop left_frag right_frag "jl"
+        let asm_frag = emit_cmpop lt_node left_frag right_frag "jl  "
         
         Ok { AsmFragment.Asm = asm_frag.Asm
              Type = BasicClasses.Boolean
@@ -400,7 +401,7 @@ type private ExprTranslator(_context: TranslationContext,
         else
         
         let left_frag, right_frag = operands.Value
-        let asm_frag = emit_cmpop left_frag right_frag "jg"
+        let asm_frag = emit_cmpop gt_node left_frag right_frag "jg  "
         
         Ok { AsmFragment.Asm = asm_frag.Asm
              Type = BasicClasses.Boolean
@@ -462,7 +463,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(mul_node.Span.First)
+                .Location(mul_node.Span)
                 .Paste(left_frag.Asm)
                 .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
                 .Paste(right_frag.Asm)
@@ -489,7 +490,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(div_node.Span.First)
+                .Location(div_node.Span)
                 .Paste(left_frag.Asm)
                 .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
                 .Paste(right_frag.Asm)
@@ -533,7 +534,7 @@ type private ExprTranslator(_context: TranslationContext,
   
         let asm =
             this.EmitAsm()
-                .Location(sum_node.Span.First)
+                .Location(sum_node.Span)
                 .Paste(left_frag.Asm)
                 .Paste(right_frag.Asm)
         
@@ -566,7 +567,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(sub_node.Span.First)
+                .Location(sub_node.Span)
                 .Paste(left_frag.Asm)
                 .Paste(right_frag.Asm)
                 // left - right
@@ -591,7 +592,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(match_node.Span.First)
+                .Location(match_node.Span)
                 .Paste(expr_frag.Value.Asm)
            
         let tag_reg = _context.RegSet.Allocate()
@@ -733,7 +734,7 @@ type private ExprTranslator(_context: TranslationContext,
                 if block_frag.IsOk
                 then
                     let pattern_asm_info = pattern_asm_infos.[pattern_ty]
-                    asm.Location(case.Span.First)
+                    asm.Location(case.Span)
                        .Label(pattern_asm_info.Label, comment="case " + pattern_ty.ToString())
                        .Paste(block_frag.Value.Asm)
                        .In("movq    {0}, {1}", block_frag.Value.Reg, result_reg)
@@ -879,20 +880,20 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
             
-        let receiver_location = _context.Source.Map(receiver.Span.First)
+        let dispatch_location = _context.Source.Map(dispatch_node.Span.First)
         let receiver_is_some_label = _context.LabelGen.Generate()
         
         let asm =
             this.EmitAsm()
-                .Location(dispatch_node.Span.First)
+                .Location(dispatch_node.Span)
                 .PushCallerSavedRegs()
                 .Comment("actual #0")
                 .Paste(receiver_frag.Value.Asm)
                 .In("cmpq    $0, {0}", receiver_frag.Value.Reg)
                 .Jne(receiver_is_some_label, "the receiver is some")
-                .RtAbortDispatch(filename_label=_context.StrConsts.GetOrAdd(receiver_location.FileName),
-                                 line=receiver_location.Line,
-                                 col=receiver_location.Col)
+                .RtAbortDispatch(filename_label=_context.StrConsts.GetOrAdd(dispatch_location.FileName),
+                                 line=dispatch_location.Line,
+                                 col=dispatch_location.Col)
                 .Label(receiver_is_some_label, "the receiver is some")
 
         let method_sym = receiver_ty.Methods.[method_id.Syntax]
@@ -982,7 +983,7 @@ type private ExprTranslator(_context: TranslationContext,
             
         let asm =
             this.EmitAsm()
-                .Location(super_dispatch_node.Span.First)
+                .Location(super_dispatch_node.Span)
                 .PushCallerSavedRegs()
                 .Comment("actual #0")
                 .Paste(this_frag.Value.Asm)
@@ -1034,7 +1035,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(new_node.Span.First)
+                .Location(new_node.Span)
                 .PushCallerSavedRegs()
         
         // The actual's type '%O' does not conform to the %s's type '%O'
@@ -1202,7 +1203,7 @@ type private ExprTranslator(_context: TranslationContext,
             
             let asm =
                 this.EmitAsm()
-                    .Location(id_node.Span.First)
+                    .Location(id_node.Span)
                     .In("movq    {0}, {1}", addr_frag, result_reg, comment=sym.Name.ToString())
                     .ToString()
                     
@@ -1218,7 +1219,7 @@ type private ExprTranslator(_context: TranslationContext,
         let reg = _context.RegSet.Allocate()
         let asm =
             this.EmitAsm()
-                .Location(int_node.Span.First)
+                .Location(int_node.Span)
                 .In("movq    ${0}, {1}", const_label, reg)
                 .ToString()
         
@@ -1232,7 +1233,7 @@ type private ExprTranslator(_context: TranslationContext,
         let reg = _context.RegSet.Allocate()
         let asm =
             this.EmitAsm()
-                .Location(str_node.Span.First)
+                .Location(str_node.Span)
                 .In("movq    ${0}, {1}", const_label, reg)
                 .ToString()
         
@@ -1248,7 +1249,7 @@ type private ExprTranslator(_context: TranslationContext,
         let reg = _context.RegSet.Allocate()
         let asm =
             this.EmitAsm()
-                .Location(bool_node.Span.First)
+                .Location(bool_node.Span)
                 .In("movq    ${0}, {1}", const_label, reg)
                 .ToString()
                           
@@ -1266,7 +1267,7 @@ type private ExprTranslator(_context: TranslationContext,
         
         let asm =
             this.EmitAsm()
-                .Location(this_node.Span.First)
+                .Location(this_node.Span)
                 .In("movq    {0}, {1}", addr_frag, result_reg)
                 .ToString()
            
@@ -1280,7 +1281,7 @@ type private ExprTranslator(_context: TranslationContext,
     and translate_null null_node =
         let result_reg = _context.RegSet.Allocate()
         let asm = this.EmitAsm()
-                      .Location(null_node.Span.First)
+                      .Location(null_node.Span)
                       .In("xorq    {0}, {1}", result_reg, result_reg)
                       .ToString()
         
@@ -1292,7 +1293,7 @@ type private ExprTranslator(_context: TranslationContext,
     and translate_unit unit_node =
         let result_reg = _context.RegSet.Allocate()
         let asm = this.EmitAsm()
-                      .Location(unit_node.Span.First)
+                      .Location(unit_node.Span)
                       .In("movq    ${0}, {1}", RtNames.UnitValue, result_reg)
                       .ToString()
         
@@ -1347,22 +1348,25 @@ type private ExprTranslator(_context: TranslationContext,
         Error
 
     
-    and emit_cmpop (left_frag: AsmFragment)
+    and emit_cmpop (cmpop_node: AstNode<ExprSyntax>)
+                   (left_frag: AsmFragment)
                    (right_frag: AsmFragment)
                    (jmp: string)
                    : struct {| Asm: string; Reg: Reg |} =
         
         let result_reg = _context.RegSet.Allocate()
         let asm =
-            emit_cmpop_with_branches left_frag
+            emit_cmpop_with_branches cmpop_node
+                                     left_frag
                                      right_frag
                                      jmp
-                                     (sprintfn "    movq $Boolean_false, %s" (_context.RegSet.NameOf(result_reg)))
-                                     (sprintfn "    movq $Boolean_true, %s" (_context.RegSet.NameOf(result_reg)))
+                                     (*false_branch*)(this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolFalse, result_reg))
+                                     (*true_branch*)(this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolTrue, result_reg))
         {| Asm=asm; Reg=result_reg |}
     
     
-    and emit_cmpop_with_branches (left_frag: AsmFragment)
+    and emit_cmpop_with_branches (cmpop_node: AstNode<ExprSyntax>)
+                                 (left_frag: AsmFragment)
                                  (right_frag: AsmFragment)
                                  (jmp: string)
                                  (false_branch: string)
@@ -1372,30 +1376,27 @@ type private ExprTranslator(_context: TranslationContext,
         let true_label = _context.LabelGen.Generate()
         let done_label = _context.LabelGen.Generate()
         
-        let asm = StringBuilder()
-        
-        asm.AppendLine("    #. cmp op / if")
-           .Append(left_frag.Asm.ToString())
-           .Append(right_frag.Asm.ToString())
-           .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(left_frag.Reg))
-                                                     (_context.RegSet.NameOf(left_frag.Reg)))
-           .AppendLine(sprintf "    movq 24(%s), %s" (_context.RegSet.NameOf(right_frag.Reg))
-                                                     (_context.RegSet.NameOf(right_frag.Reg)))
-           .AppendLine(sprintf "    cmpq %s, %s" (_context.RegSet.NameOf(right_frag.Reg))
-                                                 (_context.RegSet.NameOf(left_frag.Reg)))
-           .AppendLine(sprintf "    %s %s # true / then" jmp (_context.LabelGen.NameOf(true_label)))
-           .AppendLine("    # false / else")
-           .Append(false_branch)
-           .AppendLine(sprintf "    jmp %s # done" (_context.LabelGen.NameOf(done_label)))
-           .AppendLine(sprintf "%s: # true / then" (_context.LabelGen.NameOf(true_label)))
-           .Append(true_branch)
-           .AppendLine(sprintf "%s: #. end cmp op / if" (_context.LabelGen.NameOf(done_label)))
-           .Nop()
-        
+        let asm =
+            this.EmitAsm()
+                .Location(cmpop_node.Span)
+                .Paste(left_frag.Asm)
+                .Paste(right_frag.Asm)
+                .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, left_frag.Reg, left_frag.Reg)
+                .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, right_frag.Reg, right_frag.Reg)
+                .In("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
+                .Jmp(jmp, true_label, "true branch")
+                .Comment("false branch")
+                .Paste(false_branch)
+                .Jmp(done_label, "done")
+                .Label(true_label, "true branch")
+                .Paste(true_branch)
+                .Label(done_label, "done")
+                .ToString()
+                
         _context.RegSet.Free(left_frag.Reg)
         _context.RegSet.Free(right_frag.Reg)
         
-        asm.ToString()
+        asm
     
     
     and emit_eqop_with_branches (left_frag: AsmFragment)

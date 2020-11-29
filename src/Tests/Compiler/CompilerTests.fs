@@ -30,7 +30,7 @@ type CompilerTests(test_output: ITestOutputHelper) =
 
     [<Theory>]
     [<MemberData("TestCases", MemberType = typeof<CompilerTestCaseSource>)>]
-    member _.CompileAndRun(path: string) =
+    member _.``Compile and run``(path: string) =
         // Arrange
         
         // Build a program's path relative to the 'CoolBuild' folder.

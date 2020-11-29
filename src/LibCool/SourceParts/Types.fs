@@ -1,6 +1,7 @@
 namespace LibCool.SourceParts
 
 
+open System
 open System.Runtime.CompilerServices
 
 
@@ -14,10 +15,10 @@ type Span =
     { First: uint32
       Last: uint32 }
     with
-    static member Invalid = { First = 0u; Last = 0u }
+    static member Virtual = { First = UInt32.MaxValue; Last = UInt32.MaxValue }
     static member Of(first, last) = { First = first; Last = last }
-    member this.IsValid: bool = this <> Span.Invalid
-    member this.IsInvalid: bool = this = Span.Invalid
+    member this.IsPhysical: bool = this <> Span.Virtual
+    member this.IsVirtual: bool = this = Span.Virtual
 
 
 [<IsReadOnly; Struct>]

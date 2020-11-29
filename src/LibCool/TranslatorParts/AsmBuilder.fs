@@ -5,6 +5,7 @@ open System
 open System.Collections.Generic
 open System.Text
 open LibCool.SharedParts
+open LibCool.SourceParts
 
 
 [<Sealed>]
@@ -127,22 +128,41 @@ type AsmBuilder(_context: TranslationContext) =
         this.Ln(comment)
         
         
-    member this.Location(offset: uint32) =
-        let location = _context.Source.Map(offset)
+     member this.Location(offset: uint32, ?length: uint32) =
+         if offset = UInt32.MaxValue
+         then
+             this
+         else
+             let max_length = 20u
+             
+             let length, shortified =
+                 match length with
+                 | None        -> max_length, true
+                 | Some length -> if length <= max_length
+                                  then length, false
+                                  else max_length, true
+                                  
+             let location = _context.Source.Map(offset)
+             
+             let slice_start = offset
+             let slice_end = offset + length
+                            
+             let code_slice = _context.Source.[slice_start .. slice_end]
+                                             .Replace("\r", "")
+                                             .Replace("\n", " \\n ")
+             let code_slice = if shortified
+                              then code_slice + " ..."
+                              else code_slice
+ 
+             this.Comment(String.Format("# {0}({1},{2}): {3}",
+                                   location.FileName,
+                                   location.Line,
+                                   location.Col,
+                                   code_slice))        
         
-        let slice_start = offset
-        let slice_end = offset + 20u
-                       
-        let code_slice = _context.Source.[slice_start .. slice_end]
-                                        .Replace("\r", "")
-                                        .Replace("\n", " \\n ")
-
-        this.In(String.Format("# {0}({1},{2}): ... {3} ...",
-                              location.FileName,
-                              location.Line,
-                              location.Col,
-                              code_slice),
-                comment=None)        
+        
+    member this.Location(span: Span) =
+        this.Location(span.First, span.Last - span.First)
 
 
     member this.Comment(comment: string) =

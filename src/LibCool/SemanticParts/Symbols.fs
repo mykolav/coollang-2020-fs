@@ -29,7 +29,7 @@ type MethodSymbol =
       DeclaringClass: TYPENAME
       Index: int
       SyntaxSpan: Span }
-    member this.IsVirtual: bool = this.SyntaxSpan = Span.Invalid
+    member this.IsVirtual: bool = this.SyntaxSpan = Span.Virtual
     static member Virtual(name: ID,
                           return_type: TYPENAME,
                           ?is_override: bool,
@@ -42,12 +42,12 @@ type MethodSymbol =
           Formals = formals |> Array.mapi (fun i (id, ty) -> { FormalSymbol.Name = id
                                                                Type = ty
                                                                Index = i+1
-                                                               SyntaxSpan = Span.Invalid })
+                                                               SyntaxSpan = Span.Virtual })
           ReturnType = return_type
           Override = is_override
           DeclaringClass = TYPENAME ""
           Index = -1
-          SyntaxSpan = Span.Invalid }
+          SyntaxSpan = Span.Virtual }
 
 
 type ClassSymbol =
@@ -61,7 +61,7 @@ type ClassSymbol =
     
     
     member this.IsSpecial: bool = this.Tag = -1
-    member this.IsVirtual: bool = this.SyntaxSpan = Span.Invalid
+    member this.IsVirtual: bool = this.SyntaxSpan = Span.Virtual
     
     
     member this.Is(class_sym: ClassSymbol): bool = this.Name = class_sym.Name
@@ -99,7 +99,7 @@ type ClassSymbol =
           Attrs = Map.empty
           Methods = method_map
           Tag = tag
-          SyntaxSpan = Span.Invalid }
+          SyntaxSpan = Span.Virtual }
 
 
 [<RequireQualifiedAccess>]

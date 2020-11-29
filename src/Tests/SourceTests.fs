@@ -1,6 +1,10 @@
 namespace Tests
 
+open System
+
+
 module SourceTestFixture =
+
 
     [<Literal>]
     let first_cool =
@@ -17,6 +21,7 @@ module SourceTestFixture =
         "    };\r\n" +
         "}"
 
+
     [<Literal>]
     let second_cool =
         "class Main() {\r\n" +
@@ -28,7 +33,10 @@ open Xunit
 open SourceTestFixture
 open LibCool.SourceParts
 
+
 type SourceTests() =
+    
+    
     let translates_to location (offset, snippets: (string * string) list) = 
         // Arrange
         let parts = snippets
@@ -43,6 +51,7 @@ type SourceTests() =
         // Assert
         Assert.Equal(expected=location, actual=actual)
 
+    
     [<Fact>]
     member this.``Sum of the part sizes = the source size``() =
         // Arrange
@@ -56,36 +65,49 @@ type SourceTests() =
         // Assert
         Assert.Equal(expected = expected_size, actual = source.Size)
 
+    
+    [<Fact>]
+    member this.``UInt32.MaxValue => Virtual:0:0``() =
+        (UInt32.MaxValue, [("first", first_cool)
+                           ("second", second_cool)]) 
+        |> translates_to { FileName = "Virtual"; Line = 0u; Col = 0u }
+
+    
     [<Fact>]
     member this.``0 => first.cool:1:1``() =
         (0u, [("first", first_cool)
               ("second", second_cool)]) 
         |> translates_to { FileName = "first.cool"; Line = 1u; Col = 1u }
 
+    
     [<Fact>]
     member this.``53 => first.cool:2:27``() =
         (53u, [("first", first_cool)
                ("second", second_cool)]) 
         |> translates_to { FileName = "first.cool"; Line = 2u; Col = 27u }
 
+    
     [<Fact>]
     member this.``54 => first.cool:3:1``() =
         (54u, [("first", first_cool)
                ("second", second_cool)]) 
         |> translates_to { FileName = "first.cool"; Line = 3u; Col = 1u }
 
+    
     [<Fact>]
     member this.``239 => first.cool:12:1``() =
         (239u, [("first", first_cool)
                 ("second", second_cool)]) 
         |> translates_to { FileName = "first.cool"; Line = 12u; Col = 1u }
 
+    
     [<Fact>]
     member this.``240 => second.cool:12:2``() =
         (240u, [("first", first_cool)
                 ("second", second_cool)]) 
         |> translates_to { FileName = "second.cool"; Line = 12u; Col = 2u }
 
+    
     [<Fact>]
     member this.``277 => second.cool:14:3``() =
         (277u, [("first", first_cool)

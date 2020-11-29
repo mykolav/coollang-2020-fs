@@ -3,6 +3,7 @@ namespace LibCool.ParserParts
 
 open System
 open System.Text
+open LibCool.SharedParts
 open LibCool.DiagnosticParts
 open LibCool.SourceParts
 
@@ -59,7 +60,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             eat_char()
             
             
-    let try_eat_linebreak(): Span =
+    let try_eat_linebreak(): Span voption =
         let ch = peek_char()
         if ch = '\r' || ch = '\n'
         then
@@ -72,10 +73,10 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                 else
                     1u
                 
-            Span.Of(_offset - linebreak_len, _offset)
+            ValueSome (Span.Of(_offset - linebreak_len, _offset))
         else
             
-        Span.Invalid
+        ValueNone
         
         
     let id_kind (id: string): TokenKind =
@@ -203,7 +204,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         then
             // line comment
             eat_char()
-            while not (is_eof()) && try_eat_linebreak().IsInvalid do
+            while not (is_eof()) && try_eat_linebreak().IsNone do
                 eat_char()
             
             None
@@ -312,12 +313,12 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             else
                 
             let linebreak_span = try_eat_linebreak()
-            if linebreak_span.IsValid
+            if linebreak_span.IsSome
             then
-                _diags.Error("String literals cannot contain line breaks", linebreak_span)
+                _diags.Error("String literals cannot contain line breaks", linebreak_span.Value)
             else
 
-            sb_literal.Append(ch1) |> ignore
+            sb_literal.Append(ch1).Nop()
             eat_char()
             
         token_opt        

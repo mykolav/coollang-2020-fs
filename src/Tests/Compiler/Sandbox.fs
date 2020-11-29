@@ -56,7 +56,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
         
 
     [<Fact>]
-    member _.PrintAst() =
+    member _.``Print ast``() =
         let ast = parse "Runtime/ArithExprPrecedence.cool"
         //let ast = parse "Runtime/IfElseExprPrecedence.cool"
         let rendered = AstRenderer.Render(ast.Value)
@@ -64,7 +64,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
 
 
     [<Fact>]
-    member _.PrintAsm() =
+    member _.``Print asm``() =
         // Arrange
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/ArithExprPrecedence.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/IfElseExprPrecedence.cool")

@@ -271,7 +271,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
           Override = false
           DeclaringClass = class_syntax.NAME.Syntax
           Index = -1
-          SyntaxSpan = Span.Invalid }
+          SyntaxSpan = Span.Virtual }
     
 
     let mk_class_sym (class_node: AstNode<ClassSyntax>)
