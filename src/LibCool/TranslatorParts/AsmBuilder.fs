@@ -199,6 +199,14 @@ type AsmBuilder(_context: TranslationContext) =
             .In("call    {0}", RtNames.RtCopyObject)
             .PopCallerSavedRegs()
             .In("movq    %rax, {0}", copy_reg)
+            
+            
+    member this.RtAreEqual(left_reg: Reg, right_reg: Reg): AsmBuilder =
+        this.PushCallerSavedRegs()
+            .In("movq    {0}, %rdi", left_reg)
+            .In("movq    {0}, %rsi", right_reg)
+            .In("call    {0}", RtNames.RtAreEqual)
+            .PopCallerSavedRegs()
         
         
     member this.StringConcat(str0_reg: Reg, str1_reg: Reg, result_reg: Reg): AsmBuilder =

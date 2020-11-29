@@ -246,7 +246,8 @@ type private ExprTranslator(_context: TranslationContext,
                 
             let left_frag, right_frag = operands.Value
             let asm = 
-                emit_eqop_with_branches left_frag
+                emit_eqop_with_branches if_node
+                                        left_frag
                                         right_frag
                                         unequal_branch
                                         equal_branch
@@ -420,7 +421,8 @@ type private ExprTranslator(_context: TranslationContext,
         let unequal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolFalse, result_reg, "false")
         let left_frag, right_frag = operands.Value
         let asm = 
-            emit_eqop_with_branches left_frag
+            emit_eqop_with_branches eq_eq_node
+                                    left_frag
                                     right_frag
                                     unequal_branch
                                     equal_branch
@@ -442,7 +444,8 @@ type private ExprTranslator(_context: TranslationContext,
         let equal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolFalse, result_reg, "false")
         let left_frag, right_frag = operands.Value
         let asm = 
-            emit_eqop_with_branches left_frag
+            emit_eqop_with_branches not_eq_node
+                                    left_frag
                                     right_frag
                                     unequal_branch
                                     equal_branch
@@ -1244,8 +1247,8 @@ type private ExprTranslator(_context: TranslationContext,
         
     and translate_bool bool_node bool_syntax =
         let const_label = if bool_syntax = BOOL.True
-                          then "Boolean_true"
-                          else "Boolean_false"
+                          then RtNames.BoolTrue
+                          else RtNames.BoolFalse
         let reg = _context.RegSet.Allocate()
         let asm =
             this.EmitAsm()
@@ -1399,7 +1402,8 @@ type private ExprTranslator(_context: TranslationContext,
         asm
     
     
-    and emit_eqop_with_branches (left_frag: AsmFragment)
+    and emit_eqop_with_branches (eqop_node: AstNode<ExprSyntax>)
+                                (left_frag: AsmFragment)
                                 (right_frag: AsmFragment)
                                 (unequal_branch: string)
                                 (equal_branch: string)
@@ -1407,33 +1411,25 @@ type private ExprTranslator(_context: TranslationContext,
 
         let equal_label = _context.LabelGen.Generate()
         let done_label = _context.LabelGen.Generate()
-        
+                
         let asm =
-            StringBuilder()
-                .AppendLine("    # eq op / if")
-                .Append(left_frag.Asm.ToString())
-                .Append(right_frag.Asm.ToString())
-                .AppendLine("    # try ptr equality first")
-                .AppendLine(sprintf "    cmpq %s, %s" (_context.RegSet.NameOf(left_frag.Reg))
-                                                      (_context.RegSet.NameOf(right_frag.Reg)))
-                .AppendLine(sprintf "    je %s # equal" (_context.LabelGen.NameOf(equal_label)))
-                .AppendLine("    pushq %r10")
-                .AppendLine("    pushq %r11")
-                .AppendLine(sprintf "    movq %s, %%rdi" (_context.RegSet.NameOf(left_frag.Reg)))
-                .AppendLine(sprintf "    movq %s, %%rsi" (_context.RegSet.NameOf(right_frag.Reg)))
-                .AppendLine("    call .Runtime.are_equal")
-                .AppendLine("    popq %r11")
-                .AppendLine("    popq %r10")
-                .AppendLine("    cmpq $Boolean_true, %rax")
-                .AppendLine(sprintf "    je %s # equal" (_context.LabelGen.NameOf(equal_label)))
-                .AppendLine("    # unequal")
-                .Append(unequal_branch)
-                .AppendLine(sprintf "    jmp %s # done" (_context.LabelGen.NameOf(done_label)))
-                .AppendLine("    # equal")
-                .AppendLine(sprintf "%s:" (_context.LabelGen.NameOf(equal_label)))
-                .Append(equal_branch)
-                .AppendLine("    # done")
-                .AppendLine(sprintf "%s: # end eq_op / if" (_context.LabelGen.NameOf(done_label)))
+            this.EmitAsm()
+                .Location(eqop_node.Span)
+                .Paste(left_frag.Asm)
+                .Paste(right_frag.Asm)
+                .Comment("are pointers equal?")
+                .In("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
+                .Je(equal_label, "equal")
+                .RtAreEqual(left_reg=left_frag.Reg, right_reg=right_frag.Reg)
+                .In("movq    {0}(%rax), %rax", ObjLayoutFacts.BoolValue)
+                .In("cmpq    $0, %rax", comment=None)
+                .Jne(equal_label, "equal")
+                .Comment("unequal")
+                .Paste(unequal_branch)
+                .Jmp(done_label, "done")
+                .Label(equal_label, "equal")
+                .Paste(equal_branch)
+                .Label(done_label, "done")
                 .ToString()
             
         _context.RegSet.Free(left_frag.Reg)

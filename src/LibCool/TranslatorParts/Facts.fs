@@ -43,6 +43,7 @@ module RtNames =
     let UnitValue = "Unit_value"
     
     let RtCopyObject = ".Runtime.copy_object"
+    let RtAreEqual = ".Runtime.are_equal"
     let RtAbortMatch = ".Runtime.abort_match"
     let RtAbortDispatch = ".Runtime.abort_dispatch"
     
