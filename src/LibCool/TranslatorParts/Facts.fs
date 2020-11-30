@@ -7,12 +7,16 @@ module SysVAmd64AbiFacts =
     let CallerSavedRegs = [| "%r10"; "%r11" |]
 
 
+// All offsets and sizes are given in bytes.
 module MemLayoutFacts =
-    let VTableEntrySizeInBytes = 8
+    let VTableEntrySize = 8
 
 
+// All offsets and sizes are given in bytes.
+// We use a suffix 'Size' for sizes.
+// We don't use any suffix for offsets.
 module ObjLayoutFacts =
-    let ElemSizeInBytes = 8
+    let ElemSize = 8
 
     let Tag = 0
     let Size = 8
@@ -29,14 +33,17 @@ module ObjLayoutFacts =
     let IntValue = 24
 
 
+// All offsets and sizes are given in bytes.
+// We use a suffix 'Size' for sizes.
+// We don't use any suffix for offsets.
 module FrameLayoutFacts =
-    let ElemSizeInBytes = 8
+    let ElemSize = 8
     
-    let CalleeSavedRegsSizeInBytes = SysVAmd64AbiFacts.CalleeSavedRegs.Length * ElemSizeInBytes
+    let CalleeSavedRegsSize = SysVAmd64AbiFacts.CalleeSavedRegs.Length * ElemSize
     
     // skip saved %rbp, and return addr
-    let ActualsInCallerFrameOffset = 2 * ElemSizeInBytes
-    let ActualsOffsetInBytes = 0
+    let ActualsInCallerFrame = 2 * ElemSize
+    let Actuals = 0
     let This = -8
 
 

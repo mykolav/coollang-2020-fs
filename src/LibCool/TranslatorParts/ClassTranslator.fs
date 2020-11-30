@@ -70,16 +70,16 @@ type private ClassTranslator(_context: TranslationContext,
         _sb_code
             .AppendLine("    pushq   %rbp")
             .AppendLine("    movq    %rsp, %rbp")
-            .AppendLine(sprintf "    subq    $%d, %%rsp" (_sym_table.Frame.FrameSizeInBytes +
-                                                       _sym_table.Frame.PadSizeInBytes))
+            .AppendLine(sprintf "    subq    $%d, %%rsp" (_sym_table.Frame.FrameSize +
+                                                          _sym_table.Frame.PadSize))
             .AppendLine("    # save actuals on the stack")
             .Nop()
         
-        for i in 0 .. (_sym_table.Frame.ActualsInFrameCount - 1) do
+        for i = 0 to (_sym_table.Frame.ActualsInFrameCount - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq    %s, -%d(%%rbp)"
                                     SysVAmd64AbiFacts.ActualRegs.[i]
-                                    (FrameLayoutFacts.ActualsOffsetInBytes + 8 * (i + 1)))
+                                    (FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize))
                 .Nop()
         
         _sb_code.AppendLine("    # store callee-saved regs").Nop()
@@ -88,7 +88,7 @@ type private ClassTranslator(_context: TranslationContext,
             _sb_code
                 .AppendLine(sprintf "    movq    %s, -%d(%%rbp)"
                                     SysVAmd64AbiFacts.CalleeSavedRegs.[i]
-                                    (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1)))
+                                    (_sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize))
                 .Nop()
     
     
@@ -100,7 +100,7 @@ type private ClassTranslator(_context: TranslationContext,
         for i in 0 .. (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
             _sb_code
                 .AppendLine(sprintf "    movq    -%d(%%rbp), %s"
-                                    (_sym_table.Frame.CalleeSavedRegsOffsetInBytes + 8 * (i + 1))
+                                    (_sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
                                     SysVAmd64AbiFacts.CalleeSavedRegs.[i])
                 .Nop()
 

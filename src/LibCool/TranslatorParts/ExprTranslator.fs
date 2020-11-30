@@ -642,7 +642,7 @@ type private ExprTranslator(_context: TranslationContext,
             // such that a var introduced by a matched case would pick it up.
             asm.In("movq    {0}, -{1}(%rbp)",
                    expr_frag.Value.Reg,
-                   _sym_table.Frame.VarsOffset + (_sym_table.Frame.VarsCount + 1) * 8,
+                   _sym_table.Frame.Vars + (_sym_table.Frame.VarsCount + 1) * 8,
                    "the expression's value")
                .AsUnit()
               
@@ -918,7 +918,7 @@ type private ExprTranslator(_context: TranslationContext,
            .In("movq    {0}(%rdi), {1}", ObjLayoutFacts.VTable,
                                          method_reg,
                                          comment=receiver_ty.Name.ToString() + "_vtable")
-           .In("movq    {0}({1}), {2}", method_sym.Index * MemLayoutFacts.VTableEntrySizeInBytes,
+           .In("movq    {0}({1}), {2}", method_sym.Index * MemLayoutFacts.VTableEntrySize,
                                         method_reg,
                                         method_reg,
                                         comment=receiver_ty.Name.ToString() + "." + method_sym.Name.ToString())
@@ -930,7 +930,7 @@ type private ExprTranslator(_context: TranslationContext,
         let actual_on_stack_count = actuals.Length - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
         if actual_on_stack_count > 0
         then
-            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSizeInBytes,
+            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
                                          comment="remove " +
                                                  actual_on_stack_count.ToString() +
                                                  " actual(s) from stack")
@@ -1004,7 +1004,7 @@ type private ExprTranslator(_context: TranslationContext,
         let actual_on_stack_count = actuals.Length - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
         if actual_on_stack_count > 0
         then
-            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSizeInBytes,
+            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
                                          comment="remove " +
                                                  actual_on_stack_count.ToString() +
                                                  " actual(s) from stack")
@@ -1084,7 +1084,7 @@ type private ExprTranslator(_context: TranslationContext,
         let actual_on_stack_count = actuals.Length - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
         if actual_on_stack_count > 0
         then
-            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSizeInBytes,
+            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
                                          comment="remove " +
                                                  actual_on_stack_count.ToString() +
                                                  " actual(s) from stack")
@@ -1109,7 +1109,7 @@ type private ExprTranslator(_context: TranslationContext,
         let asm =
             this.EmitAsm()
                 .Location(method_id_span.Last)
-                .In("subq    ${0}, %rsp", (actual_nodes.Length + (*this*)1) * FrameLayoutFacts.ElemSizeInBytes)
+                .In("subq    ${0}, %rsp", (actual_nodes.Length + (*this*)1) * FrameLayoutFacts.ElemSize)
                 .In("movq    {0}, 0(%rsp)", this_frag.Reg, comment="actual #0")
            
         _context.RegSet.Free(this_frag.Reg)
@@ -1123,7 +1123,7 @@ type private ExprTranslator(_context: TranslationContext,
                 asm.Comment(comment)
                    .Paste(actual_frag.Value.Asm)
                    .In("movq    {0}, {1}(%rsp)", actual_frag.Value.Reg,
-                                                 ((actual_index + 1) * FrameLayoutFacts.ElemSizeInBytes) :> obj,
+                                                 ((actual_index + 1) * FrameLayoutFacts.ElemSize),
                                                  comment=comment)
                    .AsUnit()
                    
@@ -1140,12 +1140,12 @@ type private ExprTranslator(_context: TranslationContext,
                                   else actual_frags.Count + 1 // Add one, to account for passing 'this' as the actual #0. 
                                   
         for actual_index = 0 to (actual_in_reg_count - 1) do
-            asm.In("movq    {0}(%rsp), {1}", value0=actual_index * FrameLayoutFacts.ElemSizeInBytes,
+            asm.In("movq    {0}(%rsp), {1}", value0=actual_index * FrameLayoutFacts.ElemSize,
                                              value1=SysVAmd64AbiFacts.ActualRegs.[actual_index])
                .AsUnit()
         
         asm.Comment("remove the register-loaded actuals from stack")
-           .In("addq    ${0}, %rsp", actual_in_reg_count * FrameLayoutFacts.ElemSizeInBytes)
+           .In("addq    ${0}, %rsp", actual_in_reg_count * FrameLayoutFacts.ElemSize)
            .AsUnit()
             
         if actual_frags |> Seq.exists (fun it -> it.IsError)
@@ -1493,7 +1493,7 @@ type private ExprTranslator(_context: TranslationContext,
                     // and then the callee stores them in its frame.
                     //
                     // The index 0 corresponds to -8(%rbp), to account for it we add 1 to `sym.Index`. 
-                    this.EmitAsm().Addr("-{0}(%rbp)", (sym.Index + 1) * FrameLayoutFacts.ElemSizeInBytes)
+                    this.EmitAsm().Addr("-{0}(%rbp)", (sym.Index + 1) * FrameLayoutFacts.ElemSize)
                 else
                     // A caller passes actuals beyond ActualRegs.Length
                     // in the caller's own frame pushing the last actual first.
@@ -1503,9 +1503,9 @@ type private ExprTranslator(_context: TranslationContext,
                     // Assuming `SysVAmd64AbiFacts.ActualRegs.Length` = 6,
                     // The index 7 corresponds to (0 + FrameLayoutFacts.ActualsInCallerFrameOffset)(%rbp).
                     // To account for it, we subtract (SysVAmd64AbiFacts.ActualRegs.Length + 1) from `sym.Index`,
-                    this.EmitAsm().Addr("{0}(%rbp)", FrameLayoutFacts.ActualsInCallerFrameOffset +
+                    this.EmitAsm().Addr("{0}(%rbp)", FrameLayoutFacts.ActualsInCallerFrame +
                                                      (sym.Index - (SysVAmd64AbiFacts.ActualRegs.Length + 1)) *
-                                                     FrameLayoutFacts.ElemSizeInBytes)
+                                                     FrameLayoutFacts.ElemSize)
             
             { Addr = addr
               Asm = ValueNone
@@ -1515,9 +1515,9 @@ type private ExprTranslator(_context: TranslationContext,
         | SymbolKind.Var ->
             // The index 0 corresponds to -(8 + _sym_table.Frame.VarsOffset)(%rbp),
             // to account for it we add 1 to `sym.Index`. 
-            { Addr = this.EmitAsm().Addr("-{0}(%rbp)", _sym_table.Frame.VarsOffset +
+            { Addr = this.EmitAsm().Addr("-{0}(%rbp)", _sym_table.Frame.Vars +
                                                        (sym.Index + 1) *
-                                                       FrameLayoutFacts.ElemSizeInBytes)
+                                                       FrameLayoutFacts.ElemSize)
               Asm = ValueNone
               Type = _context.ClassSymMap.[sym.Type]
               Reg = Reg.Null }
@@ -1525,7 +1525,7 @@ type private ExprTranslator(_context: TranslationContext,
         | SymbolKind.Attr ->
             let this_reg = _context.RegSet.Allocate()
             { Addr = this.EmitAsm()
-                         .Addr("{0}({1})", ObjLayoutFacts.Attrs + (sym.Index * ObjLayoutFacts.ElemSizeInBytes),
+                         .Addr("{0}({1})", ObjLayoutFacts.Attrs + (sym.Index * ObjLayoutFacts.ElemSize),
                                            this_reg)
               Asm = ValueSome (this.EmitAsm().Single("movq {0}(%rbp), {1}", FrameLayoutFacts.This, this_reg))
               Type = _context.ClassSymMap.[sym.Type]

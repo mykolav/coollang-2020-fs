@@ -69,6 +69,9 @@ type Scope() =
         else ValueNone
 
 
+// All offsets and sizes are given in bytes.
+// We use a suffix 'Size' for sizes.
+// We don't use any suffix for offsets.
 type FrameInfo() =
     
     
@@ -86,24 +89,24 @@ type FrameInfo() =
         else this.ActualsCount
 
     
-    member this.ActualsSizeInBytes: int = this.ActualsInFrameCount * FrameLayoutFacts.ElemSizeInBytes
-    member this.VarsSizeInBytes: int = this.VarsCount * FrameLayoutFacts.ElemSizeInBytes
+    member this.ActualsSize: int = this.ActualsInFrameCount * FrameLayoutFacts.ElemSize
+    member this.VarsSize: int = this.VarsCount * FrameLayoutFacts.ElemSize
 
 
-    member this.FrameSizeInBytes: int =
-        this.ActualsSizeInBytes +
-        this.VarsSizeInBytes +
-        FrameLayoutFacts.CalleeSavedRegsSizeInBytes
+    member this.FrameSize: int =
+        this.ActualsSize +
+        this.VarsSize +
+        FrameLayoutFacts.CalleeSavedRegsSize
 
 
-    member this.PadSizeInBytes: int =
-        if (this.FrameSizeInBytes % 16) = 0
+    member this.PadSize: int =
+        if (this.FrameSize % 16) = 0
         then 0
-        else 16 - (this.FrameSizeInBytes % 16)
+        else 16 - (this.FrameSize % 16)
                             
 
-    member this.CalleeSavedRegsOffsetInBytes: int = this.ActualsSizeInBytes + this.VarsSizeInBytes
-    member this.VarsOffset: int = this.ActualsInFrameCount * FrameLayoutFacts.ElemSizeInBytes
+    member this.CalleeSavedRegs: int = this.ActualsSize + this.VarsSize
+    member this.Vars: int = this.ActualsInFrameCount * FrameLayoutFacts.ElemSize
 
 
 [<Sealed>]
