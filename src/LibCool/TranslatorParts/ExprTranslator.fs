@@ -3,7 +3,6 @@ namespace rec LibCool.TranslatorParts
 
 open System
 open System.Collections.Generic
-open System.Text
 open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.AstParts
@@ -1442,7 +1441,7 @@ type private ExprTranslator(_context: TranslationContext,
         match block_syntax_opt with
         | ValueNone ->
             let result_reg = _context.RegSet.Allocate()
-            let asm = sprintfn "    movq $Unit_value, %s" (_context.RegSet.NameOf(result_reg))
+            let asm = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.UnitValue, result_reg)
             
             Ok { AsmFragment.Asm = asm
                  Type = BasicClasses.Unit
@@ -1450,25 +1449,22 @@ type private ExprTranslator(_context: TranslationContext,
         | ValueSome block_syntax ->
             _sym_table.EnterBlock()
         
-            let asm = StringBuilder()
+            let asm = this.EmitAsm()
             
-            block_syntax.Stmts
-            |> Seq.iter (fun stmt_node ->
-                match stmt_node.Syntax with
-                | StmtSyntax.Var var_syntax ->
-                    let var_frag = translate_var (stmt_node.Map(fun _ -> var_syntax))
-                    if var_frag.IsOk
-                    then
-                        _context.RegSet.Free(var_frag.Value.Reg)
-                        asm.Append(var_frag.Value.Asm).Nop()
-                        
-                | StmtSyntax.Expr expr_syntax ->
-                    let expr_frag = translate_expr (stmt_node.Map(fun _ -> expr_syntax))
-                    if expr_frag.IsOk
-                    then
-                        _context.RegSet.Free(expr_frag.Value.Reg)
-                        asm.Append(expr_frag.Value.Asm).Nop()
-            )
+            for stmt_node in block_syntax.Stmts do
+                let stmt_frag = 
+                    match stmt_node.Syntax with
+                    | StmtSyntax.Var var_syntax ->
+                        translate_var (stmt_node.Map(fun _ -> var_syntax))
+                            
+                    | StmtSyntax.Expr expr_syntax ->
+                        translate_expr (stmt_node.Map(fun _ -> expr_syntax))
+                
+                if stmt_frag.IsOk
+                then
+                    _context.RegSet.Free(stmt_frag.Value.Reg)
+                    asm.Paste(stmt_frag.Value.Asm)
+                       .AsUnit()
             
             let expr_frag = translate_expr block_syntax.Expr
             
@@ -1479,8 +1475,8 @@ type private ExprTranslator(_context: TranslationContext,
                 Error
             else
                 
-            asm.Append(expr_frag.Value.Asm)
-               .Nop()
+            asm.Paste(expr_frag.Value.Asm)
+               .AsUnit()
             
             Ok { AsmFragment.Asm = asm.ToString()
                  Type = expr_frag.Value.Type
@@ -1490,31 +1486,48 @@ type private ExprTranslator(_context: TranslationContext,
     member this.AddrOf(sym: Symbol) : AddrFragment =
         match sym.Kind with
         | SymbolKind.Formal ->
-            if sym.Index <= 6
-            then
-                { Addr = sprintf "-%d(%%rbp)" ((sym.Index + 1) * 8)
-                  Asm = ValueNone
-                  Type = _context.ClassSymMap.[sym.Type]
-                  Reg = Reg.Null }
-            else
-                { Addr = sprintf "%d(%%rbp)" (FrameLayoutFacts.ActualsOutOfFrameOffset + (sym.Index - 7) * 8)
-                  Asm = ValueNone
-                  Type = _context.ClassSymMap.[sym.Type]
-                  Reg = Reg.Null }
+            let addr =
+                if sym.Index <= SysVAmd64AbiFacts.ActualRegs.Length
+                then
+                    // ActualRegs.Length actuals are passed in regs,
+                    // and then the callee stores them in its frame.
+                    //
+                    // The index 0 corresponds to -8(%rbp), to account for it we add 1 to `sym.Index`. 
+                    this.EmitAsm().Addr("-{0}(%rbp)", (sym.Index + 1) * FrameLayoutFacts.ElemSizeInBytes)
+                else
+                    // A caller passes actuals beyond ActualRegs.Length
+                    // in the caller's own frame pushing the last actual first.
+                    // These actuals are stored immediately before the return addr,
+                    // that the `call` instruction pushes onto the stack.
+                    //
+                    // Assuming `SysVAmd64AbiFacts.ActualRegs.Length` = 6,
+                    // The index 7 corresponds to (0 + FrameLayoutFacts.ActualsInCallerFrameOffset)(%rbp).
+                    // To account for it, we subtract (SysVAmd64AbiFacts.ActualRegs.Length + 1) from `sym.Index`,
+                    this.EmitAsm().Addr("{0}(%rbp)", FrameLayoutFacts.ActualsInCallerFrameOffset +
+                                                     (sym.Index - (SysVAmd64AbiFacts.ActualRegs.Length + 1)) *
+                                                     FrameLayoutFacts.ElemSizeInBytes)
+            
+            { Addr = addr
+              Asm = ValueNone
+              Type = _context.ClassSymMap.[sym.Type]
+              Reg = Reg.Null }
                 
         | SymbolKind.Var ->
-            { Addr = sprintf "-%d(%%rbp)" (_sym_table.Frame.VarsOffset + (sym.Index + 1) * 8)
+            // The index 0 corresponds to -(8 + _sym_table.Frame.VarsOffset)(%rbp),
+            // to account for it we add 1 to `sym.Index`. 
+            { Addr = this.EmitAsm().Addr("-{0}(%rbp)", _sym_table.Frame.VarsOffset +
+                                                       (sym.Index + 1) *
+                                                       FrameLayoutFacts.ElemSizeInBytes)
               Asm = ValueNone
               Type = _context.ClassSymMap.[sym.Type]
               Reg = Reg.Null }
             
         | SymbolKind.Attr ->
-            let attrs_offset_in_quads = 3 // skip tag, obj_size, and vtable_ptr
             let this_reg = _context.RegSet.Allocate()
-            { Addr = sprintf "%d(%s)"
-                             ((attrs_offset_in_quads + sym.Index) * 8)
-                             (_context.RegSet.NameOf(this_reg))
-              Asm = ValueSome (sprintfn "    movq -8(%%rbp), %s" (_context.RegSet.NameOf(this_reg)))
+            { Addr = this.EmitAsm()
+                         .Addr("{0}({1})", ObjLayoutFacts.Attrs + (sym.Index * ObjLayoutFacts.ElemSizeInBytes),
+                                           this_reg)
+              Asm = ValueSome (this.EmitAsm().Single("movq {0}(%rbp), {1}", FrameLayoutFacts.This, this_reg))
               Type = _context.ClassSymMap.[sym.Type]
               Reg = this_reg }
                

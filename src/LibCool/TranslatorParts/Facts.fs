@@ -12,10 +12,13 @@ module MemLayoutFacts =
 
 
 module ObjLayoutFacts =
+    let ElemSizeInBytes = 8
+
     let Tag = 0
     let Size = 8
     let VTable = 16
-    
+    let Attrs = 24
+        
     let StringLength = 24
     let StringContent = 32
     
@@ -28,10 +31,13 @@ module ObjLayoutFacts =
 
 module FrameLayoutFacts =
     let ElemSizeInBytes = 8
+    
     let CalleeSavedRegsSizeInBytes = SysVAmd64AbiFacts.CalleeSavedRegs.Length * ElemSizeInBytes
+    
     // skip saved %rbp, and return addr
-    let ActualsOutOfFrameOffset = 2 * ElemSizeInBytes
+    let ActualsInCallerFrameOffset = 2 * ElemSizeInBytes
     let ActualsOffsetInBytes = 0
+    let This = -8
 
 
 module RtNames =

@@ -101,11 +101,18 @@ type AsmBuilder(_context: TranslationContext) =
         this.In(instruction, src.Addr, dst, ?comment=comment)    
 
 
-    // In[struction]
     member this.Single(instruction: string, value: obj, reg: Reg, ?comment: string): string =
         this.In(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment).ToString()
 
         
+    member this.Addr(instruction: string, value: obj): string =
+        String.Format(instruction, value)
+
+        
+    member this.Addr(instruction: string, value: obj, reg: Reg): string =
+        String.Format(instruction, value, _context.RegSet.NameOf(reg))
+
+
     member this.Jmp(jmp: string, label: Label, comment: string) =
         this.In(String.Format("{0}    {1}", jmp, _context.LabelGen.NameOf(label)), comment)
 
