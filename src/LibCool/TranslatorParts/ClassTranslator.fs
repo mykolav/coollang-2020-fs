@@ -11,7 +11,7 @@ open LibCool.SharedParts
 [<Sealed>]
 type private ClassTranslator(_context: TranslationContext,
                              _class_syntax: ClassSyntax,
-                             _sb_code: StringBuilder) =
+                             _sb_code: StringBuilder) as this =
     
     
     let _sym_table = SymbolTable(_context.ClassSymMap.[_class_syntax.NAME.Syntax])
@@ -50,66 +50,58 @@ type private ClassTranslator(_context: TranslationContext,
             Error
         else
             
-        let asm = StringBuilder(initial_frag.Value.Asm)
-        if addr_frag.Asm.IsSome
-        then
-            asm.Append(addr_frag.Asm.Value).Nop()
-            
-        asm.AppendLine(sprintf "    movq %s, %s # %O" (_context.RegSet.NameOf(initial_frag.Value.Reg))
-                                                      (addr_frag.Asm.ToString())
-                                                      attr_sym.Name)
-           .Nop()
+        let asm =
+            this.EmitAsm()
+                .Location(attr_node.Span)
+                .Paste(initial_frag.Value.Asm)
+                .In("movq    {0}, {1}", initial_frag.Value.Reg, addr_frag, comment=attr_sym.Name.ToString())
+                .ToString()
             
         _context.RegSet.Free(initial_frag.Value.Reg)
         _context.RegSet.Free(addr_frag.Reg)
 
-        Ok (asm.ToString())
+        Ok (asm)
 
 
-    let emit_method_prologue (): unit =
-        _sb_code
-            .AppendLine("    pushq   %rbp")
-            .AppendLine("    movq    %rsp, %rbp")
-            .AppendLine(sprintf "    subq    $%d, %%rsp" (_sym_table.Frame.FrameSize +
-                                                          _sym_table.Frame.PadSize))
-            .AppendLine("    # save actuals on the stack")
-            .Nop()
+    let emit_method_prologue (): string =
+        let asm =
+            this.EmitAsm()
+                .In("pushq   %rbp", None)
+                .In("movq    %rsp, %rbp", None)
+                .In("subq    ${0}, %rsp", _sym_table.Frame.FrameSize + _sym_table.Frame.PadSize)
+                .Comment("store actuals on the stack")
         
         for i = 0 to (_sym_table.Frame.ActualsInFrameCount - 1) do
-            _sb_code
-                .AppendLine(sprintf "    movq    %s, -%d(%%rbp)"
-                                    SysVAmd64AbiFacts.ActualRegs.[i]
-                                    (FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize))
-                .Nop()
+            asm.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.ActualRegs.[i],
+                                              FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize)
+               .AsUnit()
         
-        _sb_code.AppendLine("    # store callee-saved regs").Nop()
+        asm.Comment("store callee-saved regs on the stack")
+           .AsUnit()
 
-        for i in 0 .. (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
-            _sb_code
-                .AppendLine(sprintf "    movq    %s, -%d(%%rbp)"
-                                    SysVAmd64AbiFacts.CalleeSavedRegs.[i]
-                                    (_sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize))
-                .Nop()
+        for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
+            asm.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.CalleeSavedRegs.[i],
+                                              _sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
+               .AsUnit()
+               
+        asm.ToString()
     
     
-    let emit_method_epilogue (): unit =
-        _sb_code
-            .AppendLine("    # restore callee-saved regs")
-            .Nop()
+    let emit_method_epilogue (): string =
+        let asm =
+            this.EmitAsm()
+                .Comment("restore callee-saved regs")
 
-        for i in 0 .. (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
-            _sb_code
-                .AppendLine(sprintf "    movq    -%d(%%rbp), %s"
-                                    (_sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
-                                    SysVAmd64AbiFacts.CalleeSavedRegs.[i])
-                .Nop()
+        for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
+            asm.In("movq    -{0}(%rbp), {1}", value0=_sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize,
+                                              value1=SysVAmd64AbiFacts.CalleeSavedRegs.[i])
+               .AsUnit()
 
-        _sb_code
-            .AppendLine("    # restore the previous frame")
-            .AppendLine("    movq    %rbp, %rsp")
-            .AppendLine("    popq    %rbp")
-            .AppendLine("    ret")
-            .Nop()
+        asm.Comment("restore the caller's frame")
+           .In("movq    %rbp, %rsp", None)
+           .In("popq    %rbp", None)
+           .In("ret", None)
+           .ToString()
     
     
     let translate_ctor (): unit =
@@ -218,11 +210,11 @@ type private ClassTranslator(_context: TranslationContext,
             .AppendLine(sprintf "%O..ctor:" _class_syntax.NAME.Syntax)
             .Nop()
                         
-        emit_method_prologue ()
         _sb_code
+            .Append(emit_method_prologue ())
             .Append(sb_ctor_body.ToString())
+            .Append(emit_method_epilogue ())
             .Nop()
-        emit_method_epilogue ()
 
         _sym_table.LeaveBlock()
         _sym_table.LeaveMethod()
@@ -311,22 +303,25 @@ type private ClassTranslator(_context: TranslationContext,
                                             _class_syntax.NAME.Syntax
                                             method_node.Syntax.ID.Syntax)
                         .Nop()
-                        
-                    emit_method_prologue ()
+                    
                     _sb_code
+                        .Append(emit_method_prologue ())
                         .Append(body_frag.Value.Asm)
                         .AppendLine(sprintf "    movq %s, %%rax"
                                             (if body_frag.Value.Reg = Reg.Null
                                              then "$0"
                                              else _context.RegSet.NameOf(body_frag.Value.Reg)))
+                        .Append(emit_method_epilogue ())
                         .Nop()
                     _context.RegSet.Free(body_frag.Value.Reg)
-                    emit_method_epilogue ()
 
         _sym_table.LeaveMethod()
         _context.RegSet.AssertAllFree()
     
     
+    member this.EmitAsm(): AsmBuilder = AsmBuilder(_context)
+
+
     member this.Translate(): unit =
         _context.RegSet.AssertAllFree()
             
