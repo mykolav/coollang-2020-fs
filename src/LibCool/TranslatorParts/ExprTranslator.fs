@@ -511,83 +511,29 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
 
-        let asm =
-            this.EmitAsm()
-                .Location(match_node.Span)
-                .Paste(expr_frag.Value.Asm)
-           
-        let tag_reg = _context.RegSet.Allocate("translate_match.tag_reg")
-        
         let cases = Array.concat [[| cases_hd |]; cases_tl]    
         let patterns = cases |> Array.map (fun case ->
             match case.Syntax.Pattern.Syntax with
             | PatternSyntax.IdType (_, ty) -> ty
             | PatternSyntax.Null -> AstNode.Virtual(BasicClassNames.Null))
 
-        let pattern_asm_infos = Dictionary<TYPENAME, struct {| Label: Label; Tag: int |}>()
+        let pattern_asm_infos = Dictionary<TYPENAME, PatternAsmInfo>()
         for pattern in patterns do
             let pattern_ty = _context.ClassSymMap.[pattern.Syntax]    
             pattern_asm_infos.Add(pattern.Syntax,
-                                  {| Label = _context.LabelGen.Generate()
-                                     Tag = pattern_ty.Tag |})
+                                  { PatternAsmInfo.Label = _context.LabelGen.Generate()
+                                    Tag = pattern_ty.Tag })
             
+        let tag_reg = _context.RegSet.Allocate("translate_match.tag_reg")
         let expr_location = _context.Source.Map(expr.Span.First)
-        let match_init_label = _context.LabelGen.Generate()
-        let is_tag_valid_label = _context.LabelGen.Generate()
-        let try_match_label = _context.LabelGen.Generate()
         
-        asm.Comment("handle null")
-           .In("cmpq    $0, {0}", expr_frag.Value.Reg)
-           .Jne(match_init_label, "match init")
-           .AsUnit()
-           
-        if pattern_asm_infos.ContainsKey(BasicClassNames.Null)
-        then
-            let null_pattern_asm_info = pattern_asm_infos.[BasicClassNames.Null]
-            asm.Jmp(null_pattern_asm_info.Label, "case null => ...").AsUnit()
-        else
-            asm.RtAbortMatch(filename_label=_context.StrConsts.GetOrAdd(expr_location.FileName),
-                             line=expr_location.Line,
-                             col=expr_location.Col,
-                             expr_reg=expr_frag.Value.Reg)
-               .AsUnit()
-
-        asm.Label(match_init_label, "match init")
-           .AsUnit()
-           
-        if pattern_asm_infos |> Seq.exists (fun it -> it.Key <> BasicClassNames.Null)
-        then
-            // Store the expression's value on stack,
-            // such that a var introduced by a matched case would pick it up.
-            asm.In("movq    {0}, -{1}(%rbp)",
-                   expr_frag.Value.Reg,
-                   _sym_table.Frame.Vars + (_sym_table.Frame.VarsCount + 1) * 8,
-                   "the expression's value")
-               .AsUnit()
-              
-        asm.In("movq    ({0}), {1}", expr_frag.Value.Reg, tag_reg, "tag")
-           .Label(is_tag_valid_label, "no match?")
-           .In("cmpq    $-1, {0}", tag_reg)
-           .Jne(try_match_label, "try match")
-           .RtAbortMatch(filename_label=_context.StrConsts.GetOrAdd(expr_location.FileName),
-                         line=expr_location.Line,
-                         col=expr_location.Col,
-                         expr_reg=expr_frag.Value.Reg)
-           .Label(try_match_label, "try match")
-           .AsUnit()
-           
-        for pattern_asm_info in pattern_asm_infos do
-            // We already emitted asm for 'null'. Don't try to do it again.
-            if pattern_asm_info.Key <> BasicClassNames.Null
-            then
-                asm.In("cmpq    ${0}, {1}", pattern_asm_info.Value.Tag, tag_reg)
-                   .Je(pattern_asm_info.Value.Label, comment=pattern_asm_info.Key.ToString())
-                   .AsUnit()
-        
-        asm.In("salq    $3, {0}", tag_reg, "multiply by 8")
-           .In("movq    {0}({1}), {2}", RtNames.ClassParentTable, tag_reg, tag_reg, "the parent's tag")
-           .Jmp(is_tag_valid_label, "no match?")
-           .AsUnit()
+        let asm = this.EmitAsm()
+                      .Match(match_node.Span,
+                             expr_frag.Value,
+                             expr_location,
+                             _sym_table.Frame,
+                             tag_reg,
+                             pattern_asm_infos)
         
         _context.RegSet.Free(expr_frag.Value.Reg)
         _context.RegSet.Free(tag_reg)
@@ -655,12 +601,12 @@ type private ExprTranslator(_context: TranslationContext,
                 if block_frag.IsOk
                 then
                     let pattern_asm_info = pattern_asm_infos.[pattern_ty]
-                    asm.Location(case.Span)
-                       .Label(pattern_asm_info.Label, comment="case " + pattern_ty.ToString())
-                       .Paste(block_frag.Value.Asm)
-                       .In("movq    {0}, {1}", block_frag.Value.Reg, result_reg)
-                       .Jmp(done_label, "end match")
-                       .AsUnit()
+                    asm.MatchCase(case.Span,
+                                  pattern_asm_info.Label,
+                                  pattern_ty,
+                                  block_frag.Value,
+                                  result_reg,
+                                  done_label)
                        
                     _context.RegSet.Free(block_frag.Value.Reg)
                 
@@ -801,7 +747,6 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
             
-        let dispatch_location = _context.Source.Map(dispatch_node.Span.First)
         let receiver_is_some_label = _context.LabelGen.Generate()
         
         let asm =
@@ -812,9 +757,7 @@ type private ExprTranslator(_context: TranslationContext,
                 .Paste(receiver_frag.Value.Asm)
                 .In("cmpq    $0, {0}", receiver_frag.Value.Reg)
                 .Jne(receiver_is_some_label, "the receiver is some")
-                .RtAbortDispatch(filename_label=_context.StrConsts.GetOrAdd(dispatch_location.FileName),
-                                 line=dispatch_location.Line,
-                                 col=dispatch_location.Col)
+                .RtAbortDispatch(_context.Source.Map(dispatch_node.Span.First))
                 .Label(receiver_is_some_label, "the receiver is some")
 
         let method_sym = receiver_ty.Methods.[method_id.Syntax]

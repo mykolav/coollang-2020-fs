@@ -3,7 +3,9 @@ namespace LibCool.TranslatorParts
 
 open System
 open System.Collections.Generic
+open System.Runtime.CompilerServices
 open System.Text
+open LibCool.AstParts
 open LibCool.SemanticParts
 open LibCool.SharedParts
 open LibCool.SourceParts
@@ -192,18 +194,20 @@ type AsmBuilder(_context: TranslationContext) =
         this
         
         
-    member this.RtAbortMatch(filename_label: string, line: uint32, col: uint32, expr_reg: Reg): AsmBuilder =
+    member this.RtAbortMatch(location: Location, expr_reg: Reg): AsmBuilder =
+        let filename_label = _context.StrConsts.GetOrAdd(location.FileName)
         this.In("movq    ${0}, %rdi", value=filename_label)
-            .In("movq    ${0}, %rsi", value=line)
-            .In("movq    ${0}, %rdx", value=col)
+            .In("movq    ${0}, %rsi", value=location.Line)
+            .In("movq    ${0}, %rdx", value=location.Col)
             .In("movq    {0}, %rcx", expr_reg)
             .In("call    {0}", RtNames.RtAbortMatch)
 
 
-    member this.RtAbortDispatch(filename_label: string, line: uint32, col: uint32): AsmBuilder =
+    member this.RtAbortDispatch(location: Location): AsmBuilder =
+        let filename_label = _context.StrConsts.GetOrAdd(location.FileName)
         this.In("movq    ${0}, %rdi", filename_label)
-            .In("movq    ${0}, %rsi", line)
-            .In("movq    ${0}, %rdx", col)
+            .In("movq    ${0}, %rsi", location.Line)
+            .In("movq    ${0}, %rdx", location.Col)
             .In("call    {0}", RtNames.RtAbortDispatch)
     
     
@@ -274,8 +278,13 @@ type AsmBuilder(_context: TranslationContext) =
 module AsmFragments =
     
     
-    type AsmBuilder
-    with
+    [<Struct; IsReadOnly>]
+    type PatternAsmInfo =
+        { Label: Label
+          Tag: int }
+    
+    
+    type AsmBuilder with
     
     
     member private this.MethodPrologue(frame: FrameInfo): AsmBuilder =
@@ -462,3 +471,78 @@ module AsmFragments =
             .In("subq    {0}, {1}({2})", right_frag.Reg, ObjLayoutFacts.IntValue, left_frag.Reg)
             .ToString()
 
+
+    member this.Match(match_span: Span,
+                      expr_frag: AsmFragment,
+                      expr_location: Location,
+                      frame: FrameInfo,
+                      tag_reg: Reg,
+                      pattern_asm_infos: IReadOnlyDictionary<TYPENAME, PatternAsmInfo>)
+                     : AsmBuilder =
+        
+        let match_init_label = this.Context.LabelGen.Generate()
+        let is_tag_valid_label = this.Context.LabelGen.Generate()
+        let try_match_label = this.Context.LabelGen.Generate()
+        
+        this.Location(match_span)
+            .Paste(expr_frag.Asm)
+            .Comment("handle null")
+            .In("cmpq    $0, {0}", expr_frag.Reg)
+            .Jne(match_init_label, "match init")
+            .AsUnit()
+           
+        if pattern_asm_infos.ContainsKey(BasicClassNames.Null)
+        then
+            let null_pattern_asm_info = pattern_asm_infos.[BasicClassNames.Null]
+            this.Jmp(null_pattern_asm_info.Label, "case null => ...")
+                .AsUnit()
+        else
+            this.RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
+                .AsUnit()
+
+        this.Label(match_init_label, "match init")
+            .AsUnit()
+           
+        if pattern_asm_infos |> Seq.exists (fun it -> it.Key <> BasicClassNames.Null)
+        then
+            // Store the expression's value on stack,
+            // such that a var introduced by a matched case would pick it up.
+            this.In("movq    {0}, -{1}(%rbp)",
+                    expr_frag.Reg,
+                    frame.Vars + (frame.VarsCount + 1) * 8,
+                    "the expression's value")
+                .AsUnit()
+              
+        this.In("movq    ({0}), {1}", expr_frag.Reg, tag_reg, "tag")
+            .Label(is_tag_valid_label, "no match?")
+            .In("cmpq    $-1, {0}", tag_reg)
+            .Jne(try_match_label, "try match")
+            .RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
+            .Label(try_match_label, "try match")
+            .AsUnit()
+           
+        for pattern_asm_info in pattern_asm_infos do
+            // We already emitted asm for 'null'. Don't try to do it again.
+            if pattern_asm_info.Key <> BasicClassNames.Null
+            then
+                this.In("cmpq    ${0}, {1}", pattern_asm_info.Value.Tag, tag_reg)
+                    .Je(pattern_asm_info.Value.Label, comment=pattern_asm_info.Key.ToString())
+                    .AsUnit()
+        
+        this.In("salq    $3, {0}", tag_reg, "multiply by 8")
+            .In("movq    {0}({1}), {2}", RtNames.ClassParentTable, tag_reg, tag_reg, "the parent's tag")
+            .Jmp(is_tag_valid_label, "no match?")
+
+
+    member this.MatchCase(case_span: Span,
+                          case_label: Label,
+                          pattern_ty: TYPENAME,
+                          block_frag: AsmFragment,
+                          result_reg: Reg,
+                          done_label: Label): unit =
+        this.Location(case_span)
+            .Label(case_label, comment="case " + pattern_ty.ToString())
+            .Paste(block_frag.Asm)
+            .In("movq    {0}, {1}", block_frag.Reg, result_reg)
+            .Jmp(done_label, "end match")
+            .AsUnit()
