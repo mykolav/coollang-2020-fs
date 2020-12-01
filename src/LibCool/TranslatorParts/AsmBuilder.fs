@@ -546,3 +546,83 @@ module AsmFragments =
             .In("movq    {0}, {1}", block_frag.Reg, result_reg)
             .Jmp(done_label, "end match")
             .AsUnit()
+
+
+    member this.BeginDispatch(dispatch_span: Span): AsmBuilder =
+        this.Location(dispatch_span)
+            .PushCallerSavedRegs()
+
+
+    member this.CompleteDispatch(dispatch_span: Span,
+                                 receiver_frag: AsmFragment,
+                                 receiver_is_some_label: Label,
+                                 actuals_asm: string,
+                                 method_reg: Reg,
+                                 method_sym: MethodSymbol,
+                                 actuals_count: int,
+                                 result_reg: Reg): unit =
+        this.Comment("actual #0")
+            .Paste(receiver_frag.Asm)
+            .In("cmpq    $0, {0}", receiver_frag.Reg)
+            .Jne(receiver_is_some_label, "the receiver is some")
+            .RtAbortDispatch(this.Context.Source.Map(dispatch_span.First))
+            .Label(receiver_is_some_label, "the receiver is some")
+            .Paste(actuals_asm)
+            .In("movq    {0}(%rdi), {1}", ObjLayoutFacts.VTable,
+                                          method_reg,
+                                          comment=receiver_frag.Type.Name.ToString() + "_vtable")
+            .In("movq    {0}({1}), {2}", method_sym.Index * MemLayoutFacts.VTableEntrySize,
+                                         method_reg,
+                                         method_reg,
+                                         comment=receiver_frag.Type.Name.ToString() + "." + method_sym.Name.ToString())
+            .In("call    *{0}", method_reg)
+            .AsUnit()
+        
+        // We only have (ActualRegs.Length - 1) registers to store actuals,
+        // as we always use %rdi to store `this`.
+        let actual_on_stack_count = actuals_count - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
+        if actual_on_stack_count > 0
+        then
+            this.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
+                                          comment="remove " +
+                                                  actual_on_stack_count.ToString() +
+                                                  " actual(s) from stack")
+                .AsUnit()
+        
+
+        this.PopCallerSavedRegs()
+            .In("movq    %rax, {0}", result_reg, "returned value")
+            .AsUnit()
+
+
+    member this.BeginSuperDispatch(super_dispatch_span: Span): AsmBuilder =
+        this.BeginDispatch(super_dispatch_span)
+        
+        
+    member this.CompleteSuperDispatch(this_frag: AsmFragment,
+                                      actuals_asm: string,
+                                      method_sym: MethodSymbol,
+                                      result_reg: Reg,
+                                      actuals_count: int): unit =
+        this.Comment("actual #0")
+            .Paste(this_frag.Asm)
+            .Paste(actuals_asm)
+            .In("call    {0}.{1}", method_sym.DeclaringClass,
+                                   method_sym.Name,
+                                   comment="super." + method_sym.Name.ToString())
+            .In("movq    %rax, {0}", result_reg, comment="returned value")
+            .AsUnit()
+        
+        // We only have (ActualRegs.Length - 1) registers to store actuals,
+        // as we always use %rdi to store `this`.
+        let actual_on_stack_count = actuals_count - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
+        if actual_on_stack_count > 0
+        then
+            this.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
+                                          comment="remove " +
+                                                  actual_on_stack_count.ToString() +
+                                                  " actual(s) from stack")
+                .AsUnit()
+
+        this.PopCallerSavedRegs()
+            .AsUnit()

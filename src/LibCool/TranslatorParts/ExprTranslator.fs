@@ -733,76 +733,49 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
         
-        let receiver_ty = receiver_frag.Value.Type
+        let receiver_frag = receiver_frag.Value
         
-        if not (receiver_ty.Methods.ContainsKey(method_id.Syntax))
+        if not (receiver_frag.Type.Methods.ContainsKey(method_id.Syntax))
         then
             _context.Diags.Error(
                 sprintf "'%O' does not contain a definition for '%O'"
-                        receiver_frag.Value.Type.Name
+                        receiver_frag.Type.Name
                         method_id.Syntax,
                 method_id.Span)
             
-            _context.RegSet.Free(receiver_frag.Value.Reg)
+            _context.RegSet.Free(receiver_frag.Reg)
             Error
         else
             
-        let receiver_is_some_label = _context.LabelGen.Generate()
+        let method_sym = receiver_frag.Type.Methods.[method_id.Syntax]
+        let method_name = sprintf "'%O.%O'" receiver_frag.Type.Name method_sym.Name
         
-        let asm =
-            this.EmitAsm()
-                .Location(dispatch_node.Span)
-                .PushCallerSavedRegs()
-                .Comment("actual #0")
-                .Paste(receiver_frag.Value.Asm)
-                .In("cmpq    $0, {0}", receiver_frag.Value.Reg)
-                .Jne(receiver_is_some_label, "the receiver is some")
-                .RtAbortDispatch(_context.Source.Map(dispatch_node.Span.First))
-                .Label(receiver_is_some_label, "the receiver is some")
-
-        let method_sym = receiver_ty.Methods.[method_id.Syntax]
-        let method_name = sprintf "'%O.%O'" receiver_ty.Name method_sym.Name
-        
-        let actuals_frag = translate_actuals method_name
+        let actuals_asm = translate_actuals method_name
                                              method_id.Span
                                              method_sym
                                              (*formal_name=*)"formal"
-                                             receiver_frag.Value
+                                             receiver_frag
                                              actuals
-        if actuals_frag.IsError
+        if actuals_asm.IsError
         then
             Error
         else
-            
+        
+        let receiver_is_some_label = _context.LabelGen.Generate()
+        
+        let asm = this.EmitAsm().BeginDispatch(dispatch_node.Span)
+        
         let method_reg = _context.RegSet.Allocate("translate_dispatch.method_reg")
-        
-        asm.Paste(actuals_frag.Value)
-           .In("movq    {0}(%rdi), {1}", ObjLayoutFacts.VTable,
-                                         method_reg,
-                                         comment=receiver_ty.Name.ToString() + "_vtable")
-           .In("movq    {0}({1}), {2}", method_sym.Index * MemLayoutFacts.VTableEntrySize,
-                                        method_reg,
-                                        method_reg,
-                                        comment=receiver_ty.Name.ToString() + "." + method_sym.Name.ToString())
-           .In("call    *{0}", method_reg)
-           .AsUnit()
-        
-        // We only have (ActualRegs.Length - 1) registers to store actuals,
-        // as we always use %rdi to store `this`.
-        let actual_on_stack_count = actuals.Length - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
-        if actual_on_stack_count > 0
-        then
-            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
-                                         comment="remove " +
-                                                 actual_on_stack_count.ToString() +
-                                                 " actual(s) from stack")
-               .AsUnit()
-        
         let result_reg = _context.RegSet.Allocate("translate_dispatch.result_reg")
 
-        asm.PopCallerSavedRegs()
-           .In("movq    %rax, {0}", result_reg, "returned value")
-           .AsUnit()
+        asm.CompleteDispatch(dispatch_node.Span,
+                             receiver_frag,
+                             receiver_is_some_label,
+                             actuals_asm.Value,
+                             method_reg,
+                             method_sym,
+                             actuals.Length,
+                             result_reg)
 
         _context.RegSet.Free(method_reg)
 
@@ -834,46 +807,27 @@ type private ExprTranslator(_context: TranslationContext,
                          else super_sym.Methods.[method_id.Syntax]
         let method_name = sprintf "'%O.%O'" super_sym.Name method_sym.Name
 
-        let actuals_frag = translate_actuals method_name
-                                             method_id.Span
-                                             method_sym
-                                             (*formal_name=*)"formal"
-                                             this_frag.Value
-                                             actuals
-        if actuals_frag.IsError
+        let actuals_asm = translate_actuals method_name
+                                            method_id.Span
+                                            method_sym
+                                            (*formal_name=*)"formal"
+                                            this_frag.Value
+                                            actuals
+        if actuals_asm.IsError
         then
             Error
         else
             
-        let asm =
-            this.EmitAsm()
-                .Location(super_dispatch_node.Span)
-                .PushCallerSavedRegs()
-                .Comment("actual #0")
-                .Paste(this_frag.Value.Asm)
+        let asm = this.EmitAsm()
+                      .BeginSuperDispatch(super_dispatch_node.Span)
 
         let result_reg = _context.RegSet.Allocate("translate_super_dispatch.result_reg")
 
-        asm.Paste(actuals_frag.Value)
-           .In("call    {0}.{1}", method_sym.DeclaringClass,
-                                  method_sym.Name,
-                                  comment="super." + method_sym.Name.ToString())
-           .In("movq    %rax, {0}", result_reg, comment="returned value")
-           .AsUnit()
-        
-        // We only have (ActualRegs.Length - 1) registers to store actuals,
-        // as we always use %rdi to store `this`.
-        let actual_on_stack_count = actuals.Length - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
-        if actual_on_stack_count > 0
-        then
-            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
-                                         comment="remove " +
-                                                 actual_on_stack_count.ToString() +
-                                                 " actual(s) from stack")
-               .AsUnit()
-
-        asm.PopCallerSavedRegs()
-           .AsUnit()
+        asm.CompleteSuperDispatch(this_frag.Value,
+                                  actuals_asm.Value,
+                                  method_sym,
+                                  result_reg,
+                                  actuals.Length)
 
         Ok { AsmFragment.Asm = asm.ToString()
              Type = _context.ClassSymMap.[method_sym.ReturnType]
