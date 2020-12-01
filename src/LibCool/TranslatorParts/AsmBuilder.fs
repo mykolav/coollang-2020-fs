@@ -4,6 +4,7 @@ namespace LibCool.TranslatorParts
 open System
 open System.Collections.Generic
 open System.Text
+open LibCool.SemanticParts
 open LibCool.SharedParts
 open LibCool.SourceParts
 
@@ -17,6 +18,9 @@ type AsmBuilder(_context: TranslationContext) =
     
     
     let _pushed_caller_saved_regs = Stack<string>()
+    
+    
+    member val Context = _context with get
     
     
     member this.Paste(asm: string): AsmBuilder =
@@ -34,22 +38,22 @@ type AsmBuilder(_context: TranslationContext) =
         
     // In[struction]
     member this.In(instruction: string, value: obj, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, value), comment)
+        this.In(String.Format(instruction, value), comment=comment)
 
         
     // In[struction]
     member this.In(instruction: string, reg: Reg, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, _context.RegSet.NameOf(reg)), comment)
+        this.In(String.Format(instruction, _context.RegSet.NameOf(reg)), comment=comment)
 
 
     // In[struction]
     member this.In(instruction: string, value: obj, reg: Reg, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment)
+        this.In(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment=comment)
 
 
     // In[struction]
     member this.In(instruction: string, value0: obj, value1: obj, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, value0, value1), comment)
+        this.In(String.Format(instruction, value0, value1), comment=comment)
 
 
     // In[struction]
@@ -72,7 +76,7 @@ type AsmBuilder(_context: TranslationContext) =
 
     // In[struction]
     member this.In(instruction: string, reg: Reg, value: obj, ?comment: string): AsmBuilder =
-        this.In(String.Format(instruction, _context.RegSet.NameOf(reg), value), comment)
+        this.In(String.Format(instruction, _context.RegSet.NameOf(reg), value), comment=comment)
 
 
     // In[struction]
@@ -102,7 +106,7 @@ type AsmBuilder(_context: TranslationContext) =
 
 
     member this.Single(instruction: string, value: obj, reg: Reg, ?comment: string): string =
-        this.In(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment).ToString()
+        this.In(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment=comment).ToString()
 
         
     member this.Addr(instruction: string, value: obj): string =
@@ -114,7 +118,7 @@ type AsmBuilder(_context: TranslationContext) =
 
 
     member this.Jmp(jmp: string, label: Label, comment: string) =
-        this.In(String.Format("{0}    {1}", jmp, _context.LabelGen.NameOf(label)), comment)
+        this.In(String.Format("{0}    {1}", jmp, _context.LabelGen.NameOf(label)), comment=Some comment)
 
 
     member this.Jmp(label: Label, comment: string) =
@@ -135,6 +139,12 @@ type AsmBuilder(_context: TranslationContext) =
         this.Ln(comment)
         
         
+    member this.Label(label: string) =
+        _asm.AppendFormat("{0}:", label)
+            .Nop()
+        this.Ln()
+        
+        
      member this.Location(offset: uint32, ?length: uint32) =
          if offset = UInt32.MaxValue
          then
@@ -152,7 +162,9 @@ type AsmBuilder(_context: TranslationContext) =
              let location = _context.Source.Map(offset)
              
              let slice_start = offset
-             let slice_end = offset + length
+             // A slice is a closed interval, so we subtract one
+             // to make `slice_end` point to the last char instead of past it.
+             let slice_end = offset + length - 1u
                             
              let code_slice = _context.Source.[slice_start .. slice_end]
                                              .Replace("\r", "")
@@ -258,4 +270,195 @@ type AsmBuilder(_context: TranslationContext) =
     override this.ToString() : string = _asm.ToString()
     member this.AsUnit() : unit = ()
 
+
+module AsmFragments =
+    
+    
+    type AsmBuilder
+    with
+    
+    
+    member private this.MethodPrologue(frame: FrameInfo): AsmBuilder =
+        this.In("pushq   %rbp", None)
+            .In("movq    %rsp, %rbp", None)
+            .In("subq    ${0}, %rsp", frame.FrameSize + frame.PadSize)
+            .Comment("store actuals on the stack")
+            .AsUnit()
+        
+        for i = 0 to (frame.ActualsInFrameCount - 1) do
+            this.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.ActualRegs.[i],
+                                               FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize)
+                .AsUnit()
+        
+        this.Comment("store callee-saved regs on the stack")
+            .AsUnit()
+
+        for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
+            this.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.CalleeSavedRegs.[i],
+                                               frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
+                .AsUnit()
+               
+        this
+    
+    
+    member private this.MethodEpilogue(frame: FrameInfo): AsmBuilder =
+        this.Comment("restore callee-saved regs")
+            .AsUnit()
+
+        for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
+            this.In("movq    -{0}(%rbp), {1}", value0=frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize,
+                                               value1=SysVAmd64AbiFacts.CalleeSavedRegs.[i])
+                .AsUnit()
+
+        this.Comment("restore the caller's frame")
+            .In("movq    %rbp, %rsp", None)
+            .In("popq    %rbp", None)
+            .In("ret", None)
+
+
+    member this.Method(method_name: string,
+                       method_span: Span,
+                       frame: FrameInfo,
+                       body_frag: string): string =
+        this.Location(method_span)
+            .Label(method_name)
+            .MethodPrologue(frame)
+            .Paste(body_frag)
+            .MethodEpilogue(frame)
+            .ToString()
+
+
+    member this.BoolNegation(bool_negation_span: Span, negated_frag: AsmFragment): string =
+        let false_label = this.Context.LabelGen.Generate()
+        let done_label = this.Context.LabelGen.Generate()
+        
+        this.Location(bool_negation_span)
+            .Paste(negated_frag.Asm)
+            .In("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, negated_frag.Reg)
+            .Je(false_label, "false")
+            .Comment("true:")
+            .In("movq    ${0}, {1}", RtNames.BoolFalse, negated_frag.Reg)
+            .Jmp(done_label, "done")
+            .Label(false_label, "false")
+            .In("movq    ${0}, {1}", RtNames.BoolTrue, negated_frag.Reg)
+            .Label(done_label, "done")
+            .ToString()
+    
+    
+    member this.UnaryMinus(unary_minus_span: Span, negated_frag: AsmFragment): string =
+        this.Location(unary_minus_span)
+            .Paste(negated_frag.Asm)
+            .RtCopyObject(proto_reg=negated_frag.Reg, copy_reg=negated_frag.Reg)
+            .In("negq    {0}({1})", ObjLayoutFacts.IntValue, negated_frag.Reg)
+            .ToString()
+
+
+    member this.If(if_span: Span,
+                   condition_frag: AsmFragment,
+                   then_asm: string,
+                   else_asm: string): string =
+        let else_label = this.Context.LabelGen.Generate()
+        let done_label = this.Context.LabelGen.Generate()
+
+        this.Location(if_span)
+            .Paste(condition_frag.Asm)
+            .In("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, condition_frag.Reg)
+            .Je(else_label, "else")
+            .Comment("then")
+            .Paste(then_asm)
+            .Jmp(done_label, "end if")
+            .Label(else_label, "else")
+            .Paste(else_asm)
+            .Label(done_label, "end if")
+            .ToString()
+
+
+    member this.While(while_span: Span,
+                      condition_frag: AsmFragment,
+                      body_frag: AsmFragment,
+                      result_reg: Reg): string =
+        let while_cond_label = this.Context.LabelGen.Generate()
+        let done_label = this.Context.LabelGen.Generate()
+
+        this.Location(while_span)
+            .Label(while_cond_label, "while cond")
+            .Paste(condition_frag.Asm)
+            .In("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, condition_frag.Reg)
+            .Je(done_label, "end while")
+            .Paste(body_frag.Asm)
+            .Jmp(while_cond_label, "while cond")
+            .Label(done_label, "end while")
+            .In("movq    ${0}, {1}", RtNames.UnitValue, result_reg, "unit")
+            .ToString()
+
+
+    member this.Cond(cond_frag: AsmFragment,
+                     true_branch_asm: string,
+                     false_branch_asm: string): string =
+        let cond_false_label = this.Context.LabelGen.Generate()
+        let done_label = this.Context.LabelGen.Generate()
+
+        this.Paste(cond_frag.Asm)
+            .In("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, cond_frag.Reg)
+            .Je(cond_false_label, "condition is false")
+            .Comment("condition is true")
+            .Paste(true_branch_asm)
+            .Jmp(done_label, "done")
+            .Label(cond_false_label, "condition is false")
+            .Paste(false_branch_asm)
+            .Label(done_label, "done")
+            .ToString()
+
+
+    member this.Mul(mul_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
+        this.Location(mul_span)
+            .Paste(left_frag.Asm)
+            .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
+            .Paste(right_frag.Asm)
+            .In("movq    {0}({1}), %rax", ObjLayoutFacts.IntValue, left_frag.Reg)
+            .In("imulq   {0}({1})", ObjLayoutFacts.IntValue, right_frag.Reg)
+            .In("movq    %rax, {0}({1})", ObjLayoutFacts.IntValue, left_frag.Reg)
+            .ToString()
+
+
+    member this.Div(div_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
+        this.Location(div_span)
+            .Paste(left_frag.Asm)
+            .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
+            .Paste(right_frag.Asm)
+            // left / right
+            .In("movq    {0}({1}), %rax", ObjLayoutFacts.IntValue, left_frag.Reg)
+            .In("cqto", comment=Some "sign-extend %rax to %rdx:%rax")
+            .In("idivq    {0}({1})", ObjLayoutFacts.IntValue, right_frag.Reg)
+            .In("movq    %rax, {0}({1})", ObjLayoutFacts.IntValue, left_frag.Reg)
+            .ToString()
+
+
+    member this.Sum(sum_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
+        this.Location(sum_span)
+            .Paste(left_frag.Asm)
+            .Paste(right_frag.Asm)
+            .AsUnit()
+        
+        if left_frag.Type.Is(BasicClasses.Int) &&
+           right_frag.Type.Is(BasicClasses.Int)
+        then
+            this.RtCopyObject(proto_reg=right_frag.Reg, copy_reg=right_frag.Reg)
+                .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, left_frag.Reg, left_frag.Reg)
+                .In("addq    {0}, {1}({2})", left_frag.Reg, ObjLayoutFacts.IntValue, right_frag.Reg)
+                .ToString()
+        else // string concatenation
+            this.StringConcat(left_frag.Reg, right_frag.Reg, result_reg=right_frag.Reg)
+                .ToString()
+
+
+    member this.Sub(sub_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
+        this.Location(sub_span)
+            .Paste(left_frag.Asm)
+            .Paste(right_frag.Asm)
+            // left - right
+            .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
+            .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, right_frag.Reg, right_frag.Reg)
+            .In("subq    {0}, {1}({2})", right_frag.Reg, ObjLayoutFacts.IntValue, left_frag.Reg)
+            .ToString()
 

@@ -19,7 +19,6 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                                _source: Source) =
     
     
-    let _sb_code = StringBuilder()
     let _sb_data = StringBuilder()
     let _context = { TranslationContext.ClassSymMap = _class_sym_map
                      TypeCmp = TypeComparer(_class_sym_map)
@@ -39,8 +38,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     do _context.StrConsts.GetOrAdd("") |> ignore
 
     
-    let translate_class (class_node: AstNode<ClassSyntax>): unit =
-        ClassTranslator(_context, class_node.Syntax, _sb_code).Translate()
+    let translate_class (class_node: AstNode<ClassSyntax>): string =
+        ClassTranslator(_context, class_node.Syntax).Translate()
         
         
     let translate_int_const (int_const: ConstSetItem<int>): unit =
@@ -245,7 +244,11 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     member this.Translate(): string =
-        _program_syntax.Classes |> Array.iter translate_class
+        let sb_code = StringBuilder()
+        for class_syntax in _program_syntax.Classes do
+            let class_frag = translate_class class_syntax
+            sb_code.Append(class_frag)
+                   .Nop()
         
         emit_consts()
         emit_class_name_table()
@@ -263,8 +266,6 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 .Append(_sb_data.ToString())
                 .AppendLine()
                 .AppendLine("    .text")
-                // .AppendLine("    movq $0, %rcx")
-                // .AppendLine("    call ExitProcess")
-                .Append(_sb_code.ToString())
+                .Append(sb_code.ToString())
                 .ToString()
         asm

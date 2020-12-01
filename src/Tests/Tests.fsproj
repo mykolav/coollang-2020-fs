@@ -31,6 +31,7 @@
         <Content Include="CoolPrograms\Runtime\QuickSort.cl" />
         <Content Include="CoolPrograms\Runtime\InsertionSort.cool" />
         <Content Include="CoolPrograms\Runtime\Fibonacci.cool" />
+        <Content Include="CoolPrograms\Runtime\While.cool" />
         <Content Include="CoolPrograms\Runtime\ArithExprPrecedence.cool" />
         <Content Include="CoolPrograms\Runtime\IfElseExprPrecedence.cool" />
         <Content Include="CoolPrograms\Runtime\HelloCool1.cool" />
@@ -45,6 +46,8 @@
         <Content Include="CoolPrograms\Runtime\MatchNull.cool" />
         <Content Include="CoolPrograms\Runtime\BoolNegation.cool" />
         <Content Include="CoolPrograms\Runtime\UnaryMinus.cool" />
+        <Content Include="CoolPrograms\Runtime\Inheritance1.cool" />
+        <Content Include="CoolPrograms\Runtime\StringsEq.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />

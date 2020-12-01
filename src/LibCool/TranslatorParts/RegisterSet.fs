@@ -8,6 +8,7 @@ type Reg = Reg of int
 
 type RegisterSetItem =
     { mutable IsFree: bool
+      mutable Owner: string
       Name: string }
 
 
@@ -16,13 +17,13 @@ type RegisterSet() =
 
 
     let _regs: RegisterSetItem[] = [|
-        (* 0 *) { IsFree=true; Name="%rbx" }
-        (* 1 *) { IsFree=true; Name="%r10" }
-        (* 2 *) { IsFree=true; Name="%r11" }
-        (* 3 *) { IsFree=true; Name="%r12" }
-        (* 4 *) { IsFree=true; Name="%r13" }
-        (* 5 *) { IsFree=true; Name="%r14" }
-        (* 6 *) { IsFree=true; Name="%r15" }
+        (* 0 *) { IsFree=true; Owner=""; Name="%rbx" }
+        (* 1 *) { IsFree=true; Owner=""; Name="%r10" }
+        (* 2 *) { IsFree=true; Owner=""; Name="%r11" }
+        (* 3 *) { IsFree=true; Owner=""; Name="%r12" }
+        (* 4 *) { IsFree=true; Owner=""; Name="%r13" }
+        (* 5 *) { IsFree=true; Owner=""; Name="%r14" }
+        (* 6 *) { IsFree=true; Owner=""; Name="%r15" }
     |]
     
     
@@ -39,11 +40,13 @@ type RegisterSet() =
             invalidOp "A register leak detected"
     
     
-    member this.Allocate(): Reg =
+    member this.Allocate(owner: string): Reg =
         let index_opt = _regs |> Seq.tryFindIndex (fun it -> it.IsFree)
         match index_opt with
         | Some index ->
-            _regs.[index].IsFree <- false
+            let item = _regs.[index]
+            item.IsFree <- false
+            item.Owner <- owner
             Reg index
         | None -> invalidOp "Out of registers"
         
@@ -58,6 +61,7 @@ type RegisterSet() =
                 invalidOp (sprintf "The register %i '%s' has not been allocated" index item.Name)
             
             item.IsFree <- true
+            item.Owner <- ""
             
             
     member this.IsAllocated(reg: string): bool =

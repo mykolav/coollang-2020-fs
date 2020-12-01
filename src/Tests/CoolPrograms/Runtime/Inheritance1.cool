@@ -1,0 +1,28 @@
+class Answerer(var question: String, var answer: Int) {
+    var io: IO = new IO();
+    
+    def speak(): Unit = {
+        io.out_string(question);
+        io.out_string(" ");
+        io.out_int(answer);
+        io.out_nl()
+    };
+}
+
+class Vegeta(var question1: String, var answer1: Int) extends Answerer(question1, answer1) {
+    override def speak(): Unit = {
+        new IO().out_string("Vegeta! ");
+        super.speak()
+    };
+}
+
+class Main() {
+    {
+        new Vegeta(
+            /*question: */"What does the scouter say about his power level?", 
+            /*answer: */9001
+        ).speak()
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: Vegeta! What does the scouter say about his power level? 9001

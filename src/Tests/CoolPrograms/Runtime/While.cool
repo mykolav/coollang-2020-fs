@@ -1,0 +1,49 @@
+class Main() extends IO() {
+  { 
+    var i: Int = 0;
+    while (i < 3) {
+      out_string("i = "); out_int(i); out_nl();
+      i = i + 1
+    };
+
+    i = 0;
+    while (!(i == 3)) {
+      out_string("i = "); out_int(i); out_nl();
+      i = i + 1
+    };
+
+    i = 0;
+    var done: Boolean = false;
+    while (!done) {
+      out_string("i = "); out_int(i); out_nl();
+      i = i + 1;
+      done = i >= 3
+    };
+
+    i = 0;
+    while (!is_done(i)) {
+      out_string("i = "); out_int(i); out_nl();
+      i = i + 1
+    }
+  };
+  
+  def is_done(i: Int): Boolean = i == 3;
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// OUT: i = 0
+// OUT: i = 1
+// OUT: i = 2
+
+// OUT: i = 0
+// OUT: i = 1
+// OUT: i = 2
+
+// OUT: i = 0
+// OUT: i = 1
+// OUT: i = 2
+
+// OUT: i = 0
+// OUT: i = 1
+// OUT: i = 2
+

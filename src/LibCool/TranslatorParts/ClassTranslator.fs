@@ -1,17 +1,17 @@
 namespace rec LibCool.TranslatorParts
 
 
-open System.Text
-open LibCool.AstParts
-open LibCool.TranslatorParts
-open LibCool.SemanticParts.AstExtensions
 open LibCool.SharedParts
+open LibCool.SourceParts
+open LibCool.AstParts
+open LibCool.SemanticParts.AstExtensions
+open LibCool.TranslatorParts
+open LibCool.TranslatorParts.AsmFragments
 
 
 [<Sealed>]
 type private ClassTranslator(_context: TranslationContext,
-                             _class_syntax: ClassSyntax,
-                             _sb_code: StringBuilder) as this =
+                             _class_syntax: ClassSyntax) as this =
     
     
     let _sym_table = SymbolTable(_context.ClassSymMap.[_class_syntax.NAME.Syntax])
@@ -61,52 +61,11 @@ type private ClassTranslator(_context: TranslationContext,
         _context.RegSet.Free(addr_frag.Reg)
 
         Ok (asm)
-
-
-    let emit_method_prologue (): string =
-        let asm =
-            this.EmitAsm()
-                .In("pushq   %rbp", None)
-                .In("movq    %rsp, %rbp", None)
-                .In("subq    ${0}, %rsp", _sym_table.Frame.FrameSize + _sym_table.Frame.PadSize)
-                .Comment("store actuals on the stack")
-        
-        for i = 0 to (_sym_table.Frame.ActualsInFrameCount - 1) do
-            asm.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.ActualRegs.[i],
-                                              FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize)
-               .AsUnit()
-        
-        asm.Comment("store callee-saved regs on the stack")
-           .AsUnit()
-
-        for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
-            asm.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.CalleeSavedRegs.[i],
-                                              _sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
-               .AsUnit()
-               
-        asm.ToString()
     
     
-    let emit_method_epilogue (): string =
-        let asm =
-            this.EmitAsm()
-                .Comment("restore callee-saved regs")
+    let translate_ctor_body (): Res<string> =
 
-        for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
-            asm.In("movq    -{0}(%rbp), {1}", value0=_sym_table.Frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize,
-                                              value1=SysVAmd64AbiFacts.CalleeSavedRegs.[i])
-               .AsUnit()
-
-        asm.Comment("restore the caller's frame")
-           .In("movq    %rbp, %rsp", None)
-           .In("popq    %rbp", None)
-           .In("ret", None)
-           .ToString()
-    
-    
-    let translate_ctor (): unit =
-    
-        _context.RegSet.AssertAllFree()
+        let asm = this.EmitAsm()
 
         // .ctor's formals are varformals,
         // .ctor's body is
@@ -117,9 +76,6 @@ type private ClassTranslator(_context: TranslationContext,
         //   - ExprSyntax.This is always appended to the .ctor's end
         //     (as a result, the last block's last expr's type doesn't have to match the class' type)
 
-        let sb_ctor_body = StringBuilder()
-        
-        _sym_table.EnterMethod()
         _sym_table.AddFormal(Symbol.This(_class_syntax))
         
         // By a cruel twist of fate, you can't say `this.ID = ...` in Cool2020.
@@ -134,22 +90,9 @@ type private ClassTranslator(_context: TranslationContext,
         // We're entering .ctor's body, which is a block.
         _sym_table.EnterBlock()
         
-        // Invoke the super's .ctor with actuals from the extends syntax
-        // SuperDispatch of method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
-        let extends_syntax = _class_syntax.ExtendsSyntax
-        let super_dispatch_syntax = ExprSyntax.SuperDispatch (
-                                        method_id=AstNode.Virtual(ID ".ctor"),
-                                        actuals=extends_syntax.Actuals)
-        
-        let super_dispatch_frag = _expr_translator.Translate(AstNode.Virtual(super_dispatch_syntax))
-        if super_dispatch_frag.IsOk
-        then
-            _context.RegSet.Free(super_dispatch_frag.Value.Reg)
-            sb_ctor_body.Append(super_dispatch_frag.Value.Asm).Nop()
-            
-        _context.RegSet.AssertAllFree()
-
-        // Assign values passed as formals to attrs derived from varformals.
+        // Assign values passed as varformals to attrs derived from them.
+        // We do it before invoking `super..ctor`,
+        // as the code may be passing attrs derived from varformals as actuals to `super..ctor`. 
         _class_syntax.VarFormals
         |> Seq.iter (fun vf_node ->
             let attr_name = vf_node.Syntax.ID.Syntax.Value
@@ -161,11 +104,28 @@ type private ClassTranslator(_context: TranslationContext,
             if assign_frag.IsOk
             then
                 _context.RegSet.Free(assign_frag.Value.Reg)
-                sb_ctor_body.Append(assign_frag.Value.Asm).Nop()
+                asm.Paste(assign_frag.Value.Asm)
+                   .AsUnit()
         
             _context.RegSet.AssertAllFree()
         )
         
+        _context.RegSet.AssertAllFree()
+
+        // Invoke the super's .ctor with actuals from the extends syntax
+        // SuperDispatch of method_id: AstNode<ID> * actuals: AstNode<ExprSyntax> []
+        let extends_syntax = _class_syntax.ExtendsSyntax
+        let super_dispatch_syntax = ExprSyntax.SuperDispatch (
+                                        method_id=AstNode.Virtual(ID ".ctor"),
+                                        actuals=extends_syntax.Actuals)
+        
+        let super_dispatch_frag = _expr_translator.Translate(AstNode.Virtual(super_dispatch_syntax))
+        if super_dispatch_frag.IsOk
+        then
+            _context.RegSet.Free(super_dispatch_frag.Value.Reg)
+            asm.Paste(super_dispatch_frag.Value.Asm)
+               .AsUnit()
+            
         _context.RegSet.AssertAllFree()
 
         // Assign initial values to attributes declared in the class.
@@ -175,7 +135,8 @@ type private ClassTranslator(_context: TranslationContext,
             let attr_frag = translate_attr (feature_node.Map(fun it -> it.AsAttrSyntax))
             if attr_frag.IsOk
             then
-                sb_ctor_body.Append(attr_frag.Value).Nop()
+                asm.Paste(attr_frag.Value)
+                   .AsUnit()
         )
         
         _context.RegSet.AssertAllFree()
@@ -188,7 +149,8 @@ type private ClassTranslator(_context: TranslationContext,
             if block_frag.IsOk
             then
                 _context.RegSet.Free(block_frag.Value.Reg)
-                sb_ctor_body.Append(block_frag.Value.Asm).Nop()
+                asm.Paste(block_frag.Value.Asm)
+                   .AsUnit()
         )
         
         _context.RegSet.AssertAllFree()
@@ -197,56 +159,40 @@ type private ClassTranslator(_context: TranslationContext,
         // (As a result, the last block's last expr's type doesn't have to match the class' type.)
         let this_syntax = ExprSyntax.This
         let this_frag = _expr_translator.Translate(AstNode.Virtual(this_syntax))
-        sb_ctor_body.AppendLine("    # return 'this'")
-                    .Append(this_frag.Value.Asm.ToString())
-                    .AppendLine(sprintf "    movq %s, %%rax" (_context.RegSet.NameOf(this_frag.Value.Reg)))
-                    .Nop()
+        
+        asm.Paste(this_frag.Value.Asm)
+           .In("movq    {0}, %rax", this_frag.Value.Reg, comment="this")
+           .AsUnit()
 
         _context.RegSet.Free(this_frag.Value.Reg)
-        _context.RegSet.AssertAllFree()
-
-        // Finally, emit assembly.
-        _sb_code
-            .AppendLine(sprintf "%O..ctor:" _class_syntax.NAME.Syntax)
-            .Nop()
-                        
-        _sb_code
-            .Append(emit_method_prologue ())
-            .Append(sb_ctor_body.ToString())
-            .Append(emit_method_epilogue ())
-            .Nop()
-
         _sym_table.LeaveBlock()
-        _sym_table.LeaveMethod()
-    
-    
-    let translate_method (method_node: AstNode<MethodSyntax>) =
-        _context.RegSet.AssertAllFree()
-
-        _sym_table.EnterMethod()
         
+        Ok (asm.ToString())
+    
+    
+    let translate_method_body (method_syntax: MethodSyntax): Res<string> =
         let mutable override_ok = true
 
-        if method_node.Syntax.Override
+        if method_syntax.Override
         then
             let super_sym = _context.ClassSymMap.[_class_syntax.ExtendsSyntax.SUPER.Syntax]
-            let overridden_method_sym = super_sym.Methods.[method_node.Syntax.ID.Syntax]
+            let overridden_method_sym = super_sym.Methods.[method_syntax.ID.Syntax]
             
-            if overridden_method_sym.Formals.Length <> method_node.Syntax.Formals.Length
+            if overridden_method_sym.Formals.Length <> method_syntax.Formals.Length
             then
                 _context.Diags.Error(
                     sprintf "The overriding '%O.%O' method's number of formals %d does not match the overridden '%O.%O' method's number of formals %d"
                             _class_syntax.NAME.Syntax
-                            method_node.Syntax.ID.Syntax
-                            method_node.Syntax.Formals.Length
+                            method_syntax.ID.Syntax
+                            method_syntax.Formals.Length
                             super_sym.Name
-                            method_node.Syntax.ID.Syntax
+                            method_syntax.ID.Syntax
                             overridden_method_sym.Formals.Length,
-                    method_node.Syntax.ID.Span)
+                    method_syntax.ID.Span)
                 override_ok <- false
                 
             overridden_method_sym.Formals |> Array.iteri (fun i overridden_formal_sym ->
-                let formal = method_node.Syntax.Formals.[i].Syntax
+                let formal = method_syntax.Formals.[i].Syntax
                 if overridden_formal_sym.Type <> formal.TYPE.Syntax
                 then
                     _context.Diags.Error(
@@ -257,77 +203,126 @@ type private ClassTranslator(_context: TranslationContext,
                     override_ok <- false)
 
             let overridden_return_ty = _context.ClassSymMap.[overridden_method_sym.ReturnType]
-            let return_ty = _context.ClassSymMap.[method_node.Syntax.RETURN.Syntax]
+            let return_ty = _context.ClassSymMap.[method_syntax.RETURN.Syntax]
             if not (_context.TypeCmp.Conforms(ancestor=overridden_return_ty, descendant=return_ty))
             then
                 _context.Diags.Error(
                     sprintf "The overriding '%O.%O' method's return type '%O' does not conform to the overridden '%O.%O' method's return type '%O'"
                             _class_syntax.NAME.Syntax
-                            method_node.Syntax.ID.Syntax
-                            method_node.Syntax.RETURN.Syntax
+                            method_syntax.ID.Syntax
+                            method_syntax.RETURN.Syntax
                             super_sym.Name
-                            method_node.Syntax.ID.Syntax
+                            method_syntax.ID.Syntax
                             overridden_method_sym.ReturnType,
-                    method_node.Syntax.RETURN.Span)
+                    method_syntax.RETURN.Span)
                 override_ok <- false
 
-        if override_ok
+        if not override_ok
         then
-            // Add the method's formal parameters to the symbol table.
-            _sym_table.AddFormal(Symbol.This(_class_syntax))
+            Error
+        else
             
-            method_node.Syntax.Formals
-            |> Seq.iter (fun formal_node ->
-                let sym = Symbol.Of(formal_node, index=_sym_table.Frame.ActualsCount)
-                _sym_table.AddFormal(sym))
+        // Add the method's formal parameters to the symbol table.
+        _sym_table.AddFormal(Symbol.This(_class_syntax))
+        
+        method_syntax.Formals
+        |> Seq.iter (fun formal_node ->
+            let sym = Symbol.Of(formal_node, index=_sym_table.Frame.ActualsCount)
+            _sym_table.AddFormal(sym))
+        
+        // Translate the method's body
+        let body_frag = _expr_translator.Translate(method_syntax.Body.Map(fun it -> it.AsExprSyntax))
+        if body_frag.IsError
+        then
+            Error
+        else
             
-            // Translate the method's body
-            let body_frag = _expr_translator.Translate(method_node.Syntax.Body.Map(fun it -> it.AsExprSyntax))
-            if body_frag.IsOk
-            then
-                // Make sure, the body's type conforms to the return type.
-                let return_ty = _context.ClassSymMap.[method_node.Syntax.RETURN.Syntax]
-                if not (_context.TypeCmp.Conforms(ancestor=return_ty, descendant=body_frag.Value.Type))
-                then
-                    _context.Diags.Error(
-                        sprintf "The method body's type '%O' does not conform to the declared return type '%O'"
-                                body_frag.Value.Type.Name
-                                return_ty.Name,
-                        method_node.Syntax.Body.Span)
-                    _context.RegSet.Free(body_frag.Value.Reg)
-                else
-                    // Finally, all the semantic checks passed.
-                    // Emit assembly.
-                    _sb_code
-                        .AppendLine(sprintf "%O.%O:"
-                                            _class_syntax.NAME.Syntax
-                                            method_node.Syntax.ID.Syntax)
-                        .Nop()
-                    
-                    _sb_code
-                        .Append(emit_method_prologue ())
-                        .Append(body_frag.Value.Asm)
-                        .AppendLine(sprintf "    movq %s, %%rax"
-                                            (if body_frag.Value.Reg = Reg.Null
-                                             then "$0"
-                                             else _context.RegSet.NameOf(body_frag.Value.Reg)))
-                        .Append(emit_method_epilogue ())
-                        .Nop()
-                    _context.RegSet.Free(body_frag.Value.Reg)
+        // Make sure, the body's type conforms to the return type.
+        let return_ty = _context.ClassSymMap.[method_syntax.RETURN.Syntax]
+        if not (_context.TypeCmp.Conforms(ancestor=return_ty, descendant=body_frag.Value.Type))
+        then
+            _context.Diags.Error(
+                sprintf "The method body's type '%O' does not conform to the declared return type '%O'"
+                        body_frag.Value.Type.Name
+                        return_ty.Name,
+                method_syntax.Body.Span)
+            _context.RegSet.Free(body_frag.Value.Reg)
+            Error
+        else
+            
+        // Finally, all the semantic checks passed.
+        // Emit assembly.
+        
+        let asm =
+            this.EmitAsm()
+                .Paste(body_frag.Value.Asm)
+        
+        if body_frag.Value.Reg = Reg.Null
+        then
+            Ok (asm.In("movq    ${0}, %rax", RtNames.UnitValue)
+                   .ToString())
+        else
+            _context.RegSet.Free(body_frag.Value.Reg)
+            Ok (asm.In("movq    {0}, %rax", body_frag.Value.Reg)
+                   .ToString())
 
+        
+    let translate_method (method_name: string)
+                         (method_span: Span)
+                         (translate_body: unit -> Res<string>)
+                         : Res<string> =
+        _context.RegSet.AssertAllFree()
+        _sym_table.EnterMethod()
+
+        let body_frag = translate_body ()        
+        if body_frag.IsError
+        then
+            Error
+        else
+            
+        let asm =
+            this.EmitAsm()
+                .Method(method_name, method_span, _sym_table.Frame, body_frag.Value)
+  
         _sym_table.LeaveMethod()
         _context.RegSet.AssertAllFree()
+
+        Ok asm
     
     
     member this.EmitAsm(): AsmBuilder = AsmBuilder(_context)
 
 
-    member this.Translate(): unit =
+    member this.Translate(): string =
         _context.RegSet.AssertAllFree()
+
+        let asm = this.EmitAsm()
+        
+        let ctor_name = sprintf "%O..ctor" _class_syntax.NAME.Syntax
+        let ctor_span = if _class_syntax.VarFormals.Length > 0
+                        then Span.Of(_class_syntax.NAME.Span.First,
+                                     _class_syntax.VarFormals.[_class_syntax.VarFormals.Length - 1].Span.Last)
+                        else _class_syntax.NAME.Span
             
-        translate_ctor ()
-        _class_syntax.Features
-            |> Seq.where (fun feature_node -> feature_node.Syntax.IsMethod)
-            |> Seq.iter (fun feature_node -> translate_method (feature_node.Map(fun it -> it.AsMethodSyntax)))
+        let method_frag = translate_method ctor_name ctor_span translate_ctor_body
+        if method_frag.IsOk
+        then
+            asm.Paste(method_frag.Value)
+               .AsUnit()
+            
+        for feature_node in _class_syntax.Features do
+            if feature_node.Syntax.IsMethod
+            then
+                let method_node = feature_node.Map(fun it -> it.AsMethodSyntax)
+                let method_name = sprintf "%O.%O" _class_syntax.NAME.Syntax method_node.Syntax.ID.Syntax
+                let method_frag = translate_method method_name
+                                                   method_node.Span
+                                                   (fun () -> translate_method_body method_node.Syntax)
+                if method_frag.IsOk
+                then
+                    asm.Paste(method_frag.Value)
+                       .AsUnit()
 
         _context.RegSet.AssertAllFree()
+        
+        asm.ToString()

@@ -1,0 +1,48 @@
+class Main() {
+    {
+        var hello0: String = "Hello, World!";
+        var hello1: String = "Hello, World!";
+        var hello2: String = hello0;
+        
+        var goodbye0: String = "Goodbye, World!";
+        
+        var result: String = "";
+        var io: IO = new IO();
+        
+        
+        result = if ("Hello, World!" == "Hello, World!") "equal" else "not equal";
+        io.out_string(result); io.out_nl();
+        
+        result = if (hello0 == "Hello, World!") "equal" else "not equal";
+        io.out_string(result); io.out_nl();
+        
+        result = if ("Hello, World!" == hello0) "equal" else "not equal";
+        io.out_string(result); io.out_nl();
+        
+        result = if (hello0 == hello1) "equal" else "not equal";
+        io.out_string(result); io.out_nl();
+        
+        result = if (hello0 == hello2) "equal" else "not equal";
+        io.out_string(result); io.out_nl();
+        
+        result = if ("Hello, World!" == "Goodbye, World!") "equal" else "not equal";
+        io.out_string(result); io.out_nl();
+        
+        result = if (hello0 == "Goodbye, World!") "equal" else "not equal";
+        io.out_string(result); io.out_nl();
+        
+        result = if (hello0 == goodbye0) "equal" else "not equal";
+        io.out_string(result); io.out_nl()
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// OUT: equal
+// OUT: equal
+// OUT: equal
+// OUT: equal
+// OUT: equal
+
+// OUT: not equal
+// OUT: not equal
+// OUT: not equal
