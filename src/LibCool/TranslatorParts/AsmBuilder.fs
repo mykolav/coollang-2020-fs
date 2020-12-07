@@ -576,21 +576,8 @@ module AsmFragments =
                                          method_reg,
                                          comment=receiver_frag.Type.Name.ToString() + "." + method_sym.Name.ToString())
             .In("call    *{0}", method_reg)
-            .AsUnit()
-        
-        // We only have (ActualRegs.Length - 1) registers to store actuals,
-        // as we always use %rdi to store `this`.
-        let actual_on_stack_count = actuals_count - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
-        if actual_on_stack_count > 0
-        then
-            this.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
-                                          comment="remove " +
-                                                  actual_on_stack_count.ToString() +
-                                                  " actual(s) from stack")
-                .AsUnit()
-        
-
-        this.PopCallerSavedRegs()
+            .RemoveActualsFromStack(actuals_count)
+            .PopCallerSavedRegs()
             .In("movq    %rax, {0}", result_reg, "returned value")
             .AsUnit()
 
@@ -611,18 +598,54 @@ module AsmFragments =
                                    method_sym.Name,
                                    comment="super." + method_sym.Name.ToString())
             .In("movq    %rax, {0}", result_reg, comment="returned value")
+            .RemoveActualsFromStack(actuals_count)
+            .PopCallerSavedRegs()
             .AsUnit()
+
+
+    member this.BeginNew(new_span: Span): AsmBuilder =
+        this.BeginDispatch(new_span)
+
+    
+    member this.CompleteNew(ty: ClassSymbol,
+                            this_reg: Reg,
+                            actuals_asm: string,
+                            actuals_count: int,
+                            result_reg: Reg): unit =
+        if ty.Is(BasicClasses.ArrayAny)
+        then
+            // Set 'this_reg' to 0.
+            // As the size of array in passed to the ctor of 'ArrayAny',
+            // it doesn't use an object copied from a prototype.
+            // Instead it will allocate memory and create an 'ArrayAny' object there itself. 
+            this.Comment("ArrayAny..ctor will allocate memory for N items")
+                .In("xorq    {0}, {1}", this_reg, this_reg)
+                .AsUnit()
+        else
+            // Copy the relevant prototype and place a pointer to the copy in 'this_reg'.
+            this.RtCopyObject(proto="$" + ty.Name.ToString() + "_proto_obj",
+                              copy_reg=this_reg)
+               .AsUnit()
         
+        // `actuals_asm` contains `movq    $this_reg, %rdi`
+        this.Paste(actuals_asm)
+            .In("call    {0}..ctor", ty.Name)
+            .RemoveActualsFromStack(actuals_count)
+            .PopCallerSavedRegs()
+            .In("movq    %rax, {0}", result_reg, comment="the new object")
+            .AsUnit()
+
+
+    member private this.RemoveActualsFromStack(actuals_count: int): AsmBuilder =
         // We only have (ActualRegs.Length - 1) registers to store actuals,
         // as we always use %rdi to store `this`.
         let actual_on_stack_count = actuals_count - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
-        if actual_on_stack_count > 0
+        if actual_on_stack_count <= 0
         then
-            this.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
-                                          comment="remove " +
-                                                  actual_on_stack_count.ToString() +
-                                                  " actual(s) from stack")
-                .AsUnit()
-
-        this.PopCallerSavedRegs()
-            .AsUnit()
+            this
+        else
+            
+        this.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
+                                      comment="remove " +
+                                      actual_on_stack_count.ToString() +
+                                      " actual(s) from stack")

@@ -851,23 +851,10 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
 
-        let asm =
-            this.EmitAsm()
-                .Location(new_node.Span)
-                .PushCallerSavedRegs()
+        let asm = this.EmitAsm()
+                      .BeginNew(new_node.Span)
         
-        // The actual's type '%O' does not conform to the %s's type '%O'
         let this_reg = _context.RegSet.Allocate("translate_new.this_reg")
-        
-        if ty.Is(BasicClasses.ArrayAny)
-        then
-            asm.Comment("ArrayAny..ctor will allocate memory for N items")
-               .In("xorq    {0}, {1}", this_reg, this_reg)
-               .AsUnit()
-        else
-            asm.RtCopyObject(proto="$" + ty.Name.ToString() + "_proto_obj",
-                             copy_reg=this_reg)
-               .AsUnit()
         
         let this_frag =
             { AsmFragment.Asm = ""
@@ -877,38 +864,21 @@ type private ExprTranslator(_context: TranslationContext,
         let method_sym = ty.Ctor
         let method_name = sprintf "Constructor of '%O'" ty.Name
 
-        let actuals_frag =
+        let actuals_asm =
             translate_actuals method_name
                               type_name.Span
                               method_sym
                               (*formal_name=*)"varformal"
                               this_frag
                               actuals
-        if actuals_frag.IsError
+        if actuals_asm.IsError
         then
             Error
         else
 
         let result_reg = _context.RegSet.Allocate("translate_new.result_reg")
         
-        asm.Paste(actuals_frag.Value)
-           .In("call    {0}..ctor", ty.Name)
-           .AsUnit()
-        
-        // We only have (ActualRegs.Length - 1) registers to store actuals,
-        // as we always use %rdi to store `this`.
-        let actual_on_stack_count = actuals.Length - (SysVAmd64AbiFacts.ActualRegs.Length - 1)
-        if actual_on_stack_count > 0
-        then
-            asm.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
-                                         comment="remove " +
-                                                 actual_on_stack_count.ToString() +
-                                                 " actual(s) from stack")
-               .AsUnit()
-        
-        asm.PopCallerSavedRegs()
-           .In("movq    %rax, {0}", result_reg, comment="the new object")
-           .AsUnit()
+        asm.CompleteNew(ty, this_reg, actuals_asm.Value, actuals.Length, result_reg)
 
         Ok { AsmFragment.Asm = asm.ToString()
              Type = ty
