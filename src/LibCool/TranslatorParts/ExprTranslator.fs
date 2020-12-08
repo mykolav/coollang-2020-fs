@@ -1,7 +1,6 @@
 namespace rec LibCool.TranslatorParts
 
 
-open System
 open System.Collections.Generic
 open LibCool.SharedParts
 open LibCool.SourceParts
@@ -754,7 +753,7 @@ type private ExprTranslator(_context: TranslationContext,
                                              method_id.Span
                                              method_sym
                                              (*formal_name=*)"formal"
-                                             receiver_frag
+                                             receiver_frag.Reg
                                              actuals
         if actuals_asm.IsError
         then
@@ -811,7 +810,7 @@ type private ExprTranslator(_context: TranslationContext,
                                             method_id.Span
                                             method_sym
                                             (*formal_name=*)"formal"
-                                            this_frag.Value
+                                            this_frag.Value.Reg
                                             actuals
         if actuals_asm.IsError
         then
@@ -869,7 +868,7 @@ type private ExprTranslator(_context: TranslationContext,
                               type_name.Span
                               method_sym
                               (*formal_name=*)"varformal"
-                              this_frag
+                              this_frag.Reg
                               actuals
         if actuals_asm.IsError
         then
@@ -889,50 +888,26 @@ type private ExprTranslator(_context: TranslationContext,
                           (method_id_span: Span)
                           (method_sym: MethodSymbol)
                           (formal_name: string)
-                          (this_frag: AsmFragment)
+                          (this_reg: Reg)
                           (actual_nodes: AstNode<ExprSyntax>[])
                           : Res<string> =
-        let asm =
-            this.EmitAsm()
-                .Location(method_id_span.Last)
-                .In("subq    ${0}, %rsp", (actual_nodes.Length + (*this*)1) * FrameLayoutFacts.ElemSize)
-                .In("movq    {0}, 0(%rsp)", this_frag.Reg, comment="actual #0")
+                              
+        let asm = this.EmitAsm()
+                      .BeginActuals(method_id_span, actual_nodes.Length, this_reg)
            
-        _context.RegSet.Free(this_frag.Reg)
+        _context.RegSet.Free(this_reg)
             
         let actual_frags = List<Res<AsmFragment>>()
         for actual_index = 0 to (actual_nodes.Length - 1) do
             let actual_frag = translate_expr actual_nodes.[actual_index]
             if actual_frag.IsOk
             then
-                let comment = String.Format("actual #{0}", actual_index + 1)
-                asm.Comment(comment)
-                   .Paste(actual_frag.Value.Asm)
-                   .In("movq    {0}, {1}(%rsp)", actual_frag.Value.Reg,
-                                                 ((actual_index + 1) * FrameLayoutFacts.ElemSize),
-                                                 comment=comment)
-                   .AsUnit()
-                   
+                asm.Actual(actual_index, actual_frag.Value)                  
                 _context.RegSet.Free(actual_frag.Value.Reg)
 
             actual_frags.Add(actual_frag)
-        
-        asm.Comment("load up to 6 first actuals into regs")
-           .AsUnit()
-           
-        // We store `this` in %rdi, and as a result can only pass 5 actuals in registers.
-        let actual_in_reg_count = if (actual_frags.Count + 1) > SysVAmd64AbiFacts.ActualRegs.Length
-                                  then SysVAmd64AbiFacts.ActualRegs.Length
-                                  else actual_frags.Count + 1 // Add one, to account for passing 'this' as the actual #0. 
-                                  
-        for actual_index = 0 to (actual_in_reg_count - 1) do
-            asm.In("movq    {0}(%rsp), {1}", value0=actual_index * FrameLayoutFacts.ElemSize,
-                                             value1=SysVAmd64AbiFacts.ActualRegs.[actual_index])
-               .AsUnit()
-        
-        asm.Comment("remove the register-loaded actuals from stack")
-           .In("addq    ${0}, %rsp", actual_in_reg_count * FrameLayoutFacts.ElemSize)
-           .AsUnit()
+
+        asm.LoadActualsIntoRegs(actual_frags.Count)        
             
         if actual_frags |> Seq.exists (fun it -> it.IsError)
         then

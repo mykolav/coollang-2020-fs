@@ -647,5 +647,41 @@ module AsmFragments =
             
         this.In("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
                                       comment="remove " +
-                                      actual_on_stack_count.ToString() +
-                                      " actual(s) from stack")
+                                              actual_on_stack_count.ToString() +
+                                              " actual(s) from stack")
+
+
+    member this.BeginActuals(method_id_span: Span, actuals_count, this_reg: Reg): AsmBuilder =
+        this.Location(method_id_span.Last)
+            .In("subq    ${0}, %rsp", (actuals_count + (*this*)1) * FrameLayoutFacts.ElemSize)
+            .In("movq    {0}, 0(%rsp)", this_reg, comment="actual #0")
+
+
+    member this.Actual(actual_index: int, actual_frag: AsmFragment): unit =
+        let comment = String.Format("actual #{0}", actual_index + 1)
+        this.Comment(comment)
+            .Paste(actual_frag.Asm)
+            .In("movq    {0}, {1}(%rsp)", actual_frag.Reg,
+                                          ((actual_index + 1) * FrameLayoutFacts.ElemSize),
+                                          comment=comment)
+            .AsUnit()
+
+
+    member this.LoadActualsIntoRegs(actuals_count: int): unit =
+        this.Comment("load up to 6 first actuals into regs")
+            .AsUnit()
+           
+        // We store `this` in %rdi, and as a result can only pass 5 actuals in registers.
+        let actual_in_reg_count = if (actuals_count + 1) > SysVAmd64AbiFacts.ActualRegs.Length
+                                  then SysVAmd64AbiFacts.ActualRegs.Length
+                                  else actuals_count + 1 // Add one, to account for passing 'this' as the actual #0. 
+                                  
+        for actual_index = 0 to (actual_in_reg_count - 1) do
+            this.In("movq    {0}(%rsp), {1}", value0=actual_index * FrameLayoutFacts.ElemSize,
+                                              value1=SysVAmd64AbiFacts.ActualRegs.[actual_index])
+                .AsUnit()
+        
+        this.Comment("remove the register-loaded actuals from stack")
+            .In("addq    ${0}, %rsp", actual_in_reg_count * FrameLayoutFacts.ElemSize)
+            .AsUnit()
+    
