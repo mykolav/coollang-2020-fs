@@ -783,7 +783,10 @@ type private ExprTranslator(_context: TranslationContext,
              Reg = result_reg }
         
         
-    and translate_super_dispatch super_dispatch_node method_id actuals =
+    and translate_super_dispatch (super_dispatch_node: AstNode<ExprSyntax>)
+                                 (method_id: AstNode<ID>)
+                                 (actuals: AstNode<ExprSyntax>[])
+                                 : Res<AsmFragment> =
         let super_sym = _context.ClassSymMap.[_class_syntax.ExtendsSyntax.SUPER.Syntax] 
         if not (method_id.Syntax = ID ".ctor" || super_sym.Methods.ContainsKey(method_id.Syntax))
         then
@@ -833,7 +836,10 @@ type private ExprTranslator(_context: TranslationContext,
              Reg = result_reg }
         
         
-    and translate_new new_node type_name actuals =
+    and translate_new (new_node: AstNode<ExprSyntax>)
+                      (type_name: AstNode<TYPENAME>)
+                      (actuals: AstNode<ExprSyntax>[])
+                      : Res<AsmFragment> =
         if (check_typename type_name) = Error
         then
             Error
@@ -1117,7 +1123,7 @@ type private ExprTranslator(_context: TranslationContext,
                    (jmp: string)
                    : struct {| Asm: string; Reg: Reg |} =
         
-        let result_reg = _context.RegSet.Allocate("emit_cpmop.result_reg")
+        let result_reg = _context.RegSet.Allocate("emit_cmpop.result_reg")
         let asm =
             emit_cmpop_with_branches cmpop_node.Span
                                      left_frag
@@ -1132,29 +1138,18 @@ type private ExprTranslator(_context: TranslationContext,
                                  (left_frag: AsmFragment)
                                  (right_frag: AsmFragment)
                                  (jmp: string)
-                                 (false_branch: string)
-                                 (true_branch: string)
+                                 (false_branch_asm: string)
+                                 (true_branch_asm: string)
                                  : string =
-        
-        let true_label = _context.LabelGen.Generate()
-        let done_label = _context.LabelGen.Generate()
         
         let asm =
             this.EmitAsm()
-                .Location(cmpop_span)
-                .Paste(left_frag.Asm)
-                .Paste(right_frag.Asm)
-                .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, left_frag.Reg, left_frag.Reg)
-                .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, right_frag.Reg, right_frag.Reg)
-                .In("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
-                .Jmp(jmp, true_label, "true branch")
-                .Comment("false branch")
-                .Paste(false_branch)
-                .Jmp(done_label, "done")
-                .Label(true_label, "true branch")
-                .Paste(true_branch)
-                .Label(done_label, "done")
-                .ToString()
+                .CmpOp(cmpop_span,
+                       left_frag=left_frag,
+                       right_frag=right_frag,
+                       jmp=jmp,
+                       false_branch_asm=false_branch_asm,
+                       true_branch_asm=true_branch_asm)
                 
         _context.RegSet.Free(left_frag.Reg)
         _context.RegSet.Free(right_frag.Reg)
@@ -1165,32 +1160,17 @@ type private ExprTranslator(_context: TranslationContext,
     and emit_eqop_with_branches (eqop_span: Span)
                                 (left_frag: AsmFragment)
                                 (right_frag: AsmFragment)
-                                (unequal_branch: string)
-                                (equal_branch: string)
+                                (unequal_branch_asm: string)
+                                (equal_branch_asm: string)
                                 : string =
 
-        let equal_label = _context.LabelGen.Generate()
-        let done_label = _context.LabelGen.Generate()
-                
         let asm =
             this.EmitAsm()
-                .Location(eqop_span)
-                .Paste(left_frag.Asm)
-                .Paste(right_frag.Asm)
-                .Comment("are pointers equal?")
-                .In("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
-                .Je(equal_label, "equal")
-                .RtAreEqual(left_reg=left_frag.Reg, right_reg=right_frag.Reg)
-                .In("movq    {0}(%rax), %rax", ObjLayoutFacts.BoolValue)
-                .In("cmpq    $0, %rax", comment=None)
-                .Jne(equal_label, "equal")
-                .Comment("unequal")
-                .Paste(unequal_branch)
-                .Jmp(done_label, "done")
-                .Label(equal_label, "equal")
-                .Paste(equal_branch)
-                .Label(done_label, "done")
-                .ToString()
+                .EqOp(eqop_span,
+                      left_frag=left_frag,
+                      right_frag=right_frag,
+                      unequal_branch_asm=unequal_branch_asm,
+                      equal_branch_asm=equal_branch_asm)
             
         _context.RegSet.Free(left_frag.Reg)
         _context.RegSet.Free(right_frag.Reg)

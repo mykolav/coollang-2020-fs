@@ -685,3 +685,59 @@ module AsmFragments =
             .In("addq    ${0}, %rsp", actual_in_reg_count * FrameLayoutFacts.ElemSize)
             .AsUnit()
     
+    
+    member this.CmpOp(cmpop_span: Span,
+                      left_frag: AsmFragment,
+                      right_frag: AsmFragment,
+                      jmp: string,
+                      false_branch_asm: string,
+                      true_branch_asm: string)
+                      : string =
+                          
+        let true_label = this.Context.LabelGen.Generate()
+        let done_label = this.Context.LabelGen.Generate()
+        
+        this.Location(cmpop_span)
+            .Paste(left_frag.Asm)
+            .Paste(right_frag.Asm)
+            .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, left_frag.Reg, left_frag.Reg)
+            .In("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, right_frag.Reg, right_frag.Reg)
+            .In("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
+            .Jmp(jmp, true_label, "true branch")
+            .Comment("false branch")
+            .Paste(false_branch_asm)
+            .Jmp(done_label, "done")
+            .Label(true_label, "true branch")
+            .Paste(true_branch_asm)
+            .Label(done_label, "done")
+            .ToString()
+    
+    
+    member this.EqOp(eqop_span: Span,
+                     left_frag: AsmFragment,
+                     right_frag: AsmFragment,
+                     unequal_branch_asm: string,
+                     equal_branch_asm: string)
+                     : string =
+                         
+        let equal_label = this.Context.LabelGen.Generate()
+        let done_label = this.Context.LabelGen.Generate()
+                
+        this.Location(eqop_span)
+            .Paste(left_frag.Asm)
+            .Paste(right_frag.Asm)
+            .Comment("are pointers equal?")
+            .In("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
+            .Je(equal_label, "equal")
+            .RtAreEqual(left_reg=left_frag.Reg, right_reg=right_frag.Reg)
+            .In("movq    {0}(%rax), %rax", ObjLayoutFacts.BoolValue)
+            .In("cmpq    $0, %rax", comment=None)
+            .Jne(equal_label, "equal")
+            .Comment("unequal")
+            .Paste(unequal_branch_asm)
+            .Jmp(done_label, "done")
+            .Label(equal_label, "equal")
+            .Paste(equal_branch_asm)
+            .Label(done_label, "done")
+            .ToString()
+    
