@@ -175,7 +175,7 @@ type AsmBuilder(_context: TranslationContext) =
                               then code_slice + " ..."
                               else code_slice
  
-             this.Comment(String.Format("# {0}({1},{2}): {3}",
+             this.Comment(String.Format("{0}({1},{2}): {3}",
                                    location.FileName,
                                    location.Line,
                                    location.Col,

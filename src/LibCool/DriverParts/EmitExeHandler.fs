@@ -20,7 +20,12 @@ type EmitExeArgs =
 [<Sealed>]
 type EmitExeHandler(_writer: IWriteLine) =
     
-    
+    //
+    // Theoretically, a handler could combine a number of shared steps into a pipeline,
+    // to achieve the handler's goal.
+    // E.g., resolving dirs, assembling, linking could each be a standalone step.
+    // But, for our toy project, the only shared step we really need is `CompileToAsmStep`.
+    //
     member _.Invoke(args: EmitExeArgs): int =
         let source = Source(args.SourceParts)
         let diags = DiagnosticBag()
@@ -28,7 +33,7 @@ type EmitExeHandler(_writer: IWriteLine) =
         //
         // Compile to assembly
         //
-        let result = CompileToAsmDriver.Invoke(source, diags)
+        let result = CompileToAsmStep.Invoke(source, diags)
         if result.IsError
         then
             DiagRenderer.Render(diags, source, _writer)

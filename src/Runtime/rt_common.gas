@@ -18,6 +18,10 @@ ascii_dispatch_to_null:     .ascii "Dispatch to null"
 ascii_no_match:             .ascii "No match for "
 ascii_null:                 .ascii "null"
 
+ascii_array_index:          .ascii "Array index "
+ascii_is_out_of_range:      .ascii " is out of range"
+
+
     .global ascii_out_of_memory
 ascii_out_of_memory:         .ascii "Out of memory"
 
@@ -108,14 +112,6 @@ Boolean_false:
     .quad 0 # value
     
     .quad -1
-    .global ArrayAny_proto_obj
-ArrayAny_proto_obj:
-    .quad ArrayAny_tag # tag
-    .quad 4 # size in quads
-    .quad ArrayAny_vtable
-    .quad Int_proto_obj # array length
-    
-    .quad -1
     .global IO_proto_obj
 IO_proto_obj:
     .quad IO_tag # tag
@@ -198,6 +194,37 @@ IO_proto_obj:
     # Print "{class}"
     movq    -16(%rbp), %rdi
     call    .Runtime.out_type_name
+
+    # Exit the process
+    call    .Platform.exit_process
+
+#
+#  .Runtime.abort_array
+#
+#      index    %rdi
+#  
+#  Prints "Array index {index} is out of range" and exits process.
+#  Does not return.
+#
+    .global .Runtime.abort_array
+.Runtime.abort_array:
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    subq    $(8 + 8), %rsp # 16 bytes boundary padding + index
+    movq    %rdi, -16(%rbp) # index
+
+    # Print "Array index "
+    movq    $ascii_array_index, %rdi
+    movq    $12, %rsi
+    call    .Platform.out_string
+    # Print "{index}"
+    movq    -16(%rbp), %rdi # index
+    call    .Runtime.out_int
+    # Print " is out of range"
+    movq    $ascii_is_out_of_range, %rdi
+    movq    $16, %rsi
+    call    .Platform.out_string
 
     # Exit the process
     call    .Platform.exit_process
@@ -320,7 +347,7 @@ IO_proto_obj:
     call    .Platform.alloc
 
     movq    $-1, (%rax) # write the eyecatch value
-    incq    %rax        # move ptr to the beginning of object
+    addq    $8, %rax    # move ptr to the beginning of object
 
     # %rdi - src
     # %rdx - src_end
@@ -639,7 +666,7 @@ String.substring:
 #  ArrayAny..ctor
 #
 #      'null' in %rdi
-#      a size in %rsi
+#      length in %rsi
 #
 #  Allocates memory for %rsi elements array.
 #  Initializes the array's attributes.
@@ -647,42 +674,131 @@ String.substring:
 
     .global ArrayAny..ctor
 ArrayAny..ctor:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
 
-    movq %rbp, %rsp
-    popq %rbp
+    subq    $(8 + 8 + 8 + 8), %rsp  # length + 
+                                    # size in quads + 
+                                    # object ptr + 
+                                    # 16 byte boundary padding
+
+    movq    %rsi, -8(%rbp)  # length
+
+    addq    $5, %rsi        # eyecatch + tag + size + vtab + length
+    movq    %rsi, -16(%rbp) # size in quads
+
+    movq    %rsi, %rdi      # size in quads
+    call    .Platform.alloc
+
+    movq    $-1, (%rax)     # write the eyecatch value
+    addq    $8, %rax        # move ptr to the beginning of object
+
+    movq    $ArrayAny_tag, OBJ_TAG(%rax)
+
+    movq    -16(%rbp), %rsi     # size in quads
+    movq    %rsi, OBJ_SIZE(%rax)
+
+    movq    $ArrayAny_vtable, OBJ_VTAB(%rax)
+
+    movq    -8(%rbp), %rsi      # length (an int object)
+    movq    %rsi, ARR_LEN(%rax)
+
+    # %rdi - current element
+    # %rsi - elements end
+
+    movq    INT_VAL(%rsi), %rsi
+    salq    $3, %rsi   # length * 8
+    leaq    ARR_ITEMS(%rax), %rdi
+    addq    %rdi, %rsi # elements end 
+
+    jmp     .ArrayAny..ctor.loop_cond
+
+    # init the array's elements to $0
+.ArrayAny..ctor.loop_body:
+    movq    $0, (%rdi)
+    addq    $8, %rdi
+
+.ArrayAny..ctor.loop_cond:
+    cmpq    %rdi, %rsi
+    jne     .ArrayAny..ctor.loop_body
+
+    # %rax points to array object
+
+    movq    %rbp, %rsp
+    popq    %rbp
 
     ret
+
+#
+#  ArrayAny.get
+#
+#      array object in %rdi
+#      element index (an int object) in %rsi
+#
+#  Returns value of the array's element with the given index in %rax.
+#
 
     .global ArrayAny.get
 ArrayAny.get:
-    pushq %rbp
-    movq %rsp, %rbp
+    movq    INT_VAL(%rsi), %rsi
 
-    movq %rbp, %rsp
-    popq %rbp
+    # Ensure index >= 0
+    cmpq    $0, %rsi
+    jl      .Runtime.abort_array
+
+    # Ensure index < length
+    movq    ARR_LEN(%rdi), %rcx
+    movq    INT_VAL(%rcx), %rcx
+    cmpq    %rcx, %rsi
+    jge     .Runtime.abort_array
+
+    # The index is in range
+    addq    $ARR_ITEMS, %rdi # elements ptr
+    movq    (%rdi, %rsi, 8), %rax
 
     ret
+
+#
+#  ArrayAny.set
+#
+#      array object in %rdi
+#      element index (an int object) in %rsi
+#      value to set in %rdx
+#
+#  Sets the array's element with the given index to the supplied value.
+#
 
     .global ArrayAny.set
 ArrayAny.set:
-    pushq %rbp
-    movq %rsp, %rbp
+    movq    INT_VAL(%rsi), %rsi
 
-    movq %rbp, %rsp
-    popq %rbp
+    # Ensure index >= 0
+    cmpq    $0, %rsi
+    jl      .Runtime.abort_array
+
+    # Ensure index < length
+    movq    ARR_LEN(%rdi), %rcx
+    movq    INT_VAL(%rcx), %rcx
+    cmpq    %rcx, %rsi
+    jge     .Runtime.abort_array
+
+    # The index is in range
+    addq    $ARR_ITEMS, %rdi # elements ptr
+    movq    %rdx, (%rdi, %rsi, 8)
 
     ret
 
+#
+#  ArrayAny.length
+#
+#      array object in %rdi
+#
+#  Returns the array's length (an int object) in %rax.
+#
+
     .global ArrayAny.length
 ArrayAny.length:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    movq %rbp, %rsp
-    popq %rbp
-
+    movq    ARR_LEN(%rdi), %rax
     ret
 
 ########################################

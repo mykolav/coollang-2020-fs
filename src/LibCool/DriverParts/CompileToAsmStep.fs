@@ -8,7 +8,7 @@ open LibCool.SourceParts
 open LibCool.TranslatorParts
 
 
-module CompileToAsmDriver =
+module CompileToAsmStep =
     let Invoke(source: Source, diags: DiagnosticBag): Res<string> =
         // ERROR HANDLING:
         // 1) If any lexical errors, report and stop

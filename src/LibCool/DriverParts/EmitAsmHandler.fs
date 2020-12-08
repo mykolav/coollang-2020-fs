@@ -19,7 +19,7 @@ type EmitAsmHandler(_writer: IWriteLine) =
         let source = Source(args.SourceParts)
         let diags = DiagnosticBag()
 
-        let result = CompileToAsmDriver.Invoke(source, diags)
+        let result = CompileToAsmStep.Invoke(source, diags)
         DiagRenderer.Render(diags, source, _writer)
         
         if result.IsError

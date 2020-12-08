@@ -2,9 +2,9 @@
 
 # Work in progress
 
-The runtime is incomplete. For example, support for a built-in class `ArrayAny` is missing at the moment.  
+The compiler can successfully build a Windows excecutable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
 
-But the compiler can successfully build a Windows excecutable out of every [sample program](./src/Tests/CoolPrograms/Runtime) except QuickSort.cool.  
+But the runtime is incomplete. For example, methods `length`, `concat`, and `substring` of a built-in class `String` are missing at the moment.  
 
 Linux support is planned.
 

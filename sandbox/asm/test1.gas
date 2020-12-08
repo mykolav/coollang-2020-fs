@@ -17,6 +17,7 @@ int_const0:
     movq    $11, %r8
     subq    -48(%rbp), %r8 # 11 - digit_pos
     addq    %rax, -48(%rbp)
+    # movq    -16(%rbp), 8(%rax)
     # idivq   $10
     # end if
     retq
