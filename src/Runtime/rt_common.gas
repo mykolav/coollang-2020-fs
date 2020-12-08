@@ -162,6 +162,8 @@ IO_proto_obj:
     movq    $ascii_dispatch_to_null, %rdi
     movq    $16, %rsi
     call    .Platform.out_string
+    # Print new line
+    call    .Runtime.out_nl
 
     # Exit the process
     call    .Platform.exit_process
@@ -194,6 +196,8 @@ IO_proto_obj:
     # Print "{class}"
     movq    -16(%rbp), %rdi
     call    .Runtime.out_type_name
+    # Print new line
+    call    .Runtime.out_nl
 
     # Exit the process
     call    .Platform.exit_process
@@ -225,6 +229,8 @@ IO_proto_obj:
     movq    $ascii_is_out_of_range, %rdi
     movq    $16, %rsi
     call    .Platform.out_string
+    # Print new line
+    call    .Runtime.out_nl
 
     # Exit the process
     call    .Platform.exit_process
