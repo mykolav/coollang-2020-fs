@@ -232,8 +232,18 @@ type AsmBuilder(_context: TranslationContext) =
             .PopCallerSavedRegs()
         
         
-    member this.StringConcat(str0_reg: Reg, str1_reg: Reg, result_reg: Reg): AsmBuilder =
-        this.PushCallerSavedRegs()
+    member this.StringConcat(concat_span: Span,
+                             str0_reg: Reg,
+                             str1_reg: Reg,
+                             result_reg: Reg)
+                            : AsmBuilder =
+        let str0_is_some = this.Context.LabelGen.Generate()
+        
+        this.In("cmpq    $0, {0}", str0_reg)
+            .Jne(str0_is_some, "left string is some")
+            .RtAbortDispatch(this.Context.Source.Map(concat_span.First))
+            .Label(str0_is_some, "left string is some")
+            .PushCallerSavedRegs()
             .In("movq    {0}, %rdi", str0_reg)
             .In("movq    {0}, %rsi", str1_reg)
             .In("call    {0}", RtNames.StringConcat)
@@ -457,7 +467,7 @@ module AsmFragments =
                 .In("addq    {0}, {1}({2})", left_frag.Reg, ObjLayoutFacts.IntValue, right_frag.Reg)
                 .ToString()
         else // string concatenation
-            this.StringConcat(left_frag.Reg, right_frag.Reg, result_reg=right_frag.Reg)
+            this.StringConcat(sum_span, left_frag.Reg, right_frag.Reg, result_reg=right_frag.Reg)
                 .ToString()
 
 
@@ -555,12 +565,14 @@ module AsmFragments =
 
     member this.CompleteDispatch(dispatch_span: Span,
                                  receiver_frag: AsmFragment,
-                                 receiver_is_some_label: Label,
                                  actuals_asm: string,
                                  method_reg: Reg,
                                  method_sym: MethodSymbol,
                                  actuals_count: int,
                                  result_reg: Reg): unit =
+        
+        let receiver_is_some_label = this.Context.LabelGen.Generate()
+
         this.Comment("actual #0")
             .Paste(receiver_frag.Asm)
             .In("cmpq    $0, {0}", receiver_frag.Reg)

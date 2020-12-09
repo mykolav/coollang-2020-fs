@@ -760,8 +760,6 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
         
-        let receiver_is_some_label = _context.LabelGen.Generate()
-        
         let asm = this.EmitAsm().BeginDispatch(dispatch_node.Span)
         
         let method_reg = _context.RegSet.Allocate("translate_dispatch.method_reg")
@@ -769,7 +767,6 @@ type private ExprTranslator(_context: TranslationContext,
 
         asm.CompleteDispatch(dispatch_node.Span,
                              receiver_frag,
-                             receiver_is_some_label,
                              actuals_asm.Value,
                              method_reg,
                              method_sym,

@@ -26,6 +26,27 @@ ascii_is_out_of_range:      .ascii " is out of range"
 ascii_out_of_memory:         .ascii "Out of memory"
 
 ########################################
+# Objects
+########################################
+    .quad -1
+String_null:
+    .quad 3 # tag
+    .quad 4 # size in quads
+    .quad String_vtable
+    .quad Int_null_len # length = 4
+    # 'null'
+    .byte 110, 117, 108, 108
+    .byte 0 # terminator
+    .zero 3 # payload's size in bytes = 29, pad to an 8 byte boundary
+
+    .quad -1
+Int_null_len:
+    .quad 2 # tag
+    .quad 4 # size in quads
+    .quad Int_vtable
+    .quad 4 # value
+
+########################################
 # Virtual tables
 ########################################
     .global Any_vtable
@@ -629,38 +650,66 @@ Any.abort:
 ########################################
 # String
 ########################################
-    .global String..ctor
-String..ctor:
-    movq %rdi, %rax
-    ret
+
+#
+#  String.length
+#
+#      string object in %rdi
+#
+#  Returns the string's length (an int object) in %rax.
+#
 
     .global String.length
 String.length:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    movq %rbp, %rsp
-    popq %rbp
-
+    movq    STR_LEN(%rdi), %rax
     ret
+
+#
+#  String.concat
+#
+#    INPUT: 
+#        The first string object (this) in %rdi
+#        The second string object (suffix) in %rsi
+#
+#    OUTPUT:
+#        The new string object in %rax
+#
+#  Concatenates suffix onto the end of self and returns a pointer
+#  to the new object.
+#
 
     .global String.concat
 String.concat:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
 
-    movq %rbp, %rsp
-    popq %rbp
+    movq    %rbp, %rsp
+    popq    %rbp
 
     ret
 
+#
+#  String.substring(begin_index, end_index)
+#
+#   INPUT:
+#       string object in %rdi
+#       start_index in %rsi
+#       end_index in %rdx
+#
+#   OUTPUT:
+#       The substring object in %rax
+#
+#  Returns the substring of 'this' [start_index, end_index).
+#  Indexing starts at 0.
+#
+
     .global String.substring
 String.substring:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
 
-    movq %rbp, %rsp
-    popq %rbp
+    movq    %rbp, %rsp
+    popq    %rbp
 
     ret
 
