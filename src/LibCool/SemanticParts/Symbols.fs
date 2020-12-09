@@ -144,7 +144,6 @@ module BasicClasses =
         ClassSymbol.Virtual(
             class_name=BasicClassNames.String,
             tag=3,
-            ctor_formals=[| (ID "value", BasicClassNames.String) |],
             super=BasicClasses.Any,
             methods=[|
                 MethodSymbol.Virtual(ID "length"(*name*),

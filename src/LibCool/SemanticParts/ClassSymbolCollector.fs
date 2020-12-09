@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Text
 open LibCool.AstParts
 open LibCool.DiagnosticParts
+open LibCool.SharedParts
 open LibCool.SourceParts
 open AstExtensions
 
@@ -293,83 +294,34 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         _class_sym_map.Add(classsym.Name, classsym)
 
 
-    let collect_class_sym (class_name_node: AstNode<TYPENAME>): unit =
-        let inheritance_chain = InheritanceChain()
-        
-        let rec do_collect_class_sym (class_name_node: AstNode<TYPENAME>): ClassSymbol =
-            let class_name = class_name_node.Syntax
-     
-            // See if we collected a symbol for this class earlier or it's a basic class.
-            // If so, don't try to collect again.
-            if _class_sym_map.ContainsKey(class_name)
-            then
-                let class_sym = _class_sym_map.[class_name_node.Syntax]
-                if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
-                then
-                    _diags.Error(
-                        sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
-                        class_name_node.Span)
-                
-                class_sym
-            else
-            
-            // See if a class with the name supplied to us exists in user code.
-            let class_node_opt = resolve_to_class_node class_name_node
-            if class_node_opt.IsNone
-            then 
-                SpecialClasses.Error
-            else
-                
-            let class_node = class_node_opt.Value 
-            
-            // See if we're in an inheritance cycle.
-            let cycle_detected =
-                let class_syntax = class_node.Syntax
-                if inheritance_chain.Add(class_syntax)
-                then
-                    false
-                else
+    let add_to_inheritance_chain (inheritance_chain: InheritanceChain)
+                                 (class_syntax: ClassSyntax)
+                                 : Res<unit> =
+        if inheritance_chain.Add(class_syntax)
+        then
+            Ok ()
+        else
 
-                // An inheritance cycle detected
-                let sb_message = StringBuilder("A circular superclass dependency detected: '")
+        // An inheritance cycle detected
+        let sb_message = StringBuilder("A circular superclass dependency detected: '")
 
-                let cycle = inheritance_chain.Subchain(class_syntax)
-                cycle |> Seq.iter (fun it -> sb_message.AppendFormat("{0} -> ", it.NAME.Syntax) |> ignore)
+        let cycle = inheritance_chain.Subchain(class_syntax)
+        cycle |> Seq.iter (fun it -> sb_message.AppendFormat("{0} -> ", it.NAME.Syntax) |> ignore)
 
-                sb_message.AppendFormat("{0}'", cycle.[0].NAME.Syntax) |> ignore
+        sb_message.AppendFormat("{0}'", cycle.[0].NAME.Syntax) |> ignore
 
-                _diags.Error(sb_message.ToString(), class_syntax.ExtendsSyntax.SUPER.Span)
-                true
-            
-            if cycle_detected
-            then
-                SpecialClasses.Error
-            else
+        _diags.Error(sb_message.ToString(), class_syntax.ExtendsSyntax.SUPER.Span)
+        Error
 
-            // We didn't collect a symbol for this class previously.
-            // And we aren't in an inheritance cycle.
-            // To collect a symbol for this class we need to merge the class' syntax and its super's symbol.
-            
-            // Collect the super's symbol.
-            let super_sym = do_collect_class_sym class_node.Syntax.ExtendsSyntax.SUPER
-            if super_sym.IsError
-            then
-                // Remember we failed to collect a symbol for the current class.
-                // So the next time we need it, we don't try to collect it again
-                // and don't emit duplicate diags.
-                _class_sym_map.Add(class_name, SpecialClasses.Error)
-                SpecialClasses.Error
-            else
 
-            // Merge the current class' syntax and its super's symbol.
-            let class_sym = mk_class_sym class_node super_sym
-            
-            // Add the collected symbol to the map,
-            // so the next time we need it, we can reuse it instead of collecting from scratch.
-            add_class_sym_to_map class_sym
-            class_sym
-        
-        if _class_sym_map.ContainsKey(class_name_node.Syntax)
+    let rec do_collect_class_sym (inheritance_chain: InheritanceChain)
+                                 (class_name_node: AstNode<TYPENAME>)
+                                 : ClassSymbol =
+        let class_name = class_name_node.Syntax
+ 
+        // See if we collected a symbol for this class earlier or it's a basic class.
+        // If so, don't try to collect again.
+        if _class_sym_map.ContainsKey(class_name)
         then
             let class_sym = _class_sym_map.[class_name_node.Syntax]
             if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
@@ -377,11 +329,76 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                 _diags.Error(
                     sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
                     class_name_node.Span)
+            
+            class_sym
         else
         
-        do_collect_class_sym class_name_node |> ignore
-    
-    
+        // See if a class with the name supplied to us exists in user code.
+        let class_node_opt = resolve_to_class_node class_name_node
+        if class_node_opt.IsNone
+        then 
+            SpecialClasses.Error
+        else
+            
+        let class_node = class_node_opt.Value 
+        
+        // See if we're in an inheritance cycle.
+        let result = add_to_inheritance_chain inheritance_chain
+                                              class_node.Syntax
+        if result.IsError
+        then
+            SpecialClasses.Error
+        else
+
+        // We didn't collect a symbol for this class previously.
+        // And we aren't in an inheritance cycle.
+        // To collect a symbol for this class we need to merge the class' syntax and its super's symbol.
+        
+        // Collect the super's symbol.
+        let super_name_node = class_node.Syntax.ExtendsSyntax.SUPER
+        let super_sym = do_collect_class_sym inheritance_chain super_name_node
+                                             
+        if super_sym.IsError
+        then
+            // Remember we failed to collect a symbol for the current class.
+            // So the next time we need it, we don't try to collect it again
+            // and don't emit duplicate diags.
+            _class_sym_map.Add(class_name, SpecialClasses.Error)
+            SpecialClasses.Error
+        else
+            
+        if super_sym.Is(BasicClasses.Int) || super_sym.Is(BasicClasses.Unit) ||
+           super_sym.Is(BasicClasses.Boolean) || super_sym.Is(BasicClasses.String)
+        then
+            _diags.Error(
+                sprintf "Extending '%O' is not allowed" super_name_node.Syntax,
+                super_name_node.Span)
+            SpecialClasses.Error
+        else
+
+        // Merge the current class' syntax and its super's symbol.
+        let class_sym = mk_class_sym class_node super_sym
+        
+        // Add the collected symbol to the map,
+        // so the next time we need it, we can reuse it instead of collecting from scratch.
+        add_class_sym_to_map class_sym
+        class_sym
+        
+        
+    let collect_class_sym (class_name_node: AstNode<TYPENAME>): unit =
+        if not (_class_sym_map.ContainsKey(class_name_node.Syntax))
+        then
+            do_collect_class_sym (InheritanceChain()) class_name_node |> ignore
+        else
+
+        let class_sym = _class_sym_map.[class_name_node.Syntax]
+        if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
+        then
+            _diags.Error(
+                sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
+                class_name_node.Span)
+
+
     member this.Collect(): IReadOnlyDictionary<TYPENAME, ClassSymbol> =
         // The following three aren't allowed in user code.
         add_class_sym_to_map BasicClasses.Nothing

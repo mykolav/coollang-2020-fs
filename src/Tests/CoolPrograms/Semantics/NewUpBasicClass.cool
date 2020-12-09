@@ -1,0 +1,15 @@
+class Main() {
+    {
+        var u: Unit = new Unit();
+        var i: Int = new Int();
+        var b: Boolean = new Boolean();
+        var s: String = new String();
+        ()
+    };
+}
+
+// DIAG: Semantics/NewUpBasicClass.cool(3,27): Error: 'new Unit' is not allowed
+// DIAG: Semantics/NewUpBasicClass.cool(4,26): Error: 'new Int' is not allowed
+// DIAG: Semantics/NewUpBasicClass.cool(5,30): Error: 'new Boolean' is not allowed
+// DIAG: Semantics/NewUpBasicClass.cool(6,29): Error: 'new String' is not allowed
+// DIAG: Build failed: Errors: 4. Warnings: 0

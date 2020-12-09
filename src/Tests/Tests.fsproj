@@ -81,6 +81,8 @@
         <Content Include="CoolPrograms\Semantics\Equality.cool" />
         <Content Include="CoolPrograms\Semantics\SystemTypes1.cool" />
         <Content Include="CoolPrograms\Semantics\SystemTypes2.cool" />
+        <Content Include="CoolPrograms\Semantics\ExtendBasicClass.cool" />
+        <Content Include="CoolPrograms\Semantics\NewUpBasicClass.cool" />
         <Content Include="CoolPrograms\Semantics\Match2.cool" />
         <Content Include="CoolPrograms\Semantics\Match1.cool" />
     </ItemGroup>

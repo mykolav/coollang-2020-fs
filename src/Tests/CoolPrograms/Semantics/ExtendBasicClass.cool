@@ -1,0 +1,15 @@
+class MyUnit() extends Unit() {}
+class MyInt() extends Int() {}
+class MyBool() extends Boolean() {}
+class MyString() extends String() {}
+
+class Main() {
+    {
+    };
+}
+
+// DIAG: Semantics/ExtendBasicClass.cool(1,24): Error: Extending 'Unit' is not allowed
+// DIAG: Semantics/ExtendBasicClass.cool(2,23): Error: Extending 'Int' is not allowed
+// DIAG: Semantics/ExtendBasicClass.cool(3,24): Error: Extending 'Boolean' is not allowed
+// DIAG: Semantics/ExtendBasicClass.cool(4,26): Error: Extending 'String' is not allowed
+// DIAG: Build failed: Errors: 4. Warnings: 0

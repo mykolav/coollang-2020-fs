@@ -848,7 +848,8 @@ type private ExprTranslator(_context: TranslationContext,
         let ty = _context.ClassSymMap.[type_name.Syntax]
         
         if ty.Is(BasicClasses.Any) || ty.Is(BasicClasses.Int) ||
-           ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean)
+           ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean) ||
+           ty.Is(BasicClasses.String)
         then
             _context.Diags.Error(
                 sprintf "'new %O' is not allowed" type_name.Syntax,

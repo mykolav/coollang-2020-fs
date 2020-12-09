@@ -740,4 +740,3 @@ module AsmFragments =
             .Paste(equal_branch_asm)
             .Label(done_label, "done")
             .ToString()
-    
