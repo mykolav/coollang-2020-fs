@@ -4,7 +4,7 @@
 
 The compiler can successfully build a Windows excecutable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
 
-But the runtime is incomplete. For example, methods `length`, `concat`, and `substring` of a built-in class `String` are missing at the moment.  
+But the runtime is incomplete. For example, methods `in_string` and `in_int` of a built-in class `IO` are missing at the moment.  
 
 Linux support is planned.
 
@@ -53,6 +53,8 @@ class Main() {
   { new Fib() };
 }
 ```
+
+For an example of more language features take a look at [QuickSort.cool](./src/Tests/CoolPrograms/Runtime/QuickSort.cool).
 
 ## An antlr4 grammar for Cool 2020
 
