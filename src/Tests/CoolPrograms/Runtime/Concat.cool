@@ -1,0 +1,51 @@
+class Main() {
+    var io: IO = new IO();
+
+    def out_quoted_string_nl(s: String): Unit = {
+        io.out_string("\""); 
+        
+        io.out_string(s); 
+        
+        io.out_string("\""); 
+        io.out_nl();
+
+        ()
+    };
+
+    {
+        var snull: String = null;
+        var s1: String = "Hello, ";
+        var s2: String = "World!";
+
+        out_quoted_string_nl(s1 + s2);
+        out_quoted_string_nl(s1.concat(s2));
+
+        out_quoted_string_nl(s2 + s1);
+        out_quoted_string_nl(s2.concat(s1));
+
+        out_quoted_string_nl(s1 + "");
+        out_quoted_string_nl(s1.concat(""));
+
+        out_quoted_string_nl("" + s2);
+        out_quoted_string_nl("".concat(s2));
+
+        // out_quoted_string_nl(s1 + snull);
+        // out_quoted_string_nl(s1.concat(snull));
+
+        // out_quoted_string_nl(snull + s2);
+        // out_quoted_string_nl(snull.concat(s2));
+
+        ()
+    };
+}
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// OUT: "Hello, World!"
+// OUT: "Hello, World!"
+// OUT: "World!Hello, "
+// OUT: "World!Hello, "
+// OUT: "Hello, "
+// OUT: "Hello, "
+// OUT: "World!"
+// OUT: "World!"

@@ -1,0 +1,32 @@
+class Main() {
+    var io: IO = new IO();
+
+    def out_quoted_string_nl(s: String): Unit = {
+        io.out_string("\""); 
+        
+        io.out_string(s); 
+        
+        io.out_string("\""); 
+        io.out_nl();
+
+        ()
+    };
+
+    {
+        var shello: String = "Hello, ";
+        var snull: String = null;
+
+        out_quoted_string_nl(shello + snull);
+        out_quoted_string_nl(snull + shello);
+
+        out_quoted_string_nl(shello.concat(snull));
+
+        ()
+    };
+}
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// OUT: "Hello, null"
+// OUT: "nullHello, "
+// OUT: String.concat: Actual 'suffix' is null

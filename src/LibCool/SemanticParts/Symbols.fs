@@ -154,7 +154,7 @@ module BasicClasses =
                                      formals=[| (ID "suffix", BasicClassNames.String) |])
                 
                 MethodSymbol.Virtual(ID "substring"(*name*),
-                                     BasicClassNames.Int(*return_type*),
+                                     BasicClassNames.String(*return_type*),
                                      formals=[| (ID "begin_index", BasicClassNames.Int)
                                                 (ID "end_index", BasicClassNames.Int) |])
             |])

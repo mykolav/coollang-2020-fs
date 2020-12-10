@@ -232,20 +232,32 @@ type AsmBuilder(_context: TranslationContext) =
             .PopCallerSavedRegs()
         
         
-    member this.StringConcat(concat_span: Span,
-                             str0_reg: Reg,
-                             str1_reg: Reg,
-                             result_reg: Reg)
-                            : AsmBuilder =
-        let str0_is_some = this.Context.LabelGen.Generate()
+    member this.StringConcatOp(concat_span: Span,
+                               left_str_reg: Reg,
+                               right_str_reg: Reg,
+                               result_reg: Reg)
+                              : AsmBuilder =
         
-        this.In("cmpq    $0, {0}", str0_reg)
-            .Jne(str0_is_some, "left string is some")
-            .RtAbortDispatch(this.Context.Source.Map(concat_span.First))
-            .Label(str0_is_some, "left string is some")
+        // Calling `String.concat` directly behaves as a normal method call.
+        // But in Scala, `left_str + right_str` never fails, and instead
+        // replaces `null` operand(s) with `"null"` string literal.
+        // We choose to be consistent with Scala.
+        let left_str_is_some_label = this.Context.LabelGen.Generate()
+        let right_str_is_some_label = this.Context.LabelGen.Generate()
+        
+        this.In("cmpq    $0, {0}", left_str_reg)
+            .Jne(left_str_is_some_label, "left string is some")
+            .In("movq    ${0}, {1}", _context.StrConsts.GetOrAdd("null"),
+                                     left_str_reg)
+            .Label(left_str_is_some_label, "left string is some")
+            .In("cmpq    $0, {0}", right_str_reg)
+            .Jne(right_str_is_some_label, "right string is some")
+            .In("movq    ${0}, {1}", _context.StrConsts.GetOrAdd("null"),
+                                     right_str_reg)
+            .Label(right_str_is_some_label, "right string is some")
             .PushCallerSavedRegs()
-            .In("movq    {0}, %rdi", str0_reg)
-            .In("movq    {0}, %rsi", str1_reg)
+            .In("movq    {0}, %rdi", left_str_reg)
+            .In("movq    {0}, %rsi", right_str_reg)
             .In("call    {0}", RtNames.StringConcat)
             .PopCallerSavedRegs()
             .In("movq    %rax, {0}", result_reg)
@@ -467,7 +479,7 @@ module AsmFragments =
                 .In("addq    {0}, {1}({2})", left_frag.Reg, ObjLayoutFacts.IntValue, right_frag.Reg)
                 .ToString()
         else // string concatenation
-            this.StringConcat(sum_span, left_frag.Reg, right_frag.Reg, result_reg=right_frag.Reg)
+            this.StringConcatOp(sum_span, left_frag.Reg, right_frag.Reg, result_reg=right_frag.Reg)
                 .ToString()
 
 

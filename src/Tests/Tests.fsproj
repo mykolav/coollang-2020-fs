@@ -48,6 +48,14 @@
         <Content Include="CoolPrograms\Runtime\UnaryMinus.cool" />
         <Content Include="CoolPrograms\Runtime\Inheritance1.cool" />
         <Content Include="CoolPrograms\Runtime\StringsEq.cool" />
+        <Content Include="CoolPrograms\Runtime\Substring.cool" />
+        <Content Include="CoolPrograms\Runtime\Substring1.cool" />
+        <Content Include="CoolPrograms\Runtime\Substring2.cool" />
+        <Content Include="CoolPrograms\Runtime\Substring3.cool" />
+        <Content Include="CoolPrograms\Runtime\Substring4.cool" />
+        <Content Include="CoolPrograms\Runtime\Substring5.cool" />
+        <Content Include="CoolPrograms\Runtime\Concat.cool" />
+        <Content Include="CoolPrograms\Runtime\Concat1.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />

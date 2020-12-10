@@ -1,0 +1,25 @@
+class Main() {
+    var io: IO = new IO();
+
+    def out_quoted_string_nl(s: String): Unit = {
+        io.out_string("\""); 
+        
+        io.out_string(s); 
+        
+        io.out_string("\""); 
+        io.out_nl();
+
+        ()
+    };
+
+    {
+        var s1: String = "Hello, World!";
+        out_quoted_string_nl(s1.substring(0, s1.length() + 1));
+
+        ()
+    };
+}
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: String.substring: Index 14 is out of range
+
