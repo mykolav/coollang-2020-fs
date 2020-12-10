@@ -54,7 +54,7 @@ class Main() {
 }
 ```
 
-For an example of more language features take a look at [QuickSort.cool](./src/Tests/CoolPrograms/Runtime/QuickSort.cool).
+Too see more of the language's features in action take a look at [QuickSort.cool](./src/Tests/CoolPrograms/Runtime/QuickSort.cool).
 
 ## An antlr4 grammar for Cool 2020
 
