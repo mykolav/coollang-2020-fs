@@ -1,7 +1,0 @@
-class Main() {
-  { 
-    new IO().out_string("Hello, Cool2020!")
-  };
-}
-// DIAG: Build succeeded: Errors: 0. Warnings: 0
-// OUT: Hello, Cool2020!

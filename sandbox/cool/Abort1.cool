@@ -1,7 +1,0 @@
-class Main() {
-  {
-    abort()
-  };
-}
-// DIAG: Build succeeded: Errors: 0. Warnings: 0
-// OUT: Aborted from Main
