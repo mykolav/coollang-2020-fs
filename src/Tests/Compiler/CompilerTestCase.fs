@@ -20,10 +20,23 @@ type CompilerTestCaseSource private () =
     static let programs_discovery_path = @"../../../CoolPrograms/"
     
     
+    static let excluded_files = [| "InString.cool"
+                                   "InInt.cool"
+                                   "InInt1.cool"
+                                   "InInt2.cool"
+                                   "InInt3.cool"
+                                   "InInt4.cool"
+                                   "InInt5.cool" |]
+    
+    
+    static let is_excluded_path (path: string): bool =
+        excluded_files |> Seq.exists (fun it -> path.EndsWith(it))
+    
+    
     static let discover_compiler_test_cases () =
         let test_cases =
             Directory.EnumerateFiles(programs_discovery_path, "*.cool", SearchOption.AllDirectories)
-            |> Seq.where (fun it -> not (it.EndsWith("InString.cool")))
+            |> Seq.where (fun it -> not (is_excluded_path it))
             |> Seq.map (fun it -> [| it.Replace(programs_discovery_path, "")
                                        .Replace("\\", "/") :> obj |])
             |> Array.ofSeq

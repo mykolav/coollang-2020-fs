@@ -1,0 +1,16 @@
+class Main() {
+    var io: IO = new IO();
+
+    {
+        io.out_string("Pick a number! ");
+        var n: Int = io.in_int();
+
+        io.out_int(n); io.out_nl();
+
+        ()
+    };
+}
+
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: Pick a number! -9001 

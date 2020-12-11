@@ -56,6 +56,13 @@
         <Content Include="CoolPrograms\Runtime\Substring5.cool" />
         <Content Include="CoolPrograms\Runtime\Concat.cool" />
         <Content Include="CoolPrograms\Runtime\Concat1.cool" />
+        <Content Include="CoolPrograms\Runtime\InInt.cool" />
+        <Content Include="CoolPrograms\Runtime\InInt1.cool" />
+        <Content Include="CoolPrograms\Runtime\InInt2.cool" />
+        <Content Include="CoolPrograms\Runtime\InInt3.cool" />
+        <Content Include="CoolPrograms\Runtime\InInt4.cool" />
+        <Content Include="CoolPrograms\Runtime\InInt5.cool" />
+        <Content Include="CoolPrograms\Runtime\InString.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />

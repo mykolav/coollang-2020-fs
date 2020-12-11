@@ -37,6 +37,36 @@ type CompilerTests(test_output: ITestOutputHelper) =
     [<Fact>]
     member this.``Compile and run InString.cool``() =
         this.CompileAndRun("Runtime/InString.cool", stdin="Bond, James Bond")
+        
+    
+    [<Fact>]
+    member this.``Compile and run InInt.cool``() =
+        this.CompileAndRun("Runtime/InInt.cool", stdin="9001")
+        
+    
+    [<Fact>]
+    member this.``Compile and run InInt1.cool``() =
+        this.CompileAndRun("Runtime/InInt1.cool", stdin="+9001")
+        
+    
+    [<Fact>]
+    member this.``Compile and run InInt2.cool``() =
+        this.CompileAndRun("Runtime/InInt2.cool", stdin="-9001")
+        
+    
+    [<Fact>]
+    member this.``Compile and run InInt3.cool``() =
+        this.CompileAndRun("Runtime/InInt3.cool", stdin="a9001")
+        
+    
+    [<Fact>]
+    member this.``Compile and run InInt4.cool``() =
+        this.CompileAndRun("Runtime/InInt4.cool", stdin="9001a")
+        
+    
+    [<Fact>]
+    member this.``Compile and run InInt5.cool``() =
+        this.CompileAndRun("Runtime/InInt5.cool", stdin="12345678912")
 
 
     member private this.CompileAndRun(path: string, ?stdin: string) =

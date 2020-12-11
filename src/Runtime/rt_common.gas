@@ -36,9 +36,11 @@ ascii_suffix:                   .ascii "suffix"
 
 ascii_string_substring:         .ascii "String.substring"
 
-
     .global ascii_out_of_memory
 ascii_out_of_memory:            .ascii "Out of memory"
+
+ascii_input_too_long:           .ascii "IO.in_int: Input string is too long"
+ascii_input_not_digit:          .ascii "IO.in_int: Input string contains a char that is not a digit"
 
 ########################################
 # Virtual tables
@@ -85,12 +87,12 @@ IO_vtable:
 ########################################
 # Tags
 ########################################
-    .set Unit_tag, 1
-    .set Int_tag, 2
-    .set String_tag, 3
-    .set Boolean_tag, 4
-    .set ArrayAny_tag, 5
-    .set IO_tag, 6
+    .set Unit_tag,      1
+    .set Int_tag,       2
+    .set String_tag,    3
+    .set Boolean_tag,   4
+    .set ArrayAny_tag,  5
+    .set IO_tag,        6
 
 ########################################
 # Prototype objects
@@ -601,7 +603,7 @@ IO_proto_obj:
     jge     .Runtime.out_int.loop_init
 
     movq    $1, %rcx # is_negative
-    negq    %rdi # i = -i;
+    negq    %rdi     # i = -i;
 
 .Runtime.out_int.loop_init:
     # digit_pos = 10
@@ -610,18 +612,18 @@ IO_proto_obj:
 
 .Runtime.out_int.loop_body:
     # i = i / 10
-    movq    %rdi, %rax # i
+    movq    %rdi, %rax      # i
     cqto                    # sign-extend %rax to %rdx:%rax
     movq    $10, %r8        # divisor
     idivq   %r8             # quotient is in %rax
                             # remainder is in %rdx
 
-    movq    %rax, %rdi # i
+    movq    %rax, %rdi      # i
 
-    addq    $48, %rdx           # remainder + '0'
+    addq    $48, %rdx            # remainder + '0'
     movb    %dl, -12(%rbp, %rsi) # digits[digit_pos] = remainder + '0'
 
-    decq    %rsi # --digit_pos
+    decq    %rsi                 # --digit_pos
 
     # } while (i > 0);
     cmpq    $0, %rdi # i
@@ -631,7 +633,7 @@ IO_proto_obj:
     #     digits[digit_pos] = '-';
     #     --digit_pos;
     # }
-    cmpq    $0, %rcx # is_negative
+    cmpq    $0, %rcx             # is_negative
     je      .Runtime.out_int.print
     
     movb    $45, -12(%rbp, %rsi) # digits[digit_pos] = '-';
@@ -775,6 +777,109 @@ String.create:
     movq    %rbp, %rsp
     popq    %rbp
     
+    ret
+
+#
+#  String.from_buffer
+#
+#      buffer ptr               in %rdi
+#      num of bytes in buffer   in %rsi
+#
+#  This function is meant for internal usage.
+#
+#  The buffer must be terminated with 0, '\n', or '\r\n'.
+#  Calculates the buffer's length excluding the terminator.
+#  Creates a string object of the calculated length
+#  and copies the buffer's content into it (excluding the terminator).
+#
+#  Returns a pointer to the string object in %rax.
+#
+    .global String.from_buffer
+String.from_buffer:
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    # -8    buffer_start
+    # -16   length
+    subq    $16, %rsp
+
+    movq    %rdi, -8(%rbp)  # buffer_start
+
+    # Calculate the string's length.
+    # We don't count '\r' and '\n' 
+    # as we arent' going to copy them 
+    # into the resulting string object.
+
+    # %rsi - num of bytes in buffer
+    # %rbx - buffer_start
+    # %rcx - string length
+    # %rax - current char
+
+    movq    %rdi, %rbx # buffer_start
+    xorq    %rcx, %rcx # string length
+
+String.from_buffer.calc_len:
+    cmpq    %rsi, %rcx # length < num of bytes in buffer
+    jge     String.from_buffer.calc_len_done
+
+    movb    (%rbx, %rcx, 1), %al
+
+    cmpb    $13, %al # '\r'
+    je      String.from_buffer.calc_len_done 
+    
+    cmpb    $10, %al # '\n' 
+    je      String.from_buffer.calc_len_done 
+    
+    cmpb    $0, %al  # 0 terminator
+                     # we should not ever encounter it. 
+    je      String.from_buffer.calc_len_done 
+
+    incq    %rcx     # ++length
+    jmp     String.from_buffer.calc_len
+
+String.from_buffer.calc_len_done:
+    movq    %rcx, -16(%rbp) # length
+
+    # Create the string object
+    movq    %rcx, %rdi
+    call    String.create
+
+    #
+    # Copy chars from the buffer to the string object
+    #
+
+    # %rdi - src
+    # %rdx - src_end
+    # %rsi - dst
+    # %rcx - tmp
+
+    # src
+    movq    -8(%rbp), %rdi       # buffer_start
+
+    # src_end
+    movq    -16(%rbp), %rcx      # length
+    leaq    (%rdi, %rcx, 1), %rdx
+
+    # dst
+    leaq    STR_VAL(%rax), %rsi  # the string object's buffer
+
+    jmp     String.from_buffer.copy_loop_cond
+
+String.from_buffer.copy_loop_body:
+    movb    (%rdi), %cl
+    movb    %cl, (%rsi)
+    incq    %rdi
+    incq    %rsi
+
+String.from_buffer.copy_loop_cond:
+    cmpq    %rdi, %rdx
+    jne     String.from_buffer.copy_loop_body
+
+    # The string object ptr is already in %rax
+
+    movq    %rbp, %rsp
+    popq    %rbp
+
     ret
 
 #
@@ -1284,19 +1389,145 @@ IO.out_int:
 IO.out_nl:
     jmp     .Runtime.out_nl
 
+#
+#  IO.in_string
+#
+#      Doesn't take any args
+#
+#  Reads a line from stdin.
+#  Copies the line into a string object.
+#  And returns a pointer to the object in %rax.
+#
     .global IO.in_string
 IO.in_string:
     jmp     .Platform.in_string
 
+#
+#  IO.in_int
+#
+#      Doesn't take any args
+#
+#  Reads a line from stdin.
+#  Tries to convert the line into an int object.
+#  And returns a pointer to the object in %rax.
+#
     .global IO.in_int
 IO.in_int:
     pushq   %rbp
     movq    %rsp, %rbp
 
+    # -8    int object
+    # -16   16 bytes boundary padding
+    subq    $16, %rsp
+
+    # Create an int object,
+    # that will hold the int value 
+    # converted from a string read from stdin.
+    movq    $Int_proto_obj, %rdi
+    call    .Runtime.copy_object
+    movq    %rax, -8(%rbp)
+
+    # %rsi - length
+    # %rdx - buffer
+    # %rcx - buffer_end
+    # %rdi - int value
+    # %r8  - is_negative
+    # %rax - tmp
+
+    # string object
+    call    .Platform.in_string
+    movq    %rax, %rdi
+
+    # length
+    movq    STR_LEN(%rdi), %rsi
+    movq    INT_VAL(%rsi), %rsi
+
+    # buffer
+    leaq    STR_VAL(%rdi), %rdx
+    # buufer_end
+    leaq    (%rdx, %rsi, 1), %rcx
+
+    # int value
+    xorq    %rdi, %rdi
+
+    # See if the first char is '-' or '+' 
+    xorq    %r8, %r8     # is_negative = false
+    # '+' - 43
+    # '-' - 45
+    movzbq  (%rdx), %rax # first char
+    cmpq    $45, %rax
+    je      IO.in_int.leading_minus
+    cmpq    $43, %rax
+    je      IO.in_int.leading_plus
+    jmp     IO.in_int.validate_len
+
+IO.in_int.leading_minus:
+    movq    $1, %r8      # is_negative = true
+IO.in_int.leading_plus:
+    # skip the sign char
+    incq    %rdx         # ++buffer
+    # skip sign and count only digits
+    decq    %rsi         # --length
+
+IO.in_int.validate_len:
+    # Int32.MaxValue = 2147483647 -- 10 digits
+    cmpq    $10, %rsi
+    jle     IO.in_int.convert
+
+    # Print "IO.in_int: Input string is too long".
+    # Then exit the process.
+    movq    $ascii_input_too_long, %rdi
+    movq    $35, %rsi
+    call    .Platform.out_string
+    jmp     .Platform.exit_process
+
+IO.in_int.convert:
+    jmp     IO.in_int.loop_cond
+
+IO.in_int.loop_body:
+    movzbq  (%rdx), %rax          # digit_char
+    subq    $48, %rax             # digit_char -'0' = digit
+
+    # validate digit
+    # If the char is ['0' - '9'], 
+    # the value in %rax must be `>= 0` and `<= 9`
+    cmpq    $0, %rax
+    jl      IO.in_int.input_not_digit
+    cmpq    $9, %rax
+    jg      IO.in_int.input_not_digit
+
+    leaq    (%rdi, %rdi, 4), %rdi # int value = int value + int value * 4
+    leaq    (%rax, %rdi, 2), %rdi # int value = digit + (int value * 2)
+                                  # as a result of the prev two instructions,
+                                  # we did: int value = (int value * 10) + digit
+    
+    incq    %rdx                  # next char
+
+IO.in_int.loop_cond:
+    cmpq    %rcx, %rdx
+    jne     IO.in_int.loop_body
+
+    cmpq    $0, %r8              # is_negative?
+    je      IO.in_int.ret
+
+    # The input string's first char is '-'.
+    # The resulting int value must be negative.
+    negq    %rdi                # int value = -(int value)
+
+IO.in_int.ret:
+    movq    -8(%rbp), %rax       # int object
+    movq    %rdi, INT_VAL(%rax)
+
     movq    %rbp, %rsp
     popq    %rbp
 
     ret
+
+IO.in_int.input_not_digit:
+    movq    $ascii_input_not_digit, %rdi
+    movq    $59, %rsi
+    call    .Platform.out_string
+    jmp     .Platform.exit_process
 
 ########################################
 # Process entry point
