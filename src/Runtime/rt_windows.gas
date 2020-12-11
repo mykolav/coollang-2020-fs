@@ -156,6 +156,124 @@ hProcessDefaultHeap:
     ret
 
 #
+#  .Platform.in_string
+#
+#      Doesn't take any args
+#
+#  Reads a line from stdin.
+#  Copies the line into a string object.
+#  And returns a pointer to the object in %rax.
+#
+    .global .Platform.in_string
+.Platform.in_string:
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    # -6        16 byte boundary padding
+    # -1032     buffer 
+    # -1040     numberOfBytesRead
+    # -1048     length
+    # -1056     fifth argument (lpOverlapped)
+    # -1088     shadow space
+    subq    $1088, %rsp
+
+    movl    $STD_INPUT_HANDLE, %ecx
+    call    GetStdHandle
+    movq    %rax, %rcx
+  
+    # BOOL ReadFile(
+    #   HANDLE       hFile,
+    #   LPVOID       lpBuffer,
+    #   DWORD        nNumberOfBytesToRead,
+    #   LPDWORD      lpNumberOfBytesRead,
+    #   LPOVERLAPPED lpOverlapped
+    # );
+    # stdin handle is already in %rcx
+    leaq    -1032(%rbp), %rdx   # lpBuffer
+    movq    $1026, %r8           # nNumberOfBytesToRead
+    leaq    -1040(%rbp), %r9    # lpNumberOfBytesRead
+    movq    $0, -1056(%rbp)     # lpOverlapped
+                                # a fifth argument must be higher in the stack
+                                # than the shadow space!
+    call    ReadFile
+
+    # Calculate the string's length.
+    # We don't count '\r' and '\n' 
+    # as we arent' going to copy them 
+    # into the resulting string object.
+
+    # %rbx - buffer_start
+    # %rcx - length
+    # %rax - current char
+
+    leaq    -1032(%rbp), %rbx # lpBuffer
+    xorq    %rcx, %rcx        # length
+
+.Platform.in_string.calc_len:
+    cmpq    -1040(%rbp), %rcx # length < numberOfBytesRead
+    jge     .Platform.in_string.calc_len_done
+
+    movb    (%rbx, %rcx, 1), %al
+
+    cmpb    $13, %al # '\r'
+    je      .Platform.in_string.calc_len_done 
+    
+    cmpb    $10, %al # '\n' 
+    je      .Platform.in_string.calc_len_done 
+    
+    cmpb    $0, %al  # 0 terminator
+                     # we should not ever encounter it. 
+    je      .Platform.in_string.calc_len_done 
+
+    incq    %rcx     # ++length
+    jmp     .Platform.in_string.calc_len
+
+.Platform.in_string.calc_len_done:
+    movq    %rcx, -1048(%rbp) # length
+
+    # Create the string object
+    movq    %rcx, %rdi
+    call    String.create
+
+    #
+    # Copy chars from the buffer to the string object
+    #
+
+    # %rdi - src
+    # %rdx - src_end
+    # %rsi - dst
+    # %rcx - tmp
+
+    # src
+    leaq    -1032(%rbp), %rdi   # lpBuffer
+
+    # src_end
+    movq    -1048(%rbp), %rcx   # length
+    leaq    (%rdi, %rcx, 1), %rdx
+
+    # dst
+    leaq    32(%rax), %rsi # the string object's buffer
+
+    jmp     .Platform.in_string.copy_loop_cond
+
+.Platform.in_string.copy_loop_body:
+    movb    (%rdi), %cl
+    movb    %cl, (%rsi)
+    incq    %rdi
+    incq    %rsi
+
+.Platform.in_string.copy_loop_cond:
+    cmpq    %rdi, %rdx
+    jne     .Platform.in_string.copy_loop_body
+
+    # The string object ptr is already in %rax
+
+    movq    %rbp, %rsp
+    popq    %rbp
+
+    ret
+
+#
 #  .Platform.exit_process
 #
 #      exit code   in %rdi

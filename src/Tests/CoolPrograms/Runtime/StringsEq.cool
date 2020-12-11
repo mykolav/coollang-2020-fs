@@ -1,7 +1,7 @@
 class Main() {
     {
         var hello0: String = "Hello, World!";
-        var hello1: String = "Hello, World!";
+        var hello1: String = "Hello, " + "World!";
         var hello2: String = hello0;
         
         var goodbye0: String = "Goodbye, World!";
@@ -10,13 +10,14 @@ class Main() {
         var io: IO = new IO();
         
         
-        result = if ("Hello, World!" == "Hello, World!") "equal" else "not equal";
+        result = if ("Hello, World!" == "Hello, " + "World!") "equal" else "not equal";
+        
         io.out_string(result); io.out_nl();
         
-        result = if (hello0 == "Hello, World!") "equal" else "not equal";
+        result = if (hello0 ==  "Hello, " + "World!") "equal" else "not equal";
         io.out_string(result); io.out_nl();
         
-        result = if ("Hello, World!" == hello0) "equal" else "not equal";
+        result = if ( "Hello, " + "World!" == hello0) "equal" else "not equal";
         io.out_string(result); io.out_nl();
         
         result = if (hello0 == hello1) "equal" else "not equal";

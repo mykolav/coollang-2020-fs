@@ -4,7 +4,9 @@
 
 The compiler can successfully build a Windows excecutable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
 
-But the runtime is incomplete. For example, methods `in_string` and `in_int` of a built-in class `IO` are missing at the moment.  
+But the runtime is incomplete. For example, a method `in_int` of a built-in class `IO` is missing at the moment.  
+Generational garbage collection is planned for some time in the future, but doesn't exist at the moment.
+As a result we never free allocated memory.
 
 Linux support is planned.
 

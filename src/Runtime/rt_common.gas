@@ -535,13 +535,14 @@ IO_proto_obj:
     #             current char will be accessed indirectly
 
 .Runtime.are_equal.cmp_string_content:
-    movq    (%rdi), %rcx
-    cmpq    %rcx, (%rsi)
+    movb    (%rdi), %cl
+    cmpb    %cl, (%rsi)
     # We found a pair of unequal chars, the strings are unequal
     jne     .Runtime.are_equal.false
-    addq    $1, %rdi # move string1's ptr to next char
-    addq    $1, %rsi # move string2's ptr to next char
-    subq    $1, %rdx # decrease the number of chars remaining to compare
+    incq    %rdi # move string1's ptr to next char
+    incq    %rsi # move string2's ptr to next char
+    
+    decq    %rdx # decrease the number of chars remaining to compare
     jnz     .Runtime.are_equal.cmp_string_content
     # We didn't find a pair of unequal chars, the strings are equal
     jmp     .Runtime.are_equal.true
@@ -657,7 +658,7 @@ IO_proto_obj:
 #
 #  .Runtime.out_nl
 #
-#      Doesn't take any params
+#      Doesn't take any args
 #
 #  Prints out new line according to the platform.
 #
@@ -721,6 +722,7 @@ Any.abort:
 #  as string objects have variable size.
 #  And currently, once an object is allocated we cannot change its size.
 #
+    .global String.create
 String.create:
     pushq   %rbp
     movq    %rsp, %rbp
@@ -753,7 +755,7 @@ String.create:
     movq    $String_tag, OBJ_TAG(%rax)
     
     # size in quads
-    movq    -8(%rbp), %rcx # size in quads
+    movq    -16(%rbp), %rcx # size in quads
     movq    %rcx, OBJ_SIZE(%rax)
 
     # vtable
@@ -1280,25 +1282,19 @@ IO.out_int:
 #
     .global IO.out_nl
 IO.out_nl:
-    jmp    .Runtime.out_nl
+    jmp     .Runtime.out_nl
 
     .global IO.in_string
 IO.in_string:
-    pushq %rbp
-    movq %rsp, %rbp
-
-    movq %rbp, %rsp
-    popq %rbp
-
-    ret
+    jmp     .Platform.in_string
 
     .global IO.in_int
 IO.in_int:
-    pushq %rbp
-    movq %rsp, %rbp
+    pushq   %rbp
+    movq    %rsp, %rbp
 
-    movq %rbp, %rsp
-    popq %rbp
+    movq    %rbp, %rsp
+    popq    %rbp
 
     ret
 
@@ -1307,9 +1303,6 @@ IO.in_int:
 ########################################
     .global main
 main:
-    # pushq   %rbp
-    # movq    %rsp, %rbp
-
     call    .Platform.init
 
     # A class 'Main' must be present in every Cool2020 program.
@@ -1322,8 +1315,5 @@ main:
     # Invoke the constructor.
     movq    %rax, %rdi
     call    Main..ctor
-
-    # movq    %rbp, %rsp
-    # popq    %rbp
     
     ret

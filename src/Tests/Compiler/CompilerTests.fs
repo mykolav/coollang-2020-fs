@@ -30,7 +30,16 @@ type CompilerTests(test_output: ITestOutputHelper) =
 
     [<Theory>]
     [<MemberData("TestCases", MemberType = typeof<CompilerTestCaseSource>)>]
-    member _.``Compile and run``(path: string) =
+    member this.``Compile and run``(path: string) =
+        this.CompileAndRun(path)
+        
+    
+    [<Fact>]
+    member this.``Compile and run InString.cool``() =
+        this.CompileAndRun("Runtime/InString.cool", stdin="Bond, James Bond")
+
+
+    member private this.CompileAndRun(path: string, ?stdin: string) =
         // Arrange
         
         // Build a program's path relative to the 'CoolBuild' folder.
@@ -48,7 +57,9 @@ type CompilerTests(test_output: ITestOutputHelper) =
         let po =
             if co.BuildSucceeded
             then
-                let output = ProcessRunner.Run(exe_name=sprintf "./%s" exe_file, args="")
+                let output = ProcessRunner.Run(exe_name=sprintf "./%s" exe_file,
+                                               args="",
+                                               ?stdin=stdin)
                 ProgramOutput.Parse(output)
             else
                 ProgramOutput.Empty

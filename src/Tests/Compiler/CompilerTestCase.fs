@@ -23,6 +23,7 @@ type CompilerTestCaseSource private () =
     static let discover_compiler_test_cases () =
         let test_cases =
             Directory.EnumerateFiles(programs_discovery_path, "*.cool", SearchOption.AllDirectories)
+            |> Seq.where (fun it -> not (it.EndsWith("InString.cool")))
             |> Seq.map (fun it -> [| it.Replace(programs_discovery_path, "")
                                        .Replace("\\", "/") :> obj |])
             |> Array.ofSeq

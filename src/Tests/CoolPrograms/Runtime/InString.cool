@@ -1,0 +1,47 @@
+class Main() {
+    var io: IO = new IO();
+
+    def out_quoted_string(s: String): Unit = {
+        io.out_string("\""); 
+        
+        io.out_string(s); 
+        
+        io.out_string("\""); 
+
+        ()
+    };
+
+    def out_quoted_string_nl(s: String): Unit = {
+        out_quoted_string(s);
+        io.out_nl();
+
+        ()
+    };
+
+    {
+        var hello: String = "Hello, ";
+
+        io.out_string("What is your name? ");
+        var name: String = io.in_string();
+
+        var greeting: String = hello + name + "!";
+        out_quoted_string_nl(greeting);
+
+        io.out_string("Exciting facts about the name ");
+        out_quoted_string_nl(greeting.substring(hello.length(), greeting.length() - 1));
+
+        io.out_string("It has "); io.out_int(name.length()); io.out_string(" letters"); io.out_nl();
+        io.out_string("The first letter is "); io.out_string(name.substring(0, 1)); io.out_nl();
+        io.out_string("The last letter is "); io.out_string(name.substring(name.length() - 1, name.length())); io.out_nl();
+
+        ()
+    };
+}
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// OUT: What is your name? "Hello, Bond, James Bond!"
+// OUT: Exciting facts about the name "Bond, James Bond"
+// OUT: It has 16 letters
+// OUT: The first letter is B
+// OUT: The last letter is d
