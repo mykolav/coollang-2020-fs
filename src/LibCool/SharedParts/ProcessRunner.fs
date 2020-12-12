@@ -38,12 +38,7 @@ type ProcessRunner private () =
                                  RedirectStandardError = true,
                                  RedirectStandardInput = stdin.IsSome))
 
-        theProcess.OutputDataReceived.AddHandler(fun sender args -> sb_output.AppendLine(args.Data).Nop())
-        theProcess.ErrorDataReceived.AddHandler(fun sender args -> sb_output.AppendLine(args.Data).Nop())
-
         theProcess.Start() |> ignore
-        theProcess.BeginOutputReadLine()
-        theProcess.BeginErrorReadLine()
         
         if stdin.IsSome
         then
@@ -51,5 +46,8 @@ type ProcessRunner private () =
             theProcess.StandardInput.Close()
 
         theProcess.WaitForExit()
-
-        sb_output.ToString()
+        
+        sb_output
+            .Append(theProcess.StandardOutput.ReadToEnd())
+            .Append(theProcess.StandardError.ReadToEnd())
+            .ToString()
