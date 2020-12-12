@@ -13,6 +13,7 @@ open Tests.Parser
 open Tests.Compiler.ClcRunner 
 
 
+[<Collection("Compiler collection")>]
 type Sandbox(_test_output: ITestOutputHelper) =
     
     

@@ -25,6 +25,7 @@
         <Compile Include="Compiler\ClcRunner.fs" />
         <Compile Include="Compiler\CompilerTestCase.fs" />
         <Compile Include="Compiler\AssertCompilerTestCaseOutput.fs" />
+        <Compile Include="Compiler\CompilerTestsFixture.fs" />
         <Compile Include="Compiler\CompilerTests.fs" />
         <Compile Include="Compiler\Sandbox.fs" />
         <Compile Include="Program.fs" />

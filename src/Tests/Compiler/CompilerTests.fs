@@ -1,7 +1,6 @@
 namespace Tests.Compiler
 
 
-open System
 open System.IO
 open LibCool.SharedParts
 open Tests.Support
@@ -10,22 +9,8 @@ open Xunit.Abstractions
 open Tests.Compiler.ClcRunner
 
 
-type CompilerTestsFixture() =
-
-    
-    do 
-        // Our current directory is 'Tests/bin/Debug/netcoreapp3.1',
-        // i.e. where the tests assembly gets build into.
-        // We want to change to 'Tests/CoolBuild'.
-        Directory.SetCurrentDirectory("../../../CoolBuild")
-
-
-    interface IDisposable with
-        member _.Dispose() = ()
-
-
+[<Collection("Compiler collection")>]
 type CompilerTests(test_output: ITestOutputHelper) =
-    interface IClassFixture<CompilerTestsFixture>
 
 
     [<Theory>]
