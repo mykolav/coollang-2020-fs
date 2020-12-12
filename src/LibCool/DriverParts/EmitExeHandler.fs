@@ -112,11 +112,21 @@ type EmitExeHandler(_writer: IWriteLine) =
     
     
     static member ResolveRtDir(): string =
+        let uri_prefix =
+            if RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            then "file:\\\\\\"
+            else if RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            then "file://"
+            else invalidOp (sprintf "'%s' is not supported.%sUse '-S' to emit assembly anyway.%s"
+                                    RuntimeInformation.OSDescription
+                                    Environment.NewLine
+                                    Environment.NewLine)
+
         // We assume the 'src/Runtime' folder is 4 levels up
         // relative to where our assembly is.
         // I.e. if we are in 'src/Somewhere/bin/Debug/netcoreapp3.1'
         // a relative path to 'src/Runtime' is '../../../../Runtime'
-        let assembly_path = typeof<EmitExeHandler>.Assembly.CodeBase.Substring("file:\\\\\\".Length)
+        let assembly_path = typeof<EmitExeHandler>.Assembly.CodeBase.Substring(uri_prefix.Length)
         let rt_parent_dir = assembly_path
                             |> Path.GetDirectoryName
                             |> Path.GetDirectoryName

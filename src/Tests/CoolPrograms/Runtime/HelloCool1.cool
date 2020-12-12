@@ -1,6 +1,8 @@
 class Main() {
-  { 
-    new IO().out_string("Hello, Cool2020!")
+  {
+    var io: IO = new IO();
+    io.out_string("Hello, Cool2020!");
+    io.out_nl()
   };
 }
 // DIAG: Build succeeded: Errors: 0. Warnings: 0

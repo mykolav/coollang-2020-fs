@@ -1546,5 +1546,6 @@ main:
     # Invoke the constructor.
     movq    %rax, %rdi
     call    Main..ctor
-    
-    ret
+
+    xorq    %rdi, %rdi
+    jmp     .Platform.exit_process

@@ -1,6 +1,7 @@
 class Main() extends IO() {
   { 
-    out_string("Hello, Cool2020!")
+    out_string("Hello, Cool2020!");
+    out_nl()
   };
 }
 // DIAG: Build succeeded: Errors: 0. Warnings: 0

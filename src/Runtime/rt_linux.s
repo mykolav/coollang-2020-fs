@@ -19,6 +19,9 @@
 # Global vars
 ########################################
 
+curr_break:
+    .quad 0
+
 ########################################
 # Text
 ########################################
@@ -36,22 +39,24 @@
 #  OUTPUT:
 #      None
 #  
-#  Calls GetProcessHeap and stores the pointer 
+#  Calls brk(-1) and stores the process break 
 #  for later use by .Platform.alloc.
 #
     .global .Platform.init
 .Platform.init:
-    pushq   %rbp
-    movq    %rsp, %rbp
+    #pushq   %rbp
+    #movq    %rsp, %rbp
 
-    # subq    $32, %rsp # allocate shadow space!
+    # On failure, the system call returns the current break.
+    # We want to find out the current break's value,
+    # so we deliberately pass an invalid value as the first arg.
+    movq    $-1, %rdi
+    movq    $12, %rax # brk
+    syscall
+    movq    %rax, curr_break
 
-    # Initialize the heap.
-    # call    GetProcessHeap
-    # movq    %rax, hProcessDefaultHeap
-
-    movq    %rbp, %rsp
-    popq    %rbp
+    #movq    %rbp, %rsp
+    #popq    %rbp
 
     ret
 
@@ -68,38 +73,20 @@
 #
     .global .Platform.alloc
 .Platform.alloc:
-    pushq   %rbp
-    movq    %rsp, %rb# p
+    # pushq   %rbp
+    # movq    %rsp, %rbp
 
-    # subq    $32, %rsp # shadow space!
+    sal     $3, %rdi         # convert quads to bytes
+    addq    curr_break, %rdi # calculate the new break
+    movq    $12, %rax        # brk
+    syscall
+    movq    %rax, curr_break
 
-    # DECLSPEC_ALLOCATOR LPVOID HeapAlloc(
-    #   HANDLE hHeap,
-    #   DWORD  dwFlags,
-    #   SIZE_T dwBytes
-    # );
-    # hHeap
-    # movq    hProcessDefaultHeap, %rcx
-    # dwFlags
-    # movq    $HEAP_ZERO_MEMORY, %rdx
-    # dwBytes
-    # movq    %rdi, %r8 # size in quads
-    # salq    $3, %r8   # convert quads to to bytes
-    # call    HeapAlloc
-    # cmpq    $0, %rax
-    # jne     .Platform.alloc.ok
+    # a pointer to the start of 
+    # allocated memory block is already in %rax
 
-    # Allocation failed
-    # movq    $ascii_out_of_memory, %rdi
-    # movq    $13, %rsi
-    # call    .Platform.out_string
-
-    # movq    $0, %rdi
-    # call    .Platform.exit_process
-
-.Platform.alloc.ok:
-    movq    %rbp, %rsp
-    popq    %rbp
+    # movq    %rbp, %rsp
+    # popq    %rbp
 
     ret
 
@@ -116,28 +103,30 @@
     pushq   %rbp
     movq    %rsp, %rbp
 
-    # subq    $(8 + 8 + 32), %rsp # NumberOfBytesWritten + 
-    #                             # fifth argument + 
-    #                             # shadow space
+    movq    %rsi, %rdx  # length
+    movq    %rdi, %rsi  # buffer
+    movq    $1, %rdi    # fd      = stdout
+    movq    $1, %rax    # syscall = write
+    syscall
 
-    # movl    $STD_OUTPUT_HANDLE, %ecx
-    # call    GetStdHandle
-    # movq    %rax, %rcx
-  
-    # BOOL WriteFile(
-    #   HANDLE       hFile,
-    #   LPCVOID      lpBuffer,
-    #   DWORD        nNumberOfBytesToWrite,
-    #   LPDWORD      lpNumberOfBytesWritten,
-    #   LPOVERLAPPED lpOverlapped
-    # );
-    # movq    %rdi, %rdx
-    # movq    %rsi, %r8
-    # leaq    -8(%rbp), %r9 # lpNumberOfBytesWritten
-    # movq    $0, -16(%rbp) # lpOverlapped
-    #                       # a fifth argument must be higher in the stack
-    #                       # than the shadow space!
-    # call    WriteFile
+    movq    %rbp, %rsp
+    popq    %rbp
+
+    ret
+
+#
+#  .Platform.in_string
+#
+#      Doesn't take any args
+#
+#  Reads a line from stdin.
+#  Copies the line into a string object.
+#  And returns a pointer to the object in %rax.
+#
+    .global .Platform.in_string
+.Platform.in_string:
+    pushq   %rbp
+    movq    %rsp, %rbp
 
     movq    %rbp, %rsp
     popq    %rbp
@@ -154,5 +143,6 @@
 #
     .global .Platform.exit_process
 .Platform.exit_process:
-    # movq %rdi, %rcx
-    # call ExitProcess
+    # exit code is already in %rdi
+    movq    $0x3c, %rax
+    syscall
