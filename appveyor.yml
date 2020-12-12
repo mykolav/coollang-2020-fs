@@ -41,4 +41,4 @@ build_script:
 
 test_script:
   - nuget install Appveyor.TestLogger -Version 2.0.0
-  - dotnet test --no-build --no-restore --test-adapter-path:. --logger:Appveyor Test ./src/Tests/Tests.fsproj
+  - dotnet test --no-build --no-restore --test-adapter-path:. --logger:Appveyor ./src/Tests/Tests.fsproj
