@@ -38,3 +38,9 @@ configuration: Debug
 # to run your custom scripts instead of automatic MSBuild
 build_script:
   - ./build.sh
+
+test:
+  # only assemblies to test
+  assemblies:
+    only:
+      - Tests.dll
