@@ -44,9 +44,6 @@ curr_break:
 #
     .global .Platform.init
 .Platform.init:
-    #pushq   %rbp
-    #movq    %rsp, %rbp
-
     # On failure, the system call returns the current break.
     # We want to find out the current break's value,
     # so we deliberately pass an invalid value as the first arg.
@@ -54,9 +51,6 @@ curr_break:
     movq    $12, %rax # brk
     syscall
     movq    %rax, curr_break
-
-    #movq    %rbp, %rsp
-    #popq    %rbp
 
     ret
 
@@ -73,20 +67,29 @@ curr_break:
 #
     .global .Platform.alloc
 .Platform.alloc:
-    # pushq   %rbp
-    # movq    %rsp, %rbp
-
-    sal     $3, %rdi         # convert quads to bytes
+    salq    $3, %rdi         # convert quads to bytes
     addq    curr_break, %rdi # calculate the new break
     movq    $12, %rax        # brk
     syscall
-    movq    %rax, curr_break
 
-    # a pointer to the start of 
-    # allocated memory block is already in %rax
+    # On failure, the system call returns the current break.
+    cmpq    curr_break, %rax
+    jne     .Platform.alloc.ok
 
-    # movq    %rbp, %rsp
-    # popq    %rbp
+    # Allocation failed
+    movq    $ascii_out_of_memory, %rdi
+    movq    $13, %rsi
+    call    .Platform.out_string
+
+    movq    $1, %rdi
+    jmp    .Platform.exit_process
+
+.Platform.alloc.ok:
+    movq    curr_break, %rdi # ptr to the start of allocated memory
+    movq    %rax, curr_break # store the new break
+
+    # Return ptr to the start of allocated memory
+    movq    %rdi, %rax
 
     ret
 
@@ -100,17 +103,11 @@ curr_break:
 #
     .global .Platform.out_string
 .Platform.out_string:
-    pushq   %rbp
-    movq    %rsp, %rbp
-
     movq    %rsi, %rdx  # length
     movq    %rdi, %rsi  # buffer
     movq    $1, %rdi    # fd      = stdout
     movq    $1, %rax    # syscall = write
     syscall
-
-    movq    %rbp, %rsp
-    popq    %rbp
 
     ret
 
