@@ -4,6 +4,7 @@ namespace LibCool.DriverParts
 open System
 open System.Collections.Generic
 open System.IO
+open System.Runtime.InteropServices
 open System.Text
 open LibCool.SharedParts
 open LibCool.SourceParts
@@ -49,9 +50,12 @@ type Driver(?_writer: IWriteLine) =
         let mutable message = ""
 
         let source_parts = List<SourcePart>()
-        
+
         let mutable o_seen = 0
-        let mutable exe_file = "a.exe"
+        let mutable exe_file =
+            if RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            then "a.exe"
+            else "a.out"
 
         let mutable S_seen = 0
         let mutable asm_file: string voption = ValueNone

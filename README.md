@@ -1,14 +1,5 @@
 # The Cool 2020 language compiler implemented in F#
 
-# Work in progress
-
-The compiler can successfully build a Windows excecutable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
-
-Generational garbage collection is planned for some time in the future, but doesn't exist at the moment.
-As a result we never free allocated memory.
-
-Linux support is planned.
-
 # Cool 2020
 
 Cool 2020 is a subset of Scala with minor incompatibilities.
@@ -203,6 +194,13 @@ match
 if while
 =
 ```
+
+# Work in progress
+
+The compiler can successfully build a Windows x64 or Linux x64 excecutable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
+
+Generational garbage collection is planned for some time in the future, but doesn't exist at the moment.
+As a result we never free allocated memory.
 
 # Compiler usage
 

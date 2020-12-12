@@ -120,6 +120,22 @@ curr_break:
     pushq   %rbp
     movq    %rsp, %rbp
 
+    # -14        16 byte boundary padding
+    # -1040      buffer 
+    subq    $1040, %rsp
+
+    movq    $0, %rdi          # fd      = stdin
+    leaq    -1040(%rbp), %rsi # buffer
+    movq    $1026, %rdx       # buffer size
+    movq    $0, %rax          # syscall = read
+    syscall
+
+    leaq    -1040(%rbp), %rdi # buffer
+    movq    %rax, %rsi        # num of bytes read
+    call    String.from_buffer
+
+    # The string object ptr is already in %rax
+
     movq    %rbp, %rsp
     popq    %rbp
 

@@ -42,6 +42,8 @@ type EmitExeHandler(_writer: IWriteLine) =
             
         let obj_file = if args.ExeFile.EndsWith(".exe")
                        then args.ExeFile.Replace(".exe", ".o")
+                       else if args.ExeFile.EndsWith(".out")
+                       then args.ExeFile.Replace(".out", ".o")
                        else args.ExeFile + ".o"
 
         //
