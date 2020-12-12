@@ -293,7 +293,13 @@ type Token =
         then
             invalidArg "token" "The token is not a keyword"
             
-        this.Kind.ToString().Replace("TokenKind.Kw", "").ToLower()
+        let raw_spelling = this.Kind.ToString()
+        let spelling = 
+            if raw_spelling.StartsWith("TokenKind.Kw")
+            then raw_spelling.Substring("TokenKind.Kw".Length)
+            else raw_spelling.Substring("Kw".Length)
+
+        spelling.ToLower()
 
     
     member this.KwKindSpelling: string =        
