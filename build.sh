@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# https://stackoverflow.com/a/5947802/818321
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
