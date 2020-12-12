@@ -105,8 +105,8 @@ hProcessDefaultHeap:
     movq    $13, %rsi
     call    .Platform.out_string
 
-    movq    $0, %rdi
-    call    .Platform.exit_process
+    movq    $1, %rdi
+    jmp    .Platform.exit_process
 
 .Platform.alloc.ok:
     movq    %rbp, %rsp
