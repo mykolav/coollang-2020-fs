@@ -36,7 +36,6 @@ ascii_suffix:                   .ascii "suffix"
 
 ascii_string_substring:         .ascii "String.substring"
 
-    .global ascii_out_of_memory
 ascii_out_of_memory:            .ascii "Out of memory"
 
 ascii_input_too_long:           .ascii "IO.in_int: Input string is too long"
@@ -315,6 +314,23 @@ IO_proto_obj:
 
     # Exit the process
     call    .Platform.exit_process
+
+#
+#  .Runtime.abort_out_of_mem
+#
+#      Doesn't take any args
+#
+#  Prints "Out of memory" and exits process.
+#  Does not return.
+#
+    .global .Runtime.abort_out_of_mem
+.Runtime.abort_out_of_mem:
+    movq    $ascii_out_of_memory, %rdi
+    movq    $13, %rsi
+    call    .Platform.out_string
+
+    movq    $1, %rdi
+    jmp    .Platform.exit_process
 
 #
 #  .Runtime.out_location

@@ -77,12 +77,7 @@ curr_break:
     jne     .Platform.alloc.ok
 
     # Allocation failed
-    movq    $ascii_out_of_memory, %rdi
-    movq    $13, %rsi
-    call    .Platform.out_string
-
-    movq    $1, %rdi
-    jmp    .Platform.exit_process
+    jmp     .Runtime.abort_out_of_mem
 
 .Platform.alloc.ok:
     movq    curr_break, %rdi # ptr to the start of allocated memory
