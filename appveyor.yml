@@ -39,8 +39,6 @@ configuration: Debug
 build_script:
   - ./build.sh
 
-test:
-  # only assemblies to test
-  assemblies:
-    only:
-      - Tests.dll
+test_script:
+  - cmd: nuget install Appveyor.TestLogger -Version 2.0.0
+  - cmd: dotnet test --no-build --no-restore --test-adapter-path:. --logger:Appveyor Test
