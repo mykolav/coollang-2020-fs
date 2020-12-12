@@ -18,6 +18,14 @@ branches:
   only:
     - master
 
+# Skipping commits affecting specific files (GitHub only).
+# More details here: /docs/appveyor-yml
+skip_commits:
+  files:
+    - misc/*
+    - sandbox/*
+    - '**/*.md'
+
 #---------------------------------#
 #    environment configuration    #
 #---------------------------------#

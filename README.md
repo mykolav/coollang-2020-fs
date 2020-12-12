@@ -1,5 +1,7 @@
 # The Cool 2020 language compiler implemented in F#
 
+[![Build status](https://ci.appveyor.com/api/projects/status/h5u412oqjd4ceh7j?svg=true)](https://ci.appveyor.com/project/mykolav/coollang-2020-fs)
+
 # Cool 2020
 
 Cool 2020 is a subset of Scala with minor incompatibilities.
