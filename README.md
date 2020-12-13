@@ -6,6 +6,8 @@
 
 Cool 2020 is a subset of Scala with minor incompatibilities.
 
+We compile Cool 2020 programs to native x64 code. The compiler runs on Windows and Linux.
+
 [CoolAid: The Cool 2020 Reference Manual](http://pabst.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)
 
 > ... the Classroom Object-Oriented Language ... retains many of
