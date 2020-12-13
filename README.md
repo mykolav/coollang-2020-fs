@@ -218,15 +218,13 @@ As a result we never free allocated memory.
 
 # Build
 
-## Dependencies
-
-### .NET Core 3.1 SDK
+## Install .NET Core 3.1 SDK
 
 The compiler is written in F#. F# is a .NET language. Rather predictably, a .NET SDK is a dependency.
 
 Get it from [the download page](https://dotnet.microsoft.com/download/dotnet-core/3.1).  
 
-#### _Windows_
+### _Windows_
 
 Download and run an SDK installer.  
 Keep in mind:
@@ -234,7 +232,7 @@ Keep in mind:
 > If you're using Visual Studio, look for the SDK that supports the version you're using.  
 > If you're not using Visual Studio, install the first SDK listed.
 
-#### _Linux_
+### _Linux_
 
 Follow [these instructions](https://docs.microsoft.com/en-us/dotnet/core/install/linux).  
 
@@ -261,11 +259,11 @@ On both Windows and Linux, to check your installation, do the following command.
 dotnet --list-sdks
 ```
 
-### GNU Binutils
+## Install GNU Binutils
 
 The compiler emits x86-64 assembly. It uses `as` to assemble it. And `ld` to link with the runtime.
 
-#### _Windows_
+### _Windows_
 
 One way of getting binutils is installing MinGW. MinGW is a project providing Windows versions of GCC, GDB, binutils, and some other tools.  
 [This page](https://code.visualstudio.com/docs/cpp/config-mingw#_prerequisites) explains how to install MinGW (see item #3).
@@ -293,7 +291,7 @@ Install your distribution's binutils package. For example, on Ubuntu it looks so
 sudo apt install binutils
 ```
 
-## Commands
+## Build the compiler
 
 On Windows, use Bash to perform these commands. As a git user, you likely have Git Bash installed and know how to use it. If not, take a look at [this nice tutorial](https://www.atlassian.com/git/tutorials/git-bash).
 
@@ -351,7 +349,7 @@ The folder contains a bash script `clc`. It's a wrapper that invokes the compile
 
 ## Examples
 
-To compile and run QuickSort.cool follow these steps.
+To compile and run QuickSort.cool, follow these steps.
 
 ```sh
 # Compile
@@ -364,7 +362,7 @@ $ ./qs
 10 20 30 40 50
 ```
 
-To see assembbly that the compiler emits for QuickSort.cool perform the command below. Then open qs.s in your favourite editor. 
+To see assembbly that the compiler emits for QuickSort.cool, perform the command below. Then open qs.s in your favourite editor. 
 
 ```
 $ ./clc ../../src/Tests/CoolPrograms/Runtime/QuickSort.cool -S qs.s
