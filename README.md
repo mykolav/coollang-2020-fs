@@ -343,7 +343,7 @@ One option is using Git Bash. To get more details, take a look at [this nice tut
 `cd` to `sandbox/clc`.  
 The folder contains a bash script `clc`. It's a wrapper that invokes the compiler and passes through command line arguments.
 
-## SYNOPSIS
+## Synopsis
 
 `clc file1.cool [file2.cool, ..., fileN.cool] [-o file.exe | -S [file.asm]]`
 

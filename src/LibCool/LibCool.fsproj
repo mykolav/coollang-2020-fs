@@ -15,7 +15,6 @@
         <Compile Include="DiagnosticParts\DiagnosticParts.fs" />
         <Compile Include="DiagnosticParts\DiagnosticBag.fs" />
         <Compile Include="AstParts\Ast.fs" />
-        <Compile Include="ParserParts\ErrorOrOption.fs" />
         <Compile Include="ParserParts\TokenParts.fs" />
         <Compile Include="ParserParts\Lexer.fs" />
         <Compile Include="ParserParts\TokenArray.fs" />

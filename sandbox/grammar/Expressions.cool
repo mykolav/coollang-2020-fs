@@ -32,6 +32,12 @@ class Main() {
 
       -a + b.c match { case d: Int => e }.f match { case g: Int => h }.i.j().k = l + 100;
 
-      --b.c() * a + b.c().d.e() * a - f.g
+      --b.c() * a + b.c().d.e() * a - f.g;
+
+      //
+      //
+      //
+      e.f = b;
+      e.f = b.c
   };
 }
