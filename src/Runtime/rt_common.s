@@ -1365,8 +1365,6 @@ IO..ctor:
     movq %rdi, %rax
     ret
 
-    .global IO.out_string
-
 #
 #  IO.out_string
 #
@@ -1375,6 +1373,7 @@ IO..ctor:
 #
 #  Prints out the content of a string object argument.
 #
+    .global IO.out_string
 IO.out_string:
     leaq    STR_VAL(%rsi), %rdi
     movq    STR_LEN(%rsi), %rsi
