@@ -129,21 +129,15 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     // They are somewhat different from the grammar's productions, e.g.:
     // ```
     // expr
-    // : prefix* primary infixop_and_rhs*
+    // : prefix* primary infixop_rhs*
     // ;
-    // ```
     //
-    // The reason is, the grammar's productions force us to use partially initialized Ast nodes.
-    // So to keep our Ast types immutable, we use the productions below.
-    // (Is there a way to use the grammar's productions and keep Ast types immutable at the same time?
-    //  I didn't come up with one in a reasonable amount of time...)
-    //
-    // ```
     // expr
     //     // Assign
     //     : ID '=' expr
     //     // Two primary expressions starting with ID.
-    //     // Included in `expr` so that parsing without lookahead is possible.
+    //     // Included in `expr` to avoid having to call `primary` and
+    //     // pass the ID token as an argument, based on whether the next token is '=' or not. 
     //     | ID infixop_rhs?
     //     | ID actuals infixop_rhs?
     //     // Prefix ops

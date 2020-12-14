@@ -340,7 +340,7 @@ Done
 On Windows, use Bash to follow the examples.  
 One option is using Git Bash. To get more details, take a look at [this nice tutorial](https://www.atlassian.com/git/tutorials/git-bash).
 
-`cd` to `sandbox/clc`.  
+Change directory to `sandbox/clc`.  
 The folder contains a bash script `clc`. It's a wrapper that invokes the compiler and passes through command line arguments.
 
 ## Synopsis
