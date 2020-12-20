@@ -175,7 +175,9 @@ type private ExprTranslator(_context: TranslationContext,
             
         let asm = emit_cond {| Name="if"; Span=if_node.Span |} cond_node then_asm else_asm
         match asm with
-        | Error  -> Error
+        | Error  ->
+            _context.RegSet.Free(result_reg)
+            Error
         | Ok asm -> 
             Ok { AsmFragment.Asm = asm
                  Type = _context.TypeCmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
@@ -310,8 +312,8 @@ type private ExprTranslator(_context: TranslationContext,
         // Instead of plugging `then` and `else` branches in an existing conditional,
         // generate the conditional ourselves.
         Ok (this.EmitAsm().Cond(cond_frag.Value,
-                                true_branch_asm,
-                                false_branch_asm))
+                                true_branch_asm=true_branch_asm,
+                                false_branch_asm=false_branch_asm))
         
         
     and translate_lt_eq lt_eq_node left right =

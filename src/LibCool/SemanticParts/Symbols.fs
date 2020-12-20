@@ -131,6 +131,10 @@ module BasicClasses =
             methods=[|
                 MethodSymbol.Virtual(ID "abort"(*name*),
                                      BasicClassNames.Nothing(*return_type*))
+
+                MethodSymbol.Virtual(ID "equals"(*name*),
+                                     BasicClassNames.Boolean(*return_type*),
+                                     formals=[| (ID "other", BasicClassNames.Any) |])
             |])
     
     

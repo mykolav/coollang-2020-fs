@@ -1,0 +1,52 @@
+class Main() {
+    var io: IO = new IO();
+
+    def out_are_equal(left: Any, right: Any): Unit = {
+        left match {
+            case i: Int => io.out_int(i)
+            case s: String => io.out_string("\"" + s + "\"")
+        };
+        io.out_string(".equals(");
+        right match {
+            case i: Int => io.out_int(i)
+            case s: String => io.out_string("\"" + s + "\"")
+        };
+        io.out_string(") = ");
+        io.out_string(if (left.equals(right)) "true" else "false"); 
+        io.out_nl()
+    };
+    
+    {
+        var result: String = "";
+
+        var nine_thousand_one: Int = 9001;       
+        
+        out_are_equal(9001, 9001);
+        out_are_equal(nine_thousand_one, nine_thousand_one);
+        out_are_equal(nine_thousand_one, 9001);
+        out_are_equal(9001, nine_thousand_one);
+
+        out_are_equal(9001, 42);
+        out_are_equal(nine_thousand_one, 42);
+        out_are_equal(42, nine_thousand_one);
+
+        out_are_equal(nine_thousand_one, "9001");
+        out_are_equal("9001", nine_thousand_one);
+        
+        out_are_equal(42, "9001");
+        
+        ()
+    };
+}
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// OUT: 9001.equals(9001) = true
+// OUT: 9001.equals(9001) = true
+// OUT: 9001.equals(9001) = true
+// OUT: 9001.equals(9001) = true
+// OUT: 9001.equals(42) = false
+// OUT: 9001.equals(42) = false
+// OUT: 42.equals(9001) = false
+// OUT: 9001.equals("9001") = false
+// OUT: "9001".equals(9001) = false
+// OUT: 42.equals("9001") = false

@@ -48,7 +48,9 @@
         <Content Include="CoolPrograms\Runtime\BoolNegation.cool" />
         <Content Include="CoolPrograms\Runtime\UnaryMinus.cool" />
         <Content Include="CoolPrograms\Runtime\Inheritance1.cool" />
-        <Content Include="CoolPrograms\Runtime\StringsEq.cool" />
+        <Content Include="CoolPrograms\Runtime\StringsEqOp.cool" />
+        <Content Include="CoolPrograms\Runtime\StringsEquals.cool" />
+        <Content Include="CoolPrograms\Runtime\AnyEquals.cool" />
         <Content Include="CoolPrograms\Runtime\Substring.cool" />
         <Content Include="CoolPrograms\Runtime\Substring1.cool" />
         <Content Include="CoolPrograms\Runtime\Substring2.cool" />

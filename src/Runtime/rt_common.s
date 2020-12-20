@@ -47,18 +47,22 @@ ascii_input_not_digit:          .ascii "IO.in_int: Input string contains a char 
     .global Any_vtable
 Any_vtable:
     .quad Any.abort
+    .quad Any.equals
 
     .global Unit_vtable
 Unit_vtable:
     .quad Any.abort
+    .quad Any.equals
 
     .global Int_vtable
 Int_vtable:
     .quad Any.abort
+    .quad Any.equals
 
     .global String_vtable
 String_vtable:
     .quad Any.abort
+    .quad Any.equals
     .quad String.length
     .quad String.concat
     .quad String.substring
@@ -66,10 +70,12 @@ String_vtable:
     .global Boolean_vtable
 Boolean_vtable:
     .quad Any.abort
+    .quad Any.equals
 
     .global ArrayAny_vtable
 ArrayAny_vtable:
     .quad Any.abort
+    .quad Any.equals
     .quad ArrayAny.get
     .quad ArrayAny.set
     .quad ArrayAny.length
@@ -77,6 +83,7 @@ ArrayAny_vtable:
     .global IO_vtable
 IO_vtable:
     .quad Any.abort
+    .quad Any.equals
     .quad IO.out_string
     .quad IO.out_int
     .quad IO.out_nl
@@ -497,14 +504,11 @@ IO_proto_obj:
 #      obj1 in %rdi
 #      obj2 in %rsi
 #  OUTPUT: 
-#      $1 in %rax, if the objects are equal.
-#      $0 in %rax, if the objects are unequal.
+#      $Boolean_true  in %rax, if the objects are equal.
+#      $Boolean_false in %rax, if the objects are unequal.
 #
     .global .Runtime.are_equal
 .Runtime.are_equal:
-    # pushq   %rbp
-    # movq    %rsp, %rbp
-
     # pointer equality
     cmpq    %rdi, %rsi
     je      .Runtime.are_equal.true
@@ -582,9 +586,6 @@ IO_proto_obj:
     movq    $Boolean_false, %rax
 
 .Runtime.are_equal.return:
-    # movq    %rbp, %rsp
-    # popq    %rbp
-
     ret
 
 #
@@ -723,6 +724,27 @@ Any.abort:
     # Exit the process
     movq    $0, %rdi
     call    .Platform.exit_process
+
+
+#
+#  Any.equals
+#  
+#  Compares 'this' object to 'other' object.
+#  Two objects are equal if they
+#    - are identical (pointer equality)
+#    - have same tag and are of type BOOL, STRING, INT, UNIT 
+#      and contain the same data.
+#
+#  INPUT: 
+#      'this'   in %rdi
+#      'other'  in %rsi
+#  OUTPUT: 
+#      $Boolean_true  in %rax, if the objects are equal.
+#      $Boolean_false in %rax, if the objects are unequal.
+#
+    .global Any.equals
+Any.equals:
+    jmp     .Runtime.are_equal
 
 ########################################
 # String
