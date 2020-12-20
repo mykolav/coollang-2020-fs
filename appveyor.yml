@@ -44,6 +44,8 @@ configuration: Debug
 build_script:
   - ./build.sh
 
+# AppVeyor's Tests Window is empty?
+# See https://stackoverflow.com/a/53309039/818321
 test_script:
   - nuget install Appveyor.TestLogger -Version 2.0.0
   - dotnet test --no-build --no-restore --test-adapter-path:. --logger:Appveyor ./src/Tests/Tests.fsproj
