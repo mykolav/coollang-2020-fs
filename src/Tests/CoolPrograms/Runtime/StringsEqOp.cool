@@ -17,7 +17,7 @@ class Main() {
         result = if (hello0 ==  "Hello, " + "World!") "equal" else "not equal";
         io.out_string(result); io.out_nl();
         
-        result = if ( "Hello, " + "World!" == hello0) "equal" else "not equal";
+        result = if ("Hello, " + "World!" == hello0) "equal" else "not equal";
         io.out_string(result); io.out_nl();
         
         result = if (hello0 == hello1) "equal" else "not equal";

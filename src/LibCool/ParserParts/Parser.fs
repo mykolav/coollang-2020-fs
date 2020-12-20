@@ -31,6 +31,7 @@ module private Prec =
     let OfPlus = 5y
     let OfMinus = 5y
     let OfEqualEqual = 4y
+    let OfNotEqual = 4y
     let OfLessEqual = 3y
     let OfLess = 3y
     let OfGreaterEqual = 3y
@@ -45,17 +46,18 @@ module private Prec =
     let Empty = -1y
 
     let Of: TokenKind -> sbyte = function
-        | TokenKind.LessEqual    -> OfLessEqual
-        | TokenKind.Less         -> OfLess
-        | TokenKind.GreaterEqual -> OfGreaterEqual
-        | TokenKind.Greater      -> OfGreater
-        | TokenKind.EqualEqual   -> OfEqualEqual
-        | TokenKind.Star         -> OfStar
-        | TokenKind.Slash        -> OfSlash
-        | TokenKind.Plus         -> OfPlus
-        | TokenKind.Minus        -> OfMinus
-        | TokenKind.KwMatch      -> OfMatch
-        | TokenKind.Dot          -> OfDot
+        | TokenKind.LessEqual    -> Prec.OfLessEqual
+        | TokenKind.Less         -> Prec.OfLess
+        | TokenKind.GreaterEqual -> Prec.OfGreaterEqual
+        | TokenKind.Greater      -> Prec.OfGreater
+        | TokenKind.EqualEqual   -> Prec.OfEqualEqual
+        | TokenKind.ExclaimEqual -> Prec.OfNotEqual
+        | TokenKind.Star         -> Prec.OfStar
+        | TokenKind.Slash        -> Prec.OfSlash
+        | TokenKind.Plus         -> Prec.OfPlus
+        | TokenKind.Minus        -> Prec.OfMinus
+        | TokenKind.KwMatch      -> Prec.OfMatch
+        | TokenKind.Dot          -> Prec.OfDot
         // We've reached the end of the expr's postfix
         | _                      -> Empty
 
@@ -554,7 +556,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let token_op = _token
             if try_eat_when (_token.Is(TokenKind.LessEqual) || _token.Is(TokenKind.Less) ||
                              _token.Is(TokenKind.GreaterEqual) || _token.Is(TokenKind.Greater) ||
-                             _token.Is(TokenKind.EqualEqual) ||
+                             _token.Is(TokenKind.EqualEqual) || _token.Is(TokenKind.ExclaimEqual) ||
                              _token.Is(TokenKind.Star) || _token.Is(TokenKind.Slash) ||
                              _token.Is(TokenKind.Plus) || _token.Is(TokenKind.Minus))
             then
@@ -576,6 +578,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                     | TokenKind.GreaterEqual -> ExprSyntax.GtEq (left=lhs, right=rhs)
                     | TokenKind.Greater      -> ExprSyntax.Gt (left=lhs, right=rhs)
                     | TokenKind.EqualEqual   -> ExprSyntax.EqEq (left=lhs, right=rhs)
+                    | TokenKind.ExclaimEqual -> ExprSyntax.NotEq (left=lhs, right=rhs)
                     | TokenKind.Star         -> ExprSyntax.Mul (left=lhs, right=rhs)
                     | TokenKind.Slash        -> ExprSyntax.Div (left=lhs, right=rhs)
                     | TokenKind.Plus         -> ExprSyntax.Sum (left=lhs, right=rhs)

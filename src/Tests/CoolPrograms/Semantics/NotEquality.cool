@@ -1,0 +1,43 @@
+class A() {}
+class B() {}
+class C() extends A() {}
+
+class Main() {
+    {
+        var it: Boolean = false;
+        
+        it = "Hello" != "Hello";
+        it = false != false;
+        it = 9001 != 9001;
+        
+        var a: A = new A();
+        var b: B = new B();
+        var c: C = new C();
+        
+        it = a != b;
+        it = b != a;
+        it = a != c;
+        it = c != a;
+        
+        it = a != 9001;
+        it = 9001 != a;
+        
+        it = a != "Hello";
+        it = "Hello" != a;
+        
+        it = "Hello" != 9001;
+        it = 9001 != "Hello";
+        
+        ()
+    };
+}
+
+// DIAG: Semantics/NotEquality.cool(17,14): Error: '!=' cannot be applied to operands of type 'A' and 'B'
+// DIAG: Semantics/NotEquality.cool(18,14): Error: '!=' cannot be applied to operands of type 'B' and 'A'
+// DIAG: Semantics/NotEquality.cool(22,14): Error: '!=' cannot be applied to operands of type 'A' and 'Int'
+// DIAG: Semantics/NotEquality.cool(23,14): Error: '!=' cannot be applied to operands of type 'Int' and 'A'
+// DIAG: Semantics/NotEquality.cool(25,14): Error: '!=' cannot be applied to operands of type 'A' and 'String'
+// DIAG: Semantics/NotEquality.cool(26,14): Error: '!=' cannot be applied to operands of type 'String' and 'A'
+// DIAG: Semantics/NotEquality.cool(28,14): Error: '!=' cannot be applied to operands of type 'String' and 'Int'
+// DIAG: Semantics/NotEquality.cool(29,14): Error: '!=' cannot be applied to operands of type 'Int' and 'String'
+// DIAG: Build failed: Errors: 8. Warnings: 0
