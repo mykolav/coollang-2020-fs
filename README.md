@@ -199,7 +199,7 @@ Keep in mind, `match`, `if`, `while` are expressions in Cool 2020.
 !  -num
 *  /
 +  -
-==
+== !=
 <= >=
 <  >
 match
