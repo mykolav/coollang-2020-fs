@@ -25,6 +25,11 @@ type CompilerTests(test_output: ITestOutputHelper) =
         
     
     [<Fact>]
+    member this.``Compile and run InString1.cool``() =
+        this.CompileAndRun("Runtime/InString1.cool", stdin="Elizabeth Alexandra Mary Windsor")
+        
+    
+    [<Fact>]
     member this.``Compile and run InInt.cool``() =
         this.CompileAndRun("Runtime/InInt.cool", stdin="9001")
         

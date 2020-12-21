@@ -21,6 +21,7 @@ type CompilerTestCaseSource private () =
     
     
     static let excluded_files = [| "InString.cool"
+                                   "InString1.cool"
                                    "InInt.cool"
                                    "InInt1.cool"
                                    "InInt2.cool"

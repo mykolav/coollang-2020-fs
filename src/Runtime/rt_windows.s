@@ -164,12 +164,12 @@ hProcessDefaultHeap:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    # -6        16 byte boundary padding
-    # -1032     buffer 
-    # -1040     numberOfBytesRead
-    # -1048     fifth argument (lpOverlapped)
-    # -1056     shadow space
-    subq    $1056, %rsp
+    # -14       16 byte boundary padding
+    # -1040     buffer 
+    # -1048     numberOfBytesRead
+    # -1056     fifth argument (lpOverlapped)
+    # -1088     shadow space
+    subq    $1088, %rsp
 
     movl    $STD_INPUT_HANDLE, %ecx
     call    GetStdHandle
@@ -183,16 +183,16 @@ hProcessDefaultHeap:
     #   LPOVERLAPPED lpOverlapped
     # );
     # stdin handle is already in %rcx
-    leaq    -1032(%rbp), %rdx   # lpBuffer
-    movq    $1026, %r8           # nNumberOfBytesToRead
-    leaq    -1040(%rbp), %r9    # lpNumberOfBytesRead
-    movq    $0, -1048(%rbp)     # lpOverlapped
+    leaq    -1040(%rbp), %rdx   # lpBuffer
+    movq    $1026, %r8          # nNumberOfBytesToRead
+    leaq    -1048(%rbp), %r9    # lpNumberOfBytesRead
+    movq    $0, -1056(%rbp)     # lpOverlapped
                                 # a fifth argument must be higher in the stack
                                 # than the shadow space!
     call    ReadFile
 
-    leaq    -1032(%rbp), %rdi # lpBuffer
-    movq    -1040(%rbp), %rsi # numberOfBytesRead
+    leaq    -1040(%rbp), %rdi # lpBuffer
+    movq    -1048(%rbp), %rsi # numberOfBytesRead
     call    String.from_buffer
 
     # The string object ptr is already in %rax

@@ -1268,7 +1268,7 @@ type private ExprTranslator(_context: TranslationContext,
             { Addr = this.EmitAsm()
                          .Addr("{0}({1})", ObjLayoutFacts.Attrs + (sym.Index * ObjLayoutFacts.ElemSize),
                                            this_reg)
-              Asm = ValueSome (this.EmitAsm().Single("movq {0}(%rbp), {1}", FrameLayoutFacts.This, this_reg))
+              Asm = ValueSome (this.EmitAsm().Single("movq    {0}(%rbp), {1}", FrameLayoutFacts.This, this_reg))
               Type = _context.ClassSymMap.[sym.Type]
               Reg = this_reg }
                
