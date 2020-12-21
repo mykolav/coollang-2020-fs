@@ -1,0 +1,26 @@
+class Main() {
+    {
+        var io: IO = new IO();
+        io.out_line("Hello, Cool 2020!");
+        io.out_nl()
+    };
+}
+
+class ArrayAny(len: Int) {
+  var _array = new Array[Any](len);
+  def length(): Int = _array.length;
+  def get(i: Int): Any = _array(i);
+  def set(i: Int, value: Any): Unit = _array(i) = value;
+}
+
+class IO {
+  def out_string(s: String): Unit = print(s);
+  def out_int(i: Int): Unit = print(i);
+  def out_nl(): Unit = println();
+}
+
+object Program {
+  def main(args: Array[String]): Unit = {
+    new Main()
+  };
+}

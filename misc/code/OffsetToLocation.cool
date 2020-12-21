@@ -1,0 +1,14 @@
+class Fib() extends IO() {
+    def fib(x: Int): Int =
+        if (x == 0) 0
+        else if (x == 1) 1
+        else fib(x - 2) + fib(x - 1);
+    
+    {
+        out_string("fib(10) = ");
+        out_int(fib(10));
+        out_nl()
+    };
+}class Main() {
+    { new Fib() };
+}

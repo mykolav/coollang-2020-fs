@@ -1,3 +1,0 @@
-- [How to have a Project Reference without referencing the actual binary](https://docs.microsoft.com/en-us/archive/blogs/kirillosenkov/how-to-have-a-project-reference-without-referencing-the-actual-binary)
-- [How to F5 deploy with add-in libraries in Visual Studio?](https://stackoverflow.com/questions/46905637/how-to-f5-deploy-with-add-in-libraries-in-visual-studio/47132155#47132155)
-- [On a ProjectReference, setting ReferenceOutputAssembly=false and Private=true does not copy the reference to the output without referencing it](https://github.com/dotnet/msbuild/issues/1916)

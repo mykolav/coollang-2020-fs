@@ -1,0 +1,95 @@
+class QuickSort() extends IO() {
+  def quicksort(array: ArrayAny, lo: Int, hi: Int): Unit = {
+    if (lo < hi) {
+      var p: Int = partition(array, lo, hi);
+      quicksort(array, lo, p - 1);
+      quicksort(array, p + 1, hi)
+    } else ()
+  };
+    
+  def partition(array: ArrayAny, lo: Int, hi: Int): Int = {
+    var pivot: Int = array.get(lo) match { case i: Int => i };
+    var p: Int = lo;
+    var i: Int = lo + 1;
+    while (i <= hi) {
+      if (((array.get(i)) match { case i: Int => i }) <= pivot)
+        array_swap(array, i, { p = p + 1; p })
+      else
+        ();
+      i = i + 1
+    };
+    
+    array_swap(array, p, lo);
+    p
+  };
+    
+  def array_swap(array: ArrayAny, p: Int, q: Int): Unit = {
+    var tmp: Any = array.get(p);
+    array.set(p, array.get(q));
+    array.set(q, tmp)
+  };
+    
+  def out_array(array: ArrayAny): Unit = {
+    var i: Int = 0;
+    while (i < array.length()) {
+      array.get(i) match {
+        case i: Int => out_int(i); out_string(" ")
+      };
+        
+      i = i + 1
+    };
+    
+    out_nl()
+  };
+
+  def out_stringln(s: String): Unit = {
+    out_string(s);
+    out_nl()
+  };
+    
+  {
+    out_stringln("Welcome to Quick Sort!");
+
+    out_stringln("How many numbers to sort?");
+    out_string("> ");
+    var len: Int = in_int();
+
+    if (len <= 0) {
+        out_stringln("Must be more than 0!")
+    }
+    else if (len > 10) {
+        out_stringln("Too many numbers requested! Try fewer than 11.")
+    }
+    else
+    {
+      var array: ArrayAny = new ArrayAny(len);
+      
+      var i: Int = 0;
+      while (i < len) {
+        out_string("Input a number! ("); out_int(len - i); out_stringln(" more to go)");
+        out_string("> ");
+
+        var num: Int = in_int();
+        array.set(i, num);
+        
+        i = i + 1
+      };
+
+      out_nl();
+
+      out_string("Unsorted: ");
+      out_array(array);
+      
+      quicksort(array, 0, array.length() - 1);
+      
+      out_string("Sorted: ");
+      out_array(array)
+    }
+  };
+}
+
+class Main() {
+  {
+    new QuickSort()
+  };
+}
