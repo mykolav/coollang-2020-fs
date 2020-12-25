@@ -15,8 +15,6 @@ module CompileToAsmStep =
         // 2) If any syntax errors, report and stop
         // 3) Semantic analysis is also performed in stages,
         //    see Eric Lippert's corresponding post for inspiration.
-        //    E.g.: detecting circular base class dependencies is in its own stage.
-        //    ...
 
         // Lex
         let lexer = Lexer(source, diags)

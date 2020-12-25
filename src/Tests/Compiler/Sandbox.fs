@@ -60,6 +60,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
     member _.``Print ast``() =
         let ast = parse "Runtime/ArithExprPrecedence.cool"
         //let ast = parse "Runtime/IfElseExprPrecedence.cool"
+        //let ast = parse "../../../sandbox/cool/HelloWorld.cool"
         let rendered = AstRenderer.Render(ast.Value)
         _test_output.WriteLine(rendered)
 
