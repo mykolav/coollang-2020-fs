@@ -246,22 +246,7 @@ type Token =
         | TokenKind.KwVal 
         | TokenKind.KwWith 
         | TokenKind.KwYield -> true
-        | _ -> false
-    
-    
-    member this.IsInfixOp: bool =
-        match this.Kind with
-        | TokenKind.Plus -> true
-        | TokenKind.Minus -> true
-        | TokenKind.Slash -> true
-        | TokenKind.Star -> true
-        | TokenKind.EqualEqual -> true
-        | TokenKind.Less -> true
-        | TokenKind.Greater -> true
-        | TokenKind.LessEqual -> true
-        | TokenKind.GreaterEqual -> true
-        | TokenKind.ExclaimEqual -> true
-        | _ -> false
+        | _                 -> false
     
     
     member this.Id: string =
@@ -286,46 +271,5 @@ type Token =
         match this.Kind with
         | TokenKind.TripleQuotedStringLiteral value -> value
         | _ -> invalidArg "token" "The token is not a \"\"\" string literal"
-        
-        
-    member this.KwSpelling: string =
-        if not (this.IsKw || this.IsReservedKw)
-        then
-            invalidArg "token" "The token is not a keyword"
-            
-        let raw_spelling = this.Kind.ToString()
-        let spelling = 
-            if raw_spelling.StartsWith("TokenKind.Kw")
-            then raw_spelling.Substring("TokenKind.Kw".Length)
-            else raw_spelling.Substring("Kw".Length)
-
-        spelling.ToLower()
-
-    
-    member this.KwKindSpelling: string =        
-        if not (this.IsKw || this.IsReservedKw)
-        then
-            invalidArg "token" "The token is not a keyword"
-            
-        if (this.IsKw) then "keyword" else "reserved keyword"
-
-
-    member this.InfixOpSpelling: string =
-        if not this.IsInfixOp
-        then
-            invalidArg "token" "The token is not an infix operator"
-
-        match this.Kind with            
-        | TokenKind.Plus -> "+"
-        | TokenKind.Minus -> "-"
-        | TokenKind.Slash -> "/"
-        | TokenKind.Star -> "*"
-        | TokenKind.EqualEqual -> "=="
-        | TokenKind.Less -> "<"
-        | TokenKind.Greater -> ">"
-        | TokenKind.LessEqual -> "<="
-        | TokenKind.GreaterEqual -> ">="
-        | TokenKind.ExclaimEqual -> "!="
-        | _ -> invalidOp "Unreachable"
 
     

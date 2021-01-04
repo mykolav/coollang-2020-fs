@@ -7,59 +7,7 @@ open LibCool.SharedParts
 open LibCool.SourceParts
 open LibCool.AstParts
 open LibCool.DiagnosticParts
-
-
-[<AutoOpen>]
-module private TokenExtensions =
-    type Token
-        with
-        member this.KwDescription: string =
-            if this.IsKw || this.IsReservedKw
-            then
-                sprintf "; '%s' is a %s" (this.KwSpelling) (this.KwKindSpelling)
-            else
-                ""
-
-
-[<RequireQualifiedAccess>]
-module private Prec =
-    let OfDot = 8y
-    let OfExclaim = 7y
-    let OfUnaryMinus = 7y
-    let OfStar = 6y
-    let OfSlash = 6y
-    let OfPlus = 5y
-    let OfMinus = 5y
-    let OfEqualEqual = 4y
-    let OfNotEqual = 4y
-    let OfLessEqual = 3y
-    let OfLess = 3y
-    let OfGreaterEqual = 3y
-    let OfGreater = 3y
-    let OfMatch = 2y
-    let OfIf = 1y
-    let OfWhile = 1y
-    let OfEqual = 0y
-    
-    let Min = OfEqual
-    let Max = OfDot
-    let Empty = -1y
-
-    let Of: TokenKind -> sbyte = function
-        | TokenKind.LessEqual    -> Prec.OfLessEqual
-        | TokenKind.Less         -> Prec.OfLess
-        | TokenKind.GreaterEqual -> Prec.OfGreaterEqual
-        | TokenKind.Greater      -> Prec.OfGreater
-        | TokenKind.EqualEqual   -> Prec.OfEqualEqual
-        | TokenKind.ExclaimEqual -> Prec.OfNotEqual
-        | TokenKind.Star         -> Prec.OfStar
-        | TokenKind.Slash        -> Prec.OfSlash
-        | TokenKind.Plus         -> Prec.OfPlus
-        | TokenKind.Minus        -> Prec.OfMinus
-        | TokenKind.KwMatch      -> Prec.OfMatch
-        | TokenKind.Dot          -> Prec.OfDot
-        // We've reached the end of the expr's postfix
-        | _                      -> Empty
+open LibCool.ParserParts.TokenExtensions
 
 
 type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
@@ -554,11 +502,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         while infixop_expected && Prec.Of(_token.Kind) >= prec_threshold do
         
             let token_op = _token
-            if try_eat_when (_token.Is(TokenKind.LessEqual) || _token.Is(TokenKind.Less) ||
-                             _token.Is(TokenKind.GreaterEqual) || _token.Is(TokenKind.Greater) ||
-                             _token.Is(TokenKind.EqualEqual) || _token.Is(TokenKind.ExclaimEqual) ||
-                             _token.Is(TokenKind.Star) || _token.Is(TokenKind.Slash) ||
-                             _token.Is(TokenKind.Plus) || _token.Is(TokenKind.Minus))
+            if try_eat_when _token.IsInfixOp
             then
                 let rhs_res = required_expr ((*prec_threshold=*)Prec.Of(token_op.Kind) + 1y)
                                             (sprintf "An expression expected. '%s' must be followed by an expression"
@@ -607,8 +551,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
 
                 let expr_match_span = Span.Of(span_start, case_nodes.Span.Last)
                 let expr_match_syntax = ExprSyntax.Match (expr=lhs,
-                                                   cases_hd=case_nodes.Syntax.[0],
-                                                   cases_tl=case_nodes.Syntax.[1..])
+                                                          cases_hd=case_nodes.Syntax.[0],
+                                                          cases_tl=case_nodes.Syntax.[1..])
                 
                 lhs <- AstNode.Of(expr_match_syntax, expr_match_span)
             else

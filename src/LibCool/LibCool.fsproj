@@ -18,13 +18,14 @@
         <Compile Include="ParserParts\TokenParts.fs" />
         <Compile Include="ParserParts\Lexer.fs" />
         <Compile Include="ParserParts\TokenArray.fs" />
+        <Compile Include="ParserParts\SyntaxFacts.fs" />
         <Compile Include="ParserParts\Parser.fs" />
         <Compile Include="SemanticParts\AstExtensions.fs" />
         <Compile Include="SemanticParts\Symbols.fs" />
         <Compile Include="SemanticParts\ConstSet.fs" />
         <Compile Include="SemanticParts\TypeComparer.fs" />
         <Compile Include="SemanticParts\ClassSymbolCollector.fs" />
-        <Compile Include="TranslatorParts\Facts.fs" />
+        <Compile Include="TranslatorParts\TranslationFacts.fs" />
         <Compile Include="TranslatorParts\SymbolTable.fs" />
         <Compile Include="TranslatorParts\RegisterSet.fs" />
         <Compile Include="TranslatorParts\LabelGenerator.fs" />
