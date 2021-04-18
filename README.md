@@ -284,8 +284,9 @@ One way of getting binutils is installing MinGW. MinGW is a project providing Wi
     5. Select **OK** to save the updated `PATH`. You will need to reopen any console windows for the new `PATH` location to be available
 
 </details>
+   
 
-#### ... relocation truncated to fit: R_X86_64_32S ...
+#### **... relocation truncated to fit: R_X86_64_32S ...**
 In case you use MSYS2 to install their MinGW packages, please keep in mind the following.  
 The compiler links an executable using a command similar to
 
@@ -311,11 +312,12 @@ a.o:fake:(.text+0xd2): relocation truncated to fit: R_X86_64_32S against `.data'
 
 A [news report](https://www.msys2.org/news/#2021-01-31-aslr-enabled-by-default) on the MSYS2 page and an [ld bug report](https://sourceware.org/bugzilla/show_bug.cgi?id=26659) seem to discuss a very similar issue though not exactly the same.  
 
-I don't really understand what causes the issue with linking object files produced from compiler-generated assembly. But a workaround suggested on the MSYS2 page solves it. The workaround is to pass `--default-image-base-low` to ld.  
+I don't really understand what causes the issue with linking object files produced from compiler-generated assembly. But a workaround suggested on the MSYS2 page solves it. The workaround is to pass `--default-image-base-low` to ld.   
+Have not yet updated the compiler's code to include this flag into the linker command line.  
 
-Alternatively, downgrading GNU binutils to 2.27 also makes the problem go away.
+Alternatively, downgrading GNU Binutils to 2.34 also makes the problem go away.
 ```sh
-pacman -U http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-binutils-2.27-2-any.pkg.tar.xz
+pacman -U http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-binutils-2.34-3-any.pkg.tar.zst
 ```
 
 ### _Linux_
