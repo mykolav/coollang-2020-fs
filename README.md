@@ -285,6 +285,39 @@ One way of getting binutils is installing MinGW. MinGW is a project providing Wi
 
 </details>
 
+#### ... relocation truncated to fit: R_X86_64_32S ...
+In case you use MSYS2 to install their MinGW packages, please keep in mind the following.  
+The compiler links an executable using a command similar to
+
+```sh
+ld -o a.exe -e main a.o ../../src/Runtime/rt_common.o ../../src/Runtime/rt_windows.o -L"C:/msys64/mingw64/x86_64-w64-mingw32/lib" -lkernel32
+```
+
+Starting at least from GNU Binutils 2.36.1 (and maybe an earlier version), the command above produces error along these lines:
+
+```
+a.o:fake:(.text+0x3f): relocation truncated to fit: R_X86_64_32S against symbol `IO_proto_obj' defined in .data section in ../../src/Runtime/rt_common.o
+a.o:fake:(.text+0x7c): relocation truncated to fit: R_X86_64_32S against `.data'
+a.o:fake:(.text+0x9e): relocation truncated to fit: R_X86_64_32S against `.data'
+a.o:fake:(.text+0xd2): relocation truncated to fit: R_X86_64_32S against `.data'
+../../src/Runtime/rt_common.o:fake:(.text+0x8): relocation truncated to fit: R_X86_64_32S against `.data'
+../../src/Runtime/rt_common.o:fake:(.text+0x36): relocation truncated to fit: R_X86_64_32S against `.data'
+../../src/Runtime/rt_common.o:fake:(.text+0x6d): relocation truncated to fit: R_X86_64_32S against `.data'
+../../src/Runtime/rt_common.o:fake:(.text+0x89): relocation truncated to fit: R_X86_64_32S against `.data'
+../../src/Runtime/rt_common.o:fake:(.text+0xbb): relocation truncated to fit: R_X86_64_32S against `.data'
+../../src/Runtime/rt_common.o:fake:(.text+0xdb): relocation truncated to fit: R_X86_64_32S against `.data'
+../../src/Runtime/rt_common.o:fake:(.text+0xf8): additional relocation overflows omitted from the output
+```
+
+A [news report](https://www.msys2.org/news/#2021-01-31-aslr-enabled-by-default) on the MSYS2 page and an [ld bug report](https://sourceware.org/bugzilla/show_bug.cgi?id=26659) seem to discuss a very similar issue though not exactly the same.  
+
+I don't really understand what causes the issue with linking object files produced from compiler-generated assembly. But a workaround suggested on the MSYS2 page solves it. The workaround is to pass `--default-image-base-low` to ld.  
+
+Alternatively, downgrading GNU binutils to 2.27 also makes the problem go away.
+```sh
+pacman -U http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-binutils-2.27-2-any.pkg.tar.xz
+```
+
 ### _Linux_
 
 Install your distribution's binutils package. For example, on Ubuntu it looks something like this:
