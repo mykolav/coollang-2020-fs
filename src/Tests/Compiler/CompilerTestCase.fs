@@ -27,7 +27,8 @@ type CompilerTestCaseSource private () =
                                    "InInt2.cool"
                                    "InInt3.cool"
                                    "InInt4.cool"
-                                   "InInt5.cool" |]
+                                   "InInt5.cool"
+                                   "Life.cool" |]
     
     
     static let is_excluded_path (path: string): bool =

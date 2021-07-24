@@ -57,7 +57,12 @@ type CompilerTests(test_output: ITestOutputHelper) =
     [<Fact>]
     member this.``Compile and run InInt5.cool``() =
         this.CompileAndRun("Runtime/InInt5.cool", stdin="12345678912")
-
+        
+    
+    [<Fact>]
+    member this.``Compile and run Life.cool``() =
+        this.CompileAndRun("Runtime/Life.cool", stdin="...................>...................>....xxx...xxx......>...................>..x....x.x....x....>..x....x.x....x....>..x....x.x....x....>....xxx...xxx......>...................>....xxx...xxx......>..x....x.x....x....>..x....x.x....x....>..x....x.x....x....>...................>....xxx...xxx......>...................>...................>...................>...................>...................>")
+        
 
     member private this.CompileAndRun(path: string, ?stdin: string) =
         // Arrange

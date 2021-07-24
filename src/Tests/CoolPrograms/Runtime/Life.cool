@@ -1,0 +1,255 @@
+class Cell() {
+    // Is this cell alive now?
+    var state: Boolean = false;
+    // Is this cell going to be alive at the next step?
+    var next_state: Boolean = false;
+
+    def get_state(): Boolean = state;
+    def set_state(value: Boolean): Unit = {
+        state = value;
+        ()
+    };
+
+    def set_next_state(value: Boolean): Unit = {
+        next_state = value;
+        ()
+    };
+
+    def step(): Unit = {
+        state = next_state;
+        ()
+    };
+}
+
+class Board(var width: Int, var height: Int) {
+    var rows: ArrayAny = null;
+
+    def get_height(): Int = height;
+    def get_width(): Int = width;
+
+    def get_cell(x: Int, y: Int): Cell = {
+        var row: ArrayAny = rows.get(y) match { case it: ArrayAny => it };
+        row.get(x) match { case it: Cell => it }
+    };
+
+    {
+        rows = new ArrayAny(height);
+
+        var y: Int = 0;
+        while (y < height) {
+            var row: ArrayAny = new ArrayAny(width);
+
+            var x: Int = 0;
+            while (x < width) {
+                row.set(x, new Cell());
+                x = x + 1
+            };
+
+            rows.set(y, row);
+            y = y + 1
+        }
+    };
+}
+
+class Game(var board: Board) {
+
+    def step(): Unit = {
+        compute_next_generation();
+        replace_current_generation()
+    };
+
+    def compute_next_generation(): Unit = {
+        var y: Int = 0;
+        while (y < board.get_height()) {
+
+            var x: Int = 0;
+            while (x < board.get_width()) {
+                var neighbours_count: Int = count_neighbours(x, y);
+                var cell: Cell = board.get_cell(x, y);
+
+                // A live cell with 3 neighbours lives on.
+                // A dead cell with 3 neighbours becomes live.
+                if (neighbours_count == 3) {
+                    cell.set_next_state(true)
+                }
+                // A live cell with 2 neighbours lives on.
+                else if (neighbours_count == 2) {
+                    if (cell.get_state()) { cell.set_next_state(true) } else {}
+                }
+                // All the other cells die by over- or underpopulation.
+                else {
+                    cell.set_next_state(false)
+                };
+
+                x = x + 1
+            };
+
+            y = y + 1
+        }
+    };
+
+    def count_neighbours(x: Int, y: Int): Int = {
+        var count: Int = 0;
+
+        // The column of three nieghbouring cells to the left
+        if (x > 0) {
+            if (y > 0) {
+                if (board.get_cell(x - 1, y - 1).get_state()) {
+                    count = count + 1
+                } else {}
+            } else {};
+
+            if (board.get_cell(x - 1, y).get_state()) {
+                count = count + 1
+            } else {};
+
+            if (y < board.get_height() - 1) {
+                if (board.get_cell(x - 1, y + 1).get_state()) {
+                    count = count + 1
+                } else {}
+            } else {}
+        }
+        else {};
+
+        // The neighbouring cell above
+        if (y > 0) {
+            if (board.get_cell(x, y - 1).get_state()) {
+                count = count + 1
+            } else {}
+        } else {};
+
+        // The column of three neighbouring cells to the right
+        if (x < board.get_width() - 1) {
+            if (y > 0) {
+                if (board.get_cell(x + 1, y - 1).get_state()) {
+                    count = count + 1
+                } else {}
+            } else {};
+
+            if (board.get_cell(x + 1, y).get_state()) {
+                count = count + 1
+            } else {};
+
+            if (y < board.get_height() - 1) {
+                if (board.get_cell(x + 1, y + 1).get_state()) {
+                    count = count + 1
+                } else {}
+            } else {}
+        }
+        else {};
+
+        // The neighbouring cell below
+        if (y < board.get_height() - 1) {
+            if (board.get_cell(x, y + 1).get_state()) {
+                count = count + 1
+            } else {}
+        } else {};
+
+        count
+    };
+
+    def replace_current_generation(): Unit = {
+        var y: Int = 0;
+        while (y < board.get_height()) {
+
+            var x: Int = 0;
+            while (x < board.get_width()) {
+                board.get_cell(x, y).step();
+                x = x + 1
+            };
+
+            y = y + 1
+        }
+    };
+}
+
+class Main() {
+  var io: IO = new IO();
+  
+  {
+    var board: Board = in_board(/*width=*/20, /*height=*/20);
+    // out_board(board);
+
+    var game: Game = new Game(board);
+
+    var step: Int = 0;
+    while (step < 11) {
+        game.step();
+        // out_board(board);
+
+        step = step + 1
+    };
+
+    out_board(board)
+  };
+
+  def in_board(width: Int, height: Int): Board = {
+    var board: Board = new Board(width, height);
+
+    var serialized_board: String = io.in_string();
+
+    var y: Int = 0;
+    while (y < height) {
+
+        if (serialized_board.length() >= width) {
+
+            var x: Int = 0;
+            while (x < width) {
+                var offset: Int = y * width + x;
+                if (serialized_board.substring(offset, offset + 1) == "x") {
+                    board.get_cell(x, y).set_state(true)
+                }
+                else {};
+
+                x = x + 1
+            };
+
+            y = y + 1
+        } else {}
+    };
+
+    board
+  };
+
+  def out_board(board: Board): Unit = {
+    io.out_nl();
+
+    var y: Int = 0;
+    while (y < board.get_height()) {
+
+        var x: Int = 0;
+        while (x < board.get_width()) {
+            var cell: Cell = board.get_cell(x, y);
+            io.out_string(if (cell.get_state()) { "x" } else { "." });
+
+            x = x + 1
+        };
+
+        io.out_nl();
+
+        y = y + 1
+    }
+  };
+}
+
+// DIAG: Build succeeded: Errors: 0. Warnings: 0
+// OUT: ....................
+// OUT: ....................
+// OUT: ....xx.....xx.......
+// OUT: .....xx...xx........
+// OUT: ..x..x.x.x.x..x.....
+// OUT: ..xxx.xx.xx.xxx.....
+// OUT: ...x.x.x.x.x.x......
+// OUT: ....xxx...xxx.......
+// OUT: ....................
+// OUT: ....xxx...xxx.......
+// OUT: ...x.x.x.x.x.x......
+// OUT: ..xxx.xx.xx.xxx.....
+// OUT: ..x..x.x.x.x..x.....
+// OUT: .....xx...xx........
+// OUT: ....xx.....xx.......
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
