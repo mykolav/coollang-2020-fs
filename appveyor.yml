@@ -47,5 +47,5 @@ build_script:
 # AppVeyor's Tests Window is empty?
 # See https://stackoverflow.com/a/53309039/818321
 test_script:
-  - nuget install Appveyor.TestLogger -Version 2.0.0
+  - nuget install Appveyor.TestLogger -Version 2.0.0 -Source https://api.nuget.org/v3/index.json
   - dotnet test --no-build --no-restore --test-adapter-path:. --logger:Appveyor ./src/Tests/Tests.fsproj
