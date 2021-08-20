@@ -10,7 +10,7 @@ We compile Cool 2020 programs to native x64 code. The compiler runs on Windows a
 
 ![Compilation session recording](./compilation-session-demo.gif)
 
-[CoolAid: The Cool 2020 Reference Manual](http://pabst.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)
+[CoolAid: The Cool 2020 Reference Manual](http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)
 
 > ... the Classroom Object-Oriented Language ... retains many of
 the features of modern programming languages including objects, static typing, and automatic memory
