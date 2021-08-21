@@ -313,9 +313,9 @@ a.o:fake:(.text+0xd2): relocation truncated to fit: R_X86_64_32S against `.data'
 A [news report](https://www.msys2.org/news/#2021-01-31-aslr-enabled-by-default) on the MSYS2 page and an [ld bug report](https://sourceware.org/bugzilla/show_bug.cgi?id=26659) seem to discuss a very similar issue though not exactly the same.  
 
 I don't really understand what causes the issue with linking object files produced from compiler-generated assembly. But a workaround suggested on the MSYS2 page solves it. The workaround is to pass `--default-image-base-low` to ld.   
-Have not yet updated the compiler's code to include this flag into the linker command line.  
 
-Alternatively, downgrading GNU Binutils to 2.34 also makes the problem go away.
+The compiler's code includes this flag into the linker command line to work around the problem. If you still encounter similar error messages, you might try downgrading GNU Binutils to 2.34 to make the problem go away.
+
 ```sh
 pacman -U http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-binutils-2.34-3-any.pkg.tar.zst
 ```

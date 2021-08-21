@@ -98,6 +98,14 @@ type EmitExeHandler(_writer: IWriteLine) =
             ld_args.Append(sprintf "\"%s\" -L\"%s\" -lkernel32" (Path.Combine(rt_dir, "rt_windows.o"))
                                                                 (EmitExeHandler.ResolveLibDir()))
                    .Nop()
+            
+            // A workaround for the "relocation truncated to fit: R_X86_64_32S" problem.
+            // See README.md for more details.
+            let ld_version = EmitExeHandler.ResolveLdVersion()
+            if ld_version > 234
+            then
+                ld_args.Append(" --default-image-base-low").Nop()
+                       
         else if RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
         then
             ld_args.Append(sprintf "\"%s\"" (Path.Combine(rt_dir, "rt_linux.o"))).Nop()
@@ -147,3 +155,18 @@ type EmitExeHandler(_writer: IWriteLine) =
         let ld_dir = Path.GetDirectoryName(ld_path)
         let mingw64_dir = Path.GetDirectoryName(ld_dir)
         Path.Combine(mingw64_dir, "x86_64-w64-mingw32\\lib").Replace('\\', '/')
+
+    
+    static member ResolveLdVersion(): int =
+        let ld_version_text = ProcessRunner.Run(exe_name="ld", args="--version")
+        let ld_version_line_opt =
+            ld_version_text.Split([| "\r\n"; "\r"; "\n" |], StringSplitOptions.None)
+            |> Seq.tryHead
+            
+        match ld_version_line_opt with
+        | Some ld_version_line ->
+            let ld_version_str =
+                ld_version_line.Replace("GNU ld (GNU Binutils) ", "")
+                               .Replace(".", "")
+            int ld_version_str
+        | None -> 0
