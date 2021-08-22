@@ -439,14 +439,17 @@ Plus, F# is a low ceremony, low syntactic noise language. In this respect, you c
 
 # Credits
 
- The original Cool language was designed by [Alex Aiken](https://theory.stanford.edu/~aiken/).  
+The original Cool language was designed by [Alex Aiken](https://theory.stanford.edu/~aiken/).  
  
- The Cool 2020 version was designed by [John Boyland](https://uwm.edu/engineering/people/boyland-ph-d-john/).  
+The Cool 2020 version was designed by [John Boyland](https://uwm.edu/engineering/people/boyland-ph-d-john/).  
  
- QuickSort.cool and InsertionSort.cool came from [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
- from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao).  
+QuickSort.cool and InsertionSort.cool came from [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
+from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao).  
+
+The web page uses [GitHub Corners](https://github.com/tholman/github-corners) by [Tim Holman](https://github.com/tholman).
 
 # License
 
-This [project](https://github.com/mykolav/coollang-2020-fs) is licensed under the MIT license.  
-See [LICENSE](./LICENSE) for details.
+[This project](https://github.com/mykolav/coollang-2020-fs) is licensed under the MIT license. See [LICENSE](./LICENSE) for details.
+
+[GitHub Corners](https://github.com/tholman/github-corners) is licensed under the MIT license. See [LICENSE.github-corners](./LICENSE.github-corners) for details.
