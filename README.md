@@ -1,32 +1,48 @@
-# The Cool 2020 language compiler implemented in F#
+# Compiler of Cool 2020 (a small Scala subset) into x86-64 assembly, in F#
 
 [![Build status](https://ci.appveyor.com/api/projects/status/h5u412oqjd4ceh7j?svg=true)](https://ci.appveyor.com/project/mykolav/coollang-2020-fs)
 
+The project is purely for fun and it's, honestly, just another toy compiler. Here's a couple things that might set it apart.
+
+- It compiles down to x86-64 assembly. Then invokes GNU as and ld to produce a native executable. To me personally, this is much more rewarding than emitting MIPS assembly and using an emulator to run it, like many compiler courses do. I also prefer emitting assembly to, for example, C &mdash; at the very least, it forces the developer to figure out converting expressions into assembly, and managing the stack. That really drives home the point how much work high level languages do for us.
+
+- The [Cool 2020](http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf) language is simple but not too simple. A lot of mini-compilers have languages with functions, primitive values and not much else. Whereas this project's language has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching.
+
+- The test suite contains more than 250 automated tests. In particular there are a number of end-to-end tests, which invoke the compiler on a source file, run the produced executable and check its output against the expected values.
+
+- The compiler runs on Windows and Linux.
+
+![A sample compilation session](./compilation-session-demo.gif)
+
+This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of background on the project and describe it in more detail. 
+
+---
+
+## Contents
+
+  * [Cool 2020](#cool-2020)
+    + [CoolAid: The Cool 2020 Reference Manual](#coolaid-the-cool-2020-reference-manual)
+    + [An antlr4 grammar for Cool 2020](#an-antlr4-grammar-for-cool-2020)
+    + [Precendence](#precendence)
+  * [Work in progress](#work-in-progress)
+  * [Build](#build)
+    + [Install .NET Core 3.1 SDK](#install-net-core-31-sdk)
+    + [Install GNU Binutils](#install-gnu-binutils)
+    + [Build the compiler](#build-the-compiler)
+  * [Compiler usage](#compiler-usage)
+    + [Synopsis](#synopsis)
+    + [Examples](#examples)
+  * [Implementation remarks](#implementation-remarks)
+  * [Useful links](#useful-links)
+  * [Credits](#credits)
+  * [License](#license)
+
+---
+
 # Cool 2020
 
-Cool 2020 is a subset of Scala with minor incompatibilities.
-
-We compile Cool 2020 programs to native x64 code. The compiler runs on Windows and Linux.
-
-![Compilation session recording](./compilation-session-demo.gif)
-
-[CoolAid: The Cool 2020 Reference Manual](http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)
-
-> ... the Classroom Object-Oriented Language ... retains many of
-the features of modern programming languages including objects, static typing, and automatic memory
-management...  
-
-> Cool programs are sets of classes. A class encapsulates the variables and procedures of a data type.
-Instances of a class are objects. In Cool, classes and types are identified; i.e., every class defines a type.
-Classes permit programmers to define new types and associated procedures (or methods) specific to those
-types. Inheritance allows new types to extend the behavior of existing types.  
-
-> Cool is an expression language. Most Cool constructs are expressions, and every expression has a
-value and a type. Cool is type safe: procedures are guaranteed to be applied to data of the correct type.
-While static typing imposes a strong discipline on programming in Cool, it guarantees that no runtime
-type errors can arise in the execution of Cool programs.
-
-## A code sample
+Cool 2020 is a subset of Scala with minor incompatibilities.  
+Let's first take a look at a sample programm and then discuss the language in more details.
 
 ```scala
 class Fib() extends IO() {
@@ -52,7 +68,23 @@ class Main() {
 }
 ```
 
-Too see more of the language's features in action take a look at [Life.cool](./src/Tests/CoolPrograms/Runtime/Life.cool) and [QuickSort.cool](./src/Tests/CoolPrograms/Runtime/QuickSort.cool).
+Too see more of the language's features in action take a look at [Life.cool](./src/Tests/CoolPrograms/Runtime/Life.cool), [QuickSort.cool](./src/Tests/CoolPrograms/Runtime/QuickSort.cool), and [InsertionSort.cool](./src/Tests/CoolPrograms/Runtime/InsertionSort.cool).
+
+## [CoolAid: The Cool 2020 Reference Manual](http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)
+
+> ... the Classroom Object-Oriented Language ... retains many of
+the features of modern programming languages including objects, static typing, and automatic memory
+management...  
+
+> Cool programs are sets of classes. A class encapsulates the variables and procedures of a data type.
+Instances of a class are objects. In Cool, classes and types are identified; i.e., every class defines a type.
+Classes permit programmers to define new types and associated procedures (or methods) specific to those
+types. Inheritance allows new types to extend the behavior of existing types.  
+
+> Cool is an expression language. Most Cool constructs are expressions, and every expression has a
+value and a type. Cool is type safe: procedures are guaranteed to be applied to data of the correct type.
+While static typing imposes a strong discipline on programming in Cool, it guarantees that no runtime
+type errors can arise in the execution of Cool programs.
 
 ## An antlr4 grammar for Cool 2020
 
@@ -399,7 +431,7 @@ $ ./qs
 10 20 30 40 50
 ```
 
-To see assembbly that the compiler emits for QuickSort.cool, perform the command below. Then open qs.s in your favourite editor. 
+To see the assembbly the compiler emits for QuickSort.cool, perform the command below. Then open qs.s in your favourite editor. 
 
 ```
 $ ./clc ../../src/Tests/CoolPrograms/Runtime/QuickSort.cool -S qs.s
@@ -408,7 +440,7 @@ Build succeeded: Errors: 0. Warnings: 0
 
 ### Test programs
 
-Take a look inside [src/Tests/CoolPrograms/Runtime](./src/Tests/CoolPrograms/Runtime) for more test programs. In particular, relatively bigger programs it contains are [Fibonacci.cool](./src/Tests/CoolPrograms/Runtime/Fibonacci.cool), and [InsertionSort.cool](./src/Tests/CoolPrograms/Runtime/InsertionSort.cool).
+Take a look inside [src/Tests/CoolPrograms/Runtime](./src/Tests/CoolPrograms/Runtime) for more test programs. In particular, relatively bigger programs it contains are [Life.cool](./src/Tests/CoolPrograms/Runtime/Life.cool), [InsertionSort.cool](./src/Tests/CoolPrograms/Runtime/InsertionSort.cool), [QuickSort.cool](./src/Tests/CoolPrograms/Runtime/QuickSort.cool), and [Fibonacci.cool](./src/Tests/CoolPrograms/Runtime/Fibonacci.cool).
 
 # Implementation remarks
 
