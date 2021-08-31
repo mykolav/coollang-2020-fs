@@ -12,9 +12,9 @@ The project is purely for fun and it's, honestly, just another toy compiler. Her
 
 - The compiler runs on Windows and Linux.
 
-![A sample compilation session](./compilation-session-demo.gif)
-
 This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of background on the project and describe it in more detail. 
+
+![A sample compilation session](./compilation-session-demo.gif)
 
 ---
 
