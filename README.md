@@ -70,7 +70,7 @@ class Main() {
 
 Too see more of the language's features in action take a look at [Life.cool](./src/Tests/CoolPrograms/Runtime/Life.cool), [QuickSort.cool](./src/Tests/CoolPrograms/Runtime/QuickSort.cool), and [InsertionSort.cool](./src/Tests/CoolPrograms/Runtime/InsertionSort.cool).
 
-## [CoolAid: The Cool 2020 Reference Manual](http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)
+## [CoolAid: The Cool 2020 Reference Manual]([http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf](https://web.archive.org/web/20210823043833/http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf))
 
 > ... the Classroom Object-Oriented Language ... retains many of
 the features of modern programming languages including objects, static typing, and automatic memory
