@@ -6,7 +6,7 @@ The project is purely for fun and it's, honestly, just another toy compiler. Her
 
 - It compiles down to x86-64 assembly. Then invokes GNU as and ld to produce a native executable. To me personally, this is much more rewarding than emitting MIPS assembly and using an emulator to run it, like many compiler courses do. I also prefer emitting assembly to, for example, C &mdash; at the very least, it forces the developer to figure out converting expressions into assembly, and managing the stack. That really drives home the point how much work high level languages do for us.
 
-- The [Cool 2020](http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf) language is simple but not too simple. A lot of mini-compilers have languages with functions, primitive values and not much else. Whereas this project's language has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching.
+- The [Cool 2020]([http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf](https://web.archive.org/web/20210823043833/http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf)) language is simple but not too simple. A lot of mini-compilers have languages with functions, primitive values and not much else. Whereas this project's language has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching.
 
 - The test suite contains more than 250 automated tests. In particular there are a number of end-to-end tests, which invoke the compiler on a source file, run the produced executable and check its output against the expected values.
 
