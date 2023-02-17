@@ -252,11 +252,11 @@ As a result we never free allocated memory.
 
 # Build
 
-## Install .NET Core 3.1 SDK
+## Install .NET 6 SDK
 
 The compiler is written in F#. F# is a .NET language. Rather predictably, a .NET SDK is a dependency.
 
-Get it from [the download page](https://dotnet.microsoft.com/download/dotnet-core/3.1).  
+Get it from [the download page](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).  
 
 ### _Windows_
 
@@ -270,19 +270,13 @@ Keep in mind:
 
 Follow [these instructions](https://docs.microsoft.com/en-us/dotnet/core/install/linux).  
 
-Just to give an example. On Ubuntu installation looks something like this:
+Just to give an example. On Ubuntu 22.04 installation looks something like this:
 
 ```sh
-# Add the Microsoft package signing key to your list of trusted keys.
-# And add the package repository.
-wget https://packages.microsoft.com/config/ubuntu/20.10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-sudo dpkg -i packages-microsoft-prod.deb
-
 # Install the SDK.
-sudo apt-get update; \
-sudo apt-get install -y apt-transport-https && \
+# (If you install the .NET SDK, you don't need to install the corresponding runtime.)
 sudo apt-get update && \
-sudo apt-get install -y dotnet-sdk-3.1
+sudo apt-get install -y dotnet-sdk-6.0
 ```
 
 ### Check installation
