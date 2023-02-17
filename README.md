@@ -293,26 +293,30 @@ The compiler emits x86-64 assembly. It uses `as` to assemble it. And `ld` to lin
 
 ### _Windows_
 
-One way of getting binutils is installing MinGW. MinGW is a project providing Windows versions of GCC, GDB, binutils, and some other tools.  
-[This page](https://code.visualstudio.com/docs/cpp/config-mingw#_prerequisites) explains how to install MinGW (see item #3).
+You can get binutils as part of [MSYS2](https://www.msys2.org/), which provides up-to-date native builds of GNU Binutils, Mingw-w64, etc.
+Follow the steps outlined on [this page](https://code.visualstudio.com/docs/cpp/config-mingw#_prerequisites) starting from the step #3.
 
 <details>
   <summary>Click to expand/collapse the installation steps</summary>
 
-1. Download and run Download [the Windows Mingw-w64 installer](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe/download).
-2. For **Architecture** select **x86_64** and then select **Next**.
-3. **Next** again to use the default installation folder and install MinGW.
-4. Add the path to your Mingw-w64 bin folder to the Windows PATH environment variable by using the following steps:  
+1. Get the latest version of Mingw-w64 via [MSYS2](https://www.msys2.org/). You can download the latest installer from the MSYS2 page.
+2. Follow the Installation instructions on the [MSYS2 website](https://www.msys2.org/) to install Mingw-w64. 
+Take care to run each required Start menu and pacman command.
+3. Install the Mingw-w64 toolchain (`pacman -S --needed base-devel mingw-w64-x86_64-toolchain`). 
+Run the pacman command in a MSYS2 MINGW64 terminal (you'll find it in the Start menu). 
+Accept the default to install all the members in the toolchain group.
+4. Add the path to your Mingw-w64 bin folder to the Windows `PATH` environment variable by using the following steps:
     1. In the Windows search bar, type 'settings' to open your Windows Settings.
-    2. Search for **Edit environment variables for your account**.
-    3. Choose the `PATH` variable and then select **Edit**.
-    4. Select **New** and add the Mingw-w64 path to the system path. The exact path depends on which version of Mingw-w64 you have installed and where you installed it. If you used the settings above to install Mingw-w64, then add this to the path: `C:\Program Files\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin`.
-    5. Select **OK** to save the updated `PATH`. You will need to reopen any console windows for the new `PATH` location to be available
-
+    2. Search for Edit environment variables for your account.
+    3. Choose the Path variable in your User variables and then select Edit.
+    4. Select New and add the Mingw-w64 destination folder path to the system path.
+    The exact path depends on which version of Mingw-w64 you have installed and where you installed it. 
+    If you used the settings above to install Mingw-w64, then add this to the path: `C:\msys64\mingw64\bin`.
+    5. Select OK to save the updated `PATH`. You will need to reopen any console windows for the new PATH location to be available
 </details>
    
 
-#### **... relocation truncated to fit: R_X86_64_32S ...**
+#### Troubleshooting **... relocation truncated to fit: R_X86_64_32S ...**
 In case you use MSYS2 to install their MinGW packages, please keep in mind the following.  
 The compiler links an executable using a command similar to
 
