@@ -26,7 +26,7 @@ This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of 
     + [Precendence](#precendence)
   * [Work in progress](#work-in-progress)
   * [Build](#build)
-    + [Install .NET Core 3.1 SDK](#install-net-core-31-sdk)
+    + [Install .NET 6 SDK](#install-net-6-sdk)
     + [Install GNU Binutils](#install-gnu-binutils)
     + [Build the compiler](#build-the-compiler)
   * [Compiler usage](#compiler-usage)
@@ -281,7 +281,7 @@ sudo apt-get install -y dotnet-sdk-6.0
 
 ### Check installation
 
-On both Windows and Linux, to check your installation, do the following command. If everything is OK, the output will contain one or many 3.1.xyz versions.
+On both Windows and Linux, to check your installation, do the following command. If everything is OK, the output will contain one or many 6.0.xyz versions.
 
 ```sh
 dotnet --list-sdks
