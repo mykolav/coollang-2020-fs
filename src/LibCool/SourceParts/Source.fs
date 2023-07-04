@@ -48,11 +48,11 @@ type Source(partSeq: seq<SourcePart>) =
         let mutable i = 0
         while uint32 i < _size do
            // Did we find a line's end?
-           if _content.[i] = '\r' || _content.[i] = '\n'
+           if _content[i] = '\r' || _content[i] = '\n'
            then do
                // If we found "\r\n" or "\n\r",
                // make sure we consider both chars as a single line-end combination
-               if (uint32 i + 1u < _size) && (_content.[i + 1] = '\r' || _content.[i + 1] = '\n')
+               if (uint32 i + 1u < _size) && (_content[i + 1] = '\r' || _content[i + 1] = '\n')
                then do
                    i <- i + 1
                
@@ -105,7 +105,7 @@ type Source(partSeq: seq<SourcePart>) =
         let line = index_of offset _line_offsets
         // We add 1 to the line and col, as lines and columns numbering starts from 1:1
         // (and not 0:0)
-        struct {| Line = uint32 line + 1u; Col = offset - _line_offsets.[line] + 1u |}
+        struct {| Line = uint32 line + 1u; Col = offset - _line_offsets[line] + 1u |}
         
     
     member _.Size with get(): uint32 = _size
@@ -113,7 +113,7 @@ type Source(partSeq: seq<SourcePart>) =
     
     member _.Item with get(offset: uint32): char =
         ensure_in_range offset
-        _content.[int offset]
+        _content[int offset]
         
     
     member _.GetSlice(start: uint32 option, finish: uint32 option): string =
@@ -143,4 +143,4 @@ type Source(partSeq: seq<SourcePart>) =
             
         let part = part_index_of offset
         let lc = line_col_of offset
-        { FileName = _file_names.[part]; Line = lc.Line; Col = lc.Col }
+        { FileName = _file_names[part]; Line = lc.Line; Col = lc.Col }

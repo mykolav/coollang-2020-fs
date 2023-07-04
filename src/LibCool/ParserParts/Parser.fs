@@ -14,7 +14,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
 
     
     let mutable _offset = 0
-    let mutable _token = _tokens.[_offset]
+    let mutable _token = _tokens[_offset]
     let mutable _prev_token_span_last = 0u
 
         
@@ -25,7 +25,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         
         _prev_token_span_last <- _token.Span.Last
         _offset <- _offset + 1
-        _token <- _tokens.[_offset]
+        _token <- _tokens[_offset]
             
             
     let eat (kind: TokenKind)
@@ -551,8 +551,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
 
                 let expr_match_span = Span.Of(span_start, case_nodes.Span.Last)
                 let expr_match_syntax = ExprSyntax.Match (expr=lhs,
-                                                          cases_hd=case_nodes.Syntax.[0],
-                                                          cases_tl=case_nodes.Syntax.[1..])
+                                                          cases_hd=case_nodes.Syntax[0],
+                                                          cases_tl=case_nodes.Syntax[1..])
                 
                 lhs <- AstNode.Of(expr_match_syntax, expr_match_span)
             else
@@ -859,7 +859,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             
         let stmts = stmt_nodes |> Seq.take (stmt_nodes.Length - 1) |> Array.ofSeq
         
-        let last_stmt = stmt_nodes.[stmt_nodes.Length - 1]
+        let last_stmt = stmt_nodes[stmt_nodes.Length - 1]
         match last_stmt.Syntax with
         | StmtSyntax.Var _ ->
             _diags.Error("Blocks must end with an expression", last_stmt.Span)

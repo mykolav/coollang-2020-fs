@@ -11,7 +11,7 @@ type Snippet = Snippet of content: string
         let (Snippet content) = this
         "\"" +
         (if content.Length > 50 
-        then content.[0..49].Replace("\r", "").Replace("\n", " ") + "..."
+        then content[0..49].Replace("\r", "").Replace("\n", " ") + "..."
         else content) +
         "\""
 
@@ -19,5 +19,3 @@ type Snippet = Snippet of content: string
     override this.ToString() =
         let (Snippet content) = this
         content
-
-

@@ -41,7 +41,7 @@ type private InheritanceChain() =
         
         
     member this.Subchain(start: ClassSyntax) =
-        let start_distance = _ancestry_map.[start.NAME.Syntax].Distance
+        let start_distance = _ancestry_map[start.NAME.Syntax].Distance
         
         let subchain =
             _ancestry_map.Values
@@ -72,7 +72,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
         // Make sure it's not a reference to a system class that is not allowed in user code.
         if _class_sym_map.ContainsKey(class_name) &&
-           (let class_sym = _class_sym_map.[class_name]
+           (let class_sym = _class_sym_map[class_name]
             class_sym.IsSpecial && not class_sym.IsError)
         then
             _diags.Error(
@@ -84,7 +84,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
         if _class_node_map.ContainsKey(class_name)
         then
-            ValueSome (_class_node_map.[class_name])
+            ValueSome (_class_node_map[class_name])
         else
 
         if not (_class_sym_map.ContainsKey(class_name))
@@ -119,7 +119,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             
             if attr_syms.ContainsKey(attr_syntax.ID.Syntax)
             then
-                let prev_attr_sym = attr_syms.[attr_syntax.ID.Syntax]
+                let prev_attr_sym = attr_syms[attr_syntax.ID.Syntax]
                 let message =
                     $"The class '{class_syntax.NAME.Syntax}' " +
                     $"already contains an attribute '{attr_syntax.ID.Syntax}' " +
@@ -162,7 +162,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             let formal_syntax = formal_node.Syntax
             if formal_node_map.ContainsKey(formal_syntax.ID.Syntax)
             then
-                let prev_formal_node = formal_node_map.[formal_syntax.ID.Syntax]
+                let prev_formal_node = formal_node_map[formal_syntax.ID.Syntax]
                 _diags.Error(get_message formal_node prev_formal_node, formal_node.Span)
             else
                 
@@ -209,7 +209,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             
             if not method_syntax.Override && method_syms.ContainsKey(method_syntax.ID.Syntax)
             then
-                let prev_method_sym = method_syms.[method_syntax.ID.Syntax]
+                let prev_method_sym = method_syms[method_syntax.ID.Syntax]
                 let sb_message =
                     StringBuilder().AppendFormat(
                                         "The class '{0}' already contains a method '{1}' [declared in '{2}' at {3}]",
@@ -235,11 +235,11 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             resolve_to_class_node method_syntax.RETURN |> ignore
             
             let index = if method_syms.ContainsKey(method_syntax.ID.Syntax)
-                        then method_syms.[method_syntax.ID.Syntax].Index
+                        then method_syms[method_syntax.ID.Syntax].Index
                         else method_syms.Count
             let mi = mk_method_sym class_syntax method_node index
             
-            method_syms.[mi.Name] <- mi
+            method_syms[mi.Name] <- mi
 
         class_syntax.Features
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsMethod)
@@ -302,7 +302,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         let cycle = inheritance_chain.Subchain(class_syntax)
         cycle |> Seq.iter (fun it -> sb_message.AppendFormat("{0} -> ", it.NAME.Syntax) |> ignore)
 
-        sb_message.AppendFormat("{0}'", cycle.[0].NAME.Syntax) |> ignore
+        sb_message.AppendFormat("{0}'", cycle[0].NAME.Syntax) |> ignore
 
         _diags.Error(sb_message.ToString(), class_syntax.ExtendsSyntax.SUPER.Span)
         Error
@@ -317,7 +317,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         // If so, don't try to collect again.
         if _class_sym_map.ContainsKey(class_name)
         then
-            let class_sym = _class_sym_map.[class_name_node.Syntax]
+            let class_sym = _class_sym_map[class_name_node.Syntax]
             if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
             then
                 _diags.Error(
@@ -385,7 +385,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             do_collect_class_sym (InheritanceChain()) class_name_node |> ignore
         else
 
-        let class_sym = _class_sym_map.[class_name_node.Syntax]
+        let class_sym = _class_sym_map[class_name_node.Syntax]
         if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
         then
             _diags.Error(

@@ -515,7 +515,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let pattern_asm_infos = Dictionary<TYPENAME, PatternAsmInfo>()
         for pattern in patterns do
-            let pattern_ty = _context.ClassSymMap.[pattern.Syntax]    
+            let pattern_ty = _context.ClassSymMap[pattern.Syntax]
             pattern_asm_infos.Add(pattern.Syntax,
                                   { PatternAsmInfo.Label = _context.LabelGen.Generate()
                                     Tag = pattern_ty.Tag })
@@ -536,14 +536,14 @@ type private ExprTranslator(_context: TranslationContext,
 
         let mutable pattern_error = false
         for i in 0 .. (patterns.Length - 1) do
-            let pattern = patterns.[i]
+            let pattern = patterns[i]
             if pattern.Syntax <> BasicClassNames.Null &&
                (check_typename pattern) = Error
             then
                 pattern_error <- true
             else
             
-            let pattern_ty = _context.ClassSymMap.[pattern.Syntax]    
+            let pattern_ty = _context.ClassSymMap[pattern.Syntax]
             if not (_context.TypeCmp.Conforms(pattern_ty, expr_frag.Value.Type) ||
                     _context.TypeCmp.Conforms(expr_frag.Value.Type, pattern_ty))
             then
@@ -557,10 +557,10 @@ type private ExprTranslator(_context: TranslationContext,
             // if `i` = 0, we'll have `for j in 0 .. -1 do`
             // that will not perform a single iteration.
             for j in 0 .. (i - 1) do
-                let prev_pattern = patterns.[j]
+                let prev_pattern = patterns[j]
                 if _context.ClassSymMap.ContainsKey(prev_pattern.Syntax)
                 then
-                    let prev_pattern_ty = _context.ClassSymMap.[prev_pattern.Syntax]
+                    let prev_pattern_ty = _context.ClassSymMap[prev_pattern.Syntax]
                     // Null conforms to Any and other non-primitive types,
                     // but we still allowed `case null => ...` to be the last branch.
                     if not (pattern_ty.Is(BasicClasses.Null)) &&
@@ -594,7 +594,7 @@ type private ExprTranslator(_context: TranslationContext,
                 let block_frag = this.TranslateBlock(case.Syntax.Block.Syntax.AsBlockSyntax)
                 if block_frag.IsOk
                 then
-                    let pattern_asm_info = pattern_asm_infos.[pattern_ty]
+                    let pattern_asm_info = pattern_asm_infos[pattern_ty]
                     asm.MatchCase(case.Span,
                                   pattern_asm_info.Label,
                                   pattern_ty,
@@ -731,7 +731,7 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
             
-        let method_sym = receiver_frag.Type.Methods.[method_id.Syntax]
+        let method_sym = receiver_frag.Type.Methods[method_id.Syntax]
         let method_name = $"'{receiver_frag.Type.Name}.{method_sym.Name}'"
         
         let actuals_asm = translate_actuals method_name
@@ -761,7 +761,7 @@ type private ExprTranslator(_context: TranslationContext,
         _context.RegSet.Free(method_reg)
 
         Ok { AsmFragment.Asm = asm.ToString()
-             Type = _context.ClassSymMap.[method_sym.ReturnType]
+             Type = _context.ClassSymMap[method_sym.ReturnType]
              Reg = result_reg }
         
         
@@ -769,7 +769,7 @@ type private ExprTranslator(_context: TranslationContext,
                                  (method_id: AstNode<ID>)
                                  (actuals: AstNode<ExprSyntax>[])
                                  : Res<AsmFragment> =
-        let super_sym = _context.ClassSymMap.[_class_syntax.ExtendsSyntax.SUPER.Syntax] 
+        let super_sym = _context.ClassSymMap[_class_syntax.ExtendsSyntax.SUPER.Syntax]
         if not (method_id.Syntax = ID ".ctor" || super_sym.Methods.ContainsKey(method_id.Syntax))
         then
             _context.Diags.Error(
@@ -786,7 +786,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         let method_sym = if method_id.Syntax = ID ".ctor"
                          then super_sym.Ctor
-                         else super_sym.Methods.[method_id.Syntax]
+                         else super_sym.Methods[method_id.Syntax]
         let method_name = $"'{super_sym.Name}.{method_sym.Name}'"
 
         let actuals_asm = translate_actuals method_name
@@ -812,7 +812,7 @@ type private ExprTranslator(_context: TranslationContext,
                                   actuals.Length)
 
         Ok { AsmFragment.Asm = asm.ToString()
-             Type = _context.ClassSymMap.[method_sym.ReturnType]
+             Type = _context.ClassSymMap[method_sym.ReturnType]
              Reg = result_reg }
         
         
@@ -825,7 +825,7 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
             
-        let ty = _context.ClassSymMap.[type_name.Syntax]
+        let ty = _context.ClassSymMap[type_name.Syntax]
         
         if ty.Is(BasicClasses.Any) || ty.Is(BasicClasses.Int) ||
            ty.Is(BasicClasses.Unit) || ty.Is(BasicClasses.Boolean) ||
@@ -886,7 +886,7 @@ type private ExprTranslator(_context: TranslationContext,
             
         let actual_frags = List<Res<AsmFragment>>()
         for actual_index = 0 to (actual_nodes.Length - 1) do
-            let actual_frag = translate_expr actual_nodes.[actual_index]
+            let actual_frag = translate_expr actual_nodes[actual_index]
             if actual_frag.IsOk
             then
                 asm.Actual(actual_index, actual_frag.Value)                  
@@ -914,16 +914,16 @@ type private ExprTranslator(_context: TranslationContext,
         let mutable formal_actual_mismatch = false
         
         for i = 0 to method_sym.Formals.Length - 1 do
-            let formal = method_sym.Formals.[i]
-            let formal_ty = _context.ClassSymMap.[formal.Type]
-            let actual = actual_frags.[i].Value
+            let formal = method_sym.Formals[i]
+            let formal_ty = _context.ClassSymMap[formal.Type]
+            let actual = actual_frags[i].Value
             if not (_context.TypeCmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
             then
                 formal_actual_mismatch <- true
                 _context.Diags.Error(
                     $"The actual's type '{actual.Type.Name}' does not conform to " +
                     $"the %s{formal_name}'s type '{formal_ty.Name}'",
-                    actual_nodes.[i].Span)
+                    actual_nodes[i].Span)
 
         if formal_actual_mismatch
         then
@@ -942,7 +942,7 @@ type private ExprTranslator(_context: TranslationContext,
                 id_node.Span)
             Error
         | ValueSome sym ->
-            let ty = _context.ClassSymMap.[sym.Type]
+            let ty = _context.ClassSymMap[sym.Type]
             
             let addr_frag = this.AddrOf(sym)
             let result_reg = _context.RegSet.Allocate("translate_id.result_reg")
@@ -1006,7 +1006,7 @@ type private ExprTranslator(_context: TranslationContext,
         
     and translate_this this_node =
         let sym = _sym_table.Resolve(ID "this")
-        let ty = _context.ClassSymMap.[sym.Type]
+        let ty = _context.ClassSymMap[sym.Type]
 
         let addr_frag = this.AddrOf(sym)
         let result_reg = _context.RegSet.Allocate("translate_this.result_reg")
@@ -1075,7 +1075,7 @@ type private ExprTranslator(_context: TranslationContext,
         // Make sure it's not a reference to a system class that is not allowed in user code.
         if _context.ClassSymMap.ContainsKey(ty_node.Syntax)
         then
-            let class_sym = _context.ClassSymMap.[ty_node.Syntax]
+            let class_sym = _context.ClassSymMap[ty_node.Syntax]
             if class_sym.IsSpecial
             then
                 _context.Diags.Error(
@@ -1227,7 +1227,7 @@ type private ExprTranslator(_context: TranslationContext,
             
             { Addr = addr
               Asm = ValueNone
-              Type = _context.ClassSymMap.[sym.Type]
+              Type = _context.ClassSymMap[sym.Type]
               Reg = Reg.Null }
                 
         | SymbolKind.Var ->
@@ -1237,7 +1237,7 @@ type private ExprTranslator(_context: TranslationContext,
                                                        (sym.Index + 1) *
                                                        FrameLayoutFacts.ElemSize)
               Asm = ValueNone
-              Type = _context.ClassSymMap.[sym.Type]
+              Type = _context.ClassSymMap[sym.Type]
               Reg = Reg.Null }
             
         | SymbolKind.Attr ->
@@ -1246,7 +1246,7 @@ type private ExprTranslator(_context: TranslationContext,
                          .Addr("{0}({1})", ObjLayoutFacts.Attrs + (sym.Index * ObjLayoutFacts.ElemSize),
                                            this_reg)
               Asm = ValueSome (this.EmitAsm().Single("movq    {0}(%rbp), {1}", FrameLayoutFacts.This, this_reg))
-              Type = _context.ClassSymMap.[sym.Type]
+              Type = _context.ClassSymMap[sym.Type]
               Reg = this_reg }
                
                

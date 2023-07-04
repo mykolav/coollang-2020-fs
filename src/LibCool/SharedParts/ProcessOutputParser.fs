@@ -17,10 +17,10 @@ module ProcessOutputParser =
         let mutable at_line_end = false
         
         while i < output.Length do
-            let ch = output.[i]
+            let ch = output[i]
             i <- i + 1
             
-            if ch = '\r' && (i < output.Length && output.[i] = '\n')
+            if ch = '\r' && (i < output.Length && output[i] = '\n')
             then
                 i <- i + 1
                 at_line_end <- true
@@ -45,5 +45,3 @@ module ProcessOutputParser =
                 sb_line.Append(ch).Nop()
                 
         lines :> seq<string>
-
-

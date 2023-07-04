@@ -62,10 +62,10 @@ type Scope() =
     member this.Contains(name: ID): bool = _syms.ContainsKey(name)
     
     
-    member this.Resolve(name: ID): Symbol = _syms.[name]
+    member this.Resolve(name: ID): Symbol = _syms[name]
     member this.TryResolve(name: ID): Symbol voption =
         if _syms.ContainsKey(name)
-        then ValueSome (_syms.[name])
+        then ValueSome (_syms[name])
         else ValueNone
 
 
@@ -118,12 +118,12 @@ type SymbolTable(_class_sym: ClassSymbol) =
     
     
     member this.Frame
-        with get() = _method_frame.[_method_frame.Count - 1]
-        and private set count = _method_frame.[_method_frame.Count - 1] <- count
+        with get() = _method_frame[_method_frame.Count - 1]
+        and private set count = _method_frame[_method_frame.Count - 1] <- count
 
 
     member private this.CurrentScopeLevel = _scopes.Count - 1
-    member this.CurrentScope = _scopes.[this.CurrentScopeLevel]
+    member this.CurrentScope = _scopes[this.CurrentScopeLevel]
     
     
     member this.EnterMethod(): unit =
@@ -184,7 +184,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
                 ValueNone
             else
                 
-            let scope = _scopes.[scope_level]
+            let scope = _scopes[scope_level]
             let sym_opt = scope.TryResolve(name)
             if sym_opt.IsSome
             then
@@ -202,7 +202,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
             
         if _class_sym.Attrs.ContainsKey(name)
         then
-            ValueSome (Symbol.Of(_class_sym.Attrs.[name]))
+            ValueSome (Symbol.Of(_class_sym.Attrs[name]))
         else
             
         ValueNone

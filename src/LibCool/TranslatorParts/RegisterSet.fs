@@ -44,7 +44,7 @@ type RegisterSet() =
         let index_opt = _regs |> Seq.tryFindIndex (fun it -> it.IsFree)
         match index_opt with
         | Some index ->
-            let item = _regs.[index]
+            let item = _regs[index]
             item.IsFree <- false
             item.Owner <- owner
             Reg index
@@ -55,7 +55,7 @@ type RegisterSet() =
         if reg <> Reg.Null
         then
             let (Reg index) = reg
-            let item = _regs.[index]
+            let item = _regs[index]
             if item.IsFree
             then
                 invalidOp $"The register %i{index} '%s{item.Name}' has not been allocated"
@@ -79,4 +79,4 @@ type RegisterSet() =
         else
             
         let (Reg index) = reg
-        _regs.[index].Name
+        _regs[index].Name

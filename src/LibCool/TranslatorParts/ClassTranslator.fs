@@ -14,7 +14,7 @@ type private ClassTranslator(_context: TranslationContext,
                              _class_syntax: ClassSyntax) as this =
     
     
-    let _sym_table = SymbolTable(_context.ClassSymMap.[_class_syntax.NAME.Syntax])
+    let _sym_table = SymbolTable(_context.ClassSymMap[_class_syntax.NAME.Syntax])
     let _expr_translator = ExprTranslator(_context, _class_syntax, _sym_table)
 
     
@@ -173,8 +173,8 @@ type private ClassTranslator(_context: TranslationContext,
 
         if method_syntax.Override
         then
-            let super_sym = _context.ClassSymMap.[_class_syntax.ExtendsSyntax.SUPER.Syntax]
-            let overridden_method_sym = super_sym.Methods.[method_syntax.ID.Syntax]
+            let super_sym = _context.ClassSymMap[_class_syntax.ExtendsSyntax.SUPER.Syntax]
+            let overridden_method_sym = super_sym.Methods[method_syntax.ID.Syntax]
             
             if overridden_method_sym.Formals.Length <> method_syntax.Formals.Length
             then
@@ -187,7 +187,7 @@ type private ClassTranslator(_context: TranslationContext,
                 override_ok <- false
                 
             overridden_method_sym.Formals |> Array.iteri (fun i overridden_formal_sym ->
-                let formal = method_syntax.Formals.[i].Syntax
+                let formal = method_syntax.Formals[i].Syntax
                 if overridden_formal_sym.Type <> formal.TYPE.Syntax
                 then
                     _context.Diags.Error(
@@ -196,8 +196,8 @@ type private ClassTranslator(_context: TranslationContext,
                         formal.TYPE.Span)
                     override_ok <- false)
 
-            let overridden_return_ty = _context.ClassSymMap.[overridden_method_sym.ReturnType]
-            let return_ty = _context.ClassSymMap.[method_syntax.RETURN.Syntax]
+            let overridden_return_ty = _context.ClassSymMap[overridden_method_sym.ReturnType]
+            let return_ty = _context.ClassSymMap[method_syntax.RETURN.Syntax]
             if not (_context.TypeCmp.Conforms(ancestor=overridden_return_ty, descendant=return_ty))
             then
                 _context.Diags.Error(
@@ -229,7 +229,7 @@ type private ClassTranslator(_context: TranslationContext,
         else
             
         // Make sure, the body's type conforms to the return type.
-        let return_ty = _context.ClassSymMap.[method_syntax.RETURN.Syntax]
+        let return_ty = _context.ClassSymMap[method_syntax.RETURN.Syntax]
         if not (_context.TypeCmp.Conforms(ancestor=return_ty, descendant=body_frag.Value.Type))
         then
             _context.Diags.Error(
@@ -291,7 +291,7 @@ type private ClassTranslator(_context: TranslationContext,
         let ctor_name = $"{_class_syntax.NAME.Syntax}..ctor"
         let ctor_span = if _class_syntax.VarFormals.Length > 0
                         then Span.Of(_class_syntax.NAME.Span.First,
-                                     _class_syntax.VarFormals.[_class_syntax.VarFormals.Length - 1].Span.Last)
+                                     _class_syntax.VarFormals[_class_syntax.VarFormals.Length - 1].Span.Last)
                         else _class_syntax.NAME.Span
             
         let method_frag = translate_method ctor_name ctor_span translate_ctor_body

@@ -64,18 +64,18 @@ type Driver(?_writer: IWriteLine) =
         let mutable i = 0
         
         while not have_error && i < arg_array.Length do
-            let arg = arg_array.[i]
+            let arg = arg_array[i]
             if arg = "-o"
             then
                 o_seen <- o_seen + 1
                 
                 if i + 1 >= arg_array.Length ||
-                   arg_array.[i + 1].StartsWith('-')
+                   arg_array[i + 1].StartsWith('-')
                 then
                     have_error <- true
                     message <- "'-o' must be followed by an output file name"
                 else
-                    exe_file <- arg_array.[i + 1]
+                    exe_file <- arg_array[i + 1]
                     i <- i + 1
             else if arg = "-S"
             then
@@ -83,12 +83,12 @@ type Driver(?_writer: IWriteLine) =
                 
                 if i + 1 < arg_array.Length
                 then
-                    if arg_array.[i + 1].StartsWith('-')
+                    if arg_array[i + 1].StartsWith('-')
                     then
                         have_error <- true
                         message <- "'-S' must be followed by an assembly file name"
                     else
-                        asm_file <- ValueSome (arg_array.[i + 1])
+                        asm_file <- ValueSome (arg_array[i + 1])
                         i <- i + 1
             else if arg.StartsWith('-')
             then

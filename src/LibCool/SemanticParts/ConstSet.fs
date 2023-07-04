@@ -26,7 +26,7 @@ type ConstSet<'T when 'T :equality>(prefix: string) =
     member this.GetOrAdd(value: 'T): string =
         if _consts.ContainsKey(value)
         then
-            _consts.[value]
+            _consts[value]
         else
         
         let label = $"%s{prefix}_%d{_consts.Count}"

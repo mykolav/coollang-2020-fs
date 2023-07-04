@@ -168,7 +168,7 @@ type AsmBuilder(_context: TranslationContext) =
              // to make `slice_end` point to the last char instead of past it.
              let slice_end = offset + length - 1u
                             
-             let code_slice = _context.Source.[slice_start .. slice_end]
+             let code_slice = _context.Source[slice_start .. slice_end]
                                              .Replace("\r", "")
                                              .Replace("\n", " \\n ")
              let code_slice = if shortified
@@ -317,7 +317,7 @@ module AsmFragments =
             .AsUnit()
         
         for i = 0 to (frame.ActualsInFrameCount - 1) do
-            this.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.ActualRegs.[i],
+            this.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.ActualRegs[i],
                                                FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize)
                 .AsUnit()
         
@@ -325,7 +325,7 @@ module AsmFragments =
             .AsUnit()
 
         for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
-            this.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.CalleeSavedRegs.[i],
+            this.In("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.CalleeSavedRegs[i],
                                                frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
                 .AsUnit()
                
@@ -338,7 +338,7 @@ module AsmFragments =
 
         for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
             this.In("movq    -{0}(%rbp), {1}", value0=frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize,
-                                               value1=SysVAmd64AbiFacts.CalleeSavedRegs.[i])
+                                               value1=SysVAmd64AbiFacts.CalleeSavedRegs[i])
                 .AsUnit()
 
         this.Comment("restore the caller's frame")
@@ -515,7 +515,7 @@ module AsmFragments =
            
         if pattern_asm_infos.ContainsKey(BasicClassNames.Null)
         then
-            let null_pattern_asm_info = pattern_asm_infos.[BasicClassNames.Null]
+            let null_pattern_asm_info = pattern_asm_infos[BasicClassNames.Null]
             this.Jmp(null_pattern_asm_info.Label, "case null => ...")
                 .AsUnit()
         else
@@ -702,7 +702,7 @@ module AsmFragments =
                                   
         for actual_index = 0 to (actual_in_reg_count - 1) do
             this.In("movq    {0}(%rsp), {1}", value0=actual_index * FrameLayoutFacts.ElemSize,
-                                              value1=SysVAmd64AbiFacts.ActualRegs.[actual_index])
+                                              value1=SysVAmd64AbiFacts.ActualRegs[actual_index])
                 .AsUnit()
         
         this.Comment("remove the register-loaded actuals from stack")

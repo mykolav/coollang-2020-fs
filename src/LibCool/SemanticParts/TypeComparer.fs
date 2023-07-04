@@ -10,7 +10,7 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
 
 
     member private this.Resolve(typename: TYPENAME): ClassSymbol =
-        _class_sym_map.[typename]
+        _class_sym_map[typename]
 
 
     member this.Conforms(ancestor: ClassSymbol, descendant: ClassSymbol): bool =
@@ -69,10 +69,10 @@ type TypeComparer(_class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>) =
         then
             invalidOp "types.Length = 0"
             
-        let mutable least_upper_bound = types.[0]
+        let mutable least_upper_bound = types[0]
         let mutable i = 1
         while i < types.Length do
-            least_upper_bound <- this.LeastUpperBound(least_upper_bound, types.[i])
+            least_upper_bound <- this.LeastUpperBound(least_upper_bound, types[i])
             i <- i + 1
             
         least_upper_bound

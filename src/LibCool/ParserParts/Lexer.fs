@@ -18,7 +18,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
     let span (): Span = Span.Of(_token_start, _offset)
             
             
-    let peek_char () : char = _source.[_offset]
+    let peek_char () : char = _source[_offset]
     
     
     let is_letter (ch: char): bool = Char.IsLetter(ch) || ch = '_'
@@ -38,7 +38,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         let mutable equal = true
 
         while equal && i < substring.Length do
-            equal <- substring.[i] = _source.[_offset + uint32 i]
+            equal <- substring[i] = _source[_offset + uint32 i]
             i <- i + 1
         
         equal
@@ -307,7 +307,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                     
                     if _escaped_char_map.ContainsKey(ch2)
                     then
-                        sb_literal.Append(_escaped_char_map.[ch2]) |> ignore
+                        sb_literal.Append(_escaped_char_map[ch2]) |> ignore
                     else
                         _diags.Error("Invalid escaped char in the string literal", Span.Of(_offset - 2u, _offset))
             else

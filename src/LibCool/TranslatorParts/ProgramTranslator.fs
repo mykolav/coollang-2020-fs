@@ -176,7 +176,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 _sb_data.AppendLine("    .quad -1 # Any").Nop()
             else
                 
-            let super_sym = _context.ClassSymMap.[class_sym.Super]
+            let super_sym = _context.ClassSymMap[class_sym.Super]
             _sb_data.Append($"    .quad %d{super_sym.Tag} ")
                     .AppendLine($"# %s{class_sym.Name.Value} extends %s{super_sym.Name.Value}")
                     .Nop())
