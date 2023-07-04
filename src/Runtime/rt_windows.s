@@ -73,7 +73,7 @@ hProcessDefaultHeap:
 #      a size in quads in %rdi
 #  OUTPUT:
 #      a pointer to the start of allocated memory block in %rax.
-#.     if allocation fails, prints a message and exits process.
+#.     if allocation fails, prints a message and exits the process.
 #  
 #  Allocates (%rdi * 8) bytes of memory on heap.
 #
@@ -115,7 +115,7 @@ hProcessDefaultHeap:
 #      buffer ptr in %rdi
 #      size in bytes in %rsi
 #
-#  Prints out the content of a string object argument.
+#  Prints out the content of the string object argument.
 #
     .global .Platform.out_string
 .Platform.out_string:

@@ -189,7 +189,7 @@ IO_proto_obj:
 #.     line   in %rsi
 #      column in %rdx
 #  
-#  Prints "{file}({line},{column}): Dispatch to null" and exits process.
+#  Prints "{file}({line},{column}): Dispatch to null" and exits the process.
 #  Does not return.
 #
     .global .Runtime.abort_dispatch
@@ -217,7 +217,7 @@ IO_proto_obj:
 #      column   %rdx
 #      object   %rcx
 #  
-#  Prints "{file}({line},{column}): No match for {class}" and exits process.
+#  Prints "{file}({line},{column}): No match for {class}" and exits the process.
 #  Does not return.
 #
     .global .Runtime.abort_match
@@ -250,7 +250,7 @@ IO_proto_obj:
 #      method_name_len  %rsi
 #      index            %rdx
 #  
-#  Prints "{method_name}: Index {index} is out of range" and exits process.
+#  Prints "{method_name}: Index {index} is out of range" and exits the process.
 #  Does not return.
 #
     .global .Runtime.abort_index
@@ -288,7 +288,7 @@ IO_proto_obj:
 #      arg_name        %rdx
 #      arg_name_len    %rcx
 #  
-#  Prints "{method_name}: Actual '{arg_name}' is null" and exits process.
+#  Prints "{method_name}: Actual '{arg_name}' is null" and exits the process.
 #  Does not return.
 #
     .global .Runtime.abort_arg_null
@@ -327,7 +327,7 @@ IO_proto_obj:
 #
 #      Doesn't take any args
 #
-#  Prints "Out of memory" and exits process.
+#  Prints "Out of memory" and exits the process.
 #  Does not return.
 #
     .global .Runtime.abort_out_of_mem
@@ -355,7 +355,7 @@ IO_proto_obj:
 
     subq    $(8 + 8 + 8 + 8), %rsp # 16 bytes boundary padding +
                                    # file +
-                                   #.line + 
+                                   # line + 
                                    # colum
 
     movq    %rdi, -16(%rbp) # file
@@ -497,7 +497,7 @@ IO_proto_obj:
 #  Two objects are equal if they
 #    - are both null (pointer equality)
 #    - are identical (pointer equality)
-#    - have same tag and are of type BOOL, STRING, INT, UNIT 
+#    - have the same tag and are of type BOOL, STRING, INT, UNIT 
 #      and contain the same data.
 #
 #  INPUT: 
@@ -700,7 +700,7 @@ Any..ctor:
 #
 #      'this' in %rdi
 #  
-#  Prints "Aborted from {class}" and exits process.
+#  Prints "Aborted from {class}" and exits the process.
 #  Does not return.
 #
     .global Any.abort
