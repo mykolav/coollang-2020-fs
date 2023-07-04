@@ -63,24 +63,23 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         _sb_data
              // Eyecatch, unique id to verify any object
             .AppendLine(        "    .quad -1")
-            .AppendLine(sprintf "%s:" int_const.Label)
+            .AppendLine($"%s{int_const.Label}:")
             // Tag
-            .AppendLine(sprintf "    .quad %d # tag" BasicClasses.Int.Tag)
+            .AppendLine($"    .quad %d{BasicClasses.Int.Tag} # tag")
             // Object size in quads
-            .AppendLine(sprintf "    .quad %d # size in quads" int_object_size_in_quads)
+            .AppendLine($"    .quad %d{int_object_size_in_quads} # size in quads")
             // Addr of the vtable
-            .AppendLine(sprintf "    .quad %s_vtable" BasicClasses.Int.Name.Value)
+            .AppendLine($"    .quad %s{BasicClasses.Int.Name.Value}_vtable")
             // Value
-            .AppendLine(sprintf "    .quad %d # value" int_const.Value)
+            .AppendLine($"    .quad %d{int_const.Value} # value")
             .Nop()
         
         if pad_size_in_bytes > 0
         then
              // Ensure 8 byte alignment
             _sb_data
-                .AppendLine(sprintf "    .zero %d # payload's size in bytes = %d, pad to an 8 byte boundary"
-                                    pad_size_in_bytes
-                                    int_object_size_in_bytes)
+                .Append($"    .zero %d{pad_size_in_bytes} ")
+                .AppendLine($"# payload's size in bytes = %d{int_object_size_in_bytes}, pad to an 8 byte boundary")
                 .Nop()
         
         
@@ -109,15 +108,15 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         _sb_data
              // Eyecatch, unique id to verify any object
             .AppendLine(        "    .quad -1")
-            .AppendLine(sprintf "%s:" str_const.Label)
+            .AppendLine($"%s{str_const.Label}:")
             // Tag
-            .AppendLine(sprintf "    .quad %d # tag" BasicClasses.String.Tag)
+            .AppendLine($"    .quad %d{BasicClasses.String.Tag} # tag")
             // Object size in quads
-            .AppendLine(sprintf "    .quad %d # size in quads" str_object_size_in_quads)
+            .AppendLine($"    .quad %d{str_object_size_in_quads} # size in quads")
             // Addr of the vtable
-            .AppendLine(sprintf "    .quad %s_vtable" BasicClasses.String.Name.Value)
+            .AppendLine($"    .quad %s{BasicClasses.String.Name.Value}_vtable")
             // Addr of an int object containing the string's len in chars
-            .AppendLine(sprintf "    .quad %s # length = %d" len_const_label ascii_bytes.Length)
+            .AppendLine($"    .quad %s{len_const_label} # length = %d{ascii_bytes.Length}")
             // A comment with the string's content in human-readable form
             .AppendLine(sprintf "    # '%s'" (str_const.Value.Replace("\r", "").Replace("\n", "\\n")))
             .Nop()
@@ -131,16 +130,15 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 
         // String terminator
         _sb_data
-            .AppendLine(sprintf "    .byte 0 # terminator")
+            .AppendLine("    .byte 0 # terminator")
             .Nop()
             
         if pad_size_in_bytes > 0
         then
             // Ensure 8 byte alignment
             _sb_data
-                .AppendLine(sprintf "    .zero %d # payload's size in bytes = %d, pad to an 8 byte boundary"
-                                    pad_size_in_bytes
-                                    str_object_size_in_bytes)
+                .Append($"    .zero %d{pad_size_in_bytes} ")
+                .AppendLine($"# payload's size in bytes = %d{str_object_size_in_bytes}, pad to an 8 byte boundary")
                 .Nop()
     
     
@@ -163,7 +161,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
         |> Seq.iter (fun class_sym ->
             let name_const_label = _context.StrConsts.GetOrAdd(class_sym.Name.Value)
-            _sb_data.AppendLine(sprintf "    .quad %s # %s" name_const_label class_sym.Name.Value).Nop())
+            _sb_data.AppendLine($"    .quad %s{name_const_label} # %s{class_sym.Name.Value}").Nop())
     
     
     let emit_class_parent_table(): unit = 
@@ -179,10 +177,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             else
                 
             let super_sym = _context.ClassSymMap.[class_sym.Super]
-            _sb_data.AppendLine(sprintf "    .quad %d # %s extends %s"
-                                        super_sym.Tag
-                                        class_sym.Name.Value
-                                        super_sym.Name.Value)
+            _sb_data.Append($"    .quad %d{super_sym.Tag} ")
+                    .AppendLine($"# %s{class_sym.Name.Value} extends %s{super_sym.Name.Value}")
                     .Nop())
     
     
@@ -192,7 +188,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         |> Seq.where (fun class_sym -> not class_sym.IsVirtual)
         |> Seq.iter (fun class_sym ->
             _sb_data
-                .AppendLine(sprintf "%s_vtable:" class_sym.Name.Value)
+                .AppendLine($"%s{class_sym.Name.Value}_vtable:")
                 .Nop()
             
             class_sym.Methods.Values
@@ -214,13 +210,13 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         _sb_data
              // Eyecatch, unique id to verify any object
             .AppendLine(        "    .quad -1")
-            .AppendLine(sprintf "%s_proto_obj:" class_sym.Name.Value)
+            .AppendLine($"%s{class_sym.Name.Value}_proto_obj:")
             // Tag
-            .AppendLine(sprintf "    .quad %d # tag" class_sym.Tag)
+            .AppendLine($"    .quad %d{class_sym.Tag} # tag")
             // Object size in quads
-            .AppendLine(sprintf "    .quad %d # size in quads" proto_obj_size_in_quads)
+            .AppendLine($"    .quad %d{proto_obj_size_in_quads} # size in quads")
             // Addr of the vtable
-            .AppendLine(sprintf "    .quad %s_vtable" class_sym.Name.Value)
+            .AppendLine($"    .quad %s{class_sym.Name.Value}_vtable")
             .Nop()
             
         class_sym.Attrs.Values
@@ -232,9 +228,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 else if attr_sym.Type = TYPENAME "String" then _context.StrConsts.GetOrAdd("")
                 else if attr_sym.Type = TYPENAME "Boolean" then "Boolean_false"
                 else "0"
-            _sb_data.AppendLine(sprintf "    .quad %s # %s"
-                                        default_value_ref
-                                        attr_sym.Name.Value).Nop())
+            _sb_data.AppendLine($"    .quad %s{default_value_ref} # %s{attr_sym.Name.Value}").Nop())
     
     
     let emit_prototype_objs(): unit =

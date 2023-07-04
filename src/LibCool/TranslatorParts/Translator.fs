@@ -24,9 +24,8 @@ type Translator private () =
             if map.ContainsKey(class_syntax.NAME.Syntax)
             then
                 let prev_class_syntax = map.[class_syntax.NAME.Syntax].Syntax
-                let message = sprintf "The program already contains a class '%O' at %O"
-                                      class_syntax.NAME.Syntax
-                                      (source.Map(prev_class_syntax.NAME.Span.First))
+                let message = $"The program already contains a class '{class_syntax.NAME.Syntax}' " +
+                              $"at {source.Map(prev_class_syntax.NAME.Span.First)}"
                                       
                 diags.Error(message, class_syntax.NAME.Span)
             else

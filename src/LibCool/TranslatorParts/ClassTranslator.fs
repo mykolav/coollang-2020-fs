@@ -38,10 +38,8 @@ type private ClassTranslator(_context: TranslationContext,
         if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=initial_frag.Value.Type))
         then
             _context.Diags.Error(
-                sprintf "The initial expression's type '%O' does not conform to the '%O' attribute's type '%O'"
-                        initial_frag.Value.Type.Name
-                        attr_sym.Name
-                        attr_sym.Type,
+                $"The initial expression's type '{initial_frag.Value.Type.Name}' " +
+                $"does not conform to the '{attr_sym.Name}' attribute's type '{attr_sym.Type}'",
                 initial_node.Span)
 
             _context.RegSet.Free(initial_frag.Value.Reg)
@@ -181,13 +179,10 @@ type private ClassTranslator(_context: TranslationContext,
             if overridden_method_sym.Formals.Length <> method_syntax.Formals.Length
             then
                 _context.Diags.Error(
-                    sprintf "The overriding '%O.%O' method's number of formals %d does not match the overridden '%O.%O' method's number of formals %d"
-                            _class_syntax.NAME.Syntax
-                            method_syntax.ID.Syntax
-                            method_syntax.Formals.Length
-                            super_sym.Name
-                            method_syntax.ID.Syntax
-                            overridden_method_sym.Formals.Length,
+                    $"The overriding '{_class_syntax.NAME.Syntax}.{method_syntax.ID.Syntax}' method's " +
+                    $"number of formals %d{method_syntax.Formals.Length} does not match " +
+                    $"the overridden '{super_sym.Name}.{method_syntax.ID.Syntax}' method's " +
+                    $"number of formals %d{overridden_method_sym.Formals.Length}",
                     method_syntax.ID.Span)
                 override_ok <- false
                 
@@ -196,9 +191,8 @@ type private ClassTranslator(_context: TranslationContext,
                 if overridden_formal_sym.Type <> formal.TYPE.Syntax
                 then
                     _context.Diags.Error(
-                        sprintf "The overriding formals's type '%O' does not match to the overridden formal's type '%O'"
-                                formal.TYPE.Syntax
-                                overridden_formal_sym.Type,
+                        $"The overriding formals's type '{formal.TYPE.Syntax}' does not match to " +
+                        $"the overridden formal's type '{overridden_formal_sym.Type}'",
                         formal.TYPE.Span)
                     override_ok <- false)
 
@@ -207,13 +201,10 @@ type private ClassTranslator(_context: TranslationContext,
             if not (_context.TypeCmp.Conforms(ancestor=overridden_return_ty, descendant=return_ty))
             then
                 _context.Diags.Error(
-                    sprintf "The overriding '%O.%O' method's return type '%O' does not conform to the overridden '%O.%O' method's return type '%O'"
-                            _class_syntax.NAME.Syntax
-                            method_syntax.ID.Syntax
-                            method_syntax.RETURN.Syntax
-                            super_sym.Name
-                            method_syntax.ID.Syntax
-                            overridden_method_sym.ReturnType,
+                    $"The overriding '{_class_syntax.NAME.Syntax}.{method_syntax.ID.Syntax}' method's " +
+                    $"return type '{method_syntax.RETURN.Syntax}' does not conform to " +
+                    $"the overridden '{super_sym.Name}.{method_syntax.ID.Syntax}' method's " +
+                    $"return type '{overridden_method_sym.ReturnType}'",
                     method_syntax.RETURN.Span)
                 override_ok <- false
 
@@ -242,9 +233,8 @@ type private ClassTranslator(_context: TranslationContext,
         if not (_context.TypeCmp.Conforms(ancestor=return_ty, descendant=body_frag.Value.Type))
         then
             _context.Diags.Error(
-                sprintf "The method body's type '%O' does not conform to the declared return type '%O'"
-                        body_frag.Value.Type.Name
-                        return_ty.Name,
+                $"The method body's type '{body_frag.Value.Type.Name}' does not conform to " +
+                $"the declared return type '{return_ty.Name}'",
                 method_syntax.Body.Span)
             _context.RegSet.Free(body_frag.Value.Reg)
             Error
@@ -298,7 +288,7 @@ type private ClassTranslator(_context: TranslationContext,
 
         let asm = this.EmitAsm()
         
-        let ctor_name = sprintf "%O..ctor" _class_syntax.NAME.Syntax
+        let ctor_name = $"{_class_syntax.NAME.Syntax}..ctor"
         let ctor_span = if _class_syntax.VarFormals.Length > 0
                         then Span.Of(_class_syntax.NAME.Span.First,
                                      _class_syntax.VarFormals.[_class_syntax.VarFormals.Length - 1].Span.Last)
@@ -314,7 +304,7 @@ type private ClassTranslator(_context: TranslationContext,
             if feature_node.Syntax.IsMethod
             then
                 let method_node = feature_node.Map(fun it -> it.AsMethodSyntax)
-                let method_name = sprintf "%O.%O" _class_syntax.NAME.Syntax method_node.Syntax.ID.Syntax
+                let method_name = $"{_class_syntax.NAME.Syntax}.{method_node.Syntax.ID.Syntax}"
                 let method_frag = translate_method method_name
                                                    method_node.Span
                                                    (fun () -> translate_method_body method_node.Syntax)

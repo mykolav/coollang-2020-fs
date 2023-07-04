@@ -76,7 +76,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             class_sym.IsSpecial && not class_sym.IsError)
         then
             _diags.Error(
-                sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
+                $"The type name '{class_name_node.Syntax}' is not allowed in user code",
                 class_name_node.Span)
             
             ValueNone
@@ -92,7 +92,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             // We could not find a syntax node or symbol corresponding to `class_name`.
             _class_sym_map.Add(class_name, SpecialClasses.Error)
             _diags.Error(
-                sprintf "The type name '%O' could not be found (is an input file missing?)" class_name,
+                $"The type name '{class_name}' could not be found (is an input file missing?)",
                 class_name_node.Span)
 
         // Else: it's a basic class, that only exists as a symbol and is not present in the ast.
@@ -121,11 +121,9 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             then
                 let prev_attr_sym = attr_syms.[attr_syntax.ID.Syntax]
                 let message =
-                    sprintf "The class '%O' already contains an attribute '%O' [declared in '%O' at %O]"
-                            class_syntax.NAME.Syntax
-                            attr_syntax.ID.Syntax
-                            prev_attr_sym.DeclaringClass
-                            (_source.Map(prev_attr_sym.SyntaxSpan.First))
+                    $"The class '{class_syntax.NAME.Syntax}' " +
+                    $"already contains an attribute '{attr_syntax.ID.Syntax}' " +
+                    $"[declared in '{prev_attr_sym.DeclaringClass}' at {_source.Map(prev_attr_sym.SyntaxSpan.First)}]"
                     
                 _diags.Error(message, attr_node.Span)
             else
@@ -183,10 +181,8 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
     let mk_method_param_syms (method_syntax: MethodSyntax) =
         mk_param_syms ((*formal_syntaxes=*)method_syntax.Formals)
                       ((*get_message=*)fun formal prev_formal ->
-                          sprintf "The method '%O' already contains a formal '%O' at %O"
-                                   method_syntax.ID.Syntax
-                                   formal.Syntax.ID.Syntax
-                                   prev_formal.Span)
+                          $"The method '{method_syntax.ID.Syntax}' " +
+                          $"already contains a formal '{formal.Syntax.ID.Syntax}' at {prev_formal.Span}")
 
 
     let mk_method_sym (class_syntax: ClassSyntax)
@@ -232,7 +228,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             if method_syntax.Override && not (method_syms.ContainsKey(method_syntax.ID.Syntax))
             then
                 _diags.Error(
-                    sprintf "Cannot override a method '%O' because it was not previously defined" method_syntax.ID.Syntax,
+                    $"Cannot override a method '{method_syntax.ID.Syntax}' because it was not previously defined",
                     method_node.Span)
             else
                 
@@ -257,10 +253,8 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                               |> Array.map (fun vf_node -> vf_node.Map(fun vf -> vf.AsFormalSyntax()))
         mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
                       ((*get_message=*)fun formal prev_formal ->
-                          sprintf "The constructor of class '%O' already contains a var formal '%O' at %O"
-                                  class_syntax.NAME.Syntax
-                                  formal.Syntax.ID.Syntax
-                                  prev_formal.Span)
+                          $"The constructor of class '{class_syntax.NAME.Syntax}' " +
+                          $"already contains a var formal '{formal.Syntax.ID.Syntax}' at {prev_formal.Span}")
 
 
     let mk_ctor_sym (class_syntax: ClassSyntax): MethodSymbol =
@@ -327,7 +321,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
             if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
             then
                 _diags.Error(
-                    sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
+                    $"The type name '{class_name_node.Syntax}' is not allowed in user code",
                     class_name_node.Span)
             
             class_sym
@@ -371,7 +365,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
            super_sym.Is(BasicClasses.Boolean) || super_sym.Is(BasicClasses.String)
         then
             _diags.Error(
-                sprintf "Extending '%O' is not allowed" super_name_node.Syntax,
+                $"Extending '{super_name_node.Syntax}' is not allowed",
                 super_name_node.Span)
             SpecialClasses.Error
         else
@@ -395,7 +389,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
         then
             _diags.Error(
-                sprintf "The type name '%O' is not allowed in user code" class_name_node.Syntax,
+                $"The type name '{class_name_node.Syntax}' is not allowed in user code",
                 class_name_node.Span)
 
 

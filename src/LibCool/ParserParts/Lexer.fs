@@ -47,7 +47,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
     let eat_chars (n: uint32) : unit =
         if _offset + n > _source.Size
         then
-            invalidOp (sprintf "_offset [%d] + [%d] is > _source.Size [%d]" _offset n _source.Size)
+            invalidOp $"_offset [%d{_offset}] + [%d{n}] is > _source.Size [%d{_source.Size}]"
         
         _offset <- _offset + n
         
@@ -447,7 +447,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             
         eat_char()
 
-        _diags.Error(sprintf "Unexpected character '%c'" ch, span())
+        _diags.Error($"Unexpected character '%c{ch}'", span())
         Some (Token.Invalid(span()))
     
     
@@ -456,7 +456,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         while next_opt.IsNone do
             if _offset > _source.Size
             then
-                invalidOp (sprintf "_offset [%d] is > _source.Size [%d]" _offset _source.Size)
+                invalidOp $"_offset [%d{_offset}] is > _source.Size [%d{_source.Size}]"
 
             eat_ws_crlf()
 

@@ -22,10 +22,8 @@ module DiagRenderer =
 
         if diagnostic_bag.ErrorsCount = 0
         then
-            writer.WriteLine(sprintf "Build succeeded: Errors: 0. Warnings: %d"
-                                     diagnostic_bag.WarningsCount)
+            writer.WriteLine $"Build succeeded: Errors: 0. Warnings: %d{diagnostic_bag.WarningsCount}"
         else
-            writer.WriteLine(sprintf "Build failed: Errors: %d. Warnings: %d"
-                                     diagnostic_bag.ErrorsCount
-                                     diagnostic_bag.WarningsCount)
-
+            writer.WriteLine ("Build failed: " +
+                              $"Errors: %d{diagnostic_bag.ErrorsCount}. " +
+                              $"Warnings: %d{diagnostic_bag.WarningsCount}")

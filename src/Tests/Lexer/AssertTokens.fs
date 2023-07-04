@@ -26,8 +26,8 @@ type AssertTokens private() =
     static let append_mismatch (expected: StringBuilder)
                                (actual: StringBuilder)
                                (mismatch: Mismatch) =
-        let expected_str = sprintf "%d: %s; " mismatch.At mismatch.Expected
-        let actual_str   = sprintf "%d: %s; " mismatch.At mismatch.Actual
+        let expected_str = $"%d{mismatch.At}: %s{mismatch.Expected}; "
+        let actual_str   = $"%d{mismatch.At}: %s{mismatch.Actual}; "
 
         expected
             .Append(expected_str)
@@ -55,8 +55,8 @@ type AssertTokens private() =
 
         let message =
             StringBuilder()
-                .AppendLine(sprintf "EXPECTED   [%i]:\t%s" expected_len (expected.ToString()))
-                .AppendLine(sprintf "ACTUAL     [%i]:\t%s" actual_len (actual.ToString()))
+                .AppendLine($"EXPECTED   [%i{expected_len}]:\t%s{expected.ToString()}")
+                .AppendLine($"ACTUAL     [%i{actual_len}]:\t%s{actual.ToString()}")
                 .AppendLine(sprintf "MISMATCHES [%i]: [%s]" (Seq.length mismatches) 
                                                             (String.Join("; ", mismatch_positions)))
                 .ToString()

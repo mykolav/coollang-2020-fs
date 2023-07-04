@@ -28,4 +28,4 @@ type Location =
       Col: uint32 }
     with
     override this.ToString(): string =
-        sprintf "%s(%d,%d)" this.FileName this.Line this.Col
+        $"%s{this.FileName}(%d{this.Line},%d{this.Col})"

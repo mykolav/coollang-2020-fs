@@ -41,7 +41,7 @@ type SourceTests() =
         // Arrange
         let parts = snippets
                     |> List.map (fun (name, content) ->
-                                    { FileName = (sprintf "%s.cool" name) 
+                                    { FileName = $"%s{name}.cool"
                                       Content  = content })
         let source = Source(parts)
 

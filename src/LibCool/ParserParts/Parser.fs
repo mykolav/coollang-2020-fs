@@ -21,7 +21,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     let eat_token (): unit =
         if _offset + 1 >= _tokens.Length
         then
-            invalidOp (sprintf "_offset [%d] + 1 is >= _tokens.Length [%d]" _offset _tokens.Length)
+            invalidOp $"_offset [%d{_offset}] + 1 is >= _tokens.Length [%d{_tokens.Length}]"
         
         _prev_token_span_last <- _token.Span.Last
         _offset <- _offset + 1
@@ -505,8 +505,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             if try_eat_when _token.IsInfixOp
             then
                 let rhs_res = required_expr ((*prec_threshold=*)Prec.Of(token_op.Kind) + 1y)
-                                            (sprintf "An expression expected. '%s' must be followed by an expression"
-                                                     token_op.InfixOpSpelling)
+                                            ("An expression expected. " +
+                                             $"'%s{token_op.InfixOpSpelling}' must be followed by an expression")
                 if rhs_res.IsError
                 then
                     have_errors <- true

@@ -97,13 +97,13 @@ type AstRenderer private () =
         | ExprSyntax.ParensExpr node_expr ->
             walk_parens_expr node_expr
         | ExprSyntax.Id value ->
-            text (sprintf "\"%s\"" (value.ToString()))
+            text $"\"%s{value.ToString()}\""
         | ExprSyntax.Int value ->
             text (value.ToString())
         | ExprSyntax.Str value ->
-            text (sprintf "\"%s\"" (value.ToString(escape_quotes=true)))
+            text $"\"%s{value.ToString(escape_quotes=true)}\""
         | ExprSyntax.Bool value ->
-            text (sprintf "%s" (value.ToString()))
+            text $"%s{value.ToString()}"
         | ExprSyntax.This ->
             text ("\"this\"")
         | ExprSyntax.Null ->
@@ -117,8 +117,8 @@ type AstRenderer private () =
         
         end_line_with "\"kind\": \"var\", "
            
-        end_line_with (sprintf "\"name\": \"%s\", " var_syntax.ID.Syntax.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " var_syntax.TYPE.Syntax.Value)
+        end_line_with $"\"name\": \"%s{var_syntax.ID.Syntax.Value}\", "
+        end_line_with $"\"type\": \"%s{var_syntax.TYPE.Syntax.Value}\", "
         
         text "\"value\": "; walk_expr var_syntax.Expr.Syntax; end_line()
         
@@ -185,7 +185,7 @@ type AstRenderer private () =
 
         end_line_with "\"kind\": \"=\", "
            
-        end_line_with (sprintf "\"left\": \"%s\", " lvalue.Syntax.Value)
+        end_line_with $"\"left\": \"%s{lvalue.Syntax.Value}\", "
         
         text "\"right\": "
         walk_expr rvalue.Syntax; end_line ()
@@ -227,7 +227,7 @@ type AstRenderer private () =
     and stringify_match_case_pattern (pattern: PatternSyntax): string =
         match pattern with
         | PatternSyntax.IdType(node_id, node_type_name) ->
-            sprintf "%s: %s" node_id.Syntax.Value node_type_name.Syntax.Value 
+            $"%s{node_id.Syntax.Value}: %s{node_type_name.Syntax.Value}"
         | PatternSyntax.Null ->
             "null"
 
@@ -235,7 +235,7 @@ type AstRenderer private () =
     and walk_match_case (case: CaseSyntax): unit =
         begin_with "{"
 
-        end_line_with (sprintf "\"pattern\": \"%s\", " (stringify_match_case_pattern case.Pattern.Syntax))
+        end_line_with $"\"pattern\": \"%s{stringify_match_case_pattern case.Pattern.Syntax}\", "
         
         text "\"block\": "
         walk_caseblock case.Block.Syntax; end_line()
@@ -296,7 +296,7 @@ type AstRenderer private () =
         text "\"receiver\": "
         walk_expr receiver.Syntax; end_line_with ", "
         
-        end_line_with (sprintf "\"method\": \"%s\", " method_id.Syntax.Value)
+        end_line_with $"\"method\": \"%s{method_id.Syntax.Value}\", "
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -308,7 +308,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with "\"kind\": \"implicit_this_dispatch\", "
-        end_line_with (sprintf "\"method\": \"%s\", " method_id.Syntax.Value)
+        end_line_with $"\"method\": \"%s{method_id.Syntax.Value}\", "
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -320,7 +320,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with "\"kind\": \"super_dispatch\", "
-        end_line_with (sprintf "\"method\": \"%s\", " method_id.Syntax.Value)
+        end_line_with $"\"method\": \"%s{method_id.Syntax.Value}\", "
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -333,7 +333,7 @@ type AstRenderer private () =
         begin_with "{"
 
         end_line_with "\"kind\": \"new\", "
-        end_line_with (sprintf "\"type\": \"%s\", " type_name.Syntax.Value)
+        end_line_with $"\"type\": \"%s{type_name.Syntax.Value}\", "
 
         text "\"actuals\": "
         walk_actuals actuals; end_line()
@@ -357,7 +357,7 @@ type AstRenderer private () =
     and walk_comparison (left: AstNode<ExprSyntax>, op: string, right: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
-        end_line_with (sprintf "\"kind\": \"%s\", " op)
+        end_line_with $"\"kind\": \"%s{op}\", "
            
         end_line_with "\"left\": "
         walk_expr left.Syntax; end_line_with ", "
@@ -384,7 +384,7 @@ type AstRenderer private () =
     and walk_arith (left: AstNode<ExprSyntax>, op: string, right: AstNode<ExprSyntax>): unit =
         begin_with "{"
 
-        end_line_with (sprintf "\"kind\": \"%s\", " op)
+        end_line_with $"\"kind\": \"%s{op}\", "
            
         text "\"left\": "
         walk_expr left.Syntax; end_line_with ", "
@@ -414,8 +414,8 @@ type AstRenderer private () =
             
         begin_with "{"
 
-        end_line_with (sprintf "\"name\": \"%s\", " var_formal.ID.Syntax.Value)
-        end_line_with (sprintf "\"type\": \"%s\"" var_formal.TYPE.Syntax.Value)
+        end_line_with $"\"name\": \"%s{var_formal.ID.Syntax.Value}\", "
+        end_line_with $"\"type\": \"%s{var_formal.TYPE.Syntax.Value}\""
 
         end_with "}"
 
@@ -437,8 +437,8 @@ type AstRenderer private () =
             
         begin_with "{"
 
-        end_line_with (sprintf "\"name\": \"%s\", " formal.ID.Syntax.Value)
-        end_line_with (sprintf "\"type\": \"%s\"" formal.TYPE.Syntax.Value)
+        end_line_with $"\"name\": \"%s{formal.ID.Syntax.Value}\", "
+        end_line_with $"\"type\": \"%s{formal.TYPE.Syntax.Value}\""
         
         end_with "}"
 
@@ -457,9 +457,9 @@ type AstRenderer private () =
         begin_with "{"
         
         end_line_with "\"kind\": \"method\", "
-        end_line_with (sprintf "\"name\": \"%s\", " method_syntax.ID.Syntax.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " method_syntax.RETURN.Syntax.Value)
-        end_line_with (sprintf "\"overriden\": %b, " method_syntax.Override)
+        end_line_with $"\"name\": \"%s{method_syntax.ID.Syntax.Value}\", "
+        end_line_with $"\"type\": \"%s{method_syntax.RETURN.Syntax.Value}\", "
+        end_line_with $"\"overriden\": %b{method_syntax.Override}, "
         
         end_line_with "\"formals\": "
         walk_formals method_syntax.Formals; end_line_with ", "
@@ -479,8 +479,8 @@ type AstRenderer private () =
         begin_with "{"
            
         end_line_with "\"kind\": \"attribute\", " 
-        end_line_with (sprintf "\"name\": \"%s\", " attr_syntax.ID.Syntax.Value)
-        end_line_with (sprintf "\"type\": \"%s\", " attr_syntax.TYPE.Syntax.Value)
+        end_line_with $"\"name\": \"%s{attr_syntax.ID.Syntax.Value}\", "
+        end_line_with $"\"type\": \"%s{attr_syntax.TYPE.Syntax.Value}\", "
 
         text "\"value\": "
         match attr_syntax.Initial.Syntax with
@@ -497,7 +497,7 @@ type AstRenderer private () =
         match inheritance_syntax with
         | ValueSome (InheritanceSyntax.Extends extends_syntax) ->
             begin_with "{"
-            end_line_with (sprintf "\"type\": \"%s\", " extends_syntax.SUPER.Syntax.Value)
+            end_line_with $"\"type\": \"%s{extends_syntax.SUPER.Syntax.Value}\", "
             text "\"actuals\": "
             walk_actuals (extends_syntax.Actuals); end_line()
             end_with "}"
@@ -539,7 +539,7 @@ type AstRenderer private () =
      and walk_class (class_syntax: ClassSyntax): unit =
         begin_with "{"
         
-        end_line_with (sprintf "\"name\": \"%s\", " class_syntax.NAME.Syntax.Value)
+        end_line_with $"\"name\": \"%s{class_syntax.NAME.Syntax.Value}\", "
         
         text "\"varformals\": "
         walk_var_formals class_syntax.VarFormals; end_line_with ", "

@@ -29,7 +29,7 @@ type ConstSet<'T when 'T :equality>(prefix: string) =
             _consts.[value]
         else
         
-        let label = sprintf "%s_%d" prefix _consts.Count
+        let label = $"%s{prefix}_%d{_consts.Count}"
         _consts.Add(value, label)
             
         label

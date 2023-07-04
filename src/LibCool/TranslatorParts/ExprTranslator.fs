@@ -74,7 +74,7 @@ type private ExprTranslator(_context: TranslationContext,
         if id_sym.IsNone
         then
             _context.Diags.Error(
-                sprintf "The name '%O' does not exist in the current context" id.Syntax,
+                $"The name '{id.Syntax}' does not exist in the current context",
                 id.Span)
             
             _context.RegSet.Free(expr_frag.Value.Reg)
@@ -86,10 +86,8 @@ type private ExprTranslator(_context: TranslationContext,
         if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Value.Type))
         then
             _context.Diags.Error(
-                sprintf "The expression's type '%O' does not conform to the type '%O' of '%O'"
-                        expr_frag.Value.Type.Name
-                        addr_frag.Type.Name
-                        id.Syntax,
+                $"The expression's type '{expr_frag.Value.Type.Name}' does not conform to " +
+                $"the type '{addr_frag.Type.Name}' of '{id.Syntax}'",
                 rvalue_expr.Span)
             
             _context.RegSet.Free(addr_frag.Reg)
@@ -300,9 +298,7 @@ type private ExprTranslator(_context: TranslationContext,
         if not (cond_frag.Value.Type.Is(BasicClasses.Boolean))
         then
             _context.Diags.Error(
-                sprintf "'%s' expects a 'Boolean' condition but found '%O'"
-                        expr_info.Name
-                        cond_frag.Value.Type.Name,
+                $"'%s{expr_info.Name}' expects a 'Boolean' condition but found '{cond_frag.Value.Type.Name}'",
                 cond_node.Span)
 
             Error
@@ -464,9 +460,8 @@ type private ExprTranslator(_context: TranslationContext,
                      right_frag.Type.Is(BasicClasses.String)))
             then
                 _context.Diags.Error(
-                    sprintf "'+' cannot be applied to operands of type '%O' and '%O'; only to 'Int' and 'Int' or 'String' and 'String'"
-                            left_frag.Type.Name
-                            right_frag.Type.Name,
+                    $"'+' cannot be applied to operands of type '{left_frag.Type.Name}' and '{right_frag.Type.Name}'; " +
+                    "only to 'Int' and 'Int' or 'String' and 'String'",
                     left.Span)
                 false
             else
@@ -553,9 +548,8 @@ type private ExprTranslator(_context: TranslationContext,
                     _context.TypeCmp.Conforms(expr_frag.Value.Type, pattern_ty))
             then
                 _context.Diags.Error(
-                    sprintf "'%O' and '%O' are not parts of the same inheritance chain. As a result this case is unreachable"
-                            expr_frag.Value.Type.Name
-                            pattern_ty.Name,
+                    $"'{expr_frag.Value.Type.Name}' and '{pattern_ty.Name}' are not parts of " +
+                    "the same inheritance chain. As a result this case is unreachable",
                     pattern.Span)
                 pattern_error <- true
             else
@@ -573,8 +567,7 @@ type private ExprTranslator(_context: TranslationContext,
                        _context.TypeCmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
                     then
                         _context.Diags.Error(
-                            sprintf "This case is shadowed by an earlier case at %O"
-                                    (_context.Source.Map(prev_pattern.Span.First)),
+                            $"This case is shadowed by an earlier case at {_context.Source.Map(prev_pattern.Span.First)}",
                             pattern.Span)
                         pattern_error <- true
         
@@ -644,10 +637,7 @@ type private ExprTranslator(_context: TranslationContext,
         if not (expr_frag.Value.Type.Is(expected_ty))
         then
             _context.Diags.Error(
-                sprintf "Unary '%s' expects an operand of type '%O' but found '%O'"
-                        op
-                        expected_ty.Name
-                        expr_frag.Value.Type.Name,
+                $"Unary '%s{op}' expects an operand of type '{expected_ty.Name}' but found '{expr_frag.Value.Type.Name}'",
                 expr.Span)
             
             _context.RegSet.Free(expr_frag.Value.Reg)
@@ -666,10 +656,8 @@ type private ExprTranslator(_context: TranslationContext,
                     right_frag.Type.Is(BasicClasses.Int))
             then
                 _context.Diags.Error(
-                    sprintf "'%s' cannot be applied to operands of type '%O' and '%O'; only to 'Int' and 'Int'"
-                            op
-                            left_frag.Type.Name
-                            right_frag.Type.Name,
+                    $"'%s{op}' cannot be applied to operands of type '{left_frag.Type.Name}' " +
+                    $"and '{right_frag.Type.Name}'; only to 'Int' and 'Int'",
                     left.Span)
                 false
             else
@@ -687,10 +675,7 @@ type private ExprTranslator(_context: TranslationContext,
                     _context.TypeCmp.Conforms(right_frag.Type, left_frag.Type))
             then
                 _context.Diags.Error(
-                    sprintf "'%s' cannot be applied to operands of type '%O' and '%O'"
-                            op
-                            left_frag.Type.Name
-                            right_frag.Type.Name,
+                    $"'%s{op}' cannot be applied to operands of type '{left_frag.Type.Name}' and '{right_frag.Type.Name}'",
                     left.Span)
                 false
             else
@@ -739,9 +724,7 @@ type private ExprTranslator(_context: TranslationContext,
         if not (receiver_frag.Type.Methods.ContainsKey(method_id.Syntax))
         then
             _context.Diags.Error(
-                sprintf "'%O' does not contain a definition for '%O'"
-                        receiver_frag.Type.Name
-                        method_id.Syntax,
+                $"'{receiver_frag.Type.Name}' does not contain a definition for '{method_id.Syntax}'",
                 method_id.Span)
             
             _context.RegSet.Free(receiver_frag.Reg)
@@ -749,7 +732,7 @@ type private ExprTranslator(_context: TranslationContext,
         else
             
         let method_sym = receiver_frag.Type.Methods.[method_id.Syntax]
-        let method_name = sprintf "'%O.%O'" receiver_frag.Type.Name method_sym.Name
+        let method_name = $"'{receiver_frag.Type.Name}.{method_sym.Name}'"
         
         let actuals_asm = translate_actuals method_name
                                              method_id.Span
@@ -790,9 +773,7 @@ type private ExprTranslator(_context: TranslationContext,
         if not (method_id.Syntax = ID ".ctor" || super_sym.Methods.ContainsKey(method_id.Syntax))
         then
             _context.Diags.Error(
-                sprintf "'%O' does not contain a definition for '%O'"
-                        super_sym.Name
-                        method_id.Syntax,
+                $"'{super_sym.Name}' does not contain a definition for '{method_id.Syntax}'",
                 method_id.Span)
             Error
         else
@@ -806,7 +787,7 @@ type private ExprTranslator(_context: TranslationContext,
         let method_sym = if method_id.Syntax = ID ".ctor"
                          then super_sym.Ctor
                          else super_sym.Methods.[method_id.Syntax]
-        let method_name = sprintf "'%O.%O'" super_sym.Name method_sym.Name
+        let method_name = $"'{super_sym.Name}.{method_sym.Name}'"
 
         let actuals_asm = translate_actuals method_name
                                             method_id.Span
@@ -851,7 +832,7 @@ type private ExprTranslator(_context: TranslationContext,
            ty.Is(BasicClasses.String)
         then
             _context.Diags.Error(
-                sprintf "'new %O' is not allowed" type_name.Syntax,
+                $"'new {type_name.Syntax}' is not allowed",
                 type_name.Span)
             Error
         else
@@ -867,7 +848,7 @@ type private ExprTranslator(_context: TranslationContext,
               Type = ty }
         
         let method_sym = ty.Ctor
-        let method_name = sprintf "Constructor of '%O'" ty.Name
+        let method_name = $"Constructor of '{ty.Name}'"
 
         let actuals_asm =
             translate_actuals method_name
@@ -923,10 +904,8 @@ type private ExprTranslator(_context: TranslationContext,
         if method_sym.Formals.Length <> actual_frags.Count
         then
             _context.Diags.Error(
-                sprintf "%s takes %d formal(s) but was passed %d actual(s)"
-                        method_name
-                        method_sym.Formals.Length
-                        actual_frags.Count,
+                $"%s{method_name} takes %d{method_sym.Formals.Length} formal(s) " +
+                $"but was passed %d{actual_frags.Count} actual(s)",
                 method_id_span)
 
             Error
@@ -942,10 +921,8 @@ type private ExprTranslator(_context: TranslationContext,
             then
                 formal_actual_mismatch <- true
                 _context.Diags.Error(
-                    sprintf "The actual's type '%O' does not conform to the %s's type '%O'"
-                            actual.Type.Name
-                            formal_name
-                            formal_ty.Name,
+                    $"The actual's type '{actual.Type.Name}' does not conform to " +
+                    $"the %s{formal_name}'s type '{formal_ty.Name}'",
                     actual_nodes.[i].Span)
 
         if formal_actual_mismatch
@@ -961,7 +938,7 @@ type private ExprTranslator(_context: TranslationContext,
         match sym with
         | ValueNone ->
             _context.Diags.Error(
-                sprintf "The name '%O' does not exist in the current context" id,
+                $"The name '{id}' does not exist in the current context",
                 id_node.Span)
             Error
         | ValueSome sym ->
@@ -1102,7 +1079,7 @@ type private ExprTranslator(_context: TranslationContext,
             if class_sym.IsSpecial
             then
                 _context.Diags.Error(
-                    sprintf "The type name '%O' is not allowed in user code" ty_node.Syntax,
+                    $"The type name '{ty_node.Syntax}' is not allowed in user code",
                     ty_node.Span)
                 Error
             else
@@ -1112,7 +1089,7 @@ type private ExprTranslator(_context: TranslationContext,
 
         // We could not find a symbol corresponding to `ty_node.Syntax`.
         _context.Diags.Error(
-            sprintf "The type name '%O' could not be found (is an input file missing?)" ty_node.Syntax,
+            $"The type name '{ty_node.Syntax}' could not be found (is an input file missing?)",
             ty_node.Span)
         Error
 

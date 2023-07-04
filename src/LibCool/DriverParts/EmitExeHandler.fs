@@ -83,7 +83,7 @@ type EmitExeHandler(_writer: IWriteLine) =
         
     
     static member Assemble(asm: string, obj_file: string) : string[] =
-        ProcessRunner.Run(exe_name="as", args=sprintf "-o %s" obj_file, stdin=asm)
+        ProcessRunner.Run(exe_name="as", args= $"-o %s{obj_file}", stdin=asm)
         |> ProcessOutputParser.split_in_lines
         |> Array.ofSeq
 
@@ -91,7 +91,7 @@ type EmitExeHandler(_writer: IWriteLine) =
     static member Link(obj_file: string, exe_file: string): string[] =
         let rt_dir = EmitExeHandler.ResolveRtDir()
         let rt_common_path = Path.Combine(rt_dir, "rt_common.o")
-        let ld_args = StringBuilder(sprintf "-o %s -e main %s \"%s\" " exe_file obj_file rt_common_path)
+        let ld_args = StringBuilder($"-o %s{exe_file} -e main %s{obj_file} \"%s{rt_common_path}\" ")
         
         if RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
         then
@@ -110,10 +110,8 @@ type EmitExeHandler(_writer: IWriteLine) =
         then
             ld_args.Append(sprintf "\"%s\"" (Path.Combine(rt_dir, "rt_linux.o"))).Nop()
         else
-            invalidOp (sprintf "'%s' is not supported.%sUse '-S' to emit assembly anyway.%s"
-                               RuntimeInformation.OSDescription
-                               Environment.NewLine
-                               Environment.NewLine)
+            invalidOp ($"'%s{RuntimeInformation.OSDescription}' is not supported.%s{Environment.NewLine}" +
+                       $"Use '-S' to emit assembly anyway.%s{Environment.NewLine}")
             
         ProcessRunner.Run(exe_name="ld",
                           args=ld_args.ToString())
@@ -127,10 +125,8 @@ type EmitExeHandler(_writer: IWriteLine) =
             then "file:\\\\\\"
             else if RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
             then "file://"
-            else invalidOp (sprintf "'%s' is not supported.%sUse '-S' to emit assembly anyway.%s"
-                                    RuntimeInformation.OSDescription
-                                    Environment.NewLine
-                                    Environment.NewLine)
+            else invalidOp ($"'%s{RuntimeInformation.OSDescription}' is not supported.%s{Environment.NewLine}" +
+                            $"Use '-S' to emit assembly anyway.%s{Environment.NewLine}")
 
         // We assume the 'src/Runtime' folder is 4 levels up
         // relative to where our assembly is.

@@ -93,7 +93,7 @@ type Driver(?_writer: IWriteLine) =
             else if arg.StartsWith('-')
             then
                 have_error <- true
-                message <- sprintf "An unrecognized option '%s'" arg
+                message <- $"An unrecognized option '%s{arg}'"
             else
                 source_parts.Add({ FileName = arg; Content = File.ReadAllText(arg) })
             i <- i + 1

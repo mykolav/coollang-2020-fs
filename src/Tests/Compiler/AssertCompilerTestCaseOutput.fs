@@ -20,15 +20,15 @@ type AssertCompilerTestCaseOutput private () =
         let message = StringBuilder()
         message
             .AppendLine(title)
-            .AppendLine(sprintf "EXPECTED   [%i]" expected_len)
-            .AppendLine(sprintf "ACTUAL     [%i]" actual_len)
+            .AppendLine($"EXPECTED   [%i{expected_len}]")
+            .AppendLine($"ACTUAL     [%i{actual_len}]")
             .AppendLine(sprintf "MISMATCHES [%i]: [%s]" (Seq.length mismatches)
                                                         (String.Join("; ", mismatch_positions)))
             .AppendLine()
             |> ignore
 
-        mismatches |> Seq.iter (fun it -> message.AppendLine(sprintf "E [%i]: %s" it.At it.Expected)
-                                                 .AppendLine(sprintf "A [%i]: %s" it.At it.Actual)
+        mismatches |> Seq.iter (fun it -> message.AppendLine($"E [%i{it.At}]: %s{it.Expected}")
+                                                 .AppendLine($"A [%i{it.At}]: %s{it.Actual}")
                                                  .AppendLine() |> ignore)
         
         message

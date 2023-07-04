@@ -58,7 +58,7 @@ type RegisterSet() =
             let item = _regs.[index]
             if item.IsFree
             then
-                invalidOp (sprintf "The register %i '%s' has not been allocated" index item.Name)
+                invalidOp $"The register %i{index} '%s{item.Name}' has not been allocated"
             
             item.IsFree <- true
             item.Owner <- ""

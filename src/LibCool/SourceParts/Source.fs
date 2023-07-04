@@ -77,7 +77,7 @@ type Source(partSeq: seq<SourcePart>) =
         if offset > _size
         then raise (ArgumentOutOfRangeException(
                         "offset",
-                        sprintf "Expected offset >= 0 and <= [%d] but it was [%d]" _size offset))
+                        $"Expected offset >= 0 and <= [%d{_size}] but it was [%d{offset}]"))
             
     
     // Binary search the exact or closest left index of an offset in an array of offsets
@@ -90,9 +90,7 @@ type Source(partSeq: seq<SourcePart>) =
                     else ~~~search_result - 1
         
         if index >= offsets.Length
-        then invalidOp (sprintf "index [%d] >= offsets.Length [%d]"
-                                index
-                                offsets.Length)
+        then invalidOp $"index [%d{index}] >= offsets.Length [%d{offsets.Length}]"
         
         index
         

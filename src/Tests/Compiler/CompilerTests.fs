@@ -82,7 +82,7 @@ type CompilerTests(test_output: ITestOutputHelper) =
         let po =
             if co.BuildSucceeded
             then
-                let output = ProcessRunner.Run(exe_name=sprintf "./%s" exe_file,
+                let output = ProcessRunner.Run(exe_name= $"./%s{exe_file}",
                                                args="",
                                                ?stdin=stdin)
                 ProgramOutput.Parse(output)

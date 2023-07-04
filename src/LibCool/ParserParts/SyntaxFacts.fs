@@ -72,7 +72,7 @@ module TokenExtensions =
         member this.KwDescription: string =
             if this.IsKw || this.IsReservedKw
             then
-                sprintf "; '%s' is a %s" (this.KwSpelling) (this.KwKindSpelling)
+                $"; '%s{this.KwSpelling}' is a %s{this.KwKindSpelling}"
             else
                 ""
     

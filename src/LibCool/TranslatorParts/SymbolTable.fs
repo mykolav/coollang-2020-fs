@@ -173,7 +173,7 @@ type SymbolTable(_class_sym: ClassSymbol) =
     member this.Resolve(name: ID): Symbol =
         match this.TryResolve(name) with
         | ValueSome sym -> sym
-        | ValueNone     -> invalidOp (sprintf "Could not resolve a symbol '%O'" name)
+        | ValueNone     -> invalidOp $"Could not resolve a symbol '{name}'"
         
         
     member this.TryResolve(name: ID): Symbol voption =

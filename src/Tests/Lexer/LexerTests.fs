@@ -92,7 +92,7 @@ type LexerTestCaseSource private () =
         "\"Hello/*, world!\"",        [| T.Str "Hello/*, world!" |]
         "\"Hello/*, world!*/\"",      [| T.Str "Hello/*, world!*/" |]
         "\"Power level: 9001\"",      [| T.Str "Power level: 9001" |]
-        "\"Power \\0 level: 9001\"",  [| T.Str (sprintf "Power %c level: 9001" (char 0)) |]
+        "\"Power \\0 level: 9001\"",  [| T.Str $"Power %c{char 0} level: 9001" |]
         "\"Power \\b level: 9001\"",  [| T.Str "Power \b level: 9001" |]
         "\"Power \\t level: 9001\"",  [| T.Str "Power \t level: 9001" |]
         "\"Power \\n level: 9001\"",  [| T.Str "Power \n level: 9001" |]
@@ -103,8 +103,8 @@ type LexerTestCaseSource private () =
         //
         // Triple quote string literals
         //
-        (sprintf "\"\"\"%s\"\"\"" qqqStringContent1), [| T.QQQ(qqqStringContent1) |]
-        (sprintf "\"\"\"%s\"\"\"" qqqStringContent2), [| T.QQQ(qqqStringContent2) |]
+        $"\"\"\"%s{qqqStringContent1}\"\"\"", [| T.QQQ(qqqStringContent1) |]
+        $"\"\"\"%s{qqqStringContent2}\"\"\"", [| T.QQQ(qqqStringContent2) |]
         //
         // Int literals
         //
