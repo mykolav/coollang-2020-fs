@@ -308,7 +308,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         Error
 
 
-    let rec do_collect_class_sym (inheritance_chain: InheritanceChain)
+    let rec doCollectClassSym (inheritance_chain: InheritanceChain)
                                  (class_name_node: AstNode<TYPENAME>)
                                  : ClassSymbol =
         let class_name = class_name_node.Syntax
@@ -350,7 +350,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         
         // Collect the super's symbol.
         let super_name_node = class_node.Syntax.ExtendsSyntax.SUPER
-        let super_sym = do_collect_class_sym inheritance_chain super_name_node
+        let super_sym = doCollectClassSym inheritance_chain super_name_node
                                              
         if super_sym.IsError
         then
@@ -382,7 +382,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
     let collectClassSym (class_name_node: AstNode<TYPENAME>): unit =
         if not (_class_sym_map.ContainsKey(class_name_node.Syntax))
         then
-            do_collect_class_sym (InheritanceChain()) class_name_node |> ignore
+            doCollectClassSym (InheritanceChain()) class_name_node |> ignore
         else
 
         let class_sym = _class_sym_map[class_name_node.Syntax]

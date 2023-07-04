@@ -32,7 +32,7 @@ type CoolRenderer private () =
     let _indent = Indent()
     let _sb_cool = StringBuilder()
 
-    let rec before_braced_block_or_expr (it: ExprSyntax) : unit =
+    let rec beforeBracedBlockOrExpr (it: ExprSyntax) : unit =
         match it with
         | ExprSyntax.BracedBlock _ ->
             ()
@@ -41,58 +41,58 @@ type CoolRenderer private () =
             _sb_cool.AppendLine().Append(_indent).AsUnit()
    
 
-    and after_braced_block_or_expr (it: ExprSyntax) : unit =
+    and afterBracedBlockOrExpr (it: ExprSyntax) : unit =
         match it with
         | ExprSyntax.BracedBlock _ -> ()
         | _                  -> _indent.Decrease()
     
     
-    and walk_expr (expr_syntax: ExprSyntax): unit =
+    and walkExpr (expr_syntax: ExprSyntax): unit =
         match expr_syntax with
         | ExprSyntax.Assign(left, right) ->
-            walk_assign (left, right)
+            walkAssign (left, right)
         | ExprSyntax.BoolNegation negated_expr ->
-            walk_bool_negation (negated_expr)
+            walkBoolNegation (negated_expr)
         | ExprSyntax.UnaryMinus expr ->
-            walk_unary_minus (expr)
+            walkUnaryMinus (expr)
         | ExprSyntax.If(condition, then_branch, else_branch) ->
-            walk_if (condition, then_branch, else_branch)
+            walkIf (condition, then_branch, else_branch)
         | ExprSyntax.While(condition, body) ->
-            walk_while (condition, body)
+            walkWhile (condition, body)
         | ExprSyntax.LtEq(left, right) ->
-            walk_comparison (left, CompareOp.LtEq, right)
+            walkComparison (left, CompareOp.LtEq, right)
         | ExprSyntax.GtEq(left, right) ->
-            walk_comparison (left, CompareOp.GtEq, right)
+            walkComparison (left, CompareOp.GtEq, right)
         | ExprSyntax.Lt(left, right) ->
-            walk_comparison (left, CompareOp.Lt, right)
+            walkComparison (left, CompareOp.Lt, right)
         | ExprSyntax.Gt(left, right) ->
-            walk_comparison (left, CompareOp.Gt, right)
+            walkComparison (left, CompareOp.Gt, right)
         | ExprSyntax.EqEq(left, right) ->
-            walk_comparison (left, CompareOp.EqEq, right)
+            walkComparison (left, CompareOp.EqEq, right)
         | ExprSyntax.NotEq(left, right) ->
-            walk_comparison (left, CompareOp.NotEq, right)
+            walkComparison (left, CompareOp.NotEq, right)
         | ExprSyntax.Mul(left, right) ->
-            walk_arith (left, ArithOp.Mul, right)
+            walkArith (left, ArithOp.Mul, right)
         | ExprSyntax.Div(left, right) ->
-            walk_arith (left, ArithOp.Div, right)
+            walkArith (left, ArithOp.Div, right)
         | ExprSyntax.Sum(left, right) ->
-            walk_arith (left, ArithOp.Sum, right)
+            walkArith (left, ArithOp.Sum, right)
         | ExprSyntax.Sub(left, right) ->
-            walk_arith (left, ArithOp.Sub, right)
+            walkArith (left, ArithOp.Sub, right)
         | ExprSyntax.Match(expr, cases_hd, cases_tl) ->
-            walk_match (expr, cases_hd, cases_tl)
+            walkMatch (expr, cases_hd, cases_tl)
         | ExprSyntax.Dispatch(obj_expr, method_id, actuals) ->
-            walk_dispatch (obj_expr, method_id, actuals)
+            walkDispatch (obj_expr, method_id, actuals)
         | ExprSyntax.ImplicitThisDispatch(method_id, actuals) ->
-            walk_implicit_this_dispatch (method_id, actuals)
+            walkImplicitThisDispatch (method_id, actuals)
         | ExprSyntax.SuperDispatch(method_id, actuals) ->
-            walk_super_dispatch (method_id, actuals)
+            walkSuperDispatch (method_id, actuals)
         | ExprSyntax.New(class_name, actuals) ->
-            walk_object_creation (class_name, actuals)
+            walkObjectCreation (class_name, actuals)
         | ExprSyntax.BracedBlock block_syntax_opt ->
-            walk_braced_block block_syntax_opt
+            walkBracedBlock block_syntax_opt
         | ExprSyntax.ParensExpr node_expr ->
-            walk_parens_expr node_expr
+            walkParensExpr node_expr
         | ExprSyntax.Id value ->
             _sb_cool.Append(value).AsUnit()
         | ExprSyntax.Int value ->
@@ -109,21 +109,21 @@ type CoolRenderer private () =
             _sb_cool.Append("()").AsUnit()
 
     
-    and walk_actual (actual: ExprSyntax, index: int): unit =
+    and walkActual (actual: ExprSyntax, index: int): unit =
         if index > 0
         then
             _sb_cool.Append(", ").AsUnit()
 
-        walk_expr actual
+        walkExpr actual
 
 
-    and walk_actuals (actuals: AstNode<ExprSyntax> []): unit =
+    and walkActuals (actuals: AstNode<ExprSyntax> []): unit =
         _sb_cool.Append("(").AsUnit()
-        actuals |> Array.iteri (fun i it -> walk_actual (it.Syntax, i))
+        actuals |> Array.iteri (fun i it -> walkActual (it.Syntax, i))
         _sb_cool.Append(")").AsUnit()
 
 
-    and walk_var (var_syntax: VarSyntax): unit =
+    and walkVar (var_syntax: VarSyntax): unit =
         _sb_cool
             .Append("var ")
             .Append(var_syntax.ID.Syntax)
@@ -132,19 +132,19 @@ type CoolRenderer private () =
             .Append(" = ")
             .AsUnit()
         
-        walk_expr(var_syntax.Expr.Syntax)
+        walkExpr(var_syntax.Expr.Syntax)
 
         _sb_cool.Append(";")
                 .AppendLine().AsUnit()
 
 
-     and walk_stmt_expr (expr: ExprSyntax): unit =
-        walk_expr expr
+     and walkStmtExpr (expr: ExprSyntax): unit =
+        walkExpr expr
         _sb_cool.Append(";")
                 .AppendLine().AsUnit()
 
 
-     and walk_block_syntax (block_syntax: BlockSyntax): unit =
+     and walkBlockSyntax (block_syntax: BlockSyntax): unit =
         block_syntax.Stmts
         |> Array.iteri (fun i it ->
             if i > 0
@@ -152,8 +152,8 @@ type CoolRenderer private () =
                 _sb_cool.Append(_indent).AsUnit()
 
             match it.Syntax with
-            | StmtSyntax.Var var_syntax -> walk_var var_syntax
-            | StmtSyntax.Expr expr -> walk_stmt_expr expr)
+            | StmtSyntax.Var var_syntax -> walkVar var_syntax
+            | StmtSyntax.Expr expr -> walkStmtExpr expr)
 
         let block_expr = block_syntax.Expr
     
@@ -165,11 +165,11 @@ type CoolRenderer private () =
         then
             _sb_cool.Append(_indent).AsUnit()
             
-        walk_expr block_expr.Syntax
+        walkExpr block_expr.Syntax
         _sb_cool.AppendLine().AsUnit()
 
 
-     and walk_braced_block (block_syntax: BlockSyntax voption): unit =
+     and walkBracedBlock (block_syntax: BlockSyntax voption): unit =
         _sb_cool.Append("{").AsUnit()
         _indent.Increase()
 
@@ -177,7 +177,7 @@ type CoolRenderer private () =
             match block_syntax with
             | ValueSome block_syntax ->
                 _sb_cool.AppendLine().Append(_indent).AsUnit()
-                walk_block_syntax block_syntax
+                walkBlockSyntax block_syntax
                 true
             | ValueNone ->
                 false
@@ -189,28 +189,28 @@ type CoolRenderer private () =
             .AsUnit()
 
 
-    and walk_caseblock (caseblock_syntax: CaseBlockSyntax) =
+    and walkCaseBlock (caseblock_syntax: CaseBlockSyntax) =
        match caseblock_syntax with
        | CaseBlockSyntax.Free block_syntax ->
-           walk_block_syntax block_syntax
+           walkBlockSyntax block_syntax
        | CaseBlockSyntax.Braced block_syntax_opt ->
-           walk_braced_block block_syntax_opt
+           walkBracedBlock block_syntax_opt
 
 
-    and walk_assign (lvalue: AstNode<ID>, rvalue: AstNode<ExprSyntax>): unit =
+    and walkAssign (lvalue: AstNode<ID>, rvalue: AstNode<ExprSyntax>): unit =
        _sb_cool.Append(lvalue.Syntax)
                      .Append(" = ").AsUnit()
-       walk_expr rvalue.Syntax
+       walkExpr rvalue.Syntax
 
 
-    and walk_if (condition: AstNode<ExprSyntax>, then_branch: AstNode<ExprSyntax>, else_branch: AstNode<ExprSyntax>): unit =
+    and walkIf (condition: AstNode<ExprSyntax>, then_branch: AstNode<ExprSyntax>, else_branch: AstNode<ExprSyntax>): unit =
         _sb_cool.Append("if (").AsUnit()
-        walk_expr condition.Syntax
+        walkExpr condition.Syntax
         _sb_cool.Append(") ").AsUnit()
         
         // Enter 'then' branch.
-        before_braced_block_or_expr then_branch.Syntax
-        walk_expr then_branch.Syntax
+        beforeBracedBlockOrExpr then_branch.Syntax
+        walkExpr then_branch.Syntax
 
         match then_branch.Syntax with
         | ExprSyntax.BracedBlock _ ->
@@ -222,22 +222,22 @@ type CoolRenderer private () =
         _sb_cool.Append("else ").AsUnit()
         
         // Enter 'else' branch.        
-        before_braced_block_or_expr else_branch.Syntax
-        walk_expr else_branch.Syntax
-        after_braced_block_or_expr else_branch.Syntax
+        beforeBracedBlockOrExpr else_branch.Syntax
+        walkExpr else_branch.Syntax
+        afterBracedBlockOrExpr else_branch.Syntax
 
 
-    and walk_while (condition: AstNode<ExprSyntax>, body: AstNode<ExprSyntax>): unit =
+    and walkWhile (condition: AstNode<ExprSyntax>, body: AstNode<ExprSyntax>): unit =
         _sb_cool.Append("while (").AsUnit()
-        walk_expr condition.Syntax
+        walkExpr condition.Syntax
         _sb_cool.Append(") ").AsUnit()
  
-        before_braced_block_or_expr body.Syntax
-        walk_expr body.Syntax
-        after_braced_block_or_expr body.Syntax
+        beforeBracedBlockOrExpr body.Syntax
+        walkExpr body.Syntax
+        afterBracedBlockOrExpr body.Syntax
 
 
-    and walk_match_case_pattern (pattern: PatternSyntax): unit =
+    and walkMatchCasePattern (pattern: PatternSyntax): unit =
        match pattern with
        | PatternSyntax.IdType(node_id, node_type_name) ->
            _sb_cool
@@ -249,22 +249,22 @@ type CoolRenderer private () =
            _sb_cool.Append("null").AsUnit()
 
 
-    and walk_match_case (case: CaseSyntax): unit =
+    and walkMatchCase (case: CaseSyntax): unit =
        _sb_cool.Append(_indent)
                .Append("case ").AsUnit()
-       walk_match_case_pattern case.Pattern.Syntax
+       walkMatchCasePattern case.Pattern.Syntax
        _sb_cool.Append(" => ").AsUnit()
-       walk_caseblock case.Block.Syntax
+       walkCaseBlock case.Block.Syntax
 
 
-    and walk_match_cases (cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
+    and walkMatchCases (cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
        _sb_cool
            .Append("{")
            .AppendLine().AsUnit()
        _indent.Increase()
 
-       walk_match_case cases_hd.Syntax
-       cases_tl |> Array.iter (fun it -> walk_match_case it.Syntax)
+       walkMatchCase cases_hd.Syntax
+       cases_tl |> Array.iter (fun it -> walkMatchCase it.Syntax)
        
        _indent.Decrease()
        _sb_cool
@@ -272,45 +272,45 @@ type CoolRenderer private () =
            .Append("}").AsUnit()
 
 
-    and walk_match (expr: AstNode<ExprSyntax>, cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
-        walk_expr expr.Syntax
+    and walkMatch (expr: AstNode<ExprSyntax>, cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
+        walkExpr expr.Syntax
 
         _sb_cool.Append(" match ").AsUnit()
 
-        walk_match_cases (cases_hd, cases_tl)
+        walkMatchCases (cases_hd, cases_tl)
 
 
-    and walk_dispatch (obj_expr: AstNode<ExprSyntax>, method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
-        walk_expr obj_expr.Syntax
+    and walkDispatch (obj_expr: AstNode<ExprSyntax>, method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
+        walkExpr obj_expr.Syntax
         _sb_cool.Append(".")
                 .Append(method_id.Syntax).AsUnit()
-        walk_actuals (actuals)
+        walkActuals (actuals)
 
 
-    and walk_implicit_this_dispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
+    and walkImplicitThisDispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
         _sb_cool.Append(method_id.Syntax).AsUnit()
-        walk_actuals actuals
+        walkActuals actuals
 
 
-    and walk_super_dispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
+    and walkSuperDispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
         _sb_cool.Append("super.")
                 .Append(method_id.Syntax).AsUnit()
-        walk_actuals actuals
+        walkActuals actuals
 
 
-    and walk_object_creation (type_name: AstNode<TYPENAME>, actuals: AstNode<ExprSyntax> []): unit =
+    and walkObjectCreation (type_name: AstNode<TYPENAME>, actuals: AstNode<ExprSyntax> []): unit =
         _sb_cool.Append("new ")
                 .Append(type_name.Syntax).AsUnit()
-        walk_actuals (actuals)
+        walkActuals (actuals)
 
 
-    and walk_bool_negation (expr: AstNode<ExprSyntax>): unit =
+    and walkBoolNegation (expr: AstNode<ExprSyntax>): unit =
         _sb_cool.Append("!").AsUnit()
-        walk_expr expr.Syntax
+        walkExpr expr.Syntax
 
 
-    and walk_comparison (left: AstNode<ExprSyntax>, op: CompareOp, right: AstNode<ExprSyntax>): unit =
-        walk_expr left.Syntax
+    and walkComparison (left: AstNode<ExprSyntax>, op: CompareOp, right: AstNode<ExprSyntax>): unit =
+        walkExpr left.Syntax
 
         (match op with
         | CompareOp.LtEq -> _sb_cool.Append(" <= ")
@@ -321,16 +321,16 @@ type CoolRenderer private () =
         | CompareOp.NotEq -> _sb_cool.Append(" != ")
         ).AsUnit()
 
-        walk_expr right.Syntax
+        walkExpr right.Syntax
 
 
-    and walk_unary_minus (expr: AstNode<ExprSyntax>): unit =
+    and walkUnaryMinus (expr: AstNode<ExprSyntax>): unit =
        _sb_cool.Append("-").AsUnit()
-       walk_expr expr.Syntax
+       walkExpr expr.Syntax
 
 
-    and walk_arith (left: AstNode<ExprSyntax>, op: ArithOp, right: AstNode<ExprSyntax>): unit =
-       walk_expr left.Syntax
+    and walkArith (left: AstNode<ExprSyntax>, op: ArithOp, right: AstNode<ExprSyntax>): unit =
+       walkExpr left.Syntax
 
        (match op with
        | ArithOp.Mul -> _sb_cool.Append(" * ")
@@ -339,16 +339,16 @@ type CoolRenderer private () =
        | ArithOp.Sub -> _sb_cool.Append(" - ")
        ).AsUnit()
 
-       walk_expr right.Syntax
+       walkExpr right.Syntax
 
 
-    and walk_parens_expr (expr: AstNode<ExprSyntax>): unit =
+    and walkParensExpr (expr: AstNode<ExprSyntax>): unit =
         _sb_cool.Append("(").AsUnit()
-        walk_expr expr.Syntax
+        walkExpr expr.Syntax
         _sb_cool.Append(")").AsUnit()
 
 
-    and walk_var_formal (var_formal: VarFormalSyntax, index: int): unit =
+    and walkVarFormal (var_formal: VarFormalSyntax, index: int): unit =
         _sb_cool.Append(if index > 0 then ", " else "")
                 .Append("var ")
                 .Append(var_formal.ID.Syntax)
@@ -356,32 +356,32 @@ type CoolRenderer private () =
                 .Append(var_formal.TYPE.Syntax).AsUnit()
 
 
-    and walk_var_formals (var_formals: AstNode<VarFormalSyntax> []): unit =
+    and walkVarFormals (var_formals: AstNode<VarFormalSyntax> []): unit =
         _sb_cool.Append("(").AsUnit()
-        var_formals |> Array.iteri (fun i it -> walk_var_formal(it.Syntax, i))
+        var_formals |> Array.iteri (fun i it -> walkVarFormal(it.Syntax, i))
         _sb_cool.Append(")").AsUnit()
 
 
-    and walk_formal (formal: FormalSyntax, index: int): unit =
+    and walkFormal (formal: FormalSyntax, index: int): unit =
          _sb_cool.Append(if index > 0 then ", " else "")
                  .Append(formal.ID.Syntax)
                  .Append(": ")
                  .Append(formal.TYPE.Syntax).AsUnit()
 
 
-    and walk_formals (formals: AstNode<FormalSyntax> []): unit =
+    and walkFormals (formals: AstNode<FormalSyntax> []): unit =
         _sb_cool.Append("(").AsUnit()
-        formals |> Array.iteri (fun i it -> walk_formal(it.Syntax, i))
+        formals |> Array.iteri (fun i it -> walkFormal(it.Syntax, i))
         _sb_cool.Append(")").AsUnit()
 
 
-    and walk_method (method_syntax: MethodSyntax): unit =
+    and walkMethod (method_syntax: MethodSyntax): unit =
         _sb_cool.Append(_indent)
                 .Append(if method_syntax.Override then "override def " else "def ")
                 .Append(method_syntax.ID.Syntax)
                 .AsUnit()
         
-        walk_formals method_syntax.Formals
+        walkFormals method_syntax.Formals
         
         _sb_cool.Append(": ")
                 .Append(method_syntax.RETURN.Syntax)
@@ -392,13 +392,13 @@ type CoolRenderer private () =
         
         match method_body with
         | MethodBodySyntax.Expr expr ->
-            before_braced_block_or_expr expr
+            beforeBracedBlockOrExpr expr
         | _ ->
             ()
         
         match method_body with
         | MethodBodySyntax.Expr expr ->
-            walk_expr expr
+            walkExpr expr
         | MethodBodySyntax.Native ->
             _sb_cool.Append("native").AsUnit()
         
@@ -411,7 +411,7 @@ type CoolRenderer private () =
             ()
 
 
-     and walk_attr (attr_syntax: AttrSyntax): unit =
+     and walkAttr (attr_syntax: AttrSyntax): unit =
         _sb_cool
             .Append(_indent)
             .Append("var ")
@@ -424,25 +424,25 @@ type CoolRenderer private () =
         
         match attr_body with
         | AttrInitialSyntax.Expr expr ->
-            before_braced_block_or_expr expr
-            walk_expr expr
-            after_braced_block_or_expr expr            
+            beforeBracedBlockOrExpr expr
+            walkExpr expr
+            afterBracedBlockOrExpr expr
         | AttrInitialSyntax.Native ->
             _sb_cool.Append("native").AsUnit()
 
 
-     and walk_extends (extends: InheritanceSyntax): unit =
+     and walkExtends (extends: InheritanceSyntax): unit =
         _sb_cool.Append(" extends ").AsUnit()
 
         match extends with
         | InheritanceSyntax.Extends extends_syntax ->
             _sb_cool.Append(extends_syntax.SUPER.Syntax).AsUnit()
-            walk_actuals (extends_syntax.Actuals)
+            walkActuals (extends_syntax.Actuals)
         | InheritanceSyntax.Native ->
             _sb_cool.Append("native").AsUnit()
 
 
-     and walk_features (features: AstNode<FeatureSyntax> []): unit =
+     and walkFeatures (features: AstNode<FeatureSyntax> []): unit =
         _sb_cool.Append(" {")
                 .AppendLine().AsUnit()
         _indent.Increase()
@@ -450,12 +450,12 @@ type CoolRenderer private () =
         let visitFeature (feature_node: AstNode<FeatureSyntax>): unit =
             match feature_node.Syntax with
             | FeatureSyntax.Method method_syntax ->
-                walk_method method_syntax
+                walkMethod method_syntax
             | FeatureSyntax.Attr attr_syntax ->
-                walk_attr attr_syntax
+                walkAttr attr_syntax
             | FeatureSyntax.BracedBlock block_syntax_opt ->
                 _sb_cool.Append(_indent).AsUnit()
-                walk_braced_block block_syntax_opt
+                walkBracedBlock block_syntax_opt
 
         features |> Array.iter (fun it -> _sb_cool.AppendLine().AsUnit()
                                           visitFeature it
@@ -466,32 +466,32 @@ type CoolRenderer private () =
                 .Append("}").AsUnit()
 
 
-     and walk_class (klass: ClassSyntax): unit =
+     and walkClass (klass: ClassSyntax): unit =
         _sb_cool
             .Append(_indent)
             .Append("class ")
             .AsUnit()
 
         _sb_cool.Append(klass.NAME.Syntax.Value).AsUnit()
-        walk_var_formals klass.VarFormals
+        walkVarFormals klass.VarFormals
 
         match klass.Extends with
         | ValueSome extends_node ->
-            walk_extends (extends_node.Syntax)
+            walkExtends (extends_node.Syntax)
         | ValueNone ->
             ()
 
-        walk_features klass.Features
+        walkFeatures klass.Features
 
 
-    and walk_program (program: ProgramSyntax): unit =
+    and walkProgram (program: ProgramSyntax): unit =
         program.Classes
-        |> Array.iter (fun it -> walk_class it.Syntax
+        |> Array.iter (fun it -> walkClass it.Syntax
                                  _sb_cool.AppendLine().AppendLine().AsUnit())
 
 
     member private this.Render(ast: ProgramSyntax): unit =
-        walk_program ast
+        walkProgram ast
 
     
     override this.ToString() = _sb_cool.ToString()

@@ -178,23 +178,23 @@ type SymbolTable(_class_sym: ClassSymbol) =
         
     member this.TryResolve(name: ID): Symbol voption =
         
-        let rec try_resolve (scope_level: int): Symbol voption =
+        let rec tryResolve (scope_level: int): Symbol voption =
             if scope_level < 0
             then
                 ValueNone
             else
-                
+
             let scope = _scopes[scope_level]
             let sym_opt = scope.TryResolve(name)
             if sym_opt.IsSome
             then
                 sym_opt
             else
-            
-            try_resolve (scope_level - 1)
-            
-            
-        let sym_opt = try_resolve ((*scope_level=*)this.CurrentScopeLevel)
+
+            tryResolve (scope_level - 1)
+
+
+        let sym_opt = tryResolve ((*scope_level=*)this.CurrentScopeLevel)
         if sym_opt.IsSome
         then
             sym_opt
