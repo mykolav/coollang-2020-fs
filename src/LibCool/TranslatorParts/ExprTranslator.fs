@@ -99,7 +99,7 @@ type private ExprTranslator(_context: TranslationContext,
             this.EmitAsm()
                 .Location(assign_node_span)
                 .Paste(expr_frag.Value.Asm)
-                .In("movq    {0}, {1}", expr_frag.Value.Reg, addr_frag, comment=id.Syntax.ToString())
+                .Instr("movq    {0}, {1}", expr_frag.Value.Reg, addr_frag, comment=id.Syntax.ToString())
                 .ToString()
         
         _context.RegSet.Free(addr_frag.Reg)
@@ -156,13 +156,13 @@ type private ExprTranslator(_context: TranslationContext,
         let then_asm =
             this.EmitAsm()
                 .Paste(then_frag.Value.Asm)
-                .In("movq    {0}, {1}", then_frag.Value.Reg, result_reg)
+                .Instr("movq    {0}, {1}", then_frag.Value.Reg, result_reg)
                 .ToString()
         
         let else_asm =
             this.EmitAsm()
                 .Paste(else_frag.Value.Asm)
-                .In("movq    {0}, {1}", else_frag.Value.Reg, result_reg)
+                .Instr("movq    {0}, {1}", else_frag.Value.Reg, result_reg)
                 .ToString()
 
         // It's OK to free up these registers early,
@@ -950,7 +950,7 @@ type private ExprTranslator(_context: TranslationContext,
             let asm =
                 this.EmitAsm()
                     .Location(id_node.Span)
-                    .In("movq    {0}, {1}", addr_frag, result_reg, comment=sym.Name.ToString())
+                    .Instr("movq    {0}, {1}", addr_frag, result_reg, comment=sym.Name.ToString())
                     .ToString()
                     
             _context.RegSet.Free(addr_frag.Reg)
@@ -966,7 +966,7 @@ type private ExprTranslator(_context: TranslationContext,
         let asm =
             this.EmitAsm()
                 .Location(int_node.Span)
-                .In("movq    ${0}, {1}", const_label, reg)
+                .Instr("movq    ${0}, {1}", const_label, reg)
                 .ToString()
         
         Ok { AsmFragment.Asm = asm
@@ -980,7 +980,7 @@ type private ExprTranslator(_context: TranslationContext,
         let asm =
             this.EmitAsm()
                 .Location(str_node.Span)
-                .In("movq    ${0}, {1}", const_label, reg)
+                .Instr("movq    ${0}, {1}", const_label, reg)
                 .ToString()
         
         Ok { AsmFragment.Asm = asm
@@ -996,7 +996,7 @@ type private ExprTranslator(_context: TranslationContext,
         let asm =
             this.EmitAsm()
                 .Location(bool_node.Span)
-                .In("movq    ${0}, {1}", const_label, reg)
+                .Instr("movq    ${0}, {1}", const_label, reg)
                 .ToString()
                           
         Ok { AsmFragment.Asm = asm
@@ -1014,7 +1014,7 @@ type private ExprTranslator(_context: TranslationContext,
         let asm =
             this.EmitAsm()
                 .Location(this_node.Span)
-                .In("movq    {0}, {1}", addr_frag, result_reg)
+                .Instr("movq    {0}, {1}", addr_frag, result_reg)
                 .ToString()
            
         _context.RegSet.Free(addr_frag.Reg)
@@ -1028,7 +1028,7 @@ type private ExprTranslator(_context: TranslationContext,
         let result_reg = _context.RegSet.Allocate("translate_null.result_reg")
         let asm = this.EmitAsm()
                       .Location(null_node.Span)
-                      .In("xorq    {0}, {1}", result_reg, result_reg)
+                      .Instr("xorq    {0}, {1}", result_reg, result_reg)
                       .ToString()
         
         Ok { AsmFragment.Asm = asm
@@ -1040,7 +1040,7 @@ type private ExprTranslator(_context: TranslationContext,
         let result_reg = _context.RegSet.Allocate("translate_unit.result_reg")
         let asm = this.EmitAsm()
                       .Location(unit_node.Span)
-                      .In("movq    ${0}, {1}", RtNames.UnitValue, result_reg)
+                      .Instr("movq    ${0}, {1}", RtNames.UnitValue, result_reg)
                       .ToString()
         
         Ok { AsmFragment.Asm = asm

@@ -52,7 +52,7 @@ type private ClassTranslator(_context: TranslationContext,
             this.EmitAsm()
                 .Location(attr_node.Span)
                 .Paste(initial_frag.Value.Asm)
-                .In("movq    {0}, {1}", initial_frag.Value.Reg, addr_frag, comment=attr_sym.Name.ToString())
+                .Instr("movq    {0}, {1}", initial_frag.Value.Reg, addr_frag, comment=attr_sym.Name.ToString())
                 .ToString()
             
         _context.RegSet.Free(initial_frag.Value.Reg)
@@ -159,7 +159,7 @@ type private ClassTranslator(_context: TranslationContext,
         let this_frag = _expr_translator.Translate(AstNode.Virtual(this_syntax))
         
         asm.Paste(this_frag.Value.Asm)
-           .In("movq    {0}, %rax", this_frag.Value.Reg, comment="this")
+           .Instr("movq    {0}, %rax", this_frag.Value.Reg, comment="this")
            .AsUnit()
 
         _context.RegSet.Free(this_frag.Value.Reg)
@@ -249,11 +249,11 @@ type private ClassTranslator(_context: TranslationContext,
         
         if body_frag.Value.Reg = Reg.Null
         then
-            Ok (asm.In("movq    ${0}, %rax", RtNames.UnitValue)
+            Ok (asm.Instr("movq    ${0}, %rax", RtNames.UnitValue)
                    .ToString())
         else
             _context.RegSet.Free(body_frag.Value.Reg)
-            Ok (asm.In("movq    {0}, %rax", body_frag.Value.Reg)
+            Ok (asm.Instr("movq    {0}, %rax", body_frag.Value.Reg)
                    .ToString())
 
         
