@@ -447,7 +447,7 @@ type CoolRenderer private () =
                 .AppendLine().AsUnit()
         _indent.Increase()
 
-        let visit_feature (feature_node: AstNode<FeatureSyntax>): unit =
+        let visitFeature (feature_node: AstNode<FeatureSyntax>): unit =
             match feature_node.Syntax with
             | FeatureSyntax.Method method_syntax ->
                 walk_method method_syntax
@@ -458,7 +458,7 @@ type CoolRenderer private () =
                 walk_braced_block block_syntax_opt
 
         features |> Array.iter (fun it -> _sb_cool.AppendLine().AsUnit()
-                                          visit_feature it
+                                          visitFeature it
                                           _sb_cool.Append(";").AppendLine().AsUnit())
         
         _indent.Decrease()

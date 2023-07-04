@@ -23,14 +23,14 @@ type AstRenderer private () =
             _is_new_line <- false
             
 
-    let end_line_with (content: string): unit =
+    let endLineWith (content: string): unit =
         indent()
         _sb_ast.AppendLine(content).AsUnit()
         _is_new_line <- true
     
     
-    let end_line () =
-        end_line_with ""
+    let endLine () =
+        endLineWith ""
         
         
     let text (content: string): unit =
@@ -39,12 +39,12 @@ type AstRenderer private () =
         _is_new_line <- false
         
         
-    let begin_with (left: string) =
-        end_line_with left
+    let beginWith (left: string) =
+        endLineWith left
         _indent.Increase()
 
     
-    let end_with (right: string) =
+    let endWith (right: string) =
         _indent.Decrease()
         text right
 
@@ -113,47 +113,47 @@ type AstRenderer private () =
         
     
     and walk_var (var_syntax: VarSyntax): unit =
-        begin_with "{"
+        beginWith "{"
         
-        end_line_with "\"kind\": \"var\", "
+        endLineWith "\"kind\": \"var\", "
            
-        end_line_with $"\"name\": \"%s{var_syntax.ID.Syntax.Value}\", "
-        end_line_with $"\"type\": \"%s{var_syntax.TYPE.Syntax.Value}\", "
+        endLineWith $"\"name\": \"%s{var_syntax.ID.Syntax.Value}\", "
+        endLineWith $"\"type\": \"%s{var_syntax.TYPE.Syntax.Value}\", "
         
-        text "\"value\": "; walk_expr var_syntax.Expr.Syntax; end_line()
+        text "\"value\": "; walk_expr var_syntax.Expr.Syntax; endLine()
         
-        end_with "}"
+        endWith "}"
 
 
      and walk_stmt_expr (expr_syntax: ExprSyntax): unit =
-        begin_with "{"
+        beginWith "{"
         
-        end_line_with "\"kind\": \"stmt\", "
-        text "\"expr\": "; walk_expr expr_syntax; end_line()
+        endLineWith "\"kind\": \"stmt\", "
+        text "\"expr\": "; walk_expr expr_syntax; endLine()
         
-        end_with "}"
+        endWith "}"
 
 
      and walk_block_syntax (block_syntax: BlockSyntax): unit =
-        begin_with "[ "
+        beginWith "[ "
         
         block_syntax.Stmts
         |> Array.iter (fun it ->
             match it.Syntax with
             | StmtSyntax.Var var_syntax -> walk_var var_syntax
             | StmtSyntax.Expr expr -> walk_stmt_expr expr
-            end_line_with ", ")
+            endLineWith ", ")
 
-        begin_with "{" 
+        beginWith "{"
 
-        end_line_with "\"kind\": \"expr\", "
+        endLineWith "\"kind\": \"expr\", "
 
         text "\"expr\": "
-        walk_expr block_syntax.Expr.Syntax; end_line()
+        walk_expr block_syntax.Expr.Syntax; endLine()
 
-        end_with "}"; end_line()
+        endWith "}"; endLine()
         
-        end_with "]"
+        endWith "]"
 
 
     and walk_braced_block (block_syntax: BlockSyntax voption): unit =
@@ -165,63 +165,63 @@ type AstRenderer private () =
 
 
     and walk_caseblock (block: CaseBlockSyntax) =
-        begin_with "{"
+        beginWith "{"
         
         match block with
         | CaseBlockSyntax.Free block_syntax ->
-            end_line_with "\"kind\": \"implicit\", "
+            endLineWith "\"kind\": \"implicit\", "
             text "\"statements\": "
-            walk_block_syntax block_syntax; end_line()
+            walk_block_syntax block_syntax; endLine()
         | CaseBlockSyntax.Braced block_syntax_opt ->
-            end_line_with "\"kind\": \"braced\", "
+            endLineWith "\"kind\": \"braced\", "
             text "\"statements\": "
-            walk_braced_block block_syntax_opt; end_line()
+            walk_braced_block block_syntax_opt; endLine()
             
-        end_with "}"
+        endWith "}"
 
 
     and walk_assign (lvalue: AstNode<ID>, rvalue: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"=\", "
+        endLineWith "\"kind\": \"=\", "
            
-        end_line_with $"\"left\": \"%s{lvalue.Syntax.Value}\", "
+        endLineWith $"\"left\": \"%s{lvalue.Syntax.Value}\", "
         
         text "\"right\": "
-        walk_expr rvalue.Syntax; end_line ()
+        walk_expr rvalue.Syntax; endLine ()
 
-        end_with "}"
+        endWith "}"
 
 
     and walk_if (condition: AstNode<ExprSyntax>, then_branch: AstNode<ExprSyntax>, else_branch: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"if\", "
+        endLineWith "\"kind\": \"if\", "
            
         text "\"cond\": "
-        walk_expr condition.Syntax; end_line_with ", "
+        walk_expr condition.Syntax; endLineWith ", "
         
         text "\"then\": "
-        walk_expr then_branch.Syntax; end_line_with ", "
+        walk_expr then_branch.Syntax; endLineWith ", "
 
         text "\"else\": "
-        walk_expr else_branch.Syntax; end_line()
+        walk_expr else_branch.Syntax; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     and walk_while (condition: AstNode<ExprSyntax>, body: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"while\", "
+        endLineWith "\"kind\": \"while\", "
            
         text "\"cond\": "
-        walk_expr condition.Syntax; end_line_with ", "
+        walk_expr condition.Syntax; endLineWith ", "
         
         text "\"body\": "
-        walk_expr body.Syntax; end_line()
+        walk_expr body.Syntax; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     and stringify_match_case_pattern (pattern: PatternSyntax): string =
@@ -233,47 +233,47 @@ type AstRenderer private () =
 
 
     and walk_match_case (case: CaseSyntax): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with $"\"pattern\": \"%s{stringify_match_case_pattern case.Pattern.Syntax}\", "
+        endLineWith $"\"pattern\": \"%s{stringify_match_case_pattern case.Pattern.Syntax}\", "
         
         text "\"block\": "
-        walk_caseblock case.Block.Syntax; end_line()
+        walk_caseblock case.Block.Syntax; endLine()
         
-        end_with "}"
+        endWith "}"
 
 
     and walk_match_cases (cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
-        begin_with "["
+        beginWith "["
        
         walk_match_case cases_hd.Syntax;
         cases_tl |> Array.iter (fun it ->
-            end_line_with ","
+            endLineWith ","
             walk_match_case it.Syntax
         )
-        end_line()
+        endLine()
        
-        end_with "]"
+        endWith "]"
 
 
     and walk_match (expr: AstNode<ExprSyntax>, cases_hd: AstNode<CaseSyntax>, cases_tl: AstNode<CaseSyntax> []): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"match\", "
+        endLineWith "\"kind\": \"match\", "
            
         text "\"expr\": "
-        walk_expr expr.Syntax; end_line_with ", "
+        walk_expr expr.Syntax; endLineWith ", "
         
         text "\"cases\": "
-        walk_match_cases (cases_hd, cases_tl); end_line()
+        walk_match_cases (cases_hd, cases_tl); endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     and walk_actual (actual: ExprSyntax, index: int): unit =
         if index > 0
         then
-            end_line_with ", "
+            endLineWith ", "
             
         walk_expr actual
 
@@ -283,141 +283,141 @@ type AstRenderer private () =
         then
             text "[]"
         else
-            begin_with "[ "
-            actuals |> Array.iteri (fun i it -> walk_actual (it.Syntax, i)); end_line()
-            end_with "]"
+            beginWith "[ "
+            actuals |> Array.iteri (fun i it -> walk_actual (it.Syntax, i)); endLine()
+            endWith "]"
 
 
     and walk_dispatch (receiver: AstNode<ExprSyntax>, method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"dispatch\", "
+        endLineWith "\"kind\": \"dispatch\", "
            
         text "\"receiver\": "
-        walk_expr receiver.Syntax; end_line_with ", "
+        walk_expr receiver.Syntax; endLineWith ", "
         
-        end_line_with $"\"method\": \"%s{method_id.Syntax.Value}\", "
+        endLineWith $"\"method\": \"%s{method_id.Syntax.Value}\", "
 
         text "\"actuals\": "
-        walk_actuals actuals; end_line()
+        walk_actuals actuals; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     and walk_implicit_this_dispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"implicit_this_dispatch\", "
-        end_line_with $"\"method\": \"%s{method_id.Syntax.Value}\", "
+        endLineWith "\"kind\": \"implicit_this_dispatch\", "
+        endLineWith $"\"method\": \"%s{method_id.Syntax.Value}\", "
 
         text "\"actuals\": "
-        walk_actuals actuals; end_line()
+        walk_actuals actuals; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     and walk_super_dispatch (method_id: AstNode<ID>, actuals: AstNode<ExprSyntax> []): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"super_dispatch\", "
-        end_line_with $"\"method\": \"%s{method_id.Syntax.Value}\", "
+        endLineWith "\"kind\": \"super_dispatch\", "
+        endLineWith $"\"method\": \"%s{method_id.Syntax.Value}\", "
 
         text "\"actuals\": "
-        walk_actuals actuals; end_line()
+        walk_actuals actuals; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     // Object creation
     and walk_object_creation (type_name: AstNode<TYPENAME>, actuals: AstNode<ExprSyntax> []): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"new\", "
-        end_line_with $"\"type\": \"%s{type_name.Syntax.Value}\", "
+        endLineWith "\"kind\": \"new\", "
+        endLineWith $"\"type\": \"%s{type_name.Syntax.Value}\", "
 
         text "\"actuals\": "
-        walk_actuals actuals; end_line()
+        walk_actuals actuals; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     // Bool negation
     and walk_bool_negation (expr: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"!\", "
+        endLineWith "\"kind\": \"!\", "
            
         text "\"expr\": "
-        walk_expr expr.Syntax; end_line()
+        walk_expr expr.Syntax; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     // Compare
     and walk_comparison (left: AstNode<ExprSyntax>, op: string, right: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with $"\"kind\": \"%s{op}\", "
+        endLineWith $"\"kind\": \"%s{op}\", "
            
-        end_line_with "\"left\": "
-        walk_expr left.Syntax; end_line_with ", "
+        endLineWith "\"left\": "
+        walk_expr left.Syntax; endLineWith ", "
 
-        end_line_with "\"right\": "
-        walk_expr right.Syntax; end_line()
+        endLineWith "\"right\": "
+        walk_expr right.Syntax; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     // Unary minus
     and walk_unary_minus (expr: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"-\", "
+        endLineWith "\"kind\": \"-\", "
            
         text "\"expr\": "
-        walk_expr expr.Syntax; end_line()
+        walk_expr expr.Syntax; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     // Arith
     and walk_arith (left: AstNode<ExprSyntax>, op: string, right: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with $"\"kind\": \"%s{op}\", "
+        endLineWith $"\"kind\": \"%s{op}\", "
            
         text "\"left\": "
-        walk_expr left.Syntax; end_line_with ", "
+        walk_expr left.Syntax; endLineWith ", "
 
         text "\"right\": "
-        walk_expr right.Syntax; end_line()
+        walk_expr right.Syntax; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     // Parenthesized expr
     and walk_parens_expr (expr: AstNode<ExprSyntax>): unit =
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with "\"kind\": \"parenthesized\", "
+        endLineWith "\"kind\": \"parenthesized\", "
            
         text "\"expr\": "
-        walk_expr expr.Syntax; end_line()
+        walk_expr expr.Syntax; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     and walk_var_formal (var_formal: VarFormalSyntax, index: int): unit =
         if index > 0
         then
-            end_line_with ", "
+            endLineWith ", "
             
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with $"\"name\": \"%s{var_formal.ID.Syntax.Value}\", "
-        end_line_with $"\"type\": \"%s{var_formal.TYPE.Syntax.Value}\""
+        endLineWith $"\"name\": \"%s{var_formal.ID.Syntax.Value}\", "
+        endLineWith $"\"type\": \"%s{var_formal.TYPE.Syntax.Value}\""
 
-        end_with "}"
+        endWith "}"
 
 
     and walk_var_formals (var_formals: AstNode<VarFormalSyntax> []): unit =
@@ -425,22 +425,22 @@ type AstRenderer private () =
         then
             text "[]"
         else
-            begin_with "[ "
-            var_formals |> Array.iteri (fun i it -> walk_var_formal(it.Syntax, i)); end_line()
-            end_with "]"
+            beginWith "[ "
+            var_formals |> Array.iteri (fun i it -> walk_var_formal(it.Syntax, i)); endLine()
+            endWith "]"
 
 
     and walk_formal (formal: FormalSyntax, index: int): unit =
         if index > 0
         then
-            end_line_with ", "
+            endLineWith ", "
             
-        begin_with "{"
+        beginWith "{"
 
-        end_line_with $"\"name\": \"%s{formal.ID.Syntax.Value}\", "
-        end_line_with $"\"type\": \"%s{formal.TYPE.Syntax.Value}\""
+        endLineWith $"\"name\": \"%s{formal.ID.Syntax.Value}\", "
+        endLineWith $"\"type\": \"%s{formal.TYPE.Syntax.Value}\""
         
-        end_with "}"
+        endWith "}"
 
 
     and walk_formals (formals: AstNode<FormalSyntax> []): unit =
@@ -448,21 +448,21 @@ type AstRenderer private () =
         then
             text "[]"
         else
-            begin_with "[ "
-            formals |> Array.iteri (fun i it -> walk_formal(it.Syntax, i)); end_line()
-            end_with "]"
+            beginWith "[ "
+            formals |> Array.iteri (fun i it -> walk_formal(it.Syntax, i)); endLine()
+            endWith "]"
 
 
     and walk_method (method_syntax: MethodSyntax): unit =
-        begin_with "{"
+        beginWith "{"
         
-        end_line_with "\"kind\": \"method\", "
-        end_line_with $"\"name\": \"%s{method_syntax.ID.Syntax.Value}\", "
-        end_line_with $"\"type\": \"%s{method_syntax.RETURN.Syntax.Value}\", "
-        end_line_with $"\"overriden\": %b{method_syntax.Override}, "
+        endLineWith "\"kind\": \"method\", "
+        endLineWith $"\"name\": \"%s{method_syntax.ID.Syntax.Value}\", "
+        endLineWith $"\"type\": \"%s{method_syntax.RETURN.Syntax.Value}\", "
+        endLineWith $"\"overriden\": %b{method_syntax.Override}, "
         
-        end_line_with "\"formals\": "
-        walk_formals method_syntax.Formals; end_line_with ", "
+        endLineWith "\"formals\": "
+        walk_formals method_syntax.Formals; endLineWith ", "
         
         text "\"body\": "
         match method_syntax.Body.Syntax with
@@ -470,106 +470,106 @@ type AstRenderer private () =
             walk_expr expr
         | MethodBodySyntax.Native ->
             text ("\"native\"")
-        end_line()
+        endLine()
         
-        end_with "}"
+        endWith "}"
 
 
     and walk_attr (attr_syntax: AttrSyntax): unit =
-        begin_with "{"
+        beginWith "{"
            
-        end_line_with "\"kind\": \"attribute\", " 
-        end_line_with $"\"name\": \"%s{attr_syntax.ID.Syntax.Value}\", "
-        end_line_with $"\"type\": \"%s{attr_syntax.TYPE.Syntax.Value}\", "
+        endLineWith "\"kind\": \"attribute\", "
+        endLineWith $"\"name\": \"%s{attr_syntax.ID.Syntax.Value}\", "
+        endLineWith $"\"type\": \"%s{attr_syntax.TYPE.Syntax.Value}\", "
 
         text "\"value\": "
         match attr_syntax.Initial.Syntax with
         | AttrInitialSyntax.Expr expr ->
             walk_expr expr
         | AttrInitialSyntax.Native ->
-            end_line_with ("\"native\"")
-        end_line()
+            endLineWith ("\"native\"")
+        endLine()
         
-        end_with "}"
+        endWith "}"
 
 
     and walk_extends (inheritance_syntax: InheritanceSyntax voption): unit =
         match inheritance_syntax with
         | ValueSome (InheritanceSyntax.Extends extends_syntax) ->
-            begin_with "{"
-            end_line_with $"\"type\": \"%s{extends_syntax.SUPER.Syntax.Value}\", "
+            beginWith "{"
+            endLineWith $"\"type\": \"%s{extends_syntax.SUPER.Syntax.Value}\", "
             text "\"actuals\": "
-            walk_actuals (extends_syntax.Actuals); end_line()
-            end_with "}"
+            walk_actuals (extends_syntax.Actuals); endLine()
+            endWith "}"
         | ValueNone ->
-            begin_with "{"
-            end_line_with "\"type\": \"Any\", "
-            end_line_with "\"actuals\": []"
-            end_line()
-            end_with "}"
+            beginWith "{"
+            endLineWith "\"type\": \"Any\", "
+            endLineWith "\"actuals\": []"
+            endLine()
+            endWith "}"
         | ValueSome InheritanceSyntax.Native ->
-            end_line_with "\"native\""
+            endLineWith "\"native\""
 
 
-     and walk_features (features: AstNode<FeatureSyntax> []): unit =
-        let visit_feature (feature_node: AstNode<FeatureSyntax>) (index: int): unit =
+     and walkFeatures (features: AstNode<FeatureSyntax> []): unit =
+        let visitFeature (feature_node: AstNode<FeatureSyntax>) (index: int): unit =
             if index > 0
             then
-                end_line_with ", "
-                
+                endLineWith ", "
+
             match feature_node.Syntax with
             | FeatureSyntax.Method method_syntax ->
                 walk_method method_syntax
             | FeatureSyntax.Attr attr_syntax ->
                 walk_attr attr_syntax
             | FeatureSyntax.BracedBlock block_syntax_opt ->
-                begin_with "{"
-                
-                end_line_with "\"kind\": \"block\", "
+                beginWith "{"
+
+                endLineWith "\"kind\": \"block\", "
                 text "\"statements\": "
-                walk_braced_block block_syntax_opt; end_line()
-                
-                end_with "}"
+                walk_braced_block block_syntax_opt; endLine()
 
-        begin_with "["
-        features |> Array.iteri (fun i it -> visit_feature it i); end_line()
-        end_with "]"
+                endWith "}"
+
+        beginWith "["
+        features |> Array.iteri (fun i it -> visitFeature it i); endLine()
+        endWith "]"
 
 
-     and walk_class (class_syntax: ClassSyntax): unit =
-        begin_with "{"
+     and walkClass (class_syntax: ClassSyntax): unit =
+        beginWith "{"
         
-        end_line_with $"\"name\": \"%s{class_syntax.NAME.Syntax.Value}\", "
+        endLineWith $"\"name\": \"%s{class_syntax.NAME.Syntax.Value}\", "
         
         text "\"varformals\": "
-        walk_var_formals class_syntax.VarFormals; end_line_with ", "
+        walk_var_formals class_syntax.VarFormals; endLineWith ", "
 
         text "\"extends\": "
-        walk_extends (class_syntax.Extends |> ValueOption.map (fun it -> it.Syntax)); end_line_with ", "
+        walk_extends (class_syntax.Extends |> ValueOption.map (fun it -> it.Syntax)); endLineWith ", "
 
         text "\"body\": "
-        walk_features class_syntax.Features; end_line()
+        walkFeatures class_syntax.Features; endLine()
 
-        end_with "}"
+        endWith "}"
 
 
     // Program
     and walk_program (program_syntax: ProgramSyntax): unit =
-        end_line_with "{"
-        end_line_with "\"classes\": ["
+        endLineWith "{"
+        endLineWith "\"classes\": ["
         
         program_syntax.Classes
         |> Array.iteri (fun i it ->
             if i > 0
             then
-                end_line_with ", "; end_line()
+                endLineWith ", "; endLine()
                 
-            walk_class it.Syntax
+            walkClass it.Syntax
         )
-        end_line()
+        endLine()
         
-        end_line_with "]"
-        end_line_with "}"
+        endLineWith "]"
+        endLineWith "}"
 
 
     member private this.Render(program_syntax: ProgramSyntax): unit =

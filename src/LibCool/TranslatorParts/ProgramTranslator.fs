@@ -38,11 +38,11 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     do _context.StrConsts.GetOrAdd("") |> ignore
 
     
-    let translate_class (class_node: AstNode<ClassSyntax>): string =
+    let translateClass (class_node: AstNode<ClassSyntax>): string =
         ClassTranslator(_context, class_node.Syntax).Translate()
         
         
-    let translate_int_const (int_const: ConstSetItem<int>): unit =
+    let translateIntConst (int_const: ConstSetItem<int>): unit =
         let tag_field_size_in_bytes = 8
         let size_field_size_in_bytes = 8
         let vtable_addr_field_size_in_bytes = 8
@@ -83,7 +83,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 .AsUnit()
         
         
-    let translate_str_const (str_const: ConstSetItem<string>): unit =
+    let translateStrConst (str_const: ConstSetItem<string>): unit =
         let ascii_bytes = Encoding.ASCII.GetBytes(str_const.Value)
         let len_const_label = _context.IntConsts.GetOrAdd(ascii_bytes.Length)
         
@@ -142,15 +142,15 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 .AsUnit()
     
     
-    let emit_consts (): unit =
+    let emitConsts (): unit =
         // Add class names to string constants -- class name table needs these.
         _context.ClassSymMap.Values
         |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
         |> Seq.iter (fun class_sym -> _context.StrConsts.GetOrAdd(class_sym.Name.Value) |> ignore)
         
         // Translate.
-        _context.StrConsts.Items |> Seq.iter translate_str_const
-        _context.IntConsts.Items |> Seq.iter translate_int_const
+        _context.StrConsts.Items |> Seq.iter translateStrConst
+        _context.IntConsts.Items |> Seq.iter translateIntConst
     
     
     let emit_class_name_table(): unit =
@@ -240,11 +240,11 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     member this.Translate(): string =
         let sb_code = StringBuilder()
         for class_syntax in _program_syntax.Classes do
-            let class_frag = translate_class class_syntax
+            let class_frag = translateClass class_syntax
             sb_code.Append(class_frag)
                    .AsUnit()
         
-        emit_consts()
+        emitConsts()
         emit_class_name_table()
         emit_class_parent_table()
         emit_class_vtables()

@@ -8,12 +8,12 @@ module Program =
     let cool_programs_path = @"../../../CoolPrograms"
     
     
-    let print_cool_program_paths () =
+    let printCoolProgramPaths () =
         Directory.EnumerateFiles(cool_programs_path, "*.cool", SearchOption.AllDirectories)
         |> Seq.iter (fun it -> printfn "%s" (it.Replace(cool_programs_path + "\\", "").Replace("\\", "/")))
         
         
-    let print_cool_program_paths2 () =
+    let printCoolProgramPaths2 () =
         
         let rec enum_files (directory: string): string seq =
             Seq.concat [
@@ -24,7 +24,7 @@ module Program =
         |> Seq.iter (fun it -> printfn "%s" (it.Replace(cool_programs_path + "\\", "").Replace("\\", "/")))
         
         
-    let print_cool_program_paths3 () =
+    let printCoolProgramPaths3 () =
         
         let rec enum_files (directory: string) (files: List<string>) =
             files.AddRange(Directory.EnumerateFiles(directory, "*.cool"))
@@ -39,5 +39,5 @@ module Program =
 
 
     let [<EntryPoint>] main _ =
-        print_cool_program_paths3 ()
+        printCoolProgramPaths3 ()
         0

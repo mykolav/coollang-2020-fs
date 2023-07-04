@@ -18,7 +18,7 @@ type private ClassTranslator(_context: TranslationContext,
     let _expr_translator = ExprTranslator(_context, _class_syntax, _sym_table)
 
     
-    let translate_attr (attr_node: AstNode<AttrSyntax>): Res<string> =
+    let translateAttr (attr_node: AstNode<AttrSyntax>): Res<string> =
         let initial_node = attr_node.Syntax.Initial
         let expr_node =
             match initial_node.Syntax with
@@ -61,7 +61,7 @@ type private ClassTranslator(_context: TranslationContext,
         Ok (asm)
     
     
-    let translate_ctor_body (): Res<string> =
+    let translateCtorBody (): Res<string> =
 
         let asm = this.EmitAsm()
 
@@ -130,7 +130,7 @@ type private ClassTranslator(_context: TranslationContext,
         _class_syntax.Features
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsAttr)
         |> Seq.iter (fun feature_node ->
-            let attr_frag = translate_attr (feature_node.Map(fun it -> it.AsAttrSyntax))
+            let attr_frag = translateAttr (feature_node.Map(fun it -> it.AsAttrSyntax))
             if attr_frag.IsOk
             then
                 asm.Paste(attr_frag.Value)
@@ -168,7 +168,7 @@ type private ClassTranslator(_context: TranslationContext,
         Ok (asm.ToString())
     
     
-    let translate_method_body (method_syntax: MethodSyntax): Res<string> =
+    let translateMethodBody (method_syntax: MethodSyntax): Res<string> =
         let mutable override_ok = true
 
         if method_syntax.Override
@@ -257,10 +257,10 @@ type private ClassTranslator(_context: TranslationContext,
                    .ToString())
 
         
-    let translate_method (method_name: string)
-                         (method_span: Span)
-                         (translate_body: unit -> Res<string>)
-                         : Res<string> =
+    let translateMethod (method_name: string)
+                        (method_span: Span)
+                        (translate_body: unit -> Res<string>)
+                        : Res<string> =
         _context.RegSet.AssertAllFree()
         _sym_table.EnterMethod()
 
@@ -294,7 +294,7 @@ type private ClassTranslator(_context: TranslationContext,
                                      _class_syntax.VarFormals[_class_syntax.VarFormals.Length - 1].Span.Last)
                         else _class_syntax.NAME.Span
             
-        let method_frag = translate_method ctor_name ctor_span translate_ctor_body
+        let method_frag = translateMethod ctor_name ctor_span translateCtorBody
         if method_frag.IsOk
         then
             asm.Paste(method_frag.Value)
@@ -305,9 +305,9 @@ type private ClassTranslator(_context: TranslationContext,
             then
                 let method_node = feature_node.Map(fun it -> it.AsMethodSyntax)
                 let method_name = $"{_class_syntax.NAME.Syntax}.{method_node.Syntax.ID.Syntax}"
-                let method_frag = translate_method method_name
+                let method_frag = translateMethod method_name
                                                    method_node.Span
-                                                   (fun () -> translate_method_body method_node.Syntax)
+                                                   (fun () -> translateMethodBody method_node.Syntax)
                 if method_frag.IsOk
                 then
                     asm.Paste(method_frag.Value)

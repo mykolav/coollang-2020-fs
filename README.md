@@ -20,22 +20,31 @@ This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of 
 
 ## Contents
 
-  * [Cool 2020](#cool-2020)
-    + [CoolAid: The Cool 2020 Reference Manual](#coolaid-the-cool-2020-reference-manual)
-    + [An antlr4 grammar for Cool 2020](#an-antlr4-grammar-for-cool-2020)
-    + [Precendence](#precendence)
-  * [Work in progress](#work-in-progress)
-  * [Build](#build)
-    + [Install .NET 6 SDK](#install-net-6-sdk)
-    + [Install GNU Binutils](#install-gnu-binutils)
-    + [Build the compiler](#build-the-compiler)
-  * [Compiler usage](#compiler-usage)
-    + [Synopsis](#synopsis)
-    + [Examples](#examples)
-  * [Implementation remarks](#implementation-remarks)
-  * [Useful links](#useful-links)
-  * [Credits](#credits)
-  * [License](#license)
+- [Compiler of Cool 2020 (a small Scala subset) into x86-64 assembly, in F#](#compiler-of-cool-2020-a-small-scala-subset-into-x86-64-assembly-in-f)
+  - [Contents](#contents)
+- [Cool 2020](#cool-2020)
+  - [CoolAid: The Cool 2020 Reference Manual](#coolaid-the-cool-2020-reference-manual)
+  - [An antlr4 grammar for Cool 2020](#an-antlr4-grammar-for-cool-2020)
+  - [Precendence](#precendence)
+- [Work in progress](#work-in-progress)
+- [Build](#build)
+  - [Install .NET 6 SDK](#install-net-6-sdk)
+    - [_Windows_](#windows)
+    - [_Linux_](#linux)
+    - [Check installation](#check-installation)
+  - [Install GNU Binutils](#install-gnu-binutils)
+    - [_Windows_](#windows-1)
+      - [Troubleshooting **... relocation truncated to fit: R\_X86\_64\_32S ...**](#troubleshooting--relocation-truncated-to-fit-r_x86_64_32s-)
+    - [_Linux_](#linux-1)
+  - [Build the compiler](#build-the-compiler)
+- [Compiler usage](#compiler-usage)
+  - [Synopsis](#synopsis)
+  - [Examples](#examples)
+    - [Test programs](#test-programs)
+- [Implementation remarks](#implementation-remarks)
+- [Useful links](#useful-links)
+- [Credits](#credits)
+- [License](#license)
 
 ---
 
@@ -451,7 +460,7 @@ Used as an imperative/OO language, F# has many and many nice features. More main
 
 Plus, F# is a low ceremony, low syntactic noise language. In this respect, you can think of F# as Python but statically typed.
 
- The code contains a notable deviation from [F# formatting guidelines](https://docs.microsoft.com/en-us/dotnet/fsharp/style-guide/formatting). The guidelines recommend camelCase naming for `let` bindings. But I use snake-case naming in `let` bindingis. It's just a personal preference for a hobby project.
+ The code contains a notable deviation from [F# formatting guidelines](https://docs.microsoft.com/en-us/dotnet/fsharp/style-guide/formatting). The guidelines recommend camelCase naming for all `let` bindings. But I use camelCase for function bindings and snake-case for value bindings. This way function and value binding are easier to tell apart at a glance.
 
 # Useful links
 

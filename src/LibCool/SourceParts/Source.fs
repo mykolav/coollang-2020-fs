@@ -69,7 +69,7 @@ type Source(partSeq: seq<SourcePart>) =
         Array.ofSeq acc_offsets
 
     
-    let ensure_in_range (offset: uint32) =
+    let ensureInRange (offset: uint32) =
         // We treat (offset = _size) as a valid case to accomodate
         // diagnostics that have their location at EOF.
         // E.g., if the parsers goes to the end of file looking for ')'
@@ -82,7 +82,7 @@ type Source(partSeq: seq<SourcePart>) =
     
     // Binary search the exact or closest left index of an offset in an array of offsets
     let index_of offset offsets =
-        ensure_in_range offset
+        ensureInRange offset
 
         let search_result = Array.BinarySearch(offsets, offset)
         let index = if search_result >= 0
@@ -112,7 +112,7 @@ type Source(partSeq: seq<SourcePart>) =
     
     
     member _.Item with get(offset: uint32): char =
-        ensure_in_range offset
+        ensureInRange offset
         _content[int offset]
         
     

@@ -84,7 +84,7 @@ type EmitExeHandler(_writer: IWriteLine) =
     
     static member Assemble(asm: string, obj_file: string) : string[] =
         ProcessRunner.Run(exe_name="as", args= $"-o %s{obj_file}", stdin=asm)
-        |> ProcessOutputParser.split_in_lines
+        |> ProcessOutputParser.splitInLines
         |> Array.ofSeq
 
 
@@ -115,7 +115,7 @@ type EmitExeHandler(_writer: IWriteLine) =
             
         ProcessRunner.Run(exe_name="ld",
                           args=ld_args.ToString())
-        |> ProcessOutputParser.split_in_lines
+        |> ProcessOutputParser.splitInLines
         |> Array.ofSeq
     
     

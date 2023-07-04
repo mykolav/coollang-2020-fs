@@ -30,14 +30,14 @@ type CompilerTestCaseSource private () =
                                    "Life.cool" |]
     
     
-    static let is_excluded_path (path: string): bool =
+    static let isExcludedPath (path: string): bool =
         excluded_files |> Seq.exists (fun it -> path.EndsWith(it))
     
     
-    static let discover_compiler_test_cases () =
+    static let discoverCompilerTestCases () =
         let test_cases =
             Directory.EnumerateFiles(programs_discovery_path, "*.cool", SearchOption.AllDirectories)
-            |> Seq.where (fun it -> not (is_excluded_path it))
+            |> Seq.where (fun it -> not (isExcludedPath it))
             |> Seq.map (fun it -> [| it.Replace(programs_discovery_path, "")
                                        .Replace("\\", "/") :> obj |])
             |> Array.ofSeq
@@ -49,7 +49,7 @@ type CompilerTestCaseSource private () =
     static member ProgramsPath = "../CoolPrograms/"
 
 
-    static member TestCases = discover_compiler_test_cases ()
+    static member TestCases = discoverCompilerTestCases ()
 
 
 [<AutoOpen>]    
@@ -60,13 +60,13 @@ module private CompilerTestCaseParser =
     let re_expected_output = Regex("//\\s*OUT:\\s*", RegexOptions.Compiled)
 
     
-    let take_matching_lines (lines: seq<string>) (re: Regex) =
+    let takeMatchingLines (lines: seq<string>) (re: Regex) =
         lines
         |> Seq.filter(fun it -> re.IsMatch(it))
         |> Seq.map(fun it -> re.Replace(it, ""))
 
 
-    let take_snippet (lines: seq<string>): string =
+    let takeSnippet (lines: seq<string>): string =
         let sb = StringBuilder()
         lines
         |> Seq.takeWhile (fun it -> not (re_expected_diags.IsMatch(it) || re_expected_output.IsMatch(it)))
@@ -88,9 +88,9 @@ type CompilerTestCase =
         let lines = File.ReadAllLines(path) |> Seq.map (fun it -> it.Trim())
         { Path = path
           FileName = Path.GetFileNameWithoutExtension(path)
-          ExpectedDiags = take_matching_lines lines re_expected_diags
-          ExpectedOutput = take_matching_lines lines re_expected_output
-          Snippet = take_snippet lines }
+          ExpectedDiags = takeMatchingLines lines re_expected_diags
+          ExpectedOutput = takeMatchingLines lines re_expected_output
+          Snippet = takeSnippet lines }
 
 
 [<IsReadOnly; Struct>]
@@ -108,8 +108,8 @@ type ProgramOutput =
 module private CompilerTestCaseOutputParser =
     
     
-    let parse_clc_output (clc_output: string): CompilerOutput =
-        let lines = ProcessOutputParser.split_in_lines clc_output
+    let parseClcOutput (clc_output: string): CompilerOutput =
+        let lines = ProcessOutputParser.splitInLines clc_output
         
         let diags = List<string>()
         let binutils_diags = List<string>()
@@ -135,18 +135,18 @@ module private CompilerTestCaseOutputParser =
           BinutilsDiags = binutils_diags }
 
 
-    let parse_program_output (program_output: string): ProgramOutput =
-        { Output = ProcessOutputParser.split_in_lines program_output }
+    let parseProgramOutput (program_output: string): ProgramOutput =
+        { Output = ProcessOutputParser.splitInLines program_output }
 
     
 type CompilerOutput
 with
     static member Parse(clc_output: string): CompilerOutput =
-        parse_clc_output clc_output
+        parseClcOutput clc_output
 
     
 type ProgramOutput
 with
     static member Empty: ProgramOutput = { Output = [] }
     static member Parse(program_output: string): ProgramOutput =
-        parse_program_output program_output
+        parseProgramOutput program_output

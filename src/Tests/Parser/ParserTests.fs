@@ -18,11 +18,11 @@ type ParserTestCase =
 type ParserTestCaseSource private () =
     
     
-    static let map_parser_test_cases (snippets: string[]) =
+    static let mapParserTestCases (snippets: string[]) =
         snippets |> Array.map (fun it -> [| { ParserTestCase.Snippet = Snippet(it) } :> obj |])
 
     
-    static member ParserTestCases = map_parser_test_cases [|
+    static member ParserTestCases = mapParserTestCases [|
         ""
         CoolSnippets.Fib
         CoolSnippets.QuickSort

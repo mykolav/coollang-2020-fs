@@ -10,11 +10,11 @@ open Tests.Compiler
 type AssertCompilerTestCaseOutput private () =
 
 
-    static let format_mismatches (title: string)
-                                 (cool_snippet: string)
-                                 (expected_len: int)
-                                 (actual_len: int)
-                                 (mismatches: seq<Mismatch>): string =
+    static let formatMismatches (title: string)
+                                (cool_snippet: string)
+                                (expected_len: int)
+                                (actual_len: int)
+                                (mismatches: seq<Mismatch>): string =
         let mismatch_positions = mismatches |> Seq.map (fun it -> it.At)
 
         let message = StringBuilder()
@@ -48,7 +48,7 @@ type AssertCompilerTestCaseOutput private () =
         AssertStringSeq.EmptyMismatches(diag_mismatches,
                                         Seq.length tc.ExpectedDiags,
                                         Seq.length co.Diags,
-                                        format_mismatches "DIAGS:" tc.Snippet)
+                                        formatMismatches "DIAGS:" tc.Snippet)
 
         let expected_binutils_diags = []
         let actual_binutils_diags = co.BinutilsDiags
@@ -56,10 +56,10 @@ type AssertCompilerTestCaseOutput private () =
         AssertStringSeq.EmptyMismatches(binutils_diag_mismatches,
                                         Seq.length expected_binutils_diags,
                                         Seq.length actual_binutils_diags,
-                                        format_mismatches "BINUTILS DIAGS:" tc.Snippet)
+                                        formatMismatches "BINUTILS DIAGS:" tc.Snippet)
 
         let output_mismatches = StringSeq.compare tc.ExpectedOutput po.Output
         AssertStringSeq.EmptyMismatches(output_mismatches,
                                         Seq.length tc.ExpectedOutput,
                                         Seq.length po.Output,
-                                        format_mismatches "OUTPUT" tc.Snippet)
+                                        formatMismatches "OUTPUT" tc.Snippet)

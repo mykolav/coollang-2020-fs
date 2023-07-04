@@ -26,7 +26,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
         let diagnostic_bag = DiagnosticBag()
 
         // Lex
-        let do_parse () =
+        let doParse () =
 
             let lexer = Lexer(source, diagnostic_bag)
             let tokens = TokenArray.ofLexer lexer
@@ -38,15 +38,15 @@ type Sandbox(_test_output: ITestOutputHelper) =
             else
 
             let ast = Parser.Parse(tokens, diagnostic_bag)
-                
+
             if diagnostic_bag.ErrorsCount <> 0
             then
                 ValueNone
             else
-                
+
             ValueSome ast
-        
-        let ast_opt = do_parse()
+
+        let ast_opt = doParse()
         
         DiagRenderer.Render(diagnostic_bag,
                             source,
@@ -78,7 +78,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Heap1.cool")
 
         // Act
-        let clc_output = run_clc_in_process ([ path; "-S" ])
+        let clc_output = runClcInProcess ([ path; "-S" ])
         
         _test_output.WriteLine("===== clc: =====")
         _test_output.WriteLine(clc_output)

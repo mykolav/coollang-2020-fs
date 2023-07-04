@@ -12,7 +12,7 @@ type Indent(?width: int) =
     let mutable _level = 0
     
     
-    let mk_value () =
+    let mkValue () =
         let count = _level * _width
         if count = 0
         then
@@ -21,12 +21,12 @@ type Indent(?width: int) =
             String(' ', count = _level * _width)
             
             
-    let mutable _value = mk_value ()
+    let mutable _value = mkValue ()
     
     
     member this.Increase() =
         _level <- _level + 1
-        _value <- mk_value ()
+        _value <- mkValue ()
         
     
     member this.Decrease() =
@@ -35,9 +35,7 @@ type Indent(?width: int) =
             invalidOp "An indent's level cannot go less than 0"
             
         _level <- _level - 1
-        _value <- mk_value ()
+        _value <- mkValue ()
        
     
     override this.ToString() = _value
-
-

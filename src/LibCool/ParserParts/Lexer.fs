@@ -18,17 +18,17 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
     let span (): Span = Span.Of(_token_start, _offset)
             
             
-    let peek_char () : char = _source[_offset]
+    let peekChar () : char = _source[_offset]
     
     
-    let is_letter (ch: char): bool = Char.IsLetter(ch) || ch = '_'
-    let is_digit (ch: char): bool = Char.IsDigit(ch)
+    let isLetter (ch: char): bool = Char.IsLetter(ch) || ch = '_'
+    let isDigit (ch: char): bool = Char.IsDigit(ch)
     
 
-    let is_eof (): bool = _offset = _source.Size
+    let isEof (): bool = _offset = _source.Size
         
     
-    let is_ahead (substring: string): bool =
+    let isAhead (substring: string): bool =
         if uint32 substring.Length > (_source.Size - _offset)
         then
             false
@@ -44,7 +44,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         equal
     
     
-    let eat_chars (n: uint32) : unit =
+    let eatChars (n: uint32) : unit =
         if _offset + n > _source.Size
         then
             invalidOp $"_offset [%d{_offset}] + [%d{n}] is > _source.Size [%d{_source.Size}]"
@@ -52,23 +52,23 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         _offset <- _offset + n
         
     
-    let eat_char () : unit = eat_chars 1u
+    let eatChar () : unit = eatChars 1u
 
 
-    let eat_ws_crlf (): unit =
-        while not (is_eof()) && Char.IsWhiteSpace(peek_char()) do
-            eat_char()
+    let eatWsCrlf (): unit =
+        while not (isEof()) && Char.IsWhiteSpace(peekChar()) do
+            eatChar()
             
             
-    let try_eat_linebreak(): Span voption =
-        let ch = peek_char()
+    let tryEatLinebreak(): Span voption =
+        let ch = peekChar()
         if ch = '\r' || ch = '\n'
         then
-            eat_char()
+            eatChar()
             let linebreak_len = 
-                if ch = '\r' && peek_char() = '\n'
+                if ch = '\r' && peekChar() = '\n'
                 then
-                    eat_char()
+                    eatChar()
                     2u
                 else
                     1u
@@ -79,7 +79,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         ValueNone
         
         
-    let id_kind (id: string): TokenKind =
+    let idKind (id: string): TokenKind =
         match id with
         // Keywords
         | "case" -> TokenKind.KwCase 
@@ -139,43 +139,43 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
     ]
 
     
-    let lex_identifier_or_keyword(): Token =
-        let sb_id = StringBuilder(peek_char().ToString())
+    let lexIdentifierOrKeyword(): Token =
+        let sb_id = StringBuilder(peekChar().ToString())
         let mutable token_complete = false
         
         while not token_complete do
-            eat_char()
+            eatChar()
             
-            if is_eof()
+            if isEof()
             then
                 token_complete <- true
             else
             
-            let ch = peek_char()
+            let ch = peekChar()
             
-            token_complete <- not (is_letter ch || is_digit ch)
+            token_complete <- not (isLetter ch || isDigit ch)
             if not token_complete
             then
                 sb_id.Append(ch.ToString()) |> ignore
             
-        Token.Of(id_kind (sb_id.ToString()), span())
+        Token.Of(idKind (sb_id.ToString()), span())
         
         
-    let lex_integer_literal(): Token =
-        let sb_int = StringBuilder(peek_char().ToString())
+    let lexIntegerLiteral(): Token =
+        let sb_int = StringBuilder(peekChar().ToString())
         let mutable token_complete = false
         
         while not token_complete do
-            eat_char()
+            eatChar()
             
-            if is_eof()
+            if isEof()
             then
                 token_complete <- true
             else
             
-            let ch = peek_char()
+            let ch = peekChar()
             
-            token_complete <- not (is_digit ch)
+            token_complete <- not (isDigit ch)
             if not token_complete
             then
                 sb_int.Append(ch.ToString()) |> ignore
@@ -190,22 +190,22 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         Token.Invalid(span())
         
         
-    let lex_forward_slash_or_eat_comment(): Token option =
-        eat_char()
+    let lexForwardSlashOrEatComment(): Token option =
+        eatChar()
 
-        if is_eof()
+        if isEof()
         then
             Some (Token.Of(TokenKind.Slash, span()))
         else
             
-        let ch1 = peek_char()
+        let ch1 = peekChar()
         
         if ch1 = '/'
         then
             // line comment
-            eat_char()
-            while not (is_eof()) && try_eat_linebreak().IsNone do
-                eat_char()
+            eatChar()
+            while not (isEof()) && tryEatLinebreak().IsNone do
+                eatChar()
             
             None
         else
@@ -213,14 +213,14 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         if ch1 = '*'
         then
             // multiline comment
-            eat_char()
+            eatChar()
             let mutable is_comment_terminated = false
-            while not (is_eof()) && not is_comment_terminated do
+            while not (isEof()) && not is_comment_terminated do
                 is_comment_terminated <- 
-                    peek_char() = '*' &&
-                        (eat_char()
-                         not (is_eof()) && peek_char() = '/')
-                eat_char()
+                    peekChar() = '*' &&
+                        (eatChar()
+                         not (isEof()) && peekChar() = '/')
+                eatChar()
                 
             None
         else
@@ -228,82 +228,82 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         Some (Token.Of(TokenKind.Slash, span()))
         
     
-    let lex_qqq_string_literal(): Token option =
-        eat_chars 3u
+    let lexQqqStringLiteral(): Token option =
+        eatChars 3u
             
         let sb_qqq_literal = StringBuilder()
         let mutable token_opt: Token option = None
         
         while token_opt.IsNone do
-            if is_eof()
+            if isEof()
             then
                 _diags.Error("Unterminated string literal", span())
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_qqq_literal.ToString()),
                                             Span.Of(_token_start, _offset)))
             else
             
-            if is_ahead "\"\"\""
+            if isAhead "\"\"\""
             then
                 token_opt <- Some (Token.Of(TokenKind.TripleQuotedStringLiteral (sb_qqq_literal.ToString()),
                                             Span.Of(_token_start, _offset + 3u)))
-                eat_chars 3u
+                eatChars 3u
             else
                 
-            sb_qqq_literal.Append(peek_char()) |> ignore
-            eat_char()
+            sb_qqq_literal.Append(peekChar()) |> ignore
+            eatChar()
         
         token_opt        
     
     
-    let lex_simple_string_literal(): Token option =
-        eat_char()
+    let lexSimpleStringLiteral(): Token option =
+        eatChar()
         
         let sb_literal = StringBuilder()
         let mutable token_opt: Token option = None
 
         while token_opt.IsNone do
-            if is_eof()
+            if isEof()
             then
                 _diags.Error("Unterminated string literal", span())
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
                                             Span.Of(_token_start, _offset)))
             else
 
-            let ch1 = peek_char()
+            let ch1 = peekChar()
             if ch1 = '"'
             then
                 token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
                                             Span.Of(_token_start, _offset + 1u)))
-                eat_char()
+                eatChar()
             else
                 
             if ch1 = '\\'
             then
-                eat_char()
+                eatChar()
                 // We treat code similar to the following `\ \r\n`
                 // as an escaped line-break, in spite of the fact
                 // there's a space between `\` and `\r\n`.
                 // This is consistent with real compilers, AFAIK.
-                while not (is_eof()) &&
-                      (let ch = peek_char()
+                while not (isEof()) &&
+                      (let ch = peekChar()
                        Char.IsWhiteSpace(ch) && ch <> '\r' && ch <> '\n') do
-                    eat_char()
+                    eatChar()
                 
-                if is_eof()
+                if isEof()
                 then
                     _diags.Error("Unterminated string literal", span())
                     token_opt <- Some (Token.Of(TokenKind.StringLiteral (sb_literal.ToString()),
                                                 Span.Of(_token_start, _offset)))
                 else
 
-                let ch2 = peek_char()
+                let ch2 = peekChar()
                 let is_linebreak = ch2 = '\r' || ch2 = '\n'
 
                 // If a line-break is ahead of us, we do nothing.
                 // A dedicated branch outside of the escaped chars processing code will deal with it.                         
                 if not is_linebreak
                 then
-                    eat_char()
+                    eatChar()
                     
                     if _escaped_char_map.ContainsKey(ch2)
                     then
@@ -312,29 +312,29 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                         _diags.Error("Invalid escaped char in the string literal", Span.Of(_offset - 2u, _offset))
             else
                 
-            let linebreak_span = try_eat_linebreak()
+            let linebreak_span = tryEatLinebreak()
             if linebreak_span.IsSome
             then
                 _diags.Error("String literals cannot contain line breaks", linebreak_span.Value)
             else
 
             sb_literal.Append(ch1).AsUnit()
-            eat_char()
+            eatChar()
             
         token_opt        
 
 
-    let lex_string_literal(): Token option =
+    let lexStringLiteral(): Token option =
         // Lookahead isn't, strictly speaking, necessary to lex triple-quoted string literals.
         // But looking ahead makes the code much, much simpler.
-        if is_ahead "\"\"\""
+        if isAhead "\"\"\""
         then
-            lex_qqq_string_literal()
+            lexQqqStringLiteral()
         else
-            lex_simple_string_literal()
+            lexSimpleStringLiteral()
     
     
-    let try_lex_punctuator (ch: char): Token option =
+    let tryLexPunctuator (ch: char): Token option =
         let token_kind_opt =
             match ch with
             | '+' -> Some TokenKind.Plus
@@ -342,48 +342,48 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             // a dedicated function takes care of '/' -> TokenKind.Slash 
             | '*' -> Some TokenKind.Star
             | '=' ->
-                eat_char()
-                if is_eof()
+                eatChar()
+                if isEof()
                 then
                     Some TokenKind.Equal
                 else
 
-                match peek_char() with
+                match peekChar() with
                 | '=' -> Some TokenKind.EqualEqual // ==
                 | '>' -> Some TokenKind.EqualGreater // =>
                 | _ -> Some TokenKind.Equal
             | '<' -> 
-                eat_char()
-                if is_eof()
+                eatChar()
+                if isEof()
                 then
                     Some TokenKind.Less
                 else
 
-                if peek_char() = '='
+                if peekChar() = '='
                 then
                     Some TokenKind.LessEqual // <=
                 else
                     Some TokenKind.Less
             | '>' ->
-                eat_char()
-                if is_eof()
+                eatChar()
+                if isEof()
                 then
                     Some TokenKind.Greater
                 else
                 
-                if peek_char() = '='
+                if peekChar() = '='
                 then
                     Some TokenKind.GreaterEqual // >=
                 else
                     Some TokenKind.Greater
             | '!' ->
-                eat_char()
-                if is_eof()
+                eatChar()
+                if isEof()
                 then
                     Some TokenKind.Exclaim
                 else
 
-                if peek_char() = '='
+                if peekChar() = '='
                 then
                     Some TokenKind.ExclaimEqual // !=
                 else
@@ -406,59 +406,59 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
             if not (it = TokenKind.Equal || it = TokenKind.Less ||
                     it = TokenKind.Greater || it = TokenKind.Exclaim)
             then
-                eat_char()
+                eatChar()
                 
             Token.Of(it, span()))
         
     
     let get_next_or_eat_comment(): Token option =
-        if is_eof()
+        if isEof()
         then
             _offset <- _offset + 1u
             Some (Token.EOF(_source.Size))
         else
         
-        let ch = peek_char()
+        let ch = peekChar()
         
-        if is_letter ch
+        if isLetter ch
         then
-            Some (lex_identifier_or_keyword())
+            Some (lexIdentifierOrKeyword())
         else
             
-        if is_digit ch
+        if isDigit ch
         then
-            Some (lex_integer_literal())
+            Some (lexIntegerLiteral())
         else
         
         if ch = '/'
         then
-            lex_forward_slash_or_eat_comment()
+            lexForwardSlashOrEatComment()
         else
            
-        match try_lex_punctuator ch with
+        match tryLexPunctuator ch with
         | Some punctuator_token ->
             Some punctuator_token
         | None ->
             
         if ch = '"'
         then
-            lex_string_literal()
+            lexStringLiteral()
         else
             
-        eat_char()
+        eatChar()
 
         _diags.Error($"Unexpected character '%c{ch}'", span())
         Some (Token.Invalid(span()))
     
     
-    let get_next (): Token =
+    let getNext (): Token =
         let mutable next_opt: Token option = None
         while next_opt.IsNone do
             if _offset > _source.Size
             then
                 invalidOp $"_offset [%d{_offset}] is > _source.Size [%d{_source.Size}]"
 
-            eat_ws_crlf()
+            eatWsCrlf()
 
             _token_start <- _offset
             next_opt <- get_next_or_eat_comment()
@@ -466,4 +466,4 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
         next_opt.Value
     
     
-    member _.GetNext(): Token = get_next ()
+    member _.GetNext(): Token = getNext ()

@@ -19,7 +19,7 @@ type TokenTestCase =
 type LexerTestCaseSource private () =
 
 
-    static let map_token_test_cases (tuples: (string * Token[])[]) =
+    static let mapTokenTestCases (tuples: (string * Token[])[]) =
         tuples |> Array.map (fun (snippet, expected) ->
                                  [| { TokenTestCase.Snippet = Snippet(snippet)
                                       Expected = expected } :> obj |])
@@ -31,7 +31,7 @@ type LexerTestCaseSource private () =
     static let qqqStringContent2 = "This starts a string literal\r\nthat /*continues*/ on for several lines\n// even though it includes \"'s and \\'s and newline characters\r\nin a \"wild\" profu\\sion\\\\ of normally i\\\\egal t\"ings.\\"
 
 
-    static member TokenTestCases = map_token_test_cases [|
+    static member TokenTestCases = mapTokenTestCases [|
         //
         // Whitespace
         //

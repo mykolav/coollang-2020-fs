@@ -23,9 +23,9 @@ module private StringBuilderExtensions =
 type AssertTokens private() =
     
     
-    static let append_mismatch (expected: StringBuilder)
-                               (actual: StringBuilder)
-                               (mismatch: Mismatch) =
+    static let appendMismatch (expected: StringBuilder)
+                              (actual: StringBuilder)
+                              (mismatch: Mismatch) =
         let expected_str = $"%d{mismatch.At}: %s{mismatch.Expected}; "
         let actual_str   = $"%d{mismatch.At}: %s{mismatch.Actual}; "
 
@@ -40,13 +40,13 @@ type AssertTokens private() =
             |> ignore
 
     
-    static let format_mismatches (expected_len: int)
-                                 (actual_len: int)
-                                 (mismatches: seq<Mismatch>) =
+    static let formatMismatches (expected_len: int)
+                                (actual_len: int)
+                                (mismatches: seq<Mismatch>) =
         let expected = StringBuilder("[")
         let actual = StringBuilder("[")
                                    
-        mismatches |> Seq.iter (fun it -> append_mismatch expected actual it)
+        mismatches |> Seq.iter (fun it -> appendMismatch expected actual it)
 
         expected.Append("]") |> ignore
         actual.Append("]") |> ignore
@@ -63,16 +63,16 @@ type AssertTokens private() =
         message
 
 
-    static let str_of_token (token: Token) =
+    static let strOfToken (token: Token) =
         sprintf "%s" (token.Kind.ToString().Replace("Kind", ""))
 
     
     static member Equal(expected: seq<Token>, actual: seq<Token>) = 
-        let expected_strs = expected |> Seq.map (fun it -> str_of_token it)
-        let actual_strs = actual |> Seq.map (fun it -> str_of_token it)
+        let expected_strs = expected |> Seq.map (fun it -> strOfToken it)
+        let actual_strs = actual |> Seq.map (fun it -> strOfToken it)
         
         let mismatches = StringSeq.compare expected_strs actual_strs
         AssertStringSeq.EmptyMismatches(mismatches,
                                         Seq.length expected_strs,
                                         Seq.length actual_strs,
-                                        format_mismatches)
+                                        formatMismatches)

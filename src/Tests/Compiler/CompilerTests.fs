@@ -73,7 +73,7 @@ type CompilerTests(test_output: ITestOutputHelper) =
         let exe_file = tc.FileName + ".exe"
 
         // Act
-        let clc_output = run_clc_in_process ([ path; "-o"; exe_file ])
+        let clc_output = runClcInProcess ([ path; "-o"; exe_file ])
         
         test_output.WriteLine("===== clc: =====")
         test_output.WriteLine(clc_output)

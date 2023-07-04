@@ -9,7 +9,7 @@ open System.Text
 module ProcessOutputParser =
     
     
-    let split_in_lines (output: string): seq<string> =
+    let splitInLines (output: string): seq<string> =
         let lines = List<string>()
 
         let mutable sb_line = StringBuilder()
