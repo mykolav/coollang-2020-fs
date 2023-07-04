@@ -19,13 +19,13 @@ type AstRenderer private () =
     let indent (): unit =
         if (_is_new_line)
         then
-            _sb_ast.Append(_indent).Nop()
+            _sb_ast.Append(_indent).AsUnit()
             _is_new_line <- false
             
 
     let end_line_with (content: string): unit =
         indent()
-        _sb_ast.AppendLine(content).Nop()
+        _sb_ast.AppendLine(content).AsUnit()
         _is_new_line <- true
     
     
@@ -35,7 +35,7 @@ type AstRenderer private () =
         
     let text (content: string): unit =
         indent()
-        _sb_ast.Append(content).Nop()
+        _sb_ast.Append(content).AsUnit()
         _is_new_line <- false
         
         

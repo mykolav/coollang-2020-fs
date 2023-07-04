@@ -103,23 +103,23 @@ type Driver(?_writer: IWriteLine) =
         if source_parts.Count = 0
         then
             have_error <- true
-            sb_message.AppendLine("At least one Cool2020 source file name expected").Nop()
+            sb_message.AppendLine("At least one Cool2020 source file name expected").AsUnit()
         if o_seen > 0 && S_seen > 0
         then
             have_error <- true
-            sb_message.AppendLine("'-o' and '-S' cannot both be used at the same time").Nop()
+            sb_message.AppendLine("'-o' and '-S' cannot both be used at the same time").AsUnit()
         if o_seen > 1
         then
             have_error <- true
-            sb_message.AppendLine("'-o' can be used only once").Nop()
+            sb_message.AppendLine("'-o' can be used only once").AsUnit()
         if S_seen > 1
         then
             have_error <- true
-            sb_message.AppendLine("'-S' can be used only once").Nop()
+            sb_message.AppendLine("'-S' can be used only once").AsUnit()
         if message <> ""
         then
             have_error <- true
-            sb_message.AppendLine(message).Nop()
+            sb_message.AppendLine(message).AsUnit()
             
         if have_error
         then

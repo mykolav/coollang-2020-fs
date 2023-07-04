@@ -29,7 +29,7 @@ module ProcessOutputParser =
                 at_line_end <- true
             else if i >= output.Length
             then
-                sb_line.Append(ch).Nop()
+                sb_line.Append(ch).AsUnit()
                 at_line_end <- true
             
             if at_line_end
@@ -42,6 +42,6 @@ module ProcessOutputParser =
                 sb_line <- StringBuilder()
                 at_line_end <- false
             else
-                sb_line.Append(ch).Nop()
+                sb_line.Append(ch).AsUnit()
                 
         lines :> seq<string>

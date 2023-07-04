@@ -70,7 +70,7 @@ module private CompilerTestCaseParser =
         let sb = StringBuilder()
         lines
         |> Seq.takeWhile (fun it -> not (re_expected_diags.IsMatch(it) || re_expected_output.IsMatch(it)))
-        |> Seq.iteri (fun i it -> sb.AppendLine($"%d{i + 1}\t%s{it}").Nop())
+        |> Seq.iteri (fun i it -> sb.AppendLine($"%d{i + 1}\t%s{it}").AsUnit())
         
         sb.ToString()
 

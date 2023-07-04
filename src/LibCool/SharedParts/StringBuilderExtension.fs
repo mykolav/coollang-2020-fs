@@ -7,4 +7,4 @@ open System.Text
 
 [<Extension>]
 type StringBuilderExtensions private () =
-    [<Extension>] static member Nop(_: StringBuilder): unit = ()
+    [<Extension>] static member AsUnit(_: StringBuilder): unit = ()

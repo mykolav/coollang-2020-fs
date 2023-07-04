@@ -318,7 +318,7 @@ type Lexer(_source: Source, _diags: DiagnosticBag) =
                 _diags.Error("String literals cannot contain line breaks", linebreak_span.Value)
             else
 
-            sb_literal.Append(ch1).Nop()
+            sb_literal.Append(ch1).AsUnit()
             eat_char()
             
         token_opt        

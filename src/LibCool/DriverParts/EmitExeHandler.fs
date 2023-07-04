@@ -97,18 +97,18 @@ type EmitExeHandler(_writer: IWriteLine) =
         then
             ld_args.Append(sprintf "\"%s\" -L\"%s\" -lkernel32" (Path.Combine(rt_dir, "rt_windows.o"))
                                                                 (EmitExeHandler.ResolveLibDir()))
-                   .Nop()
+                   .AsUnit()
             
             // A workaround for the "relocation truncated to fit: R_X86_64_32S" problem.
             // See README.md for more details.
             let ld_version = EmitExeHandler.ResolveLdVersion()
             if ld_version > 234
             then
-                ld_args.Append(" --default-image-base-low").Nop()
+                ld_args.Append(" --default-image-base-low").AsUnit()
                        
         else if RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
         then
-            ld_args.Append(sprintf "\"%s\"" (Path.Combine(rt_dir, "rt_linux.o"))).Nop()
+            ld_args.Append(sprintf "\"%s\"" (Path.Combine(rt_dir, "rt_linux.o"))).AsUnit()
         else
             invalidOp ($"'%s{RuntimeInformation.OSDescription}' is not supported.%s{Environment.NewLine}" +
                        $"Use '-S' to emit assembly anyway.%s{Environment.NewLine}")

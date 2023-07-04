@@ -14,9 +14,9 @@ type StringBuilderWriter() =
     
     override _.Encoding = stdout.Encoding
     
-    override _.Write (s: string) = _sb_out.Append(s).Nop()
-    override _.WriteLine (s: string) = _sb_out.AppendLine(s).Nop()
-    override _.WriteLine() = _sb_out.AppendLine().Nop()
+    override _.Write (s: string) = _sb_out.Append(s).AsUnit()
+    override _.WriteLine (s: string) = _sb_out.AppendLine(s).AsUnit()
+    override _.WriteLine() = _sb_out.AppendLine().AsUnit()
     
     override _.ToString() = _sb_out.ToString()
 

@@ -72,7 +72,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             .AppendLine($"    .quad %s{BasicClasses.Int.Name.Value}_vtable")
             // Value
             .AppendLine($"    .quad %d{int_const.Value} # value")
-            .Nop()
+            .AsUnit()
         
         if pad_size_in_bytes > 0
         then
@@ -80,7 +80,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             _sb_data
                 .Append($"    .zero %d{pad_size_in_bytes} ")
                 .AppendLine($"# payload's size in bytes = %d{int_object_size_in_bytes}, pad to an 8 byte boundary")
-                .Nop()
+                .AsUnit()
         
         
     let translate_str_const (str_const: ConstSetItem<string>): unit =
@@ -119,19 +119,19 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             .AppendLine($"    .quad %s{len_const_label} # length = %d{ascii_bytes.Length}")
             // A comment with the string's content in human-readable form
             .AppendLine(sprintf "    # '%s'" (str_const.Value.Replace("\r", "").Replace("\n", "\\n")))
-            .Nop()
+            .AsUnit()
         
         // String content encoded in UTF8
         if ascii_bytes.Length > 0
         then
             _sb_data
                 .AppendLine(sprintf "    .byte %s" (String.Join(", ", ascii_bytes)))
-                .Nop()
+                .AsUnit()
                 
         // String terminator
         _sb_data
             .AppendLine("    .byte 0 # terminator")
-            .Nop()
+            .AsUnit()
             
         if pad_size_in_bytes > 0
         then
@@ -139,7 +139,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             _sb_data
                 .Append($"    .zero %d{pad_size_in_bytes} ")
                 .AppendLine($"# payload's size in bytes = %d{str_object_size_in_bytes}, pad to an 8 byte boundary")
-                .Nop()
+                .AsUnit()
     
     
     let emit_consts (): unit =
@@ -154,18 +154,18 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     let emit_class_name_table(): unit =
-        _sb_data.AppendLine("class_name_table:").Nop()
+        _sb_data.AppendLine("class_name_table:").AsUnit()
         
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
         |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
         |> Seq.iter (fun class_sym ->
             let name_const_label = _context.StrConsts.GetOrAdd(class_sym.Name.Value)
-            _sb_data.AppendLine($"    .quad %s{name_const_label} # %s{class_sym.Name.Value}").Nop())
+            _sb_data.AppendLine($"    .quad %s{name_const_label} # %s{class_sym.Name.Value}").AsUnit())
     
     
     let emit_class_parent_table(): unit = 
-        _sb_data.AppendLine("class_parent_table:").Nop()
+        _sb_data.AppendLine("class_parent_table:").AsUnit()
         
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
@@ -173,13 +173,13 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         |> Seq.iter (fun class_sym ->
             if class_sym.Is(BasicClasses.Any)
             then
-                _sb_data.AppendLine("    .quad -1 # Any").Nop()
+                _sb_data.AppendLine("    .quad -1 # Any").AsUnit()
             else
                 
             let super_sym = _context.ClassSymMap[class_sym.Super]
             _sb_data.Append($"    .quad %d{super_sym.Tag} ")
                     .AppendLine($"# %s{class_sym.Name.Value} extends %s{super_sym.Name.Value}")
-                    .Nop())
+                    .AsUnit())
     
     
     let emit_class_vtables(): unit = 
@@ -189,7 +189,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         |> Seq.iter (fun class_sym ->
             _sb_data
                 .AppendLine($"%s{class_sym.Name.Value}_vtable:")
-                .Nop()
+                .AsUnit()
             
             class_sym.Methods.Values
             |> Seq.sortBy (fun method_sym -> method_sym.Index)
@@ -199,7 +199,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                                             method_sym.DeclaringClass.Value
                                             method_sym.Name.Value
                                             (if method_sym.Override then "# overrides" else ""))
-                        .Nop()
+                        .AsUnit()
                 )
         )
 
@@ -217,7 +217,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             .AppendLine($"    .quad %d{proto_obj_size_in_quads} # size in quads")
             // Addr of the vtable
             .AppendLine($"    .quad %s{class_sym.Name.Value}_vtable")
-            .Nop()
+            .AsUnit()
             
         class_sym.Attrs.Values
         |> Seq.sortBy (fun attr_sym -> attr_sym.Index)
@@ -228,7 +228,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 else if attr_sym.Type = TYPENAME "String" then _context.StrConsts.GetOrAdd("")
                 else if attr_sym.Type = TYPENAME "Boolean" then "Boolean_false"
                 else "0"
-            _sb_data.AppendLine($"    .quad %s{default_value_ref} # %s{attr_sym.Name.Value}").Nop())
+            _sb_data.AppendLine($"    .quad %s{default_value_ref} # %s{attr_sym.Name.Value}").AsUnit())
     
     
     let emit_prototype_objs(): unit =
@@ -242,7 +242,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         for class_syntax in _program_syntax.Classes do
             let class_frag = translate_class class_syntax
             sb_code.Append(class_frag)
-                   .Nop()
+                   .AsUnit()
         
         emit_consts()
         emit_class_name_table()

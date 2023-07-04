@@ -26,7 +26,7 @@ type AsmBuilder(_context: TranslationContext) =
     
     
     member this.Paste(asm: string): AsmBuilder =
-        _asm.Append(asm).Nop()
+        _asm.Append(asm).AsUnit()
         this
 
         
@@ -34,7 +34,7 @@ type AsmBuilder(_context: TranslationContext) =
     member this.Instr(instruction: string, comment: string option): AsmBuilder =
         _asm.Append(_indent)
             .Append(instruction)
-            .Nop()
+            .AsUnit()
         this.Ln(?comment=comment)
 
         
@@ -92,7 +92,7 @@ type AsmBuilder(_context: TranslationContext) =
         if dst.Asm.IsSome
         then
             _asm.Append(dst.Asm.Value)
-                .Nop()
+                .AsUnit()
         
         this.Instr(instruction, src, dst.Addr, ?comment=comment)
 
@@ -102,7 +102,7 @@ type AsmBuilder(_context: TranslationContext) =
         if src.Asm.IsSome
         then
             _asm.Append(src.Asm.Value)
-                .Nop()
+                .AsUnit()
         
         this.Instr(instruction, src.Addr, dst, ?comment=comment)
 
@@ -137,13 +137,13 @@ type AsmBuilder(_context: TranslationContext) =
         
     member this.Label(label: Label, comment: string) =
         _asm.AppendFormat("{0}:", _context.LabelGen.NameOf(label))
-            .Nop()
+            .AsUnit()
         this.Ln(comment)
         
         
     member this.Label(label: string) =
         _asm.AppendFormat("{0}:", label)
-            .Nop()
+            .AsUnit()
         this.Ln()
         
         
@@ -190,7 +190,7 @@ type AsmBuilder(_context: TranslationContext) =
         _asm.Append(_indent)
             .AppendFormat("# {0}", comment)
             .AppendLine()
-            .Nop()
+            .AsUnit()
         this
         
         
@@ -286,10 +286,10 @@ type AsmBuilder(_context: TranslationContext) =
         if comment.IsSome
         then
             _asm.AppendFormat(" # {0}", comment.Value.ToString())
-                .Nop()
+                .AsUnit()
                 
         _asm.AppendLine()
-            .Nop()
+            .AsUnit()
         this
         
         
