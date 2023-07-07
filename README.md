@@ -4,9 +4,9 @@
 
 The project is purely for fun and it's, honestly, just another toy compiler. Here's a couple things that might set it apart.
 
-## The language is simple but not too simple
+## The [language](#cool-2020) is simple but not too simple
 
-A lot of mini-compilers have a language consisting of functions, primitive values and pretty much nothing else. Whereas this project's language is a small Scala subset &mdash; it has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching. Implementing all of these features yourself, making them function at the assembly level provides a lot of insights into how production-grade programming languages work.
+A lot of mini-compilers have a language consisting of functions, primitive values and pretty much nothing else. Whereas [this project's language](#cool-2020) is a small Scala subset &mdash; it has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching. Implementing all of these features yourself, making them function at the assembly level provides a lot of insights into how production-grade programming languages work.
 
 ## It compiles down to x86-64 assembly
 
@@ -114,7 +114,7 @@ This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of 
 
 # Cool 2020
 
-Cool 2020 is a subset of Scala with minor incompatibilities. Let's first have a taste of the language and then move on to discussing the language in more details.
+[Cool 2020](https://web.archive.org/web/20210823043833/http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf) is a subset of Scala with minor incompatibilities. Let's first have a taste of the language and then move on to discussing the language in more details.
 
 ```scala
 class Fib() extends IO() {
@@ -319,8 +319,7 @@ if while
 
 The compiler can successfully build a Windows x64 or Linux x64 executable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
 
-Generational garbage collection is planned for some time in the future, but doesn't exist at the moment.
-As a result we never free allocated memory.
+Generational garbage collection is planned for some time in the future, but doesn't exist at the moment. As a result we never free allocated memory.
 
 # Build
 
