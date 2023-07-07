@@ -4,28 +4,92 @@
 
 The project is purely for fun and it's, honestly, just another toy compiler. Here's a couple things that might set it apart.
 
-- It compiles down to x86-64 assembly. Then invokes GNU as and ld to produce a native executable. To me personally, this is much more rewarding than emitting MIPS assembly and using an emulator to run it, like many compiler courses do. I also prefer emitting assembly to, for example, C &mdash; at the very least, it forces the developer to figure out converting expressions into assembly, and managing the stack. That really drives home the point how much work high level languages do for us.
+## The language is simple but not too simple
 
-- The [Cool 2020](https://web.archive.org/web/20210823043833/http://www.cs.uwm.edu/classes/cs654/handout/cool-manual.pdf) language is simple but not too simple. A lot of mini-compilers have languages with functions, primitive values and not much else. Whereas this project's language has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching.
+A lot of mini-compilers have a language consisting of functions, primitive values and pretty much nothing else. Whereas this project's language is a small Scala subset &mdash; it has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching. Implementing all of these features yourself, making them function at the assembly level provides a lot of insights into how production-grade programming languages work.
 
-- The test suite contains more than 250 automated tests. In particular there are a number of end-to-end tests, which invoke the compiler on a source file, run the produced executable and check its output against the expected values.
+## It compiles down to x86-64 assembly
 
-- The compiler runs on Windows and Linux.
+Then GNU `as` and `ld` come into play to build a native executable from the assembly. Many educational compilers emit MIPS assembly, and although it's possible to run it using an emulator, to me, running a native executable produced by your own compiler feels much more rewarding.
 
-This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of background on the project and describe it in more detail. 
+I also prefer emitting assembly instead of, for instance, C. It helps you understand the inner workings of various things that developers often take for granted:
+- Managing a function's stack frame
+- Calling conventions
+- Finding the memory address of an identifier
+- Converting expressions into assembly
+- And so on, and so forth
+
+High-level languages are a bit too... well, high-level for someone who wants to grasp how these things work under the hood. However, if you're more interested in designing a programming language than the nitty-gritty of compilers, targeting a high-level language like C might actually be a great idea.
+
+### Human-readable assembly
+
+The emitted assembly code contains a lot of hopefully useful comments. The idea here is to help understand the assembly and relate it back to the source code as much as possible. 
+
+<details>
+  <summary>Click to expand/collapse a sample assembly listing</summary>
+
+```asm
+    .text
+    # ../CoolPrograms/Runtime/Fibonacci.cool(1,7): Fib
+Fib..ctor:
+    pushq   %rbp
+    movq    %rsp, %rbp
+    subq    $64, %rsp
+    # store actuals on the stack
+    movq    %rdi, -8(%rbp)
+    # store callee-saved regs on the stack
+    movq    %rbx, -24(%rbp)
+    movq    %r12, -32(%rbp)
+    movq    %r13, -40(%rbp)
+    movq    %r14, -48(%rbp)
+    movq    %r15, -56(%rbp)
+    # actual #0
+    movq    -8(%rbp), %rbx
+    subq    $8, %rsp
+    movq    %rbx, 0(%rsp) # actual #0
+    # load up to 6 first actuals into regs
+    movq    0(%rsp), %rdi
+    # remove the register-loaded actuals from stack
+    addq    $8, %rsp
+    call    IO..ctor # super..ctor
+    movq    %rax, %rbx # returned value
+    # ../CoolPrograms/Runtime/Fibonacci.cool(8,5): var i: Int = 0
+    # ../CoolPrograms/Runtime/Fibonacci.cool(8,18): 0
+    movq    $int_const_0, %rbx
+    movq    %rbx, -16(%rbp) # i
+    # ../CoolPrograms/Runtime/Fibonacci.cool(9,5): while (i <= 10) { \n   ...
+.label_6: # while cond
+    # ../CoolPrograms/Runtime/Fibonacci.cool(9,12): i <= 10
+    # ../CoolPrograms/Runtime/Fibonacci.cool(9,12): i
+    movq    -16(%rbp), %r10 # i
+    # ../CoolPrograms/Runtime/Fibonacci.cool(9,17): 10
+    movq    $int_const_2, %r11
+```
+
+</details>
+
+## It is cross-platform
+
+The two supported hosts are x86-64 Windows and Linux. And in general, the project is based on cross-platform technologies. The compiler itself runs on .NET. The GNU tools `as` and `ld` are available on Linux and Windows (and many, many other, of course). The language's runtime is implemented in assembly and is split up into three parts: common code, Windows-specific bits, and Linux-specific bits that are responsible for calling Windows API and Linux system functions respectively.
+
+## The test suite
+
+Approximately 288 automated tests make up [the test suite](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Tests). One nice consequence of generating native executables is an automated test can compile a program, run it, and compare the program's output to the expected values. Out of the 288 tests, there are [39 that do exactly that](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Tests/CoolPrograms/Runtime).
+
+## Maybe the only hobby-compiler that has a demo video :)
 
 ![A sample compilation session](./compilation-session-demo.gif)
 
----
+## There's a story behind it
+
+This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of background on the project and describe it in more detail. 
 
 ## Contents
 
-- [Compiler of Cool 2020 (a small Scala subset) into x86-64 assembly, in F#](#compiler-of-cool-2020-a-small-scala-subset-into-x86-64-assembly-in-f)
-  - [Contents](#contents)
 - [Cool 2020](#cool-2020)
   - [CoolAid: The Cool 2020 Reference Manual](#coolaid-the-cool-2020-reference-manual)
   - [An antlr4 grammar for Cool 2020](#an-antlr4-grammar-for-cool-2020)
-  - [Precendence](#precendence)
+  - [Precedence](#precedence)
 - [Work in progress](#work-in-progress)
 - [Build](#build)
   - [Install .NET 6 SDK](#install-net-6-sdk)
@@ -50,8 +114,7 @@ This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of 
 
 # Cool 2020
 
-Cool 2020 is a subset of Scala with minor incompatibilities.  
-Let's first take a look at a sample programm and then discuss the language in more details.
+Cool 2020 is a subset of Scala with minor incompatibilities. Let's first have a taste of the language and then move on to discussing the language in more details.
 
 ```scala
 class Fib() extends IO() {
@@ -147,7 +210,7 @@ block
     : (('var' ID ':' ID '=')? expr ';')* expr
     ;
 
-// The expresson's syntax is split in `expr`, `assign_or_prefixop`, `primary`, and `infixop_rhs` to avoid left recursion.
+// The expression's syntax is split in `expr`, `assign_or_prefixop`, `primary`, and `infixop_rhs` to avoid left recursion.
 expr
     : prefix* primary infixop_rhs*
     ;
@@ -229,7 +292,7 @@ WS
 
 </details>
 
-## Precendence
+## Precedence
 
 <details>
   <summary>Click to expand/collapse</summary>
@@ -254,7 +317,7 @@ if while
 
 # Work in progress
 
-The compiler can successfully build a Windows x64 or Linux x64 excecutable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
+The compiler can successfully build a Windows x64 or Linux x64 executable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
 
 Generational garbage collection is planned for some time in the future, but doesn't exist at the moment.
 As a result we never free allocated memory.
@@ -395,8 +458,8 @@ Copyright (C) Microsoft Corporation. All rights reserved.
   Restored /home/appveyor/projects/coollang-2020-fs/src/LibCool/LibCool.fsproj (in 20 ms).
   Restored /home/appveyor/projects/coollang-2020-fs/src/Tests/Tests.fsproj (in 10.66 sec).
   LibCool -> /home/appveyor/projects/coollang-2020-fs/src/LibCool/bin/Debug/netstandard2.1/LibCool.dll
-  clc -> /home/appveyor/projects/coollang-2020-fs/src/clc/bin/Debug/netcoreapp3.1/clc.dll
-  Tests -> /home/appveyor/projects/coollang-2020-fs/src/Tests/bin/Debug/netcoreapp3.1/Tests.dll
+  clc -> /home/appveyor/projects/coollang-2020-fs/src/clc/bin/Debug/net6.0/clc.dll
+  Tests -> /home/appveyor/projects/coollang-2020-fs/src/Tests/bin/Debug/net6.0/Tests.dll
 
 Build succeeded.
     0 Warning(s)
@@ -438,7 +501,7 @@ $ ./qs
 10 20 30 40 50
 ```
 
-To see the assembbly the compiler emits for QuickSort.cool, perform the command below. Then open qs.s in your favourite editor. 
+To see the assembly the compiler emits for QuickSort.cool, perform the command below. Then open qs.s in your favorite editor. 
 
 ```
 $ ./clc ../../src/Tests/CoolPrograms/Runtime/QuickSort.cool -S qs.s
@@ -482,7 +545,7 @@ The original Cool language was designed by [Alex Aiken](https://theory.stanford.
  
 The Cool 2020 version was designed by [John Boyland](https://uwm.edu/engineering/people/boyland-ph-d-john/).  
  
-QuickSort.cool and InsertionSort.cool came from [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
+QuickSort.cool and InsertionSort.cool came from [a paper](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
 from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao).  
 
 The web page uses [GitHub Corners](https://github.com/tholman/github-corners) by [Tim Holman](https://github.com/tholman).
