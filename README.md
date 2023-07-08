@@ -4,7 +4,7 @@
 
 The project is purely for fun and it's, honestly, just another toy compiler. Here's a couple things that might set it apart.
 
-## The [language](#cool-2020) is simple but not too simple
+## The [language](#cool-2020) language is concise but retains a degree of expressivity
 
 A lot of mini-compilers have a language consisting of functions, primitive values and pretty much nothing else. Whereas [this project's language](#cool-2020) is a small Scala subset &mdash; it has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching. Implementing all of these features yourself, making them function at the assembly level provides a lot of insights into how production-grade programming languages work.
 
