@@ -388,14 +388,13 @@ Accept the default to install all the members in the toolchain group.
    
 
 #### Troubleshooting **... relocation truncated to fit: R_X86_64_32S ...**
-In case you use MSYS2 to install their MinGW packages, please keep in mind the following.  
-The compiler links an executable using a command similar to
+In the case you use MSYS2 to install their MinGW packages, please keep in mind the following. The compiler links an executable using a command similar to
 
 ```sh
 ld -o a.exe -e main a.o ../../src/Runtime/rt_common.o ../../src/Runtime/rt_windows.o -L"C:/msys64/mingw64/x86_64-w64-mingw32/lib" -lkernel32
 ```
 
-Starting at least from GNU Binutils 2.36.1 (and maybe an earlier version), the command above produces error along these lines:
+Starting at least from GNU Binutils 2.36.1 (and maybe an earlier version), the command above produces an error along these lines:
 
 ```
 a.o:fake:(.text+0x3f): relocation truncated to fit: R_X86_64_32S against symbol `IO_proto_obj' defined in .data section in ../../src/Runtime/rt_common.o
