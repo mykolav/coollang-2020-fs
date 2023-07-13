@@ -2,6 +2,9 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/h5u412oqjd4ceh7j?svg=true)](https://ci.appveyor.com/project/mykolav/coollang-2020-fs)
 
+> :snail:  
+> Hey, check out [my blog posts](https://mykolam.net/tags/compilers/) on compilers in general and this one in particular.
+
 The project is purely for fun and it's, honestly, just another toy compiler. Here's a couple things that might set it apart.
 
 ## The [language](#cool-2020) is concise but retains a degree of expressivity
