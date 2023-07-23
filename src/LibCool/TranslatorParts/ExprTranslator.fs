@@ -97,8 +97,8 @@ type private ExprTranslator(_context: TranslationContext,
 
         let asm =
             this.EmitAsm()
-                .Location(assign_node_span)
                 .Paste(expr_frag.Value.Asm)
+                .Location(assign_node_span)
                 .Instr("movq    {0}, {1}", expr_frag.Value.Reg, addr_frag, comment=id.Syntax.ToString())
                 .ToString()
         
@@ -215,9 +215,9 @@ type private ExprTranslator(_context: TranslationContext,
             
         let asm =
             this.EmitAsm()
-                .Location(while_node.Span)
                 .Label(while_cond_label, "while cond")
                 .Paste(cond_asm.Value)
+                .Location(while_node.Span)
                 .ToString()
             
         Ok { AsmFragment.Asm = asm
@@ -385,10 +385,10 @@ type private ExprTranslator(_context: TranslationContext,
         let left_frag, right_frag = operands.Value
         let asm = 
             emitEqopWithBranches eq_eq_node.Span
-                                    left_frag
-                                    right_frag
-                                    unequal_branch
-                                    equal_branch
+                                 left_frag
+                                 right_frag
+                                 unequal_branch
+                                 equal_branch
         
         Ok { AsmFragment.Asm = asm
              Type = BasicClasses.Boolean
@@ -805,7 +805,8 @@ type private ExprTranslator(_context: TranslationContext,
 
         let result_reg = _context.RegSet.Allocate("translate_super_dispatch.result_reg")
 
-        asm.CompleteSuperDispatch(this_frag.Value,
+        asm.CompleteSuperDispatch(super_dispatch_node.Span,
+                                  this_frag.Value,
                                   actuals_asm.Value,
                                   method_sym,
                                   result_reg,

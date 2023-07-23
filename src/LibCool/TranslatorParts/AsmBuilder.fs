@@ -363,8 +363,8 @@ module AsmFragments =
         let false_label = this.Context.LabelGen.Generate()
         let done_label = this.Context.LabelGen.Generate()
         
-        this.Location(bool_negation_span)
-            .Paste(negated_frag.Asm)
+        this.Paste(negated_frag.Asm)
+            .Location(bool_negation_span)
             .Instr("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, negated_frag.Reg)
             .Je(false_label, "false")
             .Comment("true:")
@@ -377,9 +377,9 @@ module AsmFragments =
     
     
     member this.UnaryMinus(unary_minus_span: Span, negated_frag: AsmFragment): string =
-        this.Location(unary_minus_span)
-            .Paste(negated_frag.Asm)
+        this.Paste(negated_frag.Asm)
             .RtCopyObject(proto_reg=negated_frag.Reg, copy_reg=negated_frag.Reg)
+            .Location(unary_minus_span)
             .Instr("negq    {0}({1})", ObjLayoutFacts.IntValue, negated_frag.Reg)
             .ToString()
 
@@ -391,8 +391,8 @@ module AsmFragments =
         let else_label = this.Context.LabelGen.Generate()
         let done_label = this.Context.LabelGen.Generate()
 
-        this.Location(if_span)
-            .Paste(condition_frag.Asm)
+        this.Paste(condition_frag.Asm)
+            .Location(if_span)
             .Instr("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, condition_frag.Reg)
             .Je(else_label, "else")
             .Comment("then")
@@ -411,9 +411,9 @@ module AsmFragments =
         let while_cond_label = this.Context.LabelGen.Generate()
         let done_label = this.Context.LabelGen.Generate()
 
-        this.Location(while_span)
-            .Label(while_cond_label, "while cond")
+        this.Label(while_cond_label, "while cond")
             .Paste(condition_frag.Asm)
+            .Location(while_span)
             .Instr("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, condition_frag.Reg)
             .Je(done_label, "end while")
             .Paste(body_frag.Asm)
@@ -442,32 +442,31 @@ module AsmFragments =
 
 
     member this.Mul(mul_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
-        this.Location(mul_span)
-            .Paste(left_frag.Asm)
+        this.Paste(left_frag.Asm)
             .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
             .Paste(right_frag.Asm)
             .Instr("movq    {0}({1}), %rax", ObjLayoutFacts.IntValue, left_frag.Reg)
+            .Location(mul_span)
             .Instr("imulq   {0}({1})", ObjLayoutFacts.IntValue, right_frag.Reg)
             .Instr("movq    %rax, {0}({1})", ObjLayoutFacts.IntValue, left_frag.Reg)
             .ToString()
 
 
     member this.Div(div_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
-        this.Location(div_span)
-            .Paste(left_frag.Asm)
+        this.Paste(left_frag.Asm)
             .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
             .Paste(right_frag.Asm)
             // left / right
             .Instr("movq    {0}({1}), %rax", ObjLayoutFacts.IntValue, left_frag.Reg)
             .Instr("cqto", comment=Some "sign-extend %rax to %rdx:%rax")
+            .Location(div_span)
             .Instr("idivq    {0}({1})", ObjLayoutFacts.IntValue, right_frag.Reg)
             .Instr("movq    %rax, {0}({1})", ObjLayoutFacts.IntValue, left_frag.Reg)
             .ToString()
 
 
     member this.Sum(sum_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
-        this.Location(sum_span)
-            .Paste(left_frag.Asm)
+        this.Paste(left_frag.Asm)
             .Paste(right_frag.Asm)
             .AsUnit()
         
@@ -476,6 +475,7 @@ module AsmFragments =
         then
             this.RtCopyObject(proto_reg=right_frag.Reg, copy_reg=right_frag.Reg)
                 .Instr("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, left_frag.Reg, left_frag.Reg)
+                .Location(sum_span)
                 .Instr("addq    {0}, {1}({2})", left_frag.Reg, ObjLayoutFacts.IntValue, right_frag.Reg)
                 .ToString()
         else // string concatenation
@@ -484,12 +484,12 @@ module AsmFragments =
 
 
     member this.Sub(sub_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
-        this.Location(sub_span)
-            .Paste(left_frag.Asm)
+        this.Paste(left_frag.Asm)
             .Paste(right_frag.Asm)
             // left - right
             .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
             .Instr("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, right_frag.Reg, right_frag.Reg)
+            .Location(sub_span)
             .Instr("subq    {0}, {1}({2})", right_frag.Reg, ObjLayoutFacts.IntValue, left_frag.Reg)
             .ToString()
 
@@ -506,9 +506,9 @@ module AsmFragments =
         let is_tag_valid_label = this.Context.LabelGen.Generate()
         let try_match_label = this.Context.LabelGen.Generate()
         
-        this.Location(match_span)
-            .Paste(expr_frag.Asm)
+        this.Paste(expr_frag.Asm)
             .Comment("handle null")
+            .Location(match_span)
             .Instr("cmpq    $0, {0}", expr_frag.Reg)
             .Jne(match_init_label, "match init")
             .AsUnit()
@@ -562,9 +562,9 @@ module AsmFragments =
                           block_frag: AsmFragment,
                           result_reg: Reg,
                           done_label: Label): unit =
-        this.Location(case_span)
-            .Label(case_label, comment="case " + pattern_ty.ToString())
+        this.Label(case_label, comment="case " + pattern_ty.ToString())
             .Paste(block_frag.Asm)
+            .Location(case_span)
             .Instr("movq    {0}, {1}", block_frag.Reg, result_reg)
             .Jmp(done_label, "end match")
             .AsUnit()
@@ -599,6 +599,7 @@ module AsmFragments =
                                          method_reg,
                                          method_reg,
                                          comment=receiver_frag.Type.Name.ToString() + "." + method_sym.Name.ToString())
+            .Location(dispatch_span)
             .Instr("call    *{0}", method_reg)
             .RemoveActualsFromStack(actuals_count)
             .PopCallerSavedRegs()
@@ -610,7 +611,8 @@ module AsmFragments =
         this.BeginDispatch(super_dispatch_span)
         
         
-    member this.CompleteSuperDispatch(this_frag: AsmFragment,
+    member this.CompleteSuperDispatch(super_dispatch_span: Span,
+                                      this_frag: AsmFragment,
                                       actuals_asm: string,
                                       method_sym: MethodSymbol,
                                       result_reg: Reg,
@@ -618,6 +620,7 @@ module AsmFragments =
         this.Comment("actual #0")
             .Paste(this_frag.Asm)
             .Paste(actuals_asm)
+            .Location(super_dispatch_span)
             .Instr("call    {0}.{1}", method_sym.DeclaringClass,
                                    method_sym.Name,
                                    comment="super." + method_sym.Name.ToString())
@@ -670,9 +673,9 @@ module AsmFragments =
         else
             
         this.Instr("addq    ${0}, %rsp", actual_on_stack_count * FrameLayoutFacts.ElemSize,
-                                      comment="remove " +
-                                              actual_on_stack_count.ToString() +
-                                              " actual(s) from stack")
+                                         comment="remove " +
+                                                 actual_on_stack_count.ToString() +
+                                                 " actual(s) from stack")
 
 
     member this.BeginActuals(method_id_span: Span, actuals_count, this_reg: Reg): AsmBuilder =
@@ -721,11 +724,11 @@ module AsmFragments =
         let true_label = this.Context.LabelGen.Generate()
         let done_label = this.Context.LabelGen.Generate()
         
-        this.Location(cmpop_span)
-            .Paste(left_frag.Asm)
+        this.Paste(left_frag.Asm)
             .Paste(right_frag.Asm)
             .Instr("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, left_frag.Reg, left_frag.Reg)
             .Instr("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, right_frag.Reg, right_frag.Reg)
+            .Location(cmpop_span)
             .Instr("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
             .Jmp(jmp, true_label, "true branch")
             .Comment("false branch")
@@ -747,14 +750,14 @@ module AsmFragments =
         let equal_label = this.Context.LabelGen.Generate()
         let done_label = this.Context.LabelGen.Generate()
                 
-        this.Location(eqop_span)
-            .Paste(left_frag.Asm)
+        this.Paste(left_frag.Asm)
             .Paste(right_frag.Asm)
             .Comment("are pointers equal?")
             .Instr("cmpq    {0}, {1}", right_frag.Reg, left_frag.Reg)
             .Je(equal_label, "equal")
             .RtAreEqual(left_reg=left_frag.Reg, right_reg=right_frag.Reg)
             .Instr("movq    {0}(%rax), %rax", ObjLayoutFacts.BoolValue)
+            .Location(eqop_span)
             .Instr("cmpq    $0, %rax", comment=None)
             .Jne(equal_label, "equal")
             .Comment("unequal")

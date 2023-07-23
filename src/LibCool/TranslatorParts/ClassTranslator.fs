@@ -50,8 +50,8 @@ type private ClassTranslator(_context: TranslationContext,
             
         let asm =
             this.EmitAsm()
-                .Location(attr_node.Span)
                 .Paste(initial_frag.Value.Asm)
+                .Location(attr_node.Span)
                 .Instr("movq    {0}, {1}", initial_frag.Value.Reg, addr_frag, comment=attr_sym.Name.ToString())
                 .ToString()
             
