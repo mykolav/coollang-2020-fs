@@ -30,7 +30,7 @@ type AsmBuilder(_context: TranslationContext) =
         this
 
         
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, comment: string option): AsmBuilder =
         _asm.Append(_indent)
             .Append(instruction)
@@ -38,27 +38,27 @@ type AsmBuilder(_context: TranslationContext) =
         this.Ln(?comment=comment)
 
         
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, value: obj, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, value), comment=comment)
 
         
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, reg: Reg, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, _context.RegSet.NameOf(reg)), comment=comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, value: obj, reg: Reg, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment=comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, value0: obj, value1: obj, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, value0, value1), comment=comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, value: obj, reg0: Reg, reg1: Reg, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction,
                               value,
@@ -67,7 +67,7 @@ type AsmBuilder(_context: TranslationContext) =
                 comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, reg0: Reg, value: obj, reg1: Reg, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction,
                               _context.RegSet.NameOf(reg0),
@@ -76,18 +76,18 @@ type AsmBuilder(_context: TranslationContext) =
                 comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, reg: Reg, value: obj, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, _context.RegSet.NameOf(reg), value), comment=comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, src: Reg, dst: Reg, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, _context.RegSet.NameOf(src), _context.RegSet.NameOf(dst)),
                 comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, src: Reg, dst: AddrFragment, ?comment: string): AsmBuilder =
         if dst.Asm.IsSome
         then
@@ -97,7 +97,7 @@ type AsmBuilder(_context: TranslationContext) =
         this.Instr(instruction, src, dst.Addr, ?comment=comment)
 
 
-    // In[struction]
+    // Instr[uction]
     member this.Instr(instruction: string, src: AddrFragment, dst: Reg, ?comment: string): AsmBuilder =
         if src.Asm.IsSome
         then
