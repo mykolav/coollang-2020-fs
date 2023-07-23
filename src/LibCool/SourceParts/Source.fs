@@ -81,7 +81,7 @@ type Source(partSeq: seq<SourcePart>) =
             
     
     // Binary search the exact or closest left index of an offset in an array of offsets
-    let index_of offset offsets =
+    let indexOf offset offsets =
         ensureInRange offset
 
         let search_result = Array.BinarySearch(offsets, offset)
@@ -96,16 +96,16 @@ type Source(partSeq: seq<SourcePart>) =
         
     
     // Map a global offset to the source part's index
-    let part_index_of offset =
-        index_of offset _part_offsets
+    let partIndexOf globalOffset =
+        indexOf globalOffset _part_offsets
         
     
     // Map a global offset to the line and col numbers  
-    let line_col_of offset =
-        let line = index_of offset _line_offsets
+    let lineColOf globalOffset =
+        let line = indexOf globalOffset _line_offsets
         // We add 1 to the line and col, as lines and columns numbering starts from 1:1
         // (and not 0:0)
-        struct {| Line = uint32 line + 1u; Col = offset - _line_offsets[line] + 1u |}
+        struct {| Line = uint32 line + 1u; Col = globalOffset - _line_offsets[line] + 1u |}
         
     
     member _.Size with get(): uint32 = _size
@@ -135,12 +135,13 @@ type Source(partSeq: seq<SourcePart>) =
         _content.Substring(startIndex=int start, length=int length)
 
 
-    member this.Map(offset: uint32): Location =
-        if offset = UInt32.MaxValue
+    // Map a global offset to the file name, line, and colum numbers
+    member this.Map(globalOffset: uint32): Location =
+        if globalOffset = UInt32.MaxValue
         then
             { FileName = "Virtual"; Line = 0u; Col = 0u }
         else
-            
-        let part = part_index_of offset
-        let lc = line_col_of offset
+
+        let part = partIndexOf globalOffset
+        let lc = lineColOf globalOffset
         { FileName = _file_names[part]; Line = lc.Line; Col = lc.Col }
