@@ -259,6 +259,7 @@ discover the maximum number of errors</a></li>
 <ul>
 <li><a href="#human-readable-assembly">Human-readable assembly</a></li>
 <li><a href="#register-allocation">Register allocation</a></li>
+<li><a href="#translating-expressions">Translating expressions</a></li>
 </ul></li>
 <li><a href="#runtime-library">Runtime library</a>
 <ul>
@@ -367,7 +368,7 @@ that do exactly that</a>.</p>
 only hobby-compiler that has a demo video :)</h2>
 <p>Here’s how compiling a hello world looks like.</p>
 <figure>
-<img src="./images/compilation-session-demo.gif#center"
+<img src="./images/compilation-session-demo.gif"
 alt="A compilation session demo" />
 <figcaption aria-hidden="true">A compilation session demo</figcaption>
 </figure>
@@ -662,6 +663,28 @@ emit an error message and halt.</p>
 href="https://www3.nd.edu/~dthain/compilerbook/chapter11.pdf">11.2
 Supporting Functions</a></cite></p>
 </blockquote>
+<h2 id="translating-expressions">Translating expressions</h2>
+<p>Translating an expression is an exciting problem as there is no way
+to directly encode a complex expression like this
+<code>(a + b) == (c + d)</code> into assembly code — as usually an
+assembly instruction takes one, two operands.</p>
+<p>A general pattern here is to <a
+href="https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing">break
+down a complex expression into smaller subexpressions according to the
+operations priorities</a>. Each subexpression should be small enough to
+have a straightforward mapping into assembly. Then the compiler emits
+instructions to evaluate a part’s result and store this result into a
+register allocated to temporarily hold it.</p>
+<p>This way, when dealing with a subexpression which has child
+subexpressions of its own, the compiler simply looks up the names or
+registers allocated to hold the results of the child subexpressions.
+With these registers at hand, it’s straightforward to generate
+instructions corresponding to the subexpression’s operation “replacing”
+the child subexpressions with their respective register names.</p>
+<p><a
+href="https://mykolam.net/posts/toy-compiler-of-scala-subset/4-translating-expression-into-asm/">This
+page</a> discusses expression translation in more detail and walks the
+reader through a specific example.</p>
 <h1 id="runtime-library">Runtime library</h1>
 <p>An implementation of educational language relies on a number of
 built-in functions, classes, and objects. Some of these are available to

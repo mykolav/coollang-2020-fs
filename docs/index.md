@@ -21,6 +21,7 @@ As someone who finds these reasons compelling, [I developed a hobby compiler too
 - [Emitting assembly](#emitting-assembly)
   - [Human-readable assembly](#human-readable-assembly)
   - [Register allocation](#register-allocation)
+  - [Translating expressions](#translating-expressions)
 - [Runtime library](#runtime-library)
   - [Runtime library source code structure](#runtime-library-source-code-structure)
   - [The entry point](#the-entry-point)
@@ -93,7 +94,7 @@ Approximately 288 automated tests make up [the test suite](https://github.com/my
 
 Here's how compiling a hello world looks like.
 
-![A compilation session demo](./images/compilation-session-demo.gif#center)
+![A compilation session demo](./images/compilation-session-demo.gif)
 
 # A crucial design decision: compile time errors handling
 
@@ -284,6 +285,16 @@ Anyway, something to keep in mind, coding up register allocation can be a rather
 > Then, write `scratch_alloc` to find an unused register in the table, mark it as in use, and return the register number `r`. `scratch_free` should mark the indicated register as available. `scratch_name` should return the name of a register, given its number `r`. Running out of scratch registers is possible, but unlikely, as we will see below. For now, if `scratch_alloc` cannot find a free register, just emit an error message and halt.
 >
 > &mdash; <cite>[11.2 Supporting Functions](https://www3.nd.edu/~dthain/compilerbook/chapter11.pdf)</cite>
+
+## Translating expressions
+
+Translating an expression is an exciting problem as there is no way to directly encode a complex expression like this `(a + b) == (c + d)` into assembly code &mdash; as usually an assembly instruction takes one, two operands.
+
+A general pattern here is to [break down a complex expression into smaller subexpressions according to the operations priorities](https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing). Each subexpression should be small enough to have a straightforward mapping into assembly. Then the compiler emits instructions to evaluate a part's result and store this result into a register allocated to temporarily hold it. 
+
+This way, when dealing with a subexpression which has child subexpressions of its own, the compiler simply looks up the names or registers allocated to hold the results of the child subexpressions. With these registers at hand, it's straightforward to generate instructions corresponding to the subexpression's operation "replacing" the child subexpressions with their respective register names.
+
+[This page](https://mykolam.net/posts/toy-compiler-of-scala-subset/4-translating-expression-into-asm/) discusses expression translation in more detail and walks the reader through a specific example.
 
 # Runtime library
 
