@@ -1313,25 +1313,25 @@ _MemMgr_Test_end:
 #   following form:
 #
 #      Header
-#       |
-#       |   Older generation objects
-#       |    |
-#       |    |             Minor garbage collection area
-#       |    |              |
-#       |    |              |                Allocation area
-#       |    |              |                 |
-#       |    |              |                 |           Assignment table
-#       |    |              |                 |            |
-#       |    |              |                 |            |   Unused
-#       |    |              |                 |            |    |
-#       v    v              v                 v            v    v
+#     |
+#     |     Older generation objects
+#     |    |
+#     |    |              Minor garbage collection area
+#     |    |              |
+#     |    |              |                 Allocation area
+#     |    |              |                 |
+#     |    |              |                 |            Assignment table
+#     |    |              |                 |            |
+#     |    |              |                 |            |    Unused
+#     |    |              |                 |            |    |
+#     v    v              v                 v            v    v
 #     +----+--------------+-----------------+-------------+---+---------+
 #     |XXXX| Old Area     | Reserve Area    | Work Area   |XXX| Unused  |
 #     +----+--------------+-----------------+-------------+---+---------+
-#      ^    ^              ^                 ^    ^        ^   ^         ^
-#      |    |              |                 |    |-->  <--|   |         |
-#      |    L0             L1                L2  $gp      $s7  L3        L4
-#      |
+#     ^    ^              ^                 ^    ^        ^   ^         ^
+#     |    |              |                 |    |-->  <--|   |         |
+#     |    L0             L1                L2  $gp      $s7  L3        L4
+#     |
 #     heap_start
 #
 #     $gp (allocation pointer): points to the next free word in the work
@@ -1644,7 +1644,7 @@ _gc_abort:
 #   INPUT:
 #    $a0: end of stack
 #    $a1: size will need to allocate in bytes
-#    $s7: limit pointer of thw work area
+#    $s7: limit pointer of the work area
 #    $gp: current allocation pointer
 #    heap_start: start of heap
 #
@@ -1724,12 +1724,12 @@ _GenGC_Collect_major:
     sw         $a0 GenGC_HDRMAJOR0($a1)
     lw         $t1 GenGC_HDRL3($a1)              # find ratio of the old area
     lw         $t0 GenGC_HDRL0($a1)
-    sub        $t1 $t1 $t0
-    srl        $t1 $t1 GenGC_OLDRATIO
-    addu       $t1 $t0 $t1
-    lw         $t0 GenGC_HDRL1($a1)
-    sub        $t0 $t0 $t1
-    sll        $t0 $t0 GenGC_OLDRATIO            # amount to expand in $t0
+    sub        $t1 $t1 $t0                       # $t1 = L3-L0
+    srl        $t1 $t1 GenGC_OLDRATIO            # $t1 = (L3-L0)/2^GenGC_OLDRATIO
+    addu       $t1 $t0 $t1                       # $t1 = L0+(L3-L0)/2^GenGC_OLDRATIO
+    lw         $t0 GenGC_HDRL1($a1)              # $t0 = L1
+    sub        $t0 $t0 $t1                       # $t0 = L1-(L0+(L3-L0)/2^GenGC_OLDRATIO) -> $t0 > 0?
+    sll        $t0 $t0 GenGC_OLDRATIO            # ??? amount to expand in $t0
     lw         $t1 GenGC_HDRL3($a1)              # load L3
     lw         $t2 GenGC_HDRL1($a1)              # load L1
     sub        $t2 $t1 $t2
@@ -1751,7 +1751,7 @@ _GenGC_Collect_enough:
     sll        $t1 $t1 GenGC_HEAPEXPGRAN         # get granularity of expansion
     addiu      $t1 $t1 -1                        # align to granularity
     addu       $t0 $t0 $t1
-    nor        $t1 $t1 $t1
+    nor        $t1 $t1 $t1                       # ???
     and        $t0 $t0 $t1                       # total memory needed
     lw         $t1 GenGC_HDRL3($a1)              # load L3
     lw         $t2 GenGC_HDRL4($a1)              # load L4
@@ -1932,14 +1932,14 @@ _GenGC_MinorC:
     move       $t1 $a0                            # set $t1 to stack end
     ble        $t0 $t1 _GenGC_MinorC_stackend     # check for empty stack
                                                   # (stack grows from higher to lower addresses
-                                                  # Hence, stack start < stack end when stack is empty)
+                                                  # Hence, stack start <= stack end when stack is empty)
 _GenGC_MinorC_stackloop:                          # $t1 stack end, $t0 index
     addiu      $t0 $t0 -4                         # update index
     sw         $t0 12($sp)                        # save stack index
     lw         $a0 4($t0)                         # get stack item
     jal        _GenGC_ChkCopy                     # check and copy
     lw         $t0 12($sp)                        # load stack index
-    sw         $a0 4($t0)
+    sw         $a0 4($t0)                         # replace stack item pointing to old object with pointer to new one
     lw         $t1 16($sp)                        # restore stack end
     bgt        $t0 $t1 _GenGC_MinorC_stackloop    # loop
 _GenGC_MinorC_stackend:
@@ -1950,9 +1950,9 @@ _GenGC_MinorC_reg16:
     srl        $t0 $t0 16                         # shift to proper bit
     andi       $t1 $t0 1
     beq        $t1 $0 _GenGC_MinorC_reg17         # check if set
-    move       $a0 $16                            # set test pointer
+    move       $a0 $16                            # set test pointer to potentially old object address
     jal        _GenGC_ChkCopy                     # check and copy
-    move       $16 $a0                            # update register
+    move       $16 $a0                            # update register with potentilly new object address
 _GenGC_MinorC_reg17:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 17                         # shift to proper bit
@@ -2093,7 +2093,7 @@ _GenGC_MinorC_objend:
 _GenGC_MinorC_string:
     sw         $t0 16($sp)                        # save pointer to object
     sw         $a0 12($sp)                        # save object size
-    lw         $a0 str_size($t0)                  # set test pointer
+    lw         $a0 str_size($t0)                  # set test pointer to an Int object representing the string's size
     jal        _GenGC_ChkCopy                     # check and copy
     lw         $t0 16($sp)                        # restore pointer to object
     sw         $a0 str_size($t0)                  # update size pointer
