@@ -8,12 +8,18 @@
 ########################################
     .global .Platform.ascii_new_line
 .Platform.ascii_new_line:   .ascii "\n"
+
     .global .Platform.new_line_len
 .Platform.new_line_len:     .quad  1
 
 ########################################
 # Global vars
 ########################################
+    .global .Platform.heap_start
+.Platform.heap_start:    .quad 0
+
+    .global .Platform.heap_end
+.Platform.heap_end:      .quad 0
 
 curr_break:
     .quad 0
@@ -40,6 +46,16 @@ curr_break:
 #
     .global .Platform.init
 .Platform.init:
+    # The program break is the first location 
+    # after the end of the uninitialized data segment (.bss)
+    #
+    # If the program started with a pre-allocated heap,
+    # the break would be defined as the first location after the pre-allocated heap 
+    # instead of the .bss.
+    # In other words, a process starts with a heap of size 0.
+    # Therefore, finding the current break's value at this moment 
+    # gives us the start of the heap's location.
+    #
     # On failure, the system call returns the current break.
     # We want to find out the current break's value,
     # so we deliberately pass an invalid value as the first arg.
@@ -47,6 +63,8 @@ curr_break:
     movq    $12, %rax # brk
     syscall
     movq    %rax, curr_break
+    movq    %rax, .Platform.heap_start
+    movq    %rax, .Platform.heap_end
 
     ret
 
@@ -57,15 +75,15 @@ curr_break:
 #      a size in quads in %rdi
 #  OUTPUT:
 #      a pointer to the start of allocated memory block in %rax.
-#      if allocation fails, prints a message and exits the process.
+#      If allocation fails, prints a message and exits the process.
 #  
 #  Allocates (%rdi * 8) bytes of memory on heap.
 #
     .global .Platform.alloc
 .Platform.alloc:
-    salq    $3, %rdi         # convert quads to bytes
-    addq    curr_break, %rdi # calculate the new break
-    movq    $12, %rax        # brk
+    salq    $3, %rdi                    # convert quads to bytes
+    addq    curr_break, %rdi            # calculate the new break
+    movq    $12, %rax                   # brk
     syscall
 
     # On failure, the system call returns the current break.
@@ -76,8 +94,9 @@ curr_break:
     jmp     .Runtime.abort_out_of_mem
 
 .Platform.alloc.ok:
-    movq    curr_break, %rdi # ptr to the start of allocated memory
-    movq    %rax, curr_break # store the new break
+    movq    curr_break, %rdi            # ptr to the start of allocated memory
+    movq    %rax, curr_break            # store the new break
+    movq    %rax, .Platform.heap_end
 
     # Return ptr to the start of allocated memory
     movq    %rdi, %rax

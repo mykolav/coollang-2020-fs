@@ -8,13 +8,23 @@
 ########################################
     .global .Platform.ascii_new_line
 .Platform.ascii_new_line:   .ascii "\r\n"
+
     .global .Platform.new_line_len
 .Platform.new_line_len:     .quad  2
 
 ########################################
 # Global vars
 ########################################
+    .global .Platform.heap_start
+.Platform.heap_start:    .quad 0
 
+    .global .Platform.heap_end
+.Platform.heap_end:      .quad 0
+
+# TODO: The GC code is built around `sbrk` semantics, 
+#       so have to re-implement allocations on Windows 
+#       using a simulated `sbrk` on top of `VirtualAlloc`
+#       instead of the `GetProcessHeap`, `HeapAlloc` API.
 hProcessDefaultHeap:
     .quad 0
 
