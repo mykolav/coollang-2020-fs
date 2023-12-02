@@ -34,7 +34,7 @@ type EmitExeHandler(_writer: IWriteLine) =
         // Compile to assembly
         //
         let result = CompileToAsmStep.Invoke(source, diags)
-        if result.IsError
+        if LcResult.isError result
         then
             DiagRenderer.Render(diags, source, _writer)
             -1

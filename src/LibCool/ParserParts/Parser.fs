@@ -117,8 +117,8 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     | '.' ID actuals infixop_rhs*
     //     ;
     // ```
-    let rec expr (prec_threshold: sbyte): Res<AstNode<ExprSyntax> voption> =
-        let resOf (res: Res<AstNode<ExprSyntax>>): Res<AstNode<ExprSyntax> voption> =
+    let rec expr (prec_threshold: sbyte): LcResult<AstNode<ExprSyntax> voption> =
+        let resOf (res: LcResult<AstNode<ExprSyntax>>): LcResult<AstNode<ExprSyntax> voption> =
             match res with
             | Error    -> Error
             | Ok value -> Ok (ValueSome value)
@@ -140,7 +140,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 let init_node_res = requiredExpr
                                         (*prec_threshold=*)Prec.Empty
                                         "An expression expected. '=' must be followed by an expression"
-                if init_node_res.IsError
+                if LcResult.isError init_node_res
                 then
                     Error
                 else
@@ -164,7 +164,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             if _token.Is(TokenKind.LParen)
             then
                 let actual_nodes_res = actuals ()
-                if actual_nodes_res.IsError
+                if LcResult.isError actual_nodes_res
                 then
                     Error
                 else
@@ -197,7 +197,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             // - dispatch op (e.g.: receiver.method(...))
             let expr_node_res = requiredExpr ((*prec_threshold=*)Prec.OfExclaim + 1y)
                                               "An expression expected. '!' must be followed by an expression"
-            if expr_node_res.IsError
+            if LcResult.isError expr_node_res
             then
                 Error
             else
@@ -220,7 +220,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             // - dispatch op (e.g.: receiver.method(...))
             let expr_node_res = requiredExpr ((*prec_threshold=*)Prec.OfUnaryMinus + 1y)
                                               "An expression expected. '-' must be followed by an expression"
-            if expr_node_res.IsError
+            if LcResult.isError expr_node_res
             then
                 Error
             else
@@ -245,7 +245,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
 
             let condition_res = requiredExpr (*prec_threshold=*)Prec.Empty
                                               "An expression expected. 'if (' must be followed by a boolean expression"
-            if condition_res.IsError
+            if LcResult.isError condition_res
             then
                 Error
             else
@@ -257,7 +257,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
 
             let then_branch_res = requiredExpr (*prec_threshold=*)Prec.Empty
                                                 "An expression expected. A conditional expression must have a then branch"
-            if then_branch_res.IsError
+            if LcResult.isError then_branch_res
             then
                 Error
             else
@@ -272,7 +272,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let else_branch_res = requiredExpr
                                     (*prec_threshold=*)Prec.Empty
                                     "An expression required. A conditional expression must have an else branch"
-            if else_branch_res.IsError
+            if LcResult.isError else_branch_res
             then
                 Error
             else
@@ -294,7 +294,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let condition_res = requiredExpr
                                     (*prec_threshold=*)Prec.Empty
                                     "An expression expected. 'while (' must be followed by a boolean expression"
-            if condition_res.IsError
+            if LcResult.isError condition_res
             then
                 Error
             else
@@ -309,7 +309,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             let body_res = requiredExpr
                                (*prec_threshold=*)Prec.Empty
                                "An expression expected. A while loop must have a body"
-            if body_res.IsError
+            if LcResult.isError body_res
             then
                 Error
             else
@@ -338,7 +338,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     
     // A primary expression cannot be followed by another primary expression,
     // only by an infix op, i.e.: (expression suffix)*    
-    and primary (): Res<AstNode<ExprSyntax> voption> =
+    and primary (): LcResult<AstNode<ExprSyntax> voption> =
         let span_start = _token.Span.First
         let first_token = _token
 
@@ -358,7 +358,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let actual_nodes_res = actuals ()
-            if actual_nodes_res.IsError
+            if LcResult.isError actual_nodes_res
             then
                 Error
             else
@@ -383,7 +383,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             else
                 
             let actual_nodes_res = actuals ()
-            if actual_nodes_res.IsError
+            if LcResult.isError actual_nodes_res
             then
                 Error
             else
@@ -400,7 +400,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         if _token.Is(TokenKind.LBrace)
         then
             let block_node_res = bracedBlock()
-            if block_node_res.IsError
+            if LcResult.isError block_node_res
             then
                 Error
             else
@@ -422,7 +422,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 
             let expr_node_res = requiredExpr ((*prec_threshold=*)Prec.Empty)
                                               "A parenthesized expression expected"
-            if expr_node_res.IsError
+            if LcResult.isError expr_node_res
             then
                 Error
             else
@@ -491,7 +491,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     ;
     and infixOpRhs (prec_threshold: sbyte)
                     (atom: AstNode<ExprSyntax>)
-                    : Res<AstNode<ExprSyntax>> =
+                    : LcResult<AstNode<ExprSyntax>> =
         let span_start = atom.Span.First
         
         let mutable have_errors = false
@@ -507,7 +507,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 let rhs_res = requiredExpr ((*prec_threshold=*)Prec.Of(token_op.Kind) + 1y)
                                             ("An expression expected. " +
                                              $"'%s{token_op.InfixOpSpelling}' must be followed by an expression")
-                if rhs_res.IsError
+                if LcResult.isError rhs_res
                 then
                     have_errors <- true
                 else
@@ -536,7 +536,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             if tryEat TokenKind.KwMatch
             then
                 let case_nodes_res = cases ()
-                if case_nodes_res.IsError
+                if LcResult.isError case_nodes_res
                 then
                     have_errors <- true
                 else
@@ -568,7 +568,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 else
                     
                 let actual_nodes_res = actuals()
-                if actual_nodes_res.IsError
+                if LcResult.isError actual_nodes_res
                 then
                     have_errors <- true
                 else
@@ -596,7 +596,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     // cases
     //     : '{' ('case' casepattern '=>' caseblock)+ '}'
     //     ;
-    and cases (): Res<AstNode<AstNode<CaseSyntax>[]>> =
+    and cases (): LcResult<AstNode<AstNode<CaseSyntax>[]>> =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.LBrace
@@ -640,7 +640,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (AstNode.Of(case_nodes.ToArray(), case_nodes_span))
     
     
-    and case (): Res<AstNode<CaseSyntax>> =
+    and case (): LcResult<AstNode<CaseSyntax>> =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.KwCase
@@ -650,7 +650,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
         
         let pattern_node_res = casePattern ()
-        if pattern_node_res.IsError
+        if LcResult.isError pattern_node_res
         then
             Error
         else
@@ -662,7 +662,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
             
         let block_node_res = caseBlock ()
-        if (block_node_res.IsError)
+        if (LcResult.isError block_node_res)
         then
             Error
         else
@@ -679,7 +679,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     : ID ':' ID
     //     | 'null'
     //     ;
-    and casePattern (): Res<AstNode<PatternSyntax>> =
+    and casePattern (): LcResult<AstNode<PatternSyntax>> =
         let span_start = _token.Span.First
         let first_token = _token
         
@@ -719,11 +719,11 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     //     : block
     //     | '{' block? '}'
     //     ;
-    and caseBlock (): Res<AstNode<CaseBlockSyntax>> =
+    and caseBlock (): LcResult<AstNode<CaseBlockSyntax>> =
         if _token.Is(TokenKind.LBrace)
         then
             let braced_block_node_res = bracedBlock ()
-            if braced_block_node_res.IsError
+            if LcResult.isError braced_block_node_res
             then
                 Error
             else
@@ -734,12 +734,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         let span_start = _token.Span.First
         
         let block_syntax_result = blockSyntax((*terminators=*)[TokenKind.KwCase; TokenKind.RBrace])
-        if block_syntax_result.IsError
+        if LcResult.isError block_syntax_result
         then
             Error
         else
         
-        if block_syntax_result.IsError
+        if LcResult.isError block_syntax_result
         then
             _diags.Error("A block expected. 'pattern =>' must be followed by a non-empty block",
                          _token.Span)
@@ -755,9 +755,9 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     
     and requiredExpr (prec_threshold: sbyte)
                       (expr_required_error_message: string)
-                      : Res<AstNode<ExprSyntax>> =
+                      : LcResult<AstNode<ExprSyntax>> =
         let expr_node_res = expr prec_threshold
-        if expr_node_res.IsError
+        if LcResult.isError expr_node_res
         then
             Error
         else
@@ -770,7 +770,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok expr_node
 
 
-    and stmt (): Res<AstNode<StmtSyntax>> =
+    and stmt (): LcResult<AstNode<StmtSyntax>> =
         let span_start = _token.Span.First
 
         if tryEat TokenKind.KwVar
@@ -806,7 +806,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
                 
             let expr_node_res = requiredExpr (*prec_threshold=*)Prec.Empty
                                               "An expression expected. Variables must be initialized"
-            if expr_node_res.IsError
+            if LcResult.isError expr_node_res
             then
                 Error
             else
@@ -830,7 +830,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         | Ok expr_node -> Ok (expr_node.Map(fun it -> StmtSyntax.Expr it))
 
 
-    and blockSyntax (terminators: seq<TokenKind>): Res<AstNode<BlockSyntax> voption> =
+    and blockSyntax (terminators: seq<TokenKind>): LcResult<AstNode<BlockSyntax> voption> =
         let ts_set = Set.ofSeq terminators
         
         let recover (): unit =
@@ -872,7 +872,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             Ok (ValueSome (AstNode.Of(block_syntax, block_span)))
 
     
-    and bracedBlock (): Res<AstNode<BlockSyntax voption>> =
+    and bracedBlock (): LcResult<AstNode<BlockSyntax voption>> =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.LBrace
@@ -882,7 +882,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
 
         let block_syntax_result = blockSyntax((*terminators=*)[TokenKind.RBrace])
-        if block_syntax_result.IsError
+        if LcResult.isError block_syntax_result
         then
             // There was an error parsing block_syntax,
             // Try to eat the braced block's remaining tokens,
@@ -911,7 +911,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (AstNode.Of(block_syntax, block_span))
 
 
-    and varFormal (): Res<AstNode<VarFormalSyntax>> =
+    and varFormal (): LcResult<AstNode<VarFormalSyntax>> =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.KwVar
@@ -953,7 +953,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (AstNode.Of(varformal_syntax, varformal_span))
     
     
-    and varFormals (): Res<AstNode<AstNode<VarFormalSyntax>[]>> =
+    and varFormals (): LcResult<AstNode<AstNode<VarFormalSyntax>[]>> =
         let recover (): unit =
             // Recover from a syntactic error by eating tokens
             // until we find 'var' -- the start of another varformal.
@@ -972,12 +972,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             is_list_end=isVarformalsEnd)
         
         
-    and actual (): Res<AstNode<ExprSyntax>> =
+    and actual (): LcResult<AstNode<ExprSyntax>> =
         requiredExpr ((*prec_threshold=*)Prec.Empty)
                       "An expression expected. Actuals must be an expression"
     
     
-    and actuals (): Res<AstNode<AstNode<ExprSyntax>[]>> =
+    and actuals (): LcResult<AstNode<AstNode<ExprSyntax>[]>> =
         let recover (): unit =
             // Recover from a syntactic error by eating tokens
             // until we find ','
@@ -1000,7 +1000,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             is_list_end=isActualsEnd)
     
     
-    and extends (): Res<AstNode<InheritanceSyntax> voption> =
+    and extends (): LcResult<AstNode<InheritanceSyntax> voption> =
         let span_start = _token.Span.First
         
         if not (tryEat TokenKind.KwExtends)
@@ -1017,7 +1017,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
             
         let actual_nodes_res = actuals ()
-        if actual_nodes_res.IsError
+        if LcResult.isError actual_nodes_res
         then
             Error
         else
@@ -1031,7 +1031,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (ValueSome (AstNode.Of(InheritanceSyntax.Extends extends_syntax, extends_span)))
         
         
-    and formal (): Res<AstNode<FormalSyntax>> =
+    and formal (): LcResult<AstNode<FormalSyntax>> =
         let span_start = _token.Span.First
         
         let token_id = _token
@@ -1067,7 +1067,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (AstNode.Of(formal_syntax, formal_span))
     
     
-    and formals (): Res<AstNode<AstNode<FormalSyntax>[]>> =
+    and formals (): LcResult<AstNode<AstNode<FormalSyntax>[]>> =
         let recover (): unit =
             // Recover from a syntactic error by eating tokens
             // until we find ','
@@ -1092,7 +1092,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     
     and method (span_start: uint32)
                (is_override: bool)
-               : Res<AstNode<FeatureSyntax>> =
+               : LcResult<AstNode<FeatureSyntax>> =
         let token_id = _token
         if not (eatWhen _token.IsId
                          ("A method name expected. Method name must be an identifier" +
@@ -1102,7 +1102,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
             
         let formal_nodes_res = formals()
-        if formal_nodes_res.IsError
+        if LcResult.isError formal_nodes_res
         then
             Error
         else
@@ -1129,7 +1129,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             
         let expr_node_res = requiredExpr (*prec_threshold=*)Prec.Empty
                                           "An expression expected. Methods must have a body"
-        if expr_node_res.IsError
+        if LcResult.isError expr_node_res
         then
             Error
         else
@@ -1147,7 +1147,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (AstNode.Of(FeatureSyntax.Method method_syntax, method_span))
         
         
-    and attribute (): Res<AstNode<FeatureSyntax>> =
+    and attribute (): LcResult<AstNode<FeatureSyntax>> =
         let span_start = _token.Span.First
         
         if not (tryEat TokenKind.KwVar)
@@ -1185,7 +1185,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
             
         let expr_node_res = requiredExpr (*prec_threshold=*)Prec.Empty
                                           "An expression expected. Attributes must be initialized"
-        if expr_node_res.IsError
+        if LcResult.isError expr_node_res
         then
             Error
         else
@@ -1201,7 +1201,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (AstNode.Of(FeatureSyntax.Attr attribute_syntax, attribute_span))
         
         
-    and feature (): Res<AstNode<FeatureSyntax>> =
+    and feature (): LcResult<AstNode<FeatureSyntax>> =
         let span_start = _token.Span.First
         
         if tryEat TokenKind.KwOverride
@@ -1228,7 +1228,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         if _token.Is(TokenKind.LBrace)
         then
             let block_node_res = bracedBlock()
-            if block_node_res.IsError
+            if LcResult.isError block_node_res
             then
                 Error
             else
@@ -1243,7 +1243,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Error
 
 
-    and classBody (span_start: uint): Res<AstNode<AstNode<FeatureSyntax>[]>> =
+    and classBody (span_start: uint): LcResult<AstNode<AstNode<FeatureSyntax>[]>> =
         // The caller must eat '{' or emit a diagnostic if it's empty
         
         let feature_nodes = List<AstNode<FeatureSyntax>>()
@@ -1295,7 +1295,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         Ok (AstNode.Of(feature_nodes.ToArray(), classbody_span))
         
     
-    and classDecl (): Res<AstNode<ClassSyntax>> =
+    and classDecl (): LcResult<AstNode<ClassSyntax>> =
         let span_start = _token.Span.First
         
         if not (eat TokenKind.KwClass
@@ -1313,7 +1313,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
            
         let varformals_node_res = varFormals ()
-        if varformals_node_res.IsError
+        if LcResult.isError varformals_node_res
         then
             // The callee already emitted relevant diags.
             // We aren't going to add anything else.
@@ -1321,7 +1321,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
         
         let extends_node_res = extends ()
-        if extends_node_res.IsError
+        if LcResult.isError extends_node_res
         then
             // The callee already emitted relevant diags.
             // We aren't going to add anything else.
@@ -1336,7 +1336,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         else
             
         let feature_nodes_res = classBody(span_start)
-        if feature_nodes_res.IsError
+        if LcResult.isError feature_nodes_res
         then
             // The callee already emitted relevant diags.
             // We aren't going to add anything else.
@@ -1384,7 +1384,7 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
         { ProgramSyntax.Classes = class_decl_nodes.Syntax }
 
     
-    member this.DelimitedList<'T>(element: unit -> Res<AstNode<'T>>,
+    member this.DelimitedList<'T>(element: unit -> LcResult<AstNode<'T>>,
                                   delimiter: TokenKind,
                                   delimiter_error_message: string,
                                   recover: unit -> unit,
@@ -1430,12 +1430,12 @@ type Parser private (_tokens: Token[], _diags: DiagnosticBag) as this =
     member this.EnclosedDelimitedList<'T>(list_start: TokenKind,
                                           list_start_error_message: string,
                                           list_end_error_message: string,
-                                          element: unit -> Res<AstNode<'T>>,
+                                          element: unit -> LcResult<AstNode<'T>>,
                                           delimiter: TokenKind,
                                           delimiter_error_message: string,
                                           recover: unit -> unit,
                                           is_list_end: unit -> bool)
-                                          : Res<AstNode<AstNode<'T>[]>> =
+                                          : LcResult<AstNode<AstNode<'T>[]>> =
         
         let span_start = _token.Span.First
         

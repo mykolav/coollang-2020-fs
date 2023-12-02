@@ -240,8 +240,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     member this.Translate(): string =
         let sb_code = StringBuilder()
         for class_syntax in _program_syntax.Classes do
-            let class_frag = translateClass class_syntax
-            sb_code.Append(class_frag)
+            let class_methods_frag = translateClass class_syntax
+            sb_code.Append(class_methods_frag)
                    .AsUnit()
         
         emitConsts()

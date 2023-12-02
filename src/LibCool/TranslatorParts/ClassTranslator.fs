@@ -18,7 +18,7 @@ type private ClassTranslator(_context: TranslationContext,
     let _expr_translator = ExprTranslator(_context, _class_syntax, _sym_table)
 
     
-    let translateAttr (attr_node: AstNode<AttrSyntax>): Res<string> =
+    let translateAttr (attr_node: AstNode<AttrSyntax>): LcResult<string> =
         let initial_node = attr_node.Syntax.Initial
         let expr_node =
             match initial_node.Syntax with
@@ -28,7 +28,7 @@ type private ClassTranslator(_context: TranslationContext,
                 invalidOp "AttrInitialSyntax.Native"
                 
         let initial_frag = _expr_translator.Translate(expr_node)
-        if initial_frag.IsError
+        if LcResult.isError initial_frag
         then
             Error
         else
@@ -61,7 +61,7 @@ type private ClassTranslator(_context: TranslationContext,
         Ok (asm)
     
     
-    let translateCtorBody (): Res<string> =
+    let translateCtorBody (): LcResult<string> =
 
         let asm = this.EmitAsm()
 
@@ -99,7 +99,7 @@ type private ClassTranslator(_context: TranslationContext,
                                   expr=AstNode.Virtual(ExprSyntax.Id (ID ("." + attr_name))))
 
             let assign_frag = _expr_translator.Translate(AstNode.Virtual(assign_syntax))
-            if assign_frag.IsOk
+            if LcResult.isOk assign_frag
             then
                 _context.RegSet.Free(assign_frag.Value.Reg)
                 asm.Paste(assign_frag.Value.Asm)
@@ -118,7 +118,7 @@ type private ClassTranslator(_context: TranslationContext,
                                         actuals=extends_syntax.Actuals)
         
         let super_dispatch_frag = _expr_translator.Translate(AstNode.Virtual(super_dispatch_syntax))
-        if super_dispatch_frag.IsOk
+        if LcResult.isOk super_dispatch_frag
         then
             _context.RegSet.Free(super_dispatch_frag.Value.Reg)
             asm.Paste(super_dispatch_frag.Value.Asm)
@@ -131,7 +131,7 @@ type private ClassTranslator(_context: TranslationContext,
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsAttr)
         |> Seq.iter (fun feature_node ->
             let attr_frag = translateAttr (feature_node.Map(fun it -> it.AsAttrSyntax))
-            if attr_frag.IsOk
+            if LcResult.isOk attr_frag
             then
                 asm.Paste(attr_frag.Value)
                    .AsUnit()
@@ -144,7 +144,7 @@ type private ClassTranslator(_context: TranslationContext,
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsBracedBlock)
         |> Seq.iter (fun feature_node ->
             let block_frag = _expr_translator.TranslateBlock(feature_node.Syntax.AsBlockSyntax)
-            if block_frag.IsOk
+            if LcResult.isOk block_frag
             then
                 _context.RegSet.Free(block_frag.Value.Reg)
                 asm.Paste(block_frag.Value.Asm)
@@ -168,7 +168,7 @@ type private ClassTranslator(_context: TranslationContext,
         Ok (asm.ToString())
     
     
-    let translateMethodBody (method_syntax: MethodSyntax): Res<string> =
+    let translateMethodBody (method_syntax: MethodSyntax): LcResult<string> =
         let mutable override_ok = true
 
         if method_syntax.Override
@@ -223,7 +223,7 @@ type private ClassTranslator(_context: TranslationContext,
         
         // Translate the method's body
         let body_frag = _expr_translator.Translate(method_syntax.Body.Map(fun it -> it.AsExprSyntax))
-        if body_frag.IsError
+        if LcResult.isError body_frag
         then
             Error
         else
@@ -259,13 +259,13 @@ type private ClassTranslator(_context: TranslationContext,
         
     let translateMethod (method_name: string)
                         (method_span: Span)
-                        (translate_body: unit -> Res<string>)
-                        : Res<string> =
+                        (translate_body: unit -> LcResult<string>)
+                        : LcResult<string> =
         _context.RegSet.AssertAllFree()
         _sym_table.EnterMethod()
 
         let body_frag = translate_body ()        
-        if body_frag.IsError
+        if LcResult.isError body_frag
         then
             Error
         else
@@ -280,7 +280,7 @@ type private ClassTranslator(_context: TranslationContext,
         Ok asm
     
     
-    member this.EmitAsm(): AsmBuilder = AsmBuilder(_context)
+    member private this.EmitAsm(): AsmBuilder = AsmBuilder(_context)
 
 
     member this.Translate(): string =
@@ -295,7 +295,7 @@ type private ClassTranslator(_context: TranslationContext,
                         else _class_syntax.NAME.Span
             
         let method_frag = translateMethod ctor_name ctor_span translateCtorBody
-        if method_frag.IsOk
+        if LcResult.isOk method_frag
         then
             asm.Paste(method_frag.Value)
                .AsUnit()
@@ -308,7 +308,7 @@ type private ClassTranslator(_context: TranslationContext,
                 let method_frag = translateMethod method_name
                                                    method_node.Span
                                                    (fun () -> translateMethodBody method_node.Syntax)
-                if method_frag.IsOk
+                if LcResult.isOk method_frag
                 then
                     asm.Paste(method_frag.Value)
                        .AsUnit()

@@ -4,6 +4,7 @@ namespace LibCool.DriverParts
 open System.IO
 open System.Runtime.CompilerServices
 open LibCool.DiagnosticParts
+open LibCool.SharedParts
 open LibCool.SourceParts
 
 
@@ -22,7 +23,7 @@ type EmitAsmHandler(_writer: IWriteLine) =
         let result = CompileToAsmStep.Invoke(source, diags)
         DiagRenderer.Render(diags, source, _writer)
         
-        if result.IsError
+        if LcResult.isError result
         then
             -1
         else

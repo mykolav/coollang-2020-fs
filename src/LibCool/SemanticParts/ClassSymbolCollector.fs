@@ -290,7 +290,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
     let addToInheritanceChain (inheritance_chain: InheritanceChain)
                               (class_syntax: ClassSyntax)
-                              : Res<unit> =
+                              : LcResult<unit> =
         if inheritance_chain.Add(class_syntax)
         then
             Ok ()
@@ -339,7 +339,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         // See if we're in an inheritance cycle.
         let result = addToInheritanceChain inheritance_chain
                                               class_node.Syntax
-        if result.IsError
+        if LcResult.isError result
         then
             SpecialClasses.Error
         else

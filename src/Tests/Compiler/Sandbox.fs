@@ -74,8 +74,10 @@ type Sandbox(_test_output: ITestOutputHelper) =
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/InsertionSort.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/HelloCool1.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/HelloCool2.cool")
-        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Abort1.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Abort1.cool")
         //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Heap1.cool")
+        //let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Fibonacci.cool")
+        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Life.cool")
 
         // Act
         let clc_output = runClcInProcess ([ path; "-S" ])
