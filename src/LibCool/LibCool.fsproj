@@ -32,7 +32,7 @@
         <Compile Include="TranslatorParts\FragmentTypes.fs" />
         <Compile Include="TranslatorParts\AsmBuilder.fs" />
         <Compile Include="TranslatorParts\ExprTranslator.fs" />
-        <Compile Include="TranslatorParts\ClassTranslator.fs" />
+        <Compile Include="TranslatorParts\ClassMethodsTranslator.fs" />
         <Compile Include="TranslatorParts\ProgramTranslator.fs" />
         <Compile Include="TranslatorParts\Translator.fs" />
         <Compile Include="DriverParts\IWriteLine.fs" />

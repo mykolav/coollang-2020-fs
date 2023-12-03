@@ -39,7 +39,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
 
     
     let translateClass (class_node: AstNode<ClassSyntax>): string =
-        ClassTranslator(_context, class_node.Syntax).Translate()
+        ClassMethodsTranslator(_context, class_node.Syntax).Translate()
         
         
     let translateIntConst (int_const: ConstSetItem<int>): unit =

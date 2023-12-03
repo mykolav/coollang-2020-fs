@@ -141,14 +141,15 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
                                                        TYPE=it.TYPE
                                                        (*Initial=ValueNone*) })))
 
-        class_syntax.Features
-        |> Seq.where (fun it -> it.Syntax.IsAttr)
-        |> Seq.iter (fun feature_node ->
-            addAttrSym (feature_node.Map(fun it -> let attr_syntax = it.AsAttrSyntax
-                                                   { VarFormalOrAttrSyntax.ID=attr_syntax.ID
-                                                     TYPE=attr_syntax.TYPE
-                                                     (*Initial=ValueSome attr_syntax.Initial*) })))
-        
+        for feature_node in class_syntax.Features do
+            match feature_node with
+            | { Syntax = FeatureSyntax.Attr attr_syntax } ->
+                addAttrSym (feature_node.Map(fun _ ->
+                    { VarFormalOrAttrSyntax.ID=attr_syntax.ID
+                      TYPE=attr_syntax.TYPE
+                      (*Initial=ValueSome attr_syntax.Initial*) }))
+            | _ -> ()
+
         attr_syms :> IReadOnlyDictionary<_, _>
     
     
@@ -241,9 +242,11 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
 
             method_syms[mi.Name] <- mi
 
-        class_syntax.Features
-        |> Seq.where (fun feature_node -> feature_node.Syntax.IsMethod)
-        |> Seq.iter (fun feature_node -> addMethodSym (feature_node.Map(fun it -> it.AsMethodSyntax)))
+        for feature_node in class_syntax.Features do
+            match feature_node with
+            | { Syntax = FeatureSyntax.Method method_syntax } ->
+                addMethodSym (feature_node.Map(fun _ -> method_syntax))
+            | _ -> ()
 
         method_syms :> IReadOnlyDictionary<_, _>
 

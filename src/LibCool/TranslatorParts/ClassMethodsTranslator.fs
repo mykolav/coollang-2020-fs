@@ -10,15 +10,15 @@ open LibCool.TranslatorParts.AsmFragments
 
 
 [<Sealed>]
-type private ClassTranslator(_context: TranslationContext,
-                             _class_syntax: ClassSyntax) as this =
+type private ClassMethodsTranslator(_context: TranslationContext,
+                                    _class_syntax: ClassSyntax) as this =
     
     
     let _sym_table = SymbolTable(_context.ClassSymMap[_class_syntax.NAME.Syntax])
     let _expr_translator = ExprTranslator(_context, _class_syntax, _sym_table)
 
     
-    let translateAttr (attr_node: AstNode<AttrSyntax>): LcResult<string> =
+    let translateAttrInit (attr_node: AstNode<AttrSyntax>): LcResult<string> =
         let initial_node = attr_node.Syntax.Initial
         let expr_node =
             match initial_node.Syntax with
@@ -125,35 +125,34 @@ type private ClassTranslator(_context: TranslationContext,
         _context.RegSet.AssertAllFree()
 
         // Assign initial values to attributes declared in the class.
-        _class_syntax.Features
-        |> Seq.where (fun feature_node -> feature_node.Syntax.IsAttr)
-        |> Seq.iter (fun feature_node ->
-            let attr_frag = translateAttr (feature_node.Map(fun it -> it.AsAttrSyntax))
-            match attr_frag with
-            | Error -> ()
-            | Ok attr_frag ->
-               asm.Paste(attr_frag).AsUnit()
-        )
-        
+        for feature_node in _class_syntax.Features do
+            match feature_node with
+            | { Syntax = FeatureSyntax.Attr attr_syntax } ->
+                let attr_frag = translateAttrInit (feature_node.Map(fun _ -> attr_syntax))
+                match attr_frag with
+                | Error -> ()
+                | Ok attr_frag ->
+                   asm.Paste(attr_frag).AsUnit()
+            | _ -> ()
+
         _context.RegSet.AssertAllFree()
 
         // Translate blocks.
-        _class_syntax.Features
-        |> Seq.where (fun feature_node -> feature_node.Syntax.IsBracedBlock)
-        |> Seq.iter (fun feature_node ->
-            let block_frag = _expr_translator.TranslateBlock(feature_node.Syntax.AsBlockSyntax)
-            match block_frag with
-            | Error -> ()
-            | Ok block_frag ->
-                _context.RegSet.Free(block_frag.Reg)
-                asm.Paste(block_frag.Asm)
-                   .AsUnit()
-        )
-        
+        for feature_node in _class_syntax.Features do
+            match feature_node with
+            | { Syntax = FeatureSyntax.BracedBlock braced_block_syntax } ->
+                let block_frag = _expr_translator.TranslateBlock(braced_block_syntax)
+                match block_frag with
+                | Error -> ()
+                | Ok block_frag ->
+                    _context.RegSet.Free(block_frag.Reg)
+                    asm.Paste(block_frag.Asm).AsUnit()
+            | _ -> ()
+
         _context.RegSet.AssertAllFree()
 
         // Append ExprSyntax.This to the .ctor's end.
-        // (As a result, the last block's last expr's type doesn't have to match the class' type.)
+        // (As a result, the last block's last expr's type doesn't have to match the class' type)
         let this_syntax = ExprSyntax.This
         let this_frag = _expr_translator.Translate(AstNode.Virtual(this_syntax))
                                         .Value
@@ -222,7 +221,7 @@ type private ClassTranslator(_context: TranslationContext,
             _sym_table.AddFormal(sym))
         
         // Translate the method's body
-        let body_frag = _expr_translator.Translate(method_syntax.Body.Map(fun it -> it.AsExprSyntax))
+        let body_frag = _expr_translator.Translate(method_syntax.Body)
         match body_frag with
         | Error ->
             Error
@@ -297,9 +296,9 @@ type private ClassTranslator(_context: TranslationContext,
             asm.Paste(method_frag).AsUnit()
             
         for feature_node in _class_syntax.Features do
-            if feature_node.Syntax.IsMethod
-            then
-                let method_node = feature_node.Map(fun it -> it.AsMethodSyntax)
+            match feature_node with
+            | { Syntax = FeatureSyntax.Method method_syntax } ->
+                let method_node = feature_node.Map(fun _ -> method_syntax)
                 let method_name = $"{_class_syntax.NAME.Syntax}.{method_node.Syntax.ID.Syntax}"
                 let method_frag = translateMethod method_name
                                                    method_node.Span
@@ -308,6 +307,7 @@ type private ClassTranslator(_context: TranslationContext,
                 | Error -> ()
                 | Ok method_frag ->
                     asm.Paste(method_frag).AsUnit()
+            | _ -> ()
 
         _context.RegSet.AssertAllFree()
         

@@ -25,8 +25,8 @@ type private ExprTranslator(_context: TranslationContext,
         | ExprSyntax.If (condition,
                          then_branch,
                          else_branch)                          -> translateIf expr_node condition
-                                                                                         then_branch
-                                                                                         else_branch
+                                                                                        then_branch
+                                                                                        else_branch
         | ExprSyntax.While (condition, body)                   -> translateWhile expr_node condition body
         | ExprSyntax.LtEq (left, right)                        -> translateLtEq expr_node left right
         | ExprSyntax.GtEq (left, right)                        -> translateGtEq expr_node left right
@@ -39,10 +39,9 @@ type private ExprTranslator(_context: TranslationContext,
         | ExprSyntax.Sum (left, right)                         -> translateSum expr_node left right
         | ExprSyntax.Sub (left, right)                         -> translateSub expr_node left right
         | ExprSyntax.Match (expr, cases_hd, cases_tl)          -> translateMatch expr_node expr cases_hd cases_tl
-        | ExprSyntax.Dispatch (receiver, method_id, actuals)   -> translateDispatch expr_node
-                                                                                     receiver
-                                                                                     method_id
-                                                                                     actuals
+        | ExprSyntax.Dispatch (receiver, method_id, actuals)   -> translateDispatch expr_node receiver
+                                                                                              method_id
+                                                                                              actuals
         | ExprSyntax.ImplicitThisDispatch (method_id, actuals) -> translateDispatch expr_node
                                                                                      (AstNode.Virtual(ExprSyntax.This))
                                                                                      method_id
@@ -237,7 +236,7 @@ type private ExprTranslator(_context: TranslationContext,
         // To avoid two conditionals in the assembly, we plug `then` and `else` branches
         // directly into the conditional generated for `x > y`
         // and don't generate the second conditional at all.        
-        if cond_node.Syntax.IsComparison
+        if ExprSyntax.isComparison cond_node.Syntax
         then
             let left, right, op, jmp =
                 match cond_node.Syntax with
@@ -262,7 +261,7 @@ type private ExprTranslator(_context: TranslationContext,
         // To avoid two conditionals in the assembly, we plug `then` and `else` branches
         // directly into the conditional generated for `x == y`
         // and don't generate the second conditional at all.        
-        if cond_node.Syntax.IsEquality
+        if ExprSyntax.isEquality cond_node.Syntax
         then
             let left, right, op, equal_branch, unequal_branch =
                 match cond_node.Syntax with
@@ -273,8 +272,7 @@ type private ExprTranslator(_context: TranslationContext,
             match operands with
             | Error ->
                 Error
-            | Ok operands ->
-                let left_frag, right_frag = operands
+            | Ok (left_frag, right_frag) ->
                 Ok (emitEqopWithBranches expr_info.Span
                                          left_frag
                                          right_frag
@@ -558,7 +556,7 @@ type private ExprTranslator(_context: TranslationContext,
                     | PatternSyntax.Null ->
                         BasicClassNames.Null
 
-                let block_frag = this.TranslateBlock(case.Syntax.Block.Syntax.AsBlockSyntax)
+                let block_frag = this.TranslateCaseBlock(case.Syntax.Block.Syntax)
                 match block_frag with
                 | Error -> ()
                 | Ok block_frag ->
@@ -1119,7 +1117,12 @@ type private ExprTranslator(_context: TranslationContext,
         
         asm
     
-    
+    member this.TranslateCaseBlock(block_syntax: CaseBlockSyntax): LcResult<AsmFragment> =
+        match block_syntax with
+        | CaseBlockSyntax.Free block_syntax -> this.TranslateBlock(block_syntax)
+        | CaseBlockSyntax.Braced block_syntax_opt -> this.TranslateBlock(block_syntax_opt)
+
+
     member this.TranslateBlock(block_syntax_opt: BlockSyntax voption): LcResult<AsmFragment> =
         match block_syntax_opt with
         | ValueNone ->
@@ -1130,39 +1133,43 @@ type private ExprTranslator(_context: TranslationContext,
                  Type = BasicClasses.Unit
                  Reg = result_reg }
         | ValueSome block_syntax ->
-            _sym_table.EnterBlock()
-        
-            let asm = this.EmitAsm()
-            
-            for stmt_node in block_syntax.Stmts do
-                let stmt_frag = 
-                    match stmt_node.Syntax with
-                    | StmtSyntax.Var var_syntax ->
-                        translateVar (stmt_node.Map(fun _ -> var_syntax))
-                            
-                    | StmtSyntax.Expr expr_syntax ->
-                        translateExpr (stmt_node.Map(fun _ -> expr_syntax))
-                
-                match stmt_frag with
-                | Error -> ()
-                | Ok stmt_frag ->
-                    _context.RegSet.Free(stmt_frag.Reg)
-                    asm.Paste(stmt_frag.Asm).AsUnit()
-            
-            let expr_frag = translateExpr block_syntax.Expr
-            
-            _sym_table.LeaveBlock()
-            
-            match expr_frag with
-            | Error ->
-                Error
-            | Ok expr_frag ->
-                Ok { AsmFragment.Asm = asm.Paste(expr_frag.Asm)
-                                          .ToString()
-                     Type = expr_frag.Type
-                     Reg = expr_frag.Reg }
-        
-        
+            this.TranslateBlock(block_syntax)
+
+
+    member this.TranslateBlock(block_syntax: BlockSyntax): LcResult<AsmFragment> =
+        _sym_table.EnterBlock()
+
+        let asm = this.EmitAsm()
+
+        for stmt_node in block_syntax.Stmts do
+            let stmt_frag =
+                match stmt_node.Syntax with
+                | StmtSyntax.Var var_syntax ->
+                    translateVar (stmt_node.Map(fun _ -> var_syntax))
+
+                | StmtSyntax.Expr expr_syntax ->
+                    translateExpr (stmt_node.Map(fun _ -> expr_syntax))
+
+            match stmt_frag with
+            | Error -> ()
+            | Ok stmt_frag ->
+                _context.RegSet.Free(stmt_frag.Reg)
+                asm.Paste(stmt_frag.Asm).AsUnit()
+
+        let expr_frag = translateExpr block_syntax.Expr
+
+        _sym_table.LeaveBlock()
+
+        match expr_frag with
+        | Error ->
+            Error
+        | Ok expr_frag ->
+            Ok { AsmFragment.Asm = asm.Paste(expr_frag.Asm)
+                                      .ToString()
+                 Type = expr_frag.Type
+                 Reg = expr_frag.Reg }
+
+
     member this.AddrOf(sym: Symbol) : AddrFragment =
         match sym.Kind with
         | SymbolKind.Formal ->
@@ -1217,3 +1224,25 @@ type private ExprTranslator(_context: TranslationContext,
 
     member this.Translate(expr_node: AstNode<ExprSyntax>): LcResult<AsmFragment> =
         translateExpr expr_node
+
+
+    member this.Translate(method_body_node: AstNode<MethodBodySyntax>): LcResult<AsmFragment> =
+        match method_body_node.Syntax with
+        | MethodBodySyntax.Native -> invalidOp "MethodBodySyntax.AsExprSyntax"
+        | MethodBodySyntax.Expr it -> this.Translate(method_body_node.Map(fun _ -> it))
+
+
+module private ExprSyntax =
+    let isComparison (expr_syntax: ExprSyntax): bool =
+        match expr_syntax with
+        | ExprSyntax.Lt _   -> true
+        | ExprSyntax.LtEq _ -> true
+        | ExprSyntax.Gt _   -> true
+        | ExprSyntax.GtEq _ -> true
+        | _                 -> false
+
+    let isEquality (expr_syntax: ExprSyntax): bool =
+        match expr_syntax with
+        | ExprSyntax.EqEq _  -> true
+        | ExprSyntax.NotEq _ -> true
+        | _                  -> false
