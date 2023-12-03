@@ -35,7 +35,7 @@ skip_commits:
 image: Ubuntu2204
 
 install:
-  - sudo apt update && sudo apt install -y dotnet-sdk-8
+  - sudo apt update && sudo apt install -y dotnet-sdk-8.0
 
 #---------------------------------#
 #       build configuration       #
