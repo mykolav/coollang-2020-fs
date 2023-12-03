@@ -32,7 +32,7 @@ skip_commits:
 #---------------------------------#
 
 # Build worker image (VM template)
-image: Ubuntu2004
+image: Ubuntu2204
 
 #---------------------------------#
 #       build configuration       #
