@@ -153,7 +153,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         _context.IntConsts.Items |> Seq.iter translateIntConst
     
     
-    let emit_class_name_table(): unit =
+    let emitClassNameTable(): unit =
         _sb_data.AppendLine("class_name_table:").AsUnit()
         
         _context.ClassSymMap.Values
@@ -164,7 +164,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             _sb_data.AppendLine($"    .quad %s{name_const_label} # %s{class_sym.Name.Value}").AsUnit())
     
     
-    let emit_class_parent_table(): unit = 
+    let emitClassParentTable(): unit =
         _sb_data.AppendLine("class_parent_table:").AsUnit()
         
         _context.ClassSymMap.Values
@@ -182,7 +182,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                     .AsUnit())
     
     
-    let emit_class_vtables(): unit = 
+    let emitClassVTables(): unit =
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
         |> Seq.where (fun class_sym -> not class_sym.IsVirtual)
@@ -204,7 +204,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         )
 
 
-    let emit_prototype_obj(class_sym: ClassSymbol): unit =
+    let emitPrototypeObj(class_sym: ClassSymbol): unit =
         let header_size_in_quads = 3 // tag + size + vtable
         let proto_obj_size_in_quads = header_size_in_quads + class_sym.Attrs.Count
         _sb_data
@@ -231,10 +231,10 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
             _sb_data.AppendLine($"    .quad %s{default_value_ref} # %s{attr_sym.Name.Value}").AsUnit())
     
     
-    let emit_prototype_objs(): unit =
+    let emitPrototypeObjs(): unit =
         _context.ClassSymMap.Values
         |> Seq.where (fun class_sym -> not class_sym.IsVirtual)
-        |> Seq.iter emit_prototype_obj
+        |> Seq.iter emitPrototypeObj
     
     
     member this.Translate(): string =
@@ -245,10 +245,10 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                    .AsUnit()
         
         emitConsts()
-        emit_class_name_table()
-        emit_class_parent_table()
-        emit_class_vtables()
-        emit_prototype_objs()
+        emitClassNameTable()
+        emitClassParentTable()
+        emitClassVTables()
+        emitPrototypeObjs()
 
         let asm = 
             StringBuilder()

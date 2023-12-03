@@ -153,7 +153,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         attr_syms :> IReadOnlyDictionary<_, _>
     
     
-    let mk_param_syms (formal_syntaxes: AstNode<FormalSyntax>[])
+    let mkParamSyms (formal_syntaxes: AstNode<FormalSyntax>[])
                       (get_message: (*formal:*)AstNode<FormalSyntax> -> (*prev_formal:*)AstNode<FormalSyntax> -> string)
                       : FormalSymbol[] =
         let formal_node_map = Dictionary<ID, AstNode<FormalSyntax>>()
@@ -179,8 +179,8 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         Array.ofSeq param_syms
     
     
-    let mkMethodParamSyms (method_syntax: MethodSyntax) =
-        mk_param_syms ((*formal_syntaxes=*)method_syntax.Formals)
+    let mkMethodParamSyms (method_syntax: MethodSyntax): FormalSymbol[] =
+        mkParamSyms ((*formal_syntaxes=*)method_syntax.Formals)
                       ((*get_message=*)fun formal prev_formal ->
                           $"The method '{method_syntax.ID.Syntax}' " +
                           $"already contains a formal '{formal.Syntax.ID.Syntax}' at {prev_formal.Span}")
@@ -251,17 +251,17 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         method_syms :> IReadOnlyDictionary<_, _>
 
 
-    let mk_ctor_param_syms (class_syntax: ClassSyntax) =
+    let mkCtorParamSyms (class_syntax: ClassSyntax): FormalSymbol[] =
         let formal_syntaxes = class_syntax.VarFormals
                               |> Array.map (fun vf_node -> vf_node.Map(fun vf -> vf.AsFormalSyntax()))
-        mk_param_syms ((*formal_syntaxes=*)formal_syntaxes)
+        mkParamSyms ((*formal_syntaxes=*)formal_syntaxes)
                       ((*get_message=*)fun formal prev_formal ->
                           $"The constructor of class '{class_syntax.NAME.Syntax}' " +
                           $"already contains a var formal '{formal.Syntax.ID.Syntax}' at {prev_formal.Span}")
 
 
     let mkCtorSym (class_syntax: ClassSyntax): MethodSymbol =
-        let formal_syms = mk_ctor_param_syms class_syntax
+        let formal_syms = mkCtorParamSyms class_syntax
         
         { MethodSymbol.Name = ID ".ctor"
           Formals = formal_syms
