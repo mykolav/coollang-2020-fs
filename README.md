@@ -95,7 +95,7 @@ This [page](https://mykolav.github.io/coollang-2020-fs/) tries to give a bit of 
   - [Precedence](#precedence)
 - [Work in progress](#work-in-progress)
 - [Build](#build)
-  - [Install .NET 6 SDK](#install-net-6-sdk)
+  - [Install .NET 8 SDK](#install-net-8-sdk)
     - [_Windows_](#windows)
     - [_Linux_](#linux)
     - [Check installation](#check-installation)
