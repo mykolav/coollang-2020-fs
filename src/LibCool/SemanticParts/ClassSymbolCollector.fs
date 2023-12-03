@@ -339,10 +339,10 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         // See if we're in an inheritance cycle.
         let result = addToInheritanceChain inheritance_chain
                                               class_node.Syntax
-        if LcResult.isError result
-        then
+        match result with
+        | Error ->
             SpecialClasses.Error
-        else
+        | Ok result ->
 
         // We didn't collect a symbol for this class previously.
         // And we aren't in an inheritance cycle.

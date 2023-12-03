@@ -34,52 +34,51 @@ type EmitExeHandler(_writer: IWriteLine) =
         // Compile to assembly
         //
         let result = CompileToAsmStep.Invoke(source, diags)
-        if LcResult.isError result
-        then
+        match result with
+        | Error ->
             DiagRenderer.Render(diags, source, _writer)
             -1
-        else
-            
-        let obj_file = if args.ExeFile.EndsWith(".exe")
-                       then args.ExeFile.Replace(".exe", ".o")
-                       else if args.ExeFile.EndsWith(".out")
-                       then args.ExeFile.Replace(".out", ".o")
-                       else args.ExeFile + ".o"
+        | Ok asm ->
+            let obj_file = if args.ExeFile.EndsWith(".exe")
+                           then args.ExeFile.Replace(".exe", ".o")
+                           else if args.ExeFile.EndsWith(".out")
+                           then args.ExeFile.Replace(".out", ".o")
+                           else args.ExeFile + ".o"
 
-        //
-        // Assemble an object file
-        //
-        let as_diags = EmitExeHandler.Assemble(asm=result.Value, obj_file=obj_file)    
-        if as_diags.Length > 0
-        then
-            // We treat every message from 'as' as an error,
-            // which is obviously not always correct.
-            // But it will do for now.
-            for as_diag in as_diags do
-                diags.AsError(as_diag)
-                
+            //
+            // Assemble an object file
+            //
+            let as_diags = EmitExeHandler.Assemble(asm=asm, obj_file=obj_file)
+            if as_diags.Length > 0
+            then
+                // We treat every message from 'as' as an error,
+                // which is obviously not always correct.
+                // But it will do for now.
+                for as_diag in as_diags do
+                    diags.AsError(as_diag)
+
+                DiagRenderer.Render(diags, source, _writer)
+                -1
+            else
+
+            //
+            // Link an executable
+            //
+            let ld_diags = EmitExeHandler.Link(obj_file=obj_file, exe_file=args.ExeFile)
+            if ld_diags.Length > 0
+            then
+                // We treat every message from 'ld' as an error,
+                // which is obviously not always correct.
+                // But for now it will do.
+                for ld_diag in ld_diags do
+                    diags.LdError(ld_diag)
+
+                DiagRenderer.Render(diags, source, _writer)
+                -1
+            else
+
             DiagRenderer.Render(diags, source, _writer)
-            -1
-        else
-
-        //
-        // Link an executable
-        //
-        let ld_diags = EmitExeHandler.Link(obj_file=obj_file, exe_file=args.ExeFile)
-        if ld_diags.Length > 0
-        then
-            // We treat every message from 'ld' as an error,
-            // which is obviously not always correct.
-            // But for now it will do.
-            for ld_diag in ld_diags do
-                diags.LdError(ld_diag)
-            
-            DiagRenderer.Render(diags, source, _writer)
-            -1
-        else
-
-        DiagRenderer.Render(diags, source, _writer)
-        0
+            0
         
     
     static member Assemble(asm: string, obj_file: string) : string[] =

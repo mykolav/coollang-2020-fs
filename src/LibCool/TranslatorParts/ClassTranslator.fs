@@ -28,37 +28,36 @@ type private ClassTranslator(_context: TranslationContext,
                 invalidOp "AttrInitialSyntax.Native"
                 
         let initial_frag = _expr_translator.Translate(expr_node)
-        if LcResult.isError initial_frag
-        then
+        match initial_frag with
+        | Error ->
             Error
-        else
-            
-        let attr_sym = _sym_table.Resolve(attr_node.Syntax.ID.Syntax)
-        let addr_frag = _expr_translator.AddrOf(attr_sym)
-        if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=initial_frag.Value.Type))
-        then
-            _context.Diags.Error(
-                $"The initial expression's type '{initial_frag.Value.Type.Name}' " +
-                $"does not conform to the '{attr_sym.Name}' attribute's type '{attr_sym.Type}'",
-                initial_node.Span)
+        | Ok initial_frag ->
+            let attr_sym = _sym_table.Resolve(attr_node.Syntax.ID.Syntax)
+            let addr_frag = _expr_translator.AddrOf(attr_sym)
+            if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=initial_frag.Type))
+            then
+                _context.Diags.Error(
+                    $"The initial expression's type '{initial_frag.Type.Name}' " +
+                    $"does not conform to the '{attr_sym.Name}' attribute's type '{attr_sym.Type}'",
+                    initial_node.Span)
 
-            _context.RegSet.Free(initial_frag.Value.Reg)
+                _context.RegSet.Free(initial_frag.Reg)
+                _context.RegSet.Free(addr_frag.Reg)
+
+                Error
+            else
+
+            let asm =
+                this.EmitAsm()
+                    .Paste(initial_frag.Asm)
+                    .Location(attr_node.Span)
+                    .Instr("movq    {0}, {1}", initial_frag.Reg, addr_frag, comment=attr_sym.Name.ToString())
+                    .ToString()
+
+            _context.RegSet.Free(initial_frag.Reg)
             _context.RegSet.Free(addr_frag.Reg)
 
-            Error
-        else
-            
-        let asm =
-            this.EmitAsm()
-                .Paste(initial_frag.Value.Asm)
-                .Location(attr_node.Span)
-                .Instr("movq    {0}, {1}", initial_frag.Value.Reg, addr_frag, comment=attr_sym.Name.ToString())
-                .ToString()
-            
-        _context.RegSet.Free(initial_frag.Value.Reg)
-        _context.RegSet.Free(addr_frag.Reg)
-
-        Ok (asm)
+            Ok asm
     
     
     let translateCtorBody (): LcResult<string> =
@@ -79,8 +78,7 @@ type private ClassTranslator(_context: TranslationContext,
         // By a cruel twist of fate, you can't say `this.ID = ...` in Cool2020.
         // Gotta be creative and prefix formal names with "."
         // to avoid shadowing attr names by the ctor's formal names.
-        _class_syntax.VarFormals
-        |> Seq.iter (fun vf_node ->
+        _class_syntax.VarFormals |> Seq.iter (fun vf_node ->
             let sym = Symbol.Of(formal_node=vf_node.Map(fun vf -> vf.AsFormalSyntax(id_prefix=".")),
                                 index=_sym_table.Frame.ActualsCount)
             _sym_table.AddFormal(sym))
@@ -99,11 +97,11 @@ type private ClassTranslator(_context: TranslationContext,
                                   expr=AstNode.Virtual(ExprSyntax.Id (ID ("." + attr_name))))
 
             let assign_frag = _expr_translator.Translate(AstNode.Virtual(assign_syntax))
-            if LcResult.isOk assign_frag
-            then
-                _context.RegSet.Free(assign_frag.Value.Reg)
-                asm.Paste(assign_frag.Value.Asm)
-                   .AsUnit()
+            match assign_frag with
+            | Error -> ()
+            | Ok assign_frag ->
+                _context.RegSet.Free(assign_frag.Reg)
+                asm.Paste(assign_frag.Asm).AsUnit()
         
             _context.RegSet.AssertAllFree()
         )
@@ -118,11 +116,11 @@ type private ClassTranslator(_context: TranslationContext,
                                         actuals=extends_syntax.Actuals)
         
         let super_dispatch_frag = _expr_translator.Translate(AstNode.Virtual(super_dispatch_syntax))
-        if LcResult.isOk super_dispatch_frag
-        then
-            _context.RegSet.Free(super_dispatch_frag.Value.Reg)
-            asm.Paste(super_dispatch_frag.Value.Asm)
-               .AsUnit()
+        match super_dispatch_frag with
+        | Error -> ()
+        | Ok super_dispatch_frag ->
+            _context.RegSet.Free(super_dispatch_frag.Reg)
+            asm.Paste(super_dispatch_frag.Asm).AsUnit()
             
         _context.RegSet.AssertAllFree()
 
@@ -131,10 +129,10 @@ type private ClassTranslator(_context: TranslationContext,
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsAttr)
         |> Seq.iter (fun feature_node ->
             let attr_frag = translateAttr (feature_node.Map(fun it -> it.AsAttrSyntax))
-            if LcResult.isOk attr_frag
-            then
-                asm.Paste(attr_frag.Value)
-                   .AsUnit()
+            match attr_frag with
+            | Error -> ()
+            | Ok attr_frag ->
+               asm.Paste(attr_frag).AsUnit()
         )
         
         _context.RegSet.AssertAllFree()
@@ -144,10 +142,11 @@ type private ClassTranslator(_context: TranslationContext,
         |> Seq.where (fun feature_node -> feature_node.Syntax.IsBracedBlock)
         |> Seq.iter (fun feature_node ->
             let block_frag = _expr_translator.TranslateBlock(feature_node.Syntax.AsBlockSyntax)
-            if LcResult.isOk block_frag
-            then
-                _context.RegSet.Free(block_frag.Value.Reg)
-                asm.Paste(block_frag.Value.Asm)
+            match block_frag with
+            | Error -> ()
+            | Ok block_frag ->
+                _context.RegSet.Free(block_frag.Reg)
+                asm.Paste(block_frag.Asm)
                    .AsUnit()
         )
         
@@ -157,12 +156,13 @@ type private ClassTranslator(_context: TranslationContext,
         // (As a result, the last block's last expr's type doesn't have to match the class' type.)
         let this_syntax = ExprSyntax.This
         let this_frag = _expr_translator.Translate(AstNode.Virtual(this_syntax))
+                                        .Value
         
-        asm.Paste(this_frag.Value.Asm)
-           .Instr("movq    {0}, %rax", this_frag.Value.Reg, comment="this")
+        asm.Paste(this_frag.Asm)
+           .Instr("movq    {0}, %rax", this_frag.Reg, comment="this")
            .AsUnit()
 
-        _context.RegSet.Free(this_frag.Value.Reg)
+        _context.RegSet.Free(this_frag.Reg)
         _sym_table.LeaveBlock()
         
         Ok (asm.ToString())
@@ -223,38 +223,36 @@ type private ClassTranslator(_context: TranslationContext,
         
         // Translate the method's body
         let body_frag = _expr_translator.Translate(method_syntax.Body.Map(fun it -> it.AsExprSyntax))
-        if LcResult.isError body_frag
-        then
+        match body_frag with
+        | Error ->
             Error
-        else
-            
-        // Make sure, the body's type conforms to the return type.
-        let return_ty = _context.ClassSymMap[method_syntax.RETURN.Syntax]
-        if not (_context.TypeCmp.Conforms(ancestor=return_ty, descendant=body_frag.Value.Type))
-        then
-            _context.Diags.Error(
-                $"The method body's type '{body_frag.Value.Type.Name}' does not conform to " +
-                $"the declared return type '{return_ty.Name}'",
-                method_syntax.Body.Span)
-            _context.RegSet.Free(body_frag.Value.Reg)
-            Error
-        else
-            
-        // Finally, all the semantic checks passed.
-        // Emit assembly.
-        
-        let asm =
-            this.EmitAsm()
-                .Paste(body_frag.Value.Asm)
-        
-        if body_frag.Value.Reg = Reg.Null
-        then
-            Ok (asm.Instr("movq    ${0}, %rax", RtNames.UnitValue)
-                   .ToString())
-        else
-            _context.RegSet.Free(body_frag.Value.Reg)
-            Ok (asm.Instr("movq    {0}, %rax", body_frag.Value.Reg)
-                   .ToString())
+        | Ok body_frag ->
+            // Make sure, the body's type conforms to the return type.
+            let return_ty = _context.ClassSymMap[method_syntax.RETURN.Syntax]
+            if not (_context.TypeCmp.Conforms(ancestor=return_ty, descendant=body_frag.Type))
+            then
+                _context.Diags.Error(
+                    $"The method body's type '{body_frag.Type.Name}' does not conform to " +
+                    $"the declared return type '{return_ty.Name}'",
+                    method_syntax.Body.Span)
+                _context.RegSet.Free(body_frag.Reg)
+                Error
+            else
+
+            // Finally, all the semantic checks passed.
+            // Emit assembly.
+
+            let asm = this.EmitAsm()
+                          .Paste(body_frag.Asm)
+
+            if body_frag.Reg = Reg.Null
+            then
+                Ok (asm.Instr("movq    ${0}, %rax", RtNames.UnitValue)
+                       .ToString())
+            else
+                _context.RegSet.Free(body_frag.Reg)
+                Ok (asm.Instr("movq    {0}, %rax", body_frag.Reg)
+                       .ToString())
 
         
     let translateMethod (method_name: string)
@@ -265,19 +263,17 @@ type private ClassTranslator(_context: TranslationContext,
         _sym_table.EnterMethod()
 
         let body_frag = translate_body ()        
-        if LcResult.isError body_frag
-        then
+        match body_frag with
+        | Error ->
             Error
-        else
-            
-        let asm =
-            this.EmitAsm()
-                .Method(method_name, method_span, _sym_table.Frame, body_frag.Value)
-  
-        _sym_table.LeaveMethod()
-        _context.RegSet.AssertAllFree()
+        | Ok body_frag ->
+            let asm = this.EmitAsm()
+                          .Method(method_name, method_span, _sym_table.Frame, body_frag)
 
-        Ok asm
+            _sym_table.LeaveMethod()
+            _context.RegSet.AssertAllFree()
+
+            Ok asm
     
     
     member private this.EmitAsm(): AsmBuilder = AsmBuilder(_context)
@@ -295,10 +291,10 @@ type private ClassTranslator(_context: TranslationContext,
                         else _class_syntax.NAME.Span
             
         let method_frag = translateMethod ctor_name ctor_span translateCtorBody
-        if LcResult.isOk method_frag
-        then
-            asm.Paste(method_frag.Value)
-               .AsUnit()
+        match method_frag with
+        | Error -> ()
+        | Ok method_frag ->
+            asm.Paste(method_frag).AsUnit()
             
         for feature_node in _class_syntax.Features do
             if feature_node.Syntax.IsMethod
@@ -308,10 +304,10 @@ type private ClassTranslator(_context: TranslationContext,
                 let method_frag = translateMethod method_name
                                                    method_node.Span
                                                    (fun () -> translateMethodBody method_node.Syntax)
-                if LcResult.isOk method_frag
-                then
-                    asm.Paste(method_frag.Value)
-                       .AsUnit()
+                match method_frag with
+                | Error -> ()
+                | Ok method_frag ->
+                    asm.Paste(method_frag).AsUnit()
 
         _context.RegSet.AssertAllFree()
         

@@ -65,57 +65,56 @@ type private ExprTranslator(_context: TranslationContext,
                         (rvalue_expr: AstNode<ExprSyntax>)
                         : LcResult<AsmFragment> =
         let expr_frag = translateExpr rvalue_expr
-        if LcResult.isError expr_frag
-        then
+        match expr_frag with
+        | Error ->
             Error
-        else
-        
-        let id_sym = _sym_table.TryResolve(id.Syntax)
-        if id_sym.IsNone
-        then
-            _context.Diags.Error(
-                $"The name '{id.Syntax}' does not exist in the current context",
-                id.Span)
-            
-            _context.RegSet.Free(expr_frag.Value.Reg)
-            Error
-        else
-            
-        let addr_frag = this.AddrOf(id_sym.Value)
+        | Ok expr_frag ->
+            let id_sym = _sym_table.TryResolve(id.Syntax)
+            if id_sym.IsNone
+            then
+                _context.Diags.Error(
+                    $"The name '{id.Syntax}' does not exist in the current context",
+                    id.Span)
 
-        if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Value.Type))
-        then
-            _context.Diags.Error(
-                $"The expression's type '{expr_frag.Value.Type.Name}' does not conform to " +
-                $"the type '{addr_frag.Type.Name}' of '{id.Syntax}'",
-                rvalue_expr.Span)
-            
+                _context.RegSet.Free(expr_frag.Reg)
+                Error
+            else
+
+            let addr_frag = this.AddrOf(id_sym.Value)
+
+            if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Type))
+            then
+                _context.Diags.Error(
+                    $"The expression's type '{expr_frag.Type.Name}' does not conform to " +
+                    $"the type '{addr_frag.Type.Name}' of '{id.Syntax}'",
+                    rvalue_expr.Span)
+
+                _context.RegSet.Free(addr_frag.Reg)
+                _context.RegSet.Free(expr_frag.Reg)
+                Error
+            else
+
+            let asm =
+                this.EmitAsm()
+                    .Paste(expr_frag.Asm)
+                    .Location(assign_node_span)
+                    .Instr("movq    {0}, {1}", expr_frag.Reg, addr_frag, comment=id.Syntax.ToString())
+                    .ToString()
+
             _context.RegSet.Free(addr_frag.Reg)
-            _context.RegSet.Free(expr_frag.Value.Reg)
-            Error
-        else
 
-        let asm =
-            this.EmitAsm()
-                .Paste(expr_frag.Value.Asm)
-                .Location(assign_node_span)
-                .Instr("movq    {0}, {1}", expr_frag.Value.Reg, addr_frag, comment=id.Syntax.ToString())
-                .ToString()
-        
-        _context.RegSet.Free(addr_frag.Reg)
+            // We do not free up expr_frag.Value.Reg,
+            // to support assignments of the form `ID = ID = ...`
 
-        // We do not free up expr_frag.Value.Reg,
-        // to support assignments of the form `ID = ID = ...`
-
-        Ok { AsmFragment.Asm = asm.ToString()
-             Reg = expr_frag.Value.Reg
-             Type = addr_frag.Type }
+            Ok { AsmFragment.Asm = asm.ToString()
+                 Reg = expr_frag.Reg
+                 Type = addr_frag.Type }
         
         
     and translateBoolNegation (bool_negation_node: AstNode<ExprSyntax>)
                               (negated_node: AstNode<ExprSyntax>)
                               : LcResult<AsmFragment> =
-        let negated_frag = translateUnaryopOperand negated_node (*op=*)"!" (*expected_ty=*)BasicClasses.Boolean
+        let negated_frag = translateUnaryOpOperand negated_node (*op=*)"!" (*expected_ty=*)BasicClasses.Boolean
         match negated_frag with
         | Error           -> Error
         | Ok negated_frag -> 
@@ -127,7 +126,7 @@ type private ExprTranslator(_context: TranslationContext,
     and translateUnaryMinus (unary_minus_node: AstNode<ExprSyntax>)
                             (negated_node: AstNode<ExprSyntax>)
                             : LcResult<AsmFragment> =
-        let negated_frag = translateUnaryopOperand negated_node (*op=*)"-" (*expected_ty=*)BasicClasses.Int
+        let negated_frag = translateUnaryOpOperand negated_node (*op=*)"-" (*expected_ty=*)BasicClasses.Int
         match negated_frag with
         | Error           -> Error
         | Ok negated_frag ->
@@ -144,85 +143,85 @@ type private ExprTranslator(_context: TranslationContext,
         let then_frag = translateExpr then_branch
         let else_frag = translateExpr else_branch
 
-        if LcResult.isError then_frag || LcResult.isError else_frag
-        then
-            if LcResult.isOk then_frag then _context.RegSet.Free(then_frag.Value.Reg)
-            if LcResult.isOk else_frag then _context.RegSet.Free(else_frag.Value.Reg)
+        match then_frag, else_frag with
+        | Error, Error ->
             Error
-        else
-
-        let result_reg = _context.RegSet.Allocate("translate_if.result_reg")
-        
-        let then_asm =
-            this.EmitAsm()
-                .Paste(then_frag.Value.Asm)
-                .Instr("movq    {0}, {1}", then_frag.Value.Reg, result_reg)
-                .ToString()
-        
-        let else_asm =
-            this.EmitAsm()
-                .Paste(else_frag.Value.Asm)
-                .Instr("movq    {0}, {1}", else_frag.Value.Reg, result_reg)
-                .ToString()
-
-        // It's OK to free up these registers early,
-        // as the the condition's code cannot overwrite them
-        // (it's located before the branches).
-        _context.RegSet.Free(then_frag.Value.Reg)
-        _context.RegSet.Free(else_frag.Value.Reg)
-            
-        let asm = emitCond {| Name="if"; Span=if_node.Span |} cond_node then_asm else_asm
-        match asm with
-        | Error  ->
-            _context.RegSet.Free(result_reg)
+        | Ok then_frag, Error ->
+            _context.RegSet.Free(then_frag.Reg)
             Error
-        | Ok asm -> 
-            Ok { AsmFragment.Asm = asm
-                 Type = _context.TypeCmp.LeastUpperBound(then_frag.Value.Type, else_frag.Value.Type)
-                 Reg = result_reg }
+        | Error, Ok else_frag ->
+            _context.RegSet.Free(else_frag.Reg)
+            Error
+        | Ok then_frag, Ok else_frag ->
+            let result_reg = _context.RegSet.Allocate("translate_if.result_reg")
+
+            let then_asm =
+                this.EmitAsm()
+                    .Paste(then_frag.Asm)
+                    .Instr("movq    {0}, {1}", then_frag.Reg, result_reg)
+                    .ToString()
+
+            let else_asm =
+                this.EmitAsm()
+                    .Paste(else_frag.Asm)
+                    .Instr("movq    {0}, {1}", else_frag.Reg, result_reg)
+                    .ToString()
+
+            // It's OK to free up these registers early,
+            // as the the condition's code cannot overwrite them
+            // (it's located before the branches).
+            _context.RegSet.Free(then_frag.Reg)
+            _context.RegSet.Free(else_frag.Reg)
+
+            let asm = emitCond {| Name="if"; Span=if_node.Span |} cond_node then_asm else_asm
+            match asm with
+            | Error  ->
+                _context.RegSet.Free(result_reg)
+                Error
+            | Ok asm ->
+                Ok { AsmFragment.Asm = asm
+                     Type = _context.TypeCmp.LeastUpperBound(then_frag.Type, else_frag.Type)
+                     Reg = result_reg }
             
         
     and translateWhile while_node cond_node body =
         let body_frag = translateExpr body
-        if LcResult.isError body_frag
-        then
+        match body_frag with
+        | Error ->
             Error
-        else
-        
-        let while_cond_label = _context.LabelGen.Generate()
+        | Ok body_frag ->
+            let while_cond_label = _context.LabelGen.Generate()
 
-        let body_asm =
-            this.EmitAsm()
-                .Paste(body_frag.Value.Asm)
-                .Jmp(while_cond_label, "while cond")
-                .ToString()
+            let body_asm =
+                this.EmitAsm()
+                    .Paste(body_frag.Asm)
+                    .Jmp(while_cond_label, "while cond")
+                    .ToString()
 
-        _context.RegSet.Free(body_frag.Value.Reg)
-            
-        let result_reg = _context.RegSet.Allocate("translate_while.result_reg")
-        let done_asm = this.EmitAsm()
-                           .Single("movq    ${0}, {1}", RtNames.UnitValue, result_reg, "unit")
+            _context.RegSet.Free(body_frag.Reg)
 
-        let cond_asm = emitCond {| Name="while"; Span=cond_node.Span |}
-                                 cond_node
-                                 (*true_branch_asm*)body_asm
-                                 (*false_branch_asm*)done_asm
-        if LcResult.isError cond_asm
-        then
-            _context.RegSet.Free(result_reg)
-            Error
-        else
-            
-        let asm =
-            this.EmitAsm()
-                .Label(while_cond_label, "while cond")
-                .Paste(cond_asm.Value)
-                .Location(while_node.Span)
-                .ToString()
-            
-        Ok { AsmFragment.Asm = asm
-             Type = BasicClasses.Unit
-             Reg = result_reg }
+            let result_reg = _context.RegSet.Allocate("translate_while.result_reg")
+            let done_asm = this.EmitAsm()
+                               .Single("movq    ${0}, {1}", RtNames.UnitValue, result_reg, "unit")
+
+            let cond_asm = emitCond {| Name="while"; Span=cond_node.Span |}
+                                     cond_node
+                                     (*true_branch_asm*)body_asm
+                                     (*false_branch_asm*)done_asm
+            match cond_asm with
+            | Error ->
+                _context.RegSet.Free(result_reg)
+                Error
+            | Ok cond_asm ->
+                let asm = this.EmitAsm()
+                              .Label(while_cond_label, "while cond")
+                              .Paste(cond_asm)
+                              .Location(while_node.Span)
+                              .ToString()
+
+                Ok { AsmFragment.Asm = asm
+                     Type = BasicClasses.Unit
+                     Reg = result_reg }
 
     
     and emitCond (expr_info: struct {| Name: string; Span: Span |})
@@ -247,19 +246,17 @@ type private ExprTranslator(_context: TranslationContext,
                 | ExprSyntax.Gt (left, right)   -> left, right, ">", "jg"
                 | ExprSyntax.GtEq (left, right) -> left, right, ">=", "jge"
                 | _                             -> invalidOp "Unreachable"
-            let operands = translateInfixopIntOperands left right op
-            if LcResult.isError operands
-            then
+            let operands = translateInfixOpIntOperands left right op
+            match operands with
+            | Error ->
                 Error
-            else
-                
-            let left_frag, right_frag = operands.Value
-            Ok (emitCmpOpWithBranches expr_info.Span
-                                         left_frag
-                                         right_frag
-                                         jmp
-                                         (*false_branch*)false_branch_asm
-                                         (*true_branch*)true_branch_asm)
+            | Ok (left_frag, right_frag) ->
+                Ok (emitCmpOpWithBranches expr_info.Span
+                                          left_frag
+                                          right_frag
+                                          jmp
+                                          (*false_branch*)false_branch_asm
+                                          (*true_branch*)true_branch_asm)
         else
             
         // To avoid two conditionals in the assembly, we plug `then` and `else` branches
@@ -273,183 +270,161 @@ type private ExprTranslator(_context: TranslationContext,
                 | ExprSyntax.NotEq (left, right) -> left, right, "!=", false_branch_asm, true_branch_asm
                 | _                              -> invalidOp "Unreachable"
             let operands = translateEqOpOperands left right op
-            if LcResult.isError operands
-            then
+            match operands with
+            | Error ->
                 Error
-            else
-                
-            let left_frag, right_frag = operands.Value
-            Ok (emitEqopWithBranches expr_info.Span
-                                        left_frag
-                                        right_frag
-                                        unequal_branch
-                                        equal_branch)
+            | Ok operands ->
+                let left_frag, right_frag = operands
+                Ok (emitEqopWithBranches expr_info.Span
+                                         left_frag
+                                         right_frag
+                                         unequal_branch
+                                         equal_branch)
         else
             
         let cond_frag = translateExpr cond_node
-        if LcResult.isError cond_frag
-        then
+        match cond_frag with
+        | Error ->
             Error
-        else
-            
-        // Free up the register right away, it's OK if it gets re-used in a branch.
-        _context.RegSet.Free(cond_frag.Value.Reg)
+        | Ok cond_frag ->
+            // Free up the register right away, it's OK if it gets re-used in a branch.
+            _context.RegSet.Free(cond_frag.Reg)
 
-        if not (cond_frag.Value.Type.Is(BasicClasses.Boolean))
-        then
-            _context.Diags.Error(
-                $"'%s{expr_info.Name}' expects a 'Boolean' condition but found '{cond_frag.Value.Type.Name}'",
-                cond_node.Span)
+            if not (cond_frag.Type.Is(BasicClasses.Boolean))
+            then
+                _context.Diags.Error(
+                    $"'%s{expr_info.Name}' expects a 'Boolean' condition but found '{cond_frag.Type.Name}'",
+                    cond_node.Span)
 
-            Error
-        else
-        
-        // We have `(flag) ...` or `(is_satisfied()) ...` as our condition.
-        // Instead of plugging `then` and `else` branches in an existing conditional,
-        // generate the conditional ourselves.
-        Ok (this.EmitAsm().Cond(cond_frag.Value,
-                                true_branch_asm=true_branch_asm,
-                                false_branch_asm=false_branch_asm))
+                Error
+            else
+
+            // We have `(flag) ...` or `(is_satisfied()) ...` as our condition.
+            // Instead of plugging `then` and `else` branches in an existing conditional,
+            // generate the conditional ourselves.
+            Ok (this.EmitAsm().Cond(cond_frag,
+                                    true_branch_asm=true_branch_asm,
+                                    false_branch_asm=false_branch_asm))
         
         
     and translateLtEq lt_eq_node left right =
-        let operands = translateInfixopIntOperands left right (*op=*)"<="
-        if LcResult.isError operands
-        then
+        let operands = translateInfixOpIntOperands left right (*op=*)"<="
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value
-        let asm_frag = emitCmpOp lt_eq_node left_frag right_frag "jle "
-        
-        Ok { AsmFragment.Asm = asm_frag.Asm
-             Type = BasicClasses.Boolean
-             Reg = asm_frag.Reg }
+        | Ok (left_frag, right_frag) ->
+            let asm_frag = emitCmpOp lt_eq_node left_frag right_frag "jle "
+
+            Ok { AsmFragment.Asm = asm_frag.Asm
+                 Type = BasicClasses.Boolean
+                 Reg = asm_frag.Reg }
         
         
     and translateGtEq gt_eq_node left right =
-        let operands = translateInfixopIntOperands left right (*op=*)">="
-        if LcResult.isError operands
-        then
+        let operands = translateInfixOpIntOperands left right (*op=*)">="
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value
-        let asm_frag = emitCmpOp gt_eq_node left_frag right_frag "jge "
-        
-        Ok { AsmFragment.Asm = asm_frag.Asm
-             Type = BasicClasses.Boolean
-             Reg = asm_frag.Reg }
+        | Ok (left_frag, right_frag) ->
+            let asm_frag = emitCmpOp gt_eq_node left_frag right_frag "jge "
+
+            Ok { AsmFragment.Asm = asm_frag.Asm
+                 Type = BasicClasses.Boolean
+                 Reg = asm_frag.Reg }
         
         
     and translateLt lt_node left right =
-        let operands = translateInfixopIntOperands left right (*op=*)"<"
-        if LcResult.isError operands
-        then
+        let operands = translateInfixOpIntOperands left right (*op=*)"<"
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value
-        let asm_frag = emitCmpOp lt_node left_frag right_frag "jl  "
-        
-        Ok { AsmFragment.Asm = asm_frag.Asm
-             Type = BasicClasses.Boolean
-             Reg = asm_frag.Reg }
+        | Ok (left_frag, right_frag) ->
+            let asm_frag = emitCmpOp lt_node left_frag right_frag "jl  "
+            Ok { AsmFragment.Asm = asm_frag.Asm
+                 Type = BasicClasses.Boolean
+                 Reg = asm_frag.Reg }
         
         
     and translateGt gt_node left right =
-        let operands = translateInfixopIntOperands left right (*op=*)">"
-        if LcResult.isError operands
-        then
+        let operands = translateInfixOpIntOperands left right (*op=*)">"
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value
-        let asm_frag = emitCmpOp gt_node left_frag right_frag "jg  "
-        
-        Ok { AsmFragment.Asm = asm_frag.Asm
-             Type = BasicClasses.Boolean
-             Reg = asm_frag.Reg }
+        | Ok (left_frag, right_frag) ->
+            let asm_frag = emitCmpOp gt_node left_frag right_frag "jg  "
+            Ok { AsmFragment.Asm = asm_frag.Asm
+                 Type = BasicClasses.Boolean
+                 Reg = asm_frag.Reg }
         
         
     and translateEqEq eq_eq_node left right =
         let operands = translateEqOpOperands left right "=="
-        if LcResult.isError operands
-        then
+        match operands with
+        | Error ->
             Error
-        else
-            
-        let result_reg = _context.RegSet.Allocate("translate_eq_eq.result_reg")
-        let equal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolTrue, result_reg, "true")
-        let unequal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolFalse, result_reg, "false")
-        let left_frag, right_frag = operands.Value
-        let asm = 
-            emitEqopWithBranches eq_eq_node.Span
-                                 left_frag
-                                 right_frag
-                                 unequal_branch
-                                 equal_branch
-        
-        Ok { AsmFragment.Asm = asm
-             Type = BasicClasses.Boolean
-             Reg = result_reg }
+        | Ok (left_frag, right_frag) ->
+            let result_reg = _context.RegSet.Allocate("translate_eq_eq.result_reg")
+            let equal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolTrue, result_reg, "true")
+            let unequal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolFalse, result_reg, "false")
+            let asm = emitEqopWithBranches eq_eq_node.Span
+                                           left_frag
+                                           right_frag
+                                           unequal_branch
+                                           equal_branch
+
+            Ok { AsmFragment.Asm = asm
+                 Type = BasicClasses.Boolean
+                 Reg = result_reg }
         
         
     and translateNotEq not_eq_node left right =
         let operands = translateEqOpOperands left right "!="
-        if LcResult.isError operands
-        then
+        match operands with
+        | Error ->
             Error
-        else
-            
-        let result_reg = _context.RegSet.Allocate("translate_not_eq.result_reg")
-        let unequal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolTrue, result_reg, "true")
-        let equal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolFalse, result_reg, "false")
-        let left_frag, right_frag = operands.Value
-        let asm = 
-            emitEqopWithBranches not_eq_node.Span
-                                    left_frag
-                                    right_frag
-                                    unequal_branch
-                                    equal_branch
-                                    
-        Ok { AsmFragment.Asm = asm
-             Type = BasicClasses.Boolean
-             Reg = result_reg }
+        | Ok (left_frag, right_frag) ->
+            let result_reg = _context.RegSet.Allocate("translate_not_eq.result_reg")
+            let unequal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolTrue, result_reg, "true")
+            let equal_branch = this.EmitAsm().Single("movq    ${0}, {1}", RtNames.BoolFalse, result_reg, "false")
+            let asm = emitEqopWithBranches not_eq_node.Span
+                                           left_frag
+                                           right_frag
+                                           unequal_branch
+                                           equal_branch
+
+            Ok { AsmFragment.Asm = asm
+                 Type = BasicClasses.Boolean
+                 Reg = result_reg }
         
         
     and translateMul mul_node left right =
-        let operands = translateInfixopIntOperands left right "*"
-        if LcResult.isError operands
-        then
+        let operands = translateInfixOpIntOperands left right "*"
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value    
-        let asm = this.EmitAsm().Mul(mul_node.Span, left_frag, right_frag)
+        | Ok (left_frag, right_frag) ->
+            let asm = this.EmitAsm().Mul(mul_node.Span, left_frag, right_frag)
 
-        _context.RegSet.Free(right_frag.Reg)
-        
-        Ok { AsmFragment.Asm = asm
-             Type = BasicClasses.Int
-             Reg = left_frag.Reg }
+            _context.RegSet.Free(right_frag.Reg)
+
+            Ok { AsmFragment.Asm = asm
+                 Type = BasicClasses.Int
+                 Reg = left_frag.Reg }
         
         
     and translateDiv div_node left right =
-        let operands = translateInfixopIntOperands left right "/"
-        if LcResult.isError operands
-        then
+        let operands = translateInfixOpIntOperands left right "/"
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value    
-        let asm = this.EmitAsm().Div(div_node.Span, left_frag, right_frag)
+        | Ok (left_frag, right_frag) ->
+            let asm = this.EmitAsm().Div(div_node.Span, left_frag, right_frag)
 
-        _context.RegSet.Free(right_frag.Reg)
-        
-        Ok { AsmFragment.Asm = asm
-             Type = BasicClasses.Int
-             Reg = left_frag.Reg }
+            _context.RegSet.Free(right_frag.Reg)
+
+            Ok { AsmFragment.Asm = asm
+                 Type = BasicClasses.Int
+                 Reg = left_frag.Reg }
         
         
     and translateSum sum_node left right =
@@ -468,117 +443,109 @@ type private ExprTranslator(_context: TranslationContext,
                 true
 
         let operands = translateInfixOpOperands left right checkOperands
-        if LcResult.isError operands
-        then
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value
-  
-        let asm = this.EmitAsm().Sum(sum_node.Span, left_frag, right_frag)
-        _context.RegSet.Free(left_frag.Reg)
-        
-        Ok { AsmFragment.Asm = asm.ToString()
-             Type = right_frag.Type
-             Reg = right_frag.Reg }
+        | Ok (left_frag, right_frag) ->
+            let asm = this.EmitAsm().Sum(sum_node.Span, left_frag, right_frag)
+            _context.RegSet.Free(left_frag.Reg)
+
+            Ok { AsmFragment.Asm = asm.ToString()
+                 Type = right_frag.Type
+                 Reg = right_frag.Reg }
         
         
     and translateSub sub_node left right =
-        let operands = translateInfixopIntOperands left right "-"
-        if LcResult.isError operands
-        then
+        let operands = translateInfixOpIntOperands left right "-"
+        match operands with
+        | Error ->
             Error
-        else
-        
-        let left_frag, right_frag = operands.Value    
+        | Ok (left_frag, right_frag) ->
+            let asm = this.EmitAsm().Sub(sub_node.Span, left_frag, right_frag)
+            _context.RegSet.Free(right_frag.Reg)
 
-        let asm = this.EmitAsm().Sub(sub_node.Span, left_frag, right_frag)
-        _context.RegSet.Free(right_frag.Reg)
-        
-        Ok { AsmFragment.Asm = asm
-             Type = BasicClasses.Int
-             Reg = left_frag.Reg }
+            Ok { AsmFragment.Asm = asm
+                 Type = BasicClasses.Int
+                 Reg = left_frag.Reg }
         
         
     and translateMatch match_node expr cases_hd cases_tl =
         let expr_frag = translateExpr expr
-        if LcResult.isError expr_frag
-        then
+        match expr_frag with
+        | Error ->
             Error
-        else
+        | Ok expr_frag ->
+            let cases = Array.concat [[| cases_hd |]; cases_tl]
+            let patterns = cases |> Array.map (fun case ->
+                match case.Syntax.Pattern.Syntax with
+                | PatternSyntax.IdType (_, ty) -> ty
+                | PatternSyntax.Null -> AstNode.Virtual(BasicClassNames.Null))
 
-        let cases = Array.concat [[| cases_hd |]; cases_tl]    
-        let patterns = cases |> Array.map (fun case ->
-            match case.Syntax.Pattern.Syntax with
-            | PatternSyntax.IdType (_, ty) -> ty
-            | PatternSyntax.Null -> AstNode.Virtual(BasicClassNames.Null))
+            let pattern_asm_infos = Dictionary<TYPENAME, PatternAsmInfo>()
+            for pattern in patterns do
+                let pattern_ty = _context.ClassSymMap[pattern.Syntax]
+                pattern_asm_infos.Add(pattern.Syntax,
+                                      { PatternAsmInfo.Label = _context.LabelGen.Generate()
+                                        Tag = pattern_ty.Tag })
 
-        let pattern_asm_infos = Dictionary<TYPENAME, PatternAsmInfo>()
-        for pattern in patterns do
-            let pattern_ty = _context.ClassSymMap[pattern.Syntax]
-            pattern_asm_infos.Add(pattern.Syntax,
-                                  { PatternAsmInfo.Label = _context.LabelGen.Generate()
-                                    Tag = pattern_ty.Tag })
-            
-        let tag_reg = _context.RegSet.Allocate("translate_match.tag_reg")
-        let expr_location = _context.Source.Map(expr.Span.First)
-        
-        let asm = this.EmitAsm()
-                      .Match(match_node.Span,
-                             expr_frag.Value,
-                             expr_location,
-                             _sym_table.Frame,
-                             tag_reg,
-                             pattern_asm_infos)
-        
-        _context.RegSet.Free(expr_frag.Value.Reg)
-        _context.RegSet.Free(tag_reg)
+            let tag_reg = _context.RegSet.Allocate("translate_match.tag_reg")
+            let expr_location = _context.Source.Map(expr.Span.First)
 
-        let mutable pattern_error = false
-        for i in 0 .. (patterns.Length - 1) do
-            let pattern = patterns[i]
-            if pattern.Syntax <> BasicClassNames.Null &&
-               (checkTypename pattern) = Error
-            then
-                pattern_error <- true
-            else
-            
-            let pattern_ty = _context.ClassSymMap[pattern.Syntax]
-            if not (_context.TypeCmp.Conforms(pattern_ty, expr_frag.Value.Type) ||
-                    _context.TypeCmp.Conforms(expr_frag.Value.Type, pattern_ty))
-            then
-                _context.Diags.Error(
-                    $"'{expr_frag.Value.Type.Name}' and '{pattern_ty.Name}' are not parts of " +
-                    "the same inheritance chain. As a result this case is unreachable",
-                    pattern.Span)
-                pattern_error <- true
-            else
-            
-            // if `i` = 0, we'll have `for j in 0 .. -1 do`
-            // that will not perform a single iteration.
-            for j in 0 .. (i - 1) do
-                let prev_pattern = patterns[j]
-                if _context.ClassSymMap.ContainsKey(prev_pattern.Syntax)
+            let asm = this.EmitAsm()
+                          .Match(match_node.Span,
+                                 expr_frag,
+                                 expr_location,
+                                 _sym_table.Frame,
+                                 tag_reg,
+                                 pattern_asm_infos)
+
+            _context.RegSet.Free(expr_frag.Reg)
+            _context.RegSet.Free(tag_reg)
+
+            let mutable pattern_error = false
+            for i in 0 .. (patterns.Length - 1) do
+                let pattern = patterns[i]
+                if pattern.Syntax <> BasicClassNames.Null &&
+                   (checkTypename pattern) = Error
                 then
-                    let prev_pattern_ty = _context.ClassSymMap[prev_pattern.Syntax]
-                    // Null conforms to Any and other non-primitive types,
-                    // but we still allowed `case null => ...` to be the last branch.
-                    if not (pattern_ty.Is(BasicClasses.Null)) &&
-                       _context.TypeCmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
+                    pattern_error <- true
+                else
+
+                let pattern_ty = _context.ClassSymMap[pattern.Syntax]
+                if not (_context.TypeCmp.Conforms(pattern_ty, expr_frag.Type) ||
+                        _context.TypeCmp.Conforms(expr_frag.Type, pattern_ty))
+                then
+                    _context.Diags.Error(
+                        $"'{expr_frag.Type.Name}' and '{pattern_ty.Name}' are not parts of " +
+                        "the same inheritance chain. As a result this case is unreachable",
+                        pattern.Span)
+                    pattern_error <- true
+                else
+
+                // if `i` = 0, we'll have `for j in 0 .. -1 do`
+                // that will not perform a single iteration.
+                for j in 0 .. (i - 1) do
+                    let prev_pattern = patterns[j]
+                    if _context.ClassSymMap.ContainsKey(prev_pattern.Syntax)
                     then
-                        _context.Diags.Error(
-                            $"This case is shadowed by an earlier case at {_context.Source.Map(prev_pattern.Span.First)}",
-                            pattern.Span)
-                        pattern_error <- true
-        
-        let done_label = _context.LabelGen.Generate()
-        let result_reg = _context.RegSet.Allocate("translate_match.result_reg")
-        
-        let pattern_var_index = _sym_table.Frame.VarsCount
-        let block_frags =
-            cases |> Array.map (fun case ->
+                        let prev_pattern_ty = _context.ClassSymMap[prev_pattern.Syntax]
+                        // Null conforms to Any and other non-primitive types,
+                        // but we still allowed `case null => ...` to be the last branch.
+                        if not (pattern_ty.Is(BasicClasses.Null)) &&
+                           _context.TypeCmp.Conforms(ancestor=prev_pattern_ty, descendant=pattern_ty)
+                        then
+                            _context.Diags.Error(
+                                $"This case is shadowed by an earlier case at {_context.Source.Map(prev_pattern.Span.First)}",
+                                pattern.Span)
+                            pattern_error <- true
+
+            let done_label = _context.LabelGen.Generate()
+            let result_reg = _context.RegSet.Allocate("translate_match.result_reg")
+
+            let pattern_var_index = _sym_table.Frame.VarsCount
+            let block_frags = cases |> Array.map (fun case ->
                 _sym_table.EnterBlock()
-                
+
                 let pattern_ty =
                     match case.Syntax.Pattern.Syntax with
                     | PatternSyntax.IdType (id, ty) ->
@@ -590,67 +557,67 @@ type private ExprTranslator(_context: TranslationContext,
                         ty.Syntax
                     | PatternSyntax.Null ->
                         BasicClassNames.Null
-                    
+
                 let block_frag = this.TranslateBlock(case.Syntax.Block.Syntax.AsBlockSyntax)
-                if LcResult.isOk block_frag
-                then
+                match block_frag with
+                | Error -> ()
+                | Ok block_frag ->
                     let pattern_asm_info = pattern_asm_infos[pattern_ty]
                     asm.MatchCase(case.Span,
                                   pattern_asm_info.Label,
                                   pattern_ty,
-                                  block_frag.Value,
+                                  block_frag,
                                   result_reg,
                                   done_label)
-                       
-                    _context.RegSet.Free(block_frag.Value.Reg)
-                
+
+                    _context.RegSet.Free(block_frag.Reg)
+
                 _sym_table.LeaveBlock()
-                
+
                 block_frag)
-        
-        asm.Label(done_label, "end match")
-           .AsUnit()
-        
-        if pattern_error || (block_frags |> Seq.exists (fun it -> LcResult.isError it))
-        then
-            _context.RegSet.Free(result_reg)
-            Error
-        else
-            
-        let block_types = block_frags |> Array.map (fun it -> it.Value.Type)
-        
-        Ok { AsmFragment.Asm = asm.ToString()
-             Type = _context.TypeCmp.LeastUpperBound(block_types)
-             Reg = result_reg }
+
+            asm.Label(done_label, "end match")
+               .AsUnit()
+
+            if pattern_error || (block_frags |> Seq.exists (fun it -> LcResult.isError it))
+            then
+                _context.RegSet.Free(result_reg)
+                Error
+            else
+
+            let block_types = block_frags |> Array.map (fun it -> it.Value.Type)
+
+            Ok { AsmFragment.Asm = asm.ToString()
+                 Type = _context.TypeCmp.LeastUpperBound(block_types)
+                 Reg = result_reg }
 
 
-    and translateUnaryopOperand (expr: AstNode<ExprSyntax>)
+    and translateUnaryOpOperand (expr: AstNode<ExprSyntax>)
                                 (op: string)
                                 (expected_ty: ClassSymbol)
                                 : LcResult<AsmFragment> =
         let expr_frag = translateExpr expr
-        if LcResult.isError expr_frag
-        then
+        match expr_frag with
+        | Error ->
             Error
-        else
+        | Ok expr_frag ->
+            if not (expr_frag.Type.Is(expected_ty))
+            then
+                _context.Diags.Error(
+                    $"Unary '%s{op}' expects an operand of type '{expected_ty.Name}' but found '{expr_frag.Type.Name}'",
+                    expr.Span)
+
+                _context.RegSet.Free(expr_frag.Reg)
+                Error
+            else
+
+            Ok expr_frag
         
-        if not (expr_frag.Value.Type.Is(expected_ty))
-        then
-            _context.Diags.Error(
-                $"Unary '%s{op}' expects an operand of type '{expected_ty.Name}' but found '{expr_frag.Value.Type.Name}'",
-                expr.Span)
-            
-            _context.RegSet.Free(expr_frag.Value.Reg)
-            Error
-        else
-            
-        expr_frag
         
-        
-    and translateInfixopIntOperands (left: AstNode<ExprSyntax>)
+    and translateInfixOpIntOperands (left: AstNode<ExprSyntax>)
                                     (right: AstNode<ExprSyntax>)
                                     (op: string)
-                                    : LcResult<(AsmFragment * AsmFragment)> =
+                                    : LcResult<AsmFragment * AsmFragment> =
         let check_operands (left_frag: AsmFragment) (right_frag: AsmFragment): bool =
             if not (left_frag.Type.Is(BasicClasses.Int) &&
                     right_frag.Type.Is(BasicClasses.Int))
@@ -669,7 +636,7 @@ type private ExprTranslator(_context: TranslationContext,
     and translateEqOpOperands (left: AstNode<ExprSyntax>)
                               (right: AstNode<ExprSyntax>)
                               (op: string)
-                              : LcResult<(AsmFragment * AsmFragment)> =
+                              : LcResult<AsmFragment * AsmFragment> =
         let checkOperands (left_frag: AsmFragment) (right_frag: AsmFragment): bool =
             if not (_context.TypeCmp.Conforms(left_frag.Type, right_frag.Type) ||
                     _context.TypeCmp.Conforms(right_frag.Type, left_frag.Type))
@@ -687,25 +654,28 @@ type private ExprTranslator(_context: TranslationContext,
     and translateInfixOpOperands (left: AstNode<ExprSyntax>)
                                  (right: AstNode<ExprSyntax>)
                                  (check_operands: AsmFragment -> AsmFragment -> bool)
-                                 : LcResult<(AsmFragment * AsmFragment)> =
+                                 : LcResult<AsmFragment * AsmFragment> =
         let left_frag = translateExpr left
         let right_frag = translateExpr right
         
-        if LcResult.isError left_frag || LcResult.isError right_frag
-        then
-            if LcResult.isOk left_frag then _context.RegSet.Free(left_frag.Value.Reg)
-            if LcResult.isOk right_frag then _context.RegSet.Free(right_frag.Value.Reg)
+        match left_frag, right_frag with
+        | Error, Error ->
             Error
-        else
-            
-        if not (check_operands left_frag.Value right_frag.Value)
-        then
-            _context.RegSet.Free(left_frag.Value.Reg)
-            _context.RegSet.Free(right_frag.Value.Reg)
+        | Ok left_frag, Error ->
+            _context.RegSet.Free(left_frag.Reg)
             Error
-        else
+        | Error, Ok right_frag ->
+            _context.RegSet.Free(right_frag.Reg)
+            Error
+        | Ok left_frag, Ok right_frag ->
+            if not (check_operands left_frag right_frag)
+            then
+                _context.RegSet.Free(left_frag.Reg)
+                _context.RegSet.Free(right_frag.Reg)
+                Error
+            else
 
-        Ok (left_frag.Value, right_frag.Value)
+            Ok (left_frag, right_frag)
     
     
     and translateDispatch (dispatch_node: AstNode<ExprSyntax>)
@@ -714,55 +684,51 @@ type private ExprTranslator(_context: TranslationContext,
                           (actuals: AstNode<ExprSyntax>[])
                           : LcResult<AsmFragment> =
         let receiver_frag = translateExpr receiver
-        if LcResult.isError receiver_frag
-        then
+        match receiver_frag with
+        | Error ->
             Error
-        else
-        
-        let receiver_frag = receiver_frag.Value
-        
-        if not (receiver_frag.Type.Methods.ContainsKey(method_id.Syntax))
-        then
-            _context.Diags.Error(
-                $"'{receiver_frag.Type.Name}' does not contain a definition for '{method_id.Syntax}'",
-                method_id.Span)
-            
-            _context.RegSet.Free(receiver_frag.Reg)
-            Error
-        else
-            
-        let method_sym = receiver_frag.Type.Methods[method_id.Syntax]
-        let method_name = $"'{receiver_frag.Type.Name}.{method_sym.Name}'"
-        
-        let actuals_asm = translateActuals method_name
-                                             method_id.Span
-                                             method_sym
-                                             (*formal_name=*)"formal"
-                                             receiver_frag.Reg
-                                             actuals
-        if LcResult.isError actuals_asm
-        then
-            Error
-        else
-        
-        let asm = this.EmitAsm().BeginDispatch(dispatch_node.Span)
-        
-        let method_reg = _context.RegSet.Allocate("translate_dispatch.method_reg")
-        let result_reg = _context.RegSet.Allocate("translate_dispatch.result_reg")
+        | Ok receiver_frag ->
+            if not (receiver_frag.Type.Methods.ContainsKey(method_id.Syntax))
+            then
+                _context.Diags.Error(
+                    $"'{receiver_frag.Type.Name}' does not contain a definition for '{method_id.Syntax}'",
+                    method_id.Span)
 
-        asm.CompleteDispatch(dispatch_node.Span,
-                             receiver_frag,
-                             actuals_asm.Value,
-                             method_reg,
-                             method_sym,
-                             actuals.Length,
-                             result_reg)
+                _context.RegSet.Free(receiver_frag.Reg)
+                Error
+            else
 
-        _context.RegSet.Free(method_reg)
+            let method_sym = receiver_frag.Type.Methods[method_id.Syntax]
+            let method_name = $"'{receiver_frag.Type.Name}.{method_sym.Name}'"
 
-        Ok { AsmFragment.Asm = asm.ToString()
-             Type = _context.ClassSymMap[method_sym.ReturnType]
-             Reg = result_reg }
+            let actuals_asm = translateActuals method_name
+                                                 method_id.Span
+                                                 method_sym
+                                                 (*formal_name=*)"formal"
+                                                 receiver_frag.Reg
+                                                 actuals
+            match actuals_asm with
+            | Error ->
+                Error
+            | Ok actuals_asm ->
+                let asm = this.EmitAsm().BeginDispatch(dispatch_node.Span)
+
+                let method_reg = _context.RegSet.Allocate("translate_dispatch.method_reg")
+                let result_reg = _context.RegSet.Allocate("translate_dispatch.result_reg")
+
+                asm.CompleteDispatch(dispatch_node.Span,
+                                     receiver_frag,
+                                     actuals_asm,
+                                     method_reg,
+                                     method_sym,
+                                     actuals.Length,
+                                     result_reg)
+
+                _context.RegSet.Free(method_reg)
+
+                Ok { AsmFragment.Asm = asm.ToString()
+                     Type = _context.ClassSymMap[method_sym.ReturnType]
+                     Reg = result_reg }
         
         
     and translateSuperDispatch (super_dispatch_node: AstNode<ExprSyntax>)
@@ -779,42 +745,41 @@ type private ExprTranslator(_context: TranslationContext,
         else
             
         let this_frag = translateExpr (AstNode.Virtual(ExprSyntax.This))
-        if LcResult.isError this_frag
-        then
+        match this_frag with
+        | Error ->
             Error
-        else
+        | Ok this_frag ->
 
-        let method_sym = if method_id.Syntax = ID ".ctor"
-                         then super_sym.Ctor
-                         else super_sym.Methods[method_id.Syntax]
-        let method_name = $"'{super_sym.Name}.{method_sym.Name}'"
+            let method_sym = if method_id.Syntax = ID ".ctor"
+                             then super_sym.Ctor
+                             else super_sym.Methods[method_id.Syntax]
+            let method_name = $"'{super_sym.Name}.{method_sym.Name}'"
 
-        let actuals_asm = translateActuals method_name
-                                            method_id.Span
-                                            method_sym
-                                            (*formal_name=*)"formal"
-                                            this_frag.Value.Reg
-                                            actuals
-        if LcResult.isError actuals_asm
-        then
-            Error
-        else
-            
-        let asm = this.EmitAsm()
-                      .BeginSuperDispatch(super_dispatch_node.Span)
+            let actuals_asm = translateActuals method_name
+                                                method_id.Span
+                                                method_sym
+                                                (*formal_name=*)"formal"
+                                                this_frag.Reg
+                                                actuals
+            match actuals_asm with
+            | Error ->
+                Error
+            | Ok actuals_asm ->
+                let asm = this.EmitAsm()
+                              .BeginSuperDispatch(super_dispatch_node.Span)
 
-        let result_reg = _context.RegSet.Allocate("translate_super_dispatch.result_reg")
+                let result_reg = _context.RegSet.Allocate("translate_super_dispatch.result_reg")
 
-        asm.CompleteSuperDispatch(super_dispatch_node.Span,
-                                  this_frag.Value,
-                                  actuals_asm.Value,
-                                  method_sym,
-                                  result_reg,
-                                  actuals.Length)
+                asm.CompleteSuperDispatch(super_dispatch_node.Span,
+                                          this_frag,
+                                          actuals_asm,
+                                          method_sym,
+                                          result_reg,
+                                          actuals.Length)
 
-        Ok { AsmFragment.Asm = asm.ToString()
-             Type = _context.ClassSymMap[method_sym.ReturnType]
-             Reg = result_reg }
+                Ok { AsmFragment.Asm = asm.ToString()
+                     Type = _context.ClassSymMap[method_sym.ReturnType]
+                     Reg = result_reg }
         
         
     and translateNew (new_node: AstNode<ExprSyntax>)
@@ -858,18 +823,17 @@ type private ExprTranslator(_context: TranslationContext,
                               (*formal_name=*)"varformal"
                               this_frag.Reg
                               actuals
-        if LcResult.isError actuals_asm
-        then
+        match actuals_asm with
+        | Error ->
             Error
-        else
+        | Ok actuals_asm ->
+            let result_reg = _context.RegSet.Allocate("translate_new.result_reg")
 
-        let result_reg = _context.RegSet.Allocate("translate_new.result_reg")
-        
-        asm.CompleteNew(ty, this_reg, actuals_asm.Value, actuals.Length, result_reg)
+            asm.CompleteNew(ty, this_reg, actuals_asm, actuals.Length, result_reg)
 
-        Ok { AsmFragment.Asm = asm.ToString()
-             Type = ty
-             Reg = result_reg }
+            Ok { AsmFragment.Asm = asm.ToString()
+                 Type = ty
+                 Reg = result_reg }
 
     
     and translateActuals (method_name: string)
@@ -888,10 +852,11 @@ type private ExprTranslator(_context: TranslationContext,
         let actual_frags = List<LcResult<AsmFragment>>()
         for actual_index = 0 to (actual_nodes.Length - 1) do
             let actual_frag = translateExpr actual_nodes[actual_index]
-            if LcResult.isOk actual_frag
-            then
-                asm.Actual(actual_index, actual_frag.Value)                  
-                _context.RegSet.Free(actual_frag.Value.Reg)
+            match actual_frag with
+            | Error -> ()
+            | Ok actual_frag ->
+                asm.Actual(actual_index, actual_frag)
+                _context.RegSet.Free(actual_frag.Reg)
 
             actual_frags.Add(actual_frag)
 
@@ -1061,15 +1026,14 @@ type private ExprTranslator(_context: TranslationContext,
         // TODO: Does this correspond to Cool2020's operational semantics?
         _sym_table.AddVar(Symbol.Of(var_node, _sym_table.Frame.VarsCount))
         let assign_frag = translateAssign var_node.Span var_node.Syntax.ID var_node.Syntax.Expr
-        if LcResult.isError assign_frag
-        then
+        match assign_frag with
+        | Error ->
             Error
-        else
-            
-        _context.RegSet.Free(assign_frag.Value.Reg)
-        
-        // The var declaration is not an expression, so `Reg = Reg.Null` 
-        Ok { assign_frag.Value with Reg = Reg.Null }
+        | Ok assign_frag ->
+            _context.RegSet.Free(assign_frag.Reg)
+
+            // The var declaration is not an expression, so `Reg = Reg.Null`
+            Ok { assign_frag with Reg = Reg.Null }
             
             
     and checkTypename (ty_node: AstNode<TYPENAME>): LcResult<Unit> =
@@ -1179,27 +1143,24 @@ type private ExprTranslator(_context: TranslationContext,
                     | StmtSyntax.Expr expr_syntax ->
                         translateExpr (stmt_node.Map(fun _ -> expr_syntax))
                 
-                if LcResult.isOk stmt_frag
-                then
-                    _context.RegSet.Free(stmt_frag.Value.Reg)
-                    asm.Paste(stmt_frag.Value.Asm)
-                       .AsUnit()
+                match stmt_frag with
+                | Error -> ()
+                | Ok stmt_frag ->
+                    _context.RegSet.Free(stmt_frag.Reg)
+                    asm.Paste(stmt_frag.Asm).AsUnit()
             
             let expr_frag = translateExpr block_syntax.Expr
             
             _sym_table.LeaveBlock()
             
-            if LcResult.isError expr_frag
-            then
+            match expr_frag with
+            | Error ->
                 Error
-            else
-                
-            asm.Paste(expr_frag.Value.Asm)
-               .AsUnit()
-            
-            Ok { AsmFragment.Asm = asm.ToString()
-                 Type = expr_frag.Value.Type
-                 Reg = expr_frag.Value.Reg }
+            | Ok expr_frag ->
+                Ok { AsmFragment.Asm = asm.Paste(expr_frag.Asm)
+                                          .ToString()
+                     Type = expr_frag.Type
+                     Reg = expr_frag.Reg }
         
         
     member this.AddrOf(sym: Symbol) : AddrFragment =

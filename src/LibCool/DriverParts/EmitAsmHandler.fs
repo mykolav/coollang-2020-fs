@@ -23,13 +23,12 @@ type EmitAsmHandler(_writer: IWriteLine) =
         let result = CompileToAsmStep.Invoke(source, diags)
         DiagRenderer.Render(diags, source, _writer)
         
-        if LcResult.isError result
-        then
+        match result with
+        | Error ->
             -1
-        else
+        | Ok asm ->
+            match args.AsmFile with
+            | ValueSome asm_file -> File.WriteAllText(asm_file, asm)
+            | ValueNone          -> _writer.WriteLine(asm)
 
-        match args.AsmFile with
-        | ValueSome asm_file -> File.WriteAllText(asm_file, result.Value)
-        | ValueNone          -> _writer.WriteLine(result.Value) 
-            
-        0
+            0
