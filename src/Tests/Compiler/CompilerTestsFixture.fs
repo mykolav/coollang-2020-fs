@@ -8,7 +8,7 @@ open Xunit
 
 type CompilerTestsFixture() =
     do 
-        // Our current directory is 'Tests/bin/Debug/netcoreapp3.1',
+        // Our current directory is 'Tests/bin/Debug/net8.0',
         // i.e. where the tests assembly gets build into.
         // We want to change to 'Tests/CoolBuild'.
         Directory.SetCurrentDirectory("../../../CoolBuild")

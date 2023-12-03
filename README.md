@@ -326,11 +326,11 @@ Generational garbage collection is planned for some time in the future, but does
 
 # Build
 
-## Install .NET 6 SDK
+## Install .NET 8 SDK
 
 The compiler is written in F#. F# is a .NET language. Rather predictably, a .NET SDK is a dependency.
 
-Get it from [the download page](https://dotnet.microsoft.com/en-us/download/dotnet/6.0).  
+Get it from [the download page](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).  
 
 ### _Windows_
 
@@ -350,12 +350,12 @@ Just to give an example. On Ubuntu 22.04 installation looks something like this:
 # Install the SDK.
 # (If you install the .NET SDK, you don't need to install the corresponding runtime.)
 sudo apt-get update && \
-sudo apt-get install -y dotnet-sdk-6.0
+sudo apt-get install -y dotnet-sdk-8.0
 ```
 
 ### Check installation
 
-On both Windows and Linux, to check your installation, do the following command. If everything is OK, the output will contain one or many 6.0.xyz versions.
+On both Windows and Linux, to check your installation, do the following command. If everything is OK, the output will contain one or many 8.0.xyz versions.
 
 ```sh
 dotnet --list-sdks

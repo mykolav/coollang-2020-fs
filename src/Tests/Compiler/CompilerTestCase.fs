@@ -13,7 +13,7 @@ open LibCool.SharedParts
 type CompilerTestCaseSource private () =
     
     
-    // Test cases discovery runs from 'Tests/bin/Debug/netcoreapp3.1'
+    // Test cases discovery runs from 'Tests/bin/Debug/net8.0'
     // before we have a chance to change the working directory to 'Tests/CoolBuild'.
     [<Literal>]
     static let programs_discovery_path = @"../../../CoolPrograms/"

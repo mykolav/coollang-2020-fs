@@ -10,7 +10,7 @@ module ClcRunner =
 
 
     let runClc (args: seq<string>): string =
-        ProcessRunner.Run("../../../../clc/bin/Debug/net6.0/clc.exe", String.Join(" ", args))
+        ProcessRunner.Run("../../../../clc/bin/Debug/net8.0/clc.exe", String.Join(" ", args))
 
 
     let runClcInProcess (driver_args: seq<string>): string =

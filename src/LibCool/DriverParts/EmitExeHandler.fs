@@ -129,7 +129,7 @@ type EmitExeHandler(_writer: IWriteLine) =
 
         // We assume the 'src/Runtime' folder is 4 levels up
         // relative to where our assembly is.
-        // I.e. if we are in 'src/Somewhere/bin/Debug/netcoreapp3.1'
+        // I.e. if we are in 'src/Somewhere/bin/Debug/net8.0'
         // a relative path to 'src/Runtime' is '../../../../Runtime'
         let assembly_path = typeof<EmitExeHandler>.Assembly.CodeBase.Substring(uri_prefix.Length)
         let rt_parent_dir = assembly_path
