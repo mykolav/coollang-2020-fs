@@ -12,6 +12,10 @@
     .global .Platform.new_line_len
 .Platform.new_line_len:     .quad  2
 
+ascii_init_failed:          .ascii "Init failed"
+ascii_init_failed_len =            (. - ascii_init_failed)
+
+
 ########################################
 # Global vars
 ########################################
@@ -21,12 +25,10 @@
     .global .Platform.heap_end
 .Platform.heap_end:      .quad 0
 
-# TODO: The GC code is built around `sbrk` semantics, 
-#       so have to re-implement allocations on Windows 
-#       using a simulated `sbrk` on top of `VirtualAlloc`
-#       instead of the `GetProcessHeap`, `HeapAlloc` API.
-hProcessDefaultHeap:
-    .quad 0
+# `.Platform.alloc` uses a multiple of this size to reserve and commit 
+# additional memory from the OS.
+# The value is in bytes and we assume is always a power of 2.
+pageSize:                .quad 0
 
 ########################################
 # Text
@@ -37,13 +39,13 @@ hProcessDefaultHeap:
 ########################################
     .text
 
-    .set HEAP_GENERATE_EXCEPTIONS, 0x00000004
-    .set HEAP_NO_SERIALIZE, 0x00000001
-    .set HEAP_ZERO_MEMORY, 0x00000008
-
     .set STD_INPUT_HANDLE, -10
     .set STD_OUTPUT_HANDLE, -11
     .set STD_ERROR_HANDLE, -12
+
+    MEM_RESERVE    = 0x00002000
+    MEM_COMMIT     = 0x00001000
+    PAGE_READWRITE = 0x00000004
 
 ########################################
 # .Platform
@@ -57,19 +59,84 @@ hProcessDefaultHeap:
 #  OUTPUT:
 #      None
 #  
-#  Calls GetProcessHeap and stores the pointer 
-#  for later use by .Platform.alloc.
+#  Calls `GetSystemInfo` and calculates `pageSize` 
+#  for later use by `.Platform.alloc`. 
+#  Reserve `RESERVED_PAGES x pageSize` contiguous virtual addresses range.
+#  Initializes `.Platform.heap_start`, `.Platform.heap_end` with
+#  the base address of the reserved range.
 #
     .global .Platform.init
 .Platform.init:
+
+    SHADOW_SPACE_SIZE                = 32
+    SYSTEM_INFO_SIZE                 = 48
+    FRAME_SIZE                       = SYSTEM_INFO_SIZE + SHADOW_SPACE_SIZE
+    SYSTEM_INFO_OFFSET               = -SYSTEM_INFO_SIZE
+    DW_PAGE_SIZE_OFFSET              = SYSTEM_INFO_OFFSET + 4
+
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $32, %rsp # allocate shadow space!
+    subq    $FRAME_SIZE, %rsp
 
-    # Initialize the heap.
-    call    GetProcessHeap
-    movq    %rax, hProcessDefaultHeap
+    # void GetSystemInfo(
+    #   [out] LPSYSTEM_INFO lpSystemInfo
+    # );
+    leaq    SYSTEM_INFO_OFFSET(%rbp), %rcx      # lpSystemInfo
+    call    GetSystemInfo
+
+    # 32-bit operands generate a 32-bit result, 
+    # zero-extended to a 64-bit result in the destination general-purpose register.
+    movl    DW_PAGE_SIZE_OFFSET(%rbp), %eax
+    movq    %rax, pageSize
+
+    # We reserve a 655360-pages-long (2.5GB for 4KB page) contiguous virtual addresses range
+    # and set `.Platform.heap_start`, `.Platform.heap_end` to
+    # the base address of the reserved range -- this is our heap.
+    # `.Platform.alloc` commits memory withing the reserved range
+    # whenever expanding the heap is necessary.
+
+    # LPVOID VirtualAlloc(
+    #   [in, optional] LPVOID lpAddress,
+    #   [in]           SIZE_T dwSize,
+    #   [in]           DWORD  flAllocationType,
+    #   [in]           DWORD  flProtect
+    # );
+
+    xor     %ecx, %ecx                          # lpAddress = NULL
+    
+    # dwSize
+    # 655360 * pageSize
+    # 655360 = 524288 + 131072 = 2**19 + 2**17
+    movq    pageSize, %rdx
+    movq    %rdx, %rax
+    salq    $19, %rdx
+    salq    $17, %rax
+    addq    %rax, %rdx
+    
+    movq    $MEM_RESERVE, %r8                   # flAllocationType
+    movq    $PAGE_READWRITE, %r9                # flProtect
+    call    VirtualAlloc
+
+    testq   %rax, %rax
+    jnz     .Platform.init.ok
+ 
+    # Allocation failed
+    call    GetLastError
+
+    movq    $ascii_init_failed, %rdi
+    movq    $ascii_init_failed_len, %rsi
+    call    .Platform.out_string
+
+    movq    $.Platform.ascii_new_line, %rdi
+    movq    $.Platform.new_line_len, %rsi
+    call    .Platform.out_string
+
+    jmp     .Runtime.abort_out_of_mem
+ 
+.Platform.init.ok:
+    movq    %rax, .Platform.heap_start
+    movq    %rax, .Platform.heap_end
 
     movq    %rbp, %rsp
     popq    %rbp
@@ -85,35 +152,61 @@ hProcessDefaultHeap:
 #      a pointer to the start of allocated memory block in %rax.
 #.     if allocation fails, prints a message and exits the process.
 #  
-#  Allocates (%rdi * 8) bytes of memory on heap.
+#  Rounds up (%rdi * 8) bytes to the nearest greater multiple of pageSize.
+#  Allocates that amount of physical memory 
+#  adding it to the end of contiguous region [.Platform.heap_start, .Platform.heap_end]. 
 #
     .global .Platform.alloc
 .Platform.alloc:
+    DW_SIZE_SIZE        = 8
+    DW_SIZE_OFFSET      = -DW_SIZE_SIZE
+    PADDING_SIZE        = 8
+    SHADOW_SPACE_SIZE   = 32
+    FRAME_SIZE          = DW_SIZE_SIZE + PADDING_SIZE + SHADOW_SPACE_SIZE
+
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $32, %rsp # shadow space!
+    subq    $FRAME_SIZE, %rsp
 
-    # DECLSPEC_ALLOCATOR LPVOID HeapAlloc(
-    #   HANDLE hHeap,
-    #   DWORD  dwFlags,
-    #   SIZE_T dwBytes
+    # LPVOID VirtualAlloc(
+    #   [in, optional] LPVOID lpAddress,
+    #   [in]           SIZE_T dwSize,
+    #   [in]           DWORD  flAllocationType,
+    #   [in]           DWORD  flProtect
     # );
-    # hHeap
-    movq    hProcessDefaultHeap, %rcx
-    # dwFlags
-    movq    $HEAP_ZERO_MEMORY, %rdx
-    # dwBytes
-    movq    %rdi, %r8 # size in quads
-    salq    $3, %r8   # convert quads to to bytes
-    call    HeapAlloc
-    cmpq    $0, %rax
-    jne     .Platform.alloc.ok
+    movq    .Platform.heap_end, %rcx            # lpAddress
 
+    # dwSize
+    movq    %rdi, %rdx                          # requested size in quads
+    salq    $3, %rdx                            # convert quads to to bytes
+
+    # round up the requested size in bytes to the nearest greater multiple of pageSize
+    # e.g., for pageSize = 4KB = 4096, we effectively do
+    # %rdx = (%rdx + 4095) & (-4096)
+    movq    pageSize, %rax                      # 4096 = ..._0000_0001_0000_0000_0000
+    decq    %rax                                # 4095 = ..._0000_0000_1111_1111_1111
+    addq    %rax, %rdx                          # %rdx + 4095
+    notq    %rax                                # -4096 = ..._1111_1111_0000_0000_0000
+    andq    %rax, %rdx                          # & (-4096)
+    movq    %rdx, DW_SIZE_OFFSET(%rbp)          # preserve dwSize
+    
+    movq    $MEM_COMMIT, %r8                    # flAllocationType
+    movq    $PAGE_READWRITE, %r9                # flProtect
+    call    VirtualAlloc
+
+    testq   %rax, %rax
+    jnz     .Platform.alloc.ok
+ 
     # Allocation failed
+    call    GetLastError
     jmp     .Runtime.abort_out_of_mem
-
+ 
 .Platform.alloc.ok:
+    movq    DW_SIZE_OFFSET(%rbp), %rdx          # load dwSize
+    addq    %rax, %rdx                          # %rdx = dwSize + the allocation's base address
+    movq    %rdx, .Platform.heap_end            # advance the heap end pointer
+
     movq    %rbp, %rsp
     popq    %rbp
 
