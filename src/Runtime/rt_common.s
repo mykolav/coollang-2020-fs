@@ -1232,7 +1232,7 @@ String.substring.abort_end_index:
 #  ArrayAny..ctor
 #
 #      'null' in %rdi
-#      length in %rsi
+#      length (an int object) in %rsi
 #
 #  Allocates memory for %rsi elements array.
 #  Initializes the array's attributes.
@@ -1243,39 +1243,41 @@ ArrayAny..ctor:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $(8 + 8 + 8 + 8), %rsp  # length + 
+    subq    $(8 + 8 + 8 + 8), %rsp  # array length (an int object) + 
                                     # size in quads + 
                                     # object ptr + 
                                     # 16 byte boundary padding
 
-    movq    %rsi, -8(%rbp)  # length
+    movq    %rsi, -8(%rbp)          # preserve the array length as int object
+    movq    INT_VAL(%rsi), %rsi     # array length
 
-    addq    $5, %rsi        # eyecatch + tag + size + vtab + length
-    movq    %rsi, -16(%rbp) # size in quads
+    addq    $5, %rsi                # size in quads = eyecatch + tag + size + vtab + length
+    movq    %rsi, -16(%rbp)         # preserve the size in quads
 
-    movq    %rsi, %rdi      # size in quads
+    movq    %rsi, %rdi              # allocation size in quads
     call    .Platform.alloc
 
-    movq    $-1, (%rax)     # write the eyecatch value
-    addq    $8, %rax        # move ptr to the beginning of object
+    movq    $-1, (%rax)             # write the eyecatch value
+    addq    $8, %rax                # move ptr to the beginning of object
 
     movq    $ArrayAny_tag, OBJ_TAG(%rax)
 
-    movq    -16(%rbp), %rsi     # size in quads
+    movq    -16(%rbp), %rsi         # size in quads
     movq    %rsi, OBJ_SIZE(%rax)
 
     movq    $ArrayAny_vtable, OBJ_VTAB(%rax)
 
-    movq    -8(%rbp), %rsi      # length (an int object)
+    movq    -8(%rbp), %rsi          # restore length (an int object)
     movq    %rsi, ARR_LEN(%rax)
 
     # %rdi - current element
     # %rsi - elements end
 
-    movq    INT_VAL(%rsi), %rsi
-    salq    $3, %rsi   # length * 8
-    leaq    ARR_ITEMS(%rax), %rdi
-    addq    %rdi, %rsi # elements end 
+    movq    INT_VAL(%rsi), %rsi     # length
+    salq    $3, %rsi                # length * 8 -- as each element is 
+                                    # an 8-byte long pointer to an object
+    leaq    ARR_ITEMS(%rax), %rdi   # point %rdi at the start of array items mem region
+    addq    %rdi, %rsi              # point %rsi at the end of array items mem region
 
     jmp     .ArrayAny..ctor.loop_cond
 
