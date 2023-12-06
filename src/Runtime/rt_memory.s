@@ -7,14 +7,14 @@
 ########################################
 # TODO: The following globals should be emmitted by the compiler in the program's assembly,
 # TODO: but for now they are defined here.
-    .global    _MemMgr_INITIALIZER
-_MemMgr_INITIALIZER:    .word _NoGC_Init
+    .global    .MemoryManager.FN_INIT
+.MemoryManager.FN_INIT:            .word .NopGC.Init
 
-    .global    _MemMgr_COLLECTOR
-_MemMgr_COLLECTOR:      .word _NoGC_Collect
+    .global    .MemoryManager.FN_COLLECT
+.MemoryManager.FN_COLLECT:         .word .NopGC.Collect
 
-    .global    _MemMgr_TEST
-_MemMgr_TEST:           .word 0
+    .global    .MemoryManager.TEST_ENABLED
+.MemoryManager.TEST_ENABLED:    .word 0
 ########################################
 
 work_area_start:    .quad 0
@@ -22,28 +22,28 @@ work_area_end:      .quad 0
 alloc_ptr:          .quad 0
 
 #
-# TODO: Placing strings and other constants in `.section .rodata` instead of `.data`.
+# TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
 #
 
 ########################################
 # Messages for the GenGC garbage collector
 ########################################
 
-_GenGC.ascii_INITERROR:        .ascii "GenGC: Unable to initialize the garbage collector"
-_GenGC.ascii_COLLECTING:       .ascii "GenGC: Garbage collecting ..."
-_GenGC.ascii_Major:            .ascii "GenGC: Major ..."
-_GenGC.ascii_Minor:            .ascii "GenGC: Minor ..."
-_GenGC.ascii_MINORERROR:       .ascii "GenGC: Error during minor garbage collection"
-_GenGC.ascii_MAJORERROR:       .ascii "GenGC: Error during major garbage collection"
-_GenGC.ascii_Init_test_msg:    .ascii "GenGC: initialized in test mode"
-_GenGC.ascii_Init_msg:         .ascii "GenGC: initialized"
+.GenGC.MSG_INITERROR_ASCII:        .ascii "GenGC: Unable to initialize the garbage collector"
+.GenGC.MSG_COLLECTING_ASCII:       .ascii "GenGC: Garbage collecting ..."
+.GenGC.MSG_MAJOR_ASCII:            .ascii "GenGC: Major ..."
+.GenGC.MSG_MINOR_ASCII:            .ascii "GenGC: Minor ..."
+.GenGC.MSG_MINOR_ERROR_ASCII:      .ascii "GenGC: Error during minor garbage collection"
+.GenGC.MSG_MAJOR_ERROR_ASCII:      .ascii "GenGC: Error during major garbage collection"
+.GenGC.MSG_INIT_TEST_ASCII:        .ascii "GenGC: initialized in test mode"
+.GenGC.MSG_INIT_ASCII:             .ascii "GenGC: initialized"
 
 ########################################
 # Messages for the NoGC garabge collector
 ########################################
 
-_NoGC.ascii_COLLECTING:        .ascii "NoGC: Increasing heap..."
-_NoGC.ascii_COLLECTING_len     =      (. - _NoGC.ascii_COLLECTING)
+.NopGC.MSG_COLLECTING_ASCII:        .ascii "NoGC: Increasing heap..."
+.NopGC.MSG_COLLECTING_LEN  =               (. - .NopGC.MSG_COLLECTING_ASCII)
 
 ########################################
 # Text
@@ -75,7 +75,7 @@ _NoGC.ascii_COLLECTING_len     =      (. - _NoGC.ascii_COLLECTING)
     .text
 
 ########################################
-# MemMgr Memory Manager
+# MemoryManager Memory Manager
 #
 #   The MemMgr functions give a consistent view of the garbage collectors.
 #   This allows multiple collectors to exist in one file and the easy
@@ -89,7 +89,7 @@ _NoGC.ascii_COLLECTING_len     =      (. - _NoGC.ascii_COLLECTING)
 #        called before $s7 is exceeded by $gp.
 #
 #     2) The initialization functions all take the same arguments as
-#        defined in "_MemMgr_Init".
+#        defined in ".MemoryManager.Init".
 #
 #     3) The garbage collector functions all take the arguments.  "$a0"
 #        contains the end of the stack to check for pointers.  "$a1"
@@ -116,10 +116,10 @@ _NoGC.ascii_COLLECTING_len     =      (. - _NoGC.ascii_COLLECTING)
 #    initializer function
 #
 
-    .global    _MemMgr_Init
-_MemMgr_Init:
-    callq    *_MemMgr_INITIALIZER(%rip)   # pointer to initialization
-                                          # defined in another compilation unit
+    .global    .MemoryManager.Init
+.MemoryManager.Init:
+    callq    *.MemoryManager.FN_INIT(%rip)   # pointer to initialization procedure
+                                             # defined in another compilation unit
     ret
 
 #
@@ -138,33 +138,33 @@ _MemMgr_Init:
 #    %rax, %rsi, collector function
 #
 
-    .global    _MemMgr_Alloc
-_MemMgr_Alloc:
-    subq     $8, %rsp                           # keep %rsp 16-bytes aligned: 
-                                                # the return address + 8-bytes padding
+    .global    .MemoryManager.Alloc
+.MemoryManager.Alloc:
+    subq     $8, %rsp                            # keep %rsp 16-bytes aligned: 
+                                                 # the return address + 8-bytes padding
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax
-    cmpq     work_area_end(%rip), %rax          # check if enough free space in the work area
-    jl       _MemMgr_Alloc.enough_free_space    # yes, there is
+    cmpq     work_area_end(%rip), %rax           # check if enough free space in the work area
+    jl       .MemoryManager.Alloc.can_alloc      # yes, there is
     # Let's make enough free space.
-    movq     %rdi, %rsi                         # allocation size
-    leaq     8(%rsp), %rdi                      # end of stack to collect (except the padding we added)
-    callq    *_MemMgr_COLLECTOR(%rip)           # collect garbage
-    movq     %rsi, %rdi                         # put the allocation size back into %rdi
+    movq     %rdi, %rsi                          # allocation size
+    leaq     8(%rsp), %rdi                       # end of stack to collect (except the padding we added)
+    callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
+    movq     %rsi, %rdi                          # put the allocation size back into %rdi
     movq     alloc_ptr(%rip), %rax
-    addq     %rdi, %rax                         # allocate
-_MemMgr_Alloc.enough_free_space:
-    movq     alloc_ptr(%rip), %rsi              # preserve the addr of allocated memory block
-    movq     %rax, alloc_ptr(%rip)              # advance the allocation pointer
-    movq     %rsi, %rax                         # place the addr of allocated memory block in %rax
+    addq     %rdi, %rax                          # allocate
+.MemoryManager.Alloc.can_alloc:
+    movq     alloc_ptr(%rip), %rsi               # preserve the addr of allocated memory block
+    movq     %rax, alloc_ptr(%rip)               # advance the allocation pointer
+    movq     %rsi, %rax                          # place the addr of allocated memory block in %rax
 
-    addq     $8, %rsp                           # restore %rsp's original value
+    addq     $8, %rsp                            # restore %rsp's original value
     ret
 
 #
-# Query Memory Allocation
+# Ensure Memory Allocation
 #
-#   Verifies that the requested amount of memory can be allocated
+#   Makes sure that the requested amount of memory can be allocated
 #   within the work area.
 #
 #   INPUT:
@@ -177,22 +177,22 @@ _MemMgr_Alloc.enough_free_space:
 #    %rax, %rsi, collector function
 #
 
-    .global    _MemMgr_QAlloc
-_MemMgr_QAlloc:
-    subq     $8, %rsp                            # keep %rsp 16-bytes aligned: 
-                                                 # the return address + 8-bytes padding
+    .global    .MemoryManager.EnsureCanAlloc
+.MemoryManager.EnsureCanAlloc:
+    subq     $8, %rsp                                   # keep %rsp 16-bytes aligned: 
+                                                        # the return address + 8-bytes padding
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax
-    cmpq     work_area_end(%rip), %rax           # check if enough free space in the work area
-    jl       _MemMgr_QAlloc.enough_free_space    # yes, there is
+    cmpq     work_area_end(%rip), %rax                  # check if enough free space in the work area
+    jl       .MemoryManager.EnsureCanAlloc.can_alloc    # yes, there is
     # Let's make enough free space
-    movq     %rdi, %rsi                          # allocation size
-    leaq     8(%rsp), %rdi                       # end of stack to collect (except the padding we added)
-    callq    *_MemMgr_COLLECTOR(%rip)            # collect garbage
-    movq     %rsi, %rdi                          # put the allocation size back into %rdi
-_MemMgr_QAlloc.enough_free_space:
+    movq     %rdi, %rsi                                 # allocation size
+    leaq     8(%rsp), %rdi                              # end of stack to collect (except the padding we added)
+    callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
+    movq     %rsi, %rdi                                 # put the allocation size back into %rdi
+.MemoryManager.EnsureCanAlloc.can_alloc:
 
-    addq     $8, %rsp                            # restore %rsp's original value
+    addq     $8, %rsp                                   # restore %rsp's original value
     ret
 
 #
@@ -210,22 +210,22 @@ _MemMgr_QAlloc.enough_free_space:
 #   Registers modified:
 #    %rax, %rdi, %rsi, collector function
 
-    .global    _MemMgr_Test
-_MemMgr_Test:
-    subq     $8, %rsp                    # keep %rsp 16-bytes aligned: 
-                                         # the return address + 8-bytes padding
-    movq     _MemMgr_TEST(%rip), %rax    # Check if testing enabled
+    .global    .MemoryManager.Test
+.MemoryManager.Test:
+    subq     $8, %rsp                                   # keep %rsp 16-bytes aligned: 
+                                                        # the return address + 8-bytes padding
+    movq     .MemoryManager.TEST_ENABLED(%rip), %rax    # Check if testing enabled
     testq    %rax, %rax
-    jz       _MemMgr_Test.exit
+    jz       .MemoryManager.Test.exit
 
     # Allocate 0 bytes
-    xorl     %esi, %esi                  # zero allocation size
-                                         # (in x64 mode, `xor %esi, %esi` zeros the upper 32 bits too)
-    leaq     8(%rsp), %rdi               # end of stack to collect (except the padding we added)
-    callq    *_MemMgr_COLLECTOR(%rip)    # collect garbage
+    xorl     %esi, %esi                          # zero allocation size
+                                                 # (in x64 mode, `xor %esi, %esi` zeros the upper 32 bits too)
+    leaq     8(%rsp), %rdi                       # end of stack to collect (except the padding we added)
+    callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
 
-_MemMgr_Test.exit:
-    addq     $8, %rsp                    # restore %rsp's original value
+.MemoryManager.Test.exit:
+    addq     $8, %rsp                            # restore %rsp's original value
     ret
 
 ########################################
@@ -239,7 +239,7 @@ _MemMgr_Test.exit:
 # Some constants
 #
 
-NoGC_EXPANDSIZE = 0x10000    # size to expand heap
+.NopGC.EXPAND_SIZE = 0x10000    # size to expand heap
 
 #
 # Initialization
@@ -256,8 +256,8 @@ NoGC_EXPANDSIZE = 0x10000    # size to expand heap
 #   Registers modified:
 #    %rax
 #
-    .global    _NoGC_Init
-_NoGC_Init:
+    .global    .NopGC.Init
+.NopGC.Init:
     movq    .Platform.heap_start(%rip), %rax
     movq    %rax, work_area_start(%rip)
     movq    %rax, alloc_ptr(%rip)
@@ -281,31 +281,31 @@ _NoGC_Init:
 #    $t0, $a0, $v0, $gp, $s7
 #
 
-    .global    _NoGC_Collect
-_NoGC_Collect:
+    .global    .NopGC.Collect
+.NopGC.Collect:
     pushq   %rdi                                      # preserve the requested allocation size
 
     # show collection message
-    movq    $_NoGC.ascii_COLLECTING(%rip), %rdi
-    movq    $_NoGC.ascii_COLLECTING_len(%rip), %rsi
+    movq    $.NopGC.MSG_COLLECTING, %rdi
+    movq    $.NopGC.MSG_COLLECTING_LEN, %rsi
     call    .Platform.out_string
 
-_NoGC_Collect.ensure_enough_free_space:
+.NopGC.Collect.ensure_can_alloc:
     movq    alloc_ptr(%rip), %rax
     addq    %rdi, %rax
     cmpq    work_area_end(%rip), %rax                 # check if enough free space in the work area
-    jl      _NoGC_Collect.exit                        # yes, there is
+    jl      .NopGC.Collect.exit                       # yes, there is
 
     # Let's make enough free space
-    movq    NoGC_EXPANDSIZE, %rdi                     # size in quads
+    movq    .NopGC.EXPAND_SIZE, %rdi                  # size in quads
     call    .Platform.alloc                           # expand the heap
 
     movq    .Platform.heap_end(%rip), %rax
     movq    %rax, work_area_end(%rip)                 # update the work-area end pointer
 
-    jmp     _NoGC_Collect.ensure_enough_free_space    # keep expanding?
+    jmp     .NopGC.Collect.ensure_can_alloc           # keep expanding?
 
-_NoGC_Collect.exit:
+.NopGC.Collect.exit:
     popq     %rdi                                     # restore the requested allocation size in %rdi
     ret
 
@@ -348,7 +348,7 @@ _NoGC_Collect.exit:
 #   Note that during a minor collection, the work area is guaranteed to
 #   fit within the reserve area.  However, during a major collection, the
 #   old area will not necessarily fit in the new area.  If the latter occurs,
-#   "_GenGC_OfsCopy" will detect this and expand the heap.
+#   ".GenGC_OfsCopy" will detect this and expand the heap.
 #
 #   The heap is expanded on two different occasions:
 #
@@ -467,7 +467,7 @@ _NoGC_Collect.exit:
 #
 #        These tests are performed whenever any data could be a pointer
 #        to keep any non-pointers from being updated accidentally.  The
-#        functions "_GenGC_ChkCopy" and "_GenGC_OfsCopy" are responsible
+#        functions ".GenGC_ChkCopy" and ".GenGC_OfsCopy" are responsible
 #        for these checks.
 #
 #     4) The size stored in the object does not include the word required
@@ -566,8 +566,8 @@ _NoGC_Collect.exit:
 #    $t0, $t1, $v0, $a0
 #
 
-    .global    _GenGC_Init
-_GenGC_Init:
+    .global    .GenGC_Init
+.GenGC_Init:
     la         $t0 heap_start
     addiu      $t1 $t0 GenGC_HDRSIZE
     sw         $t1 GenGC_HDRL0($t0)         # save start of old area
@@ -576,7 +576,7 @@ _GenGC_Init:
     srl        $t1 $t1 1                    # $t1 = $t1 / 2
     la         $v0 0xfffffffc
     and        $t1 $t1 $v0                  # floor $t1 to the closest multiple of 4
-    blez       $t1 _GenGC_Init_error        # heap initially to small
+    blez       $t1 .GenGC_Init_error        # heap initially to small
     sub        $gp $a2 $t1                  # initial work area size is half the heap size excluding the GC header aligned on a 4-byte boundary
     sw         $gp GenGC_HDRL2($t0)         # save start of work area
     sw         $a2 GenGC_HDRL3($t0)         # save end of work area
@@ -591,22 +591,22 @@ _GenGC_Init:
     move       $a0 $zero
     syscall                                 # sbrk
     sw         $v0 GenGC_HDRL4($t0)         # save heap limit
-    la         $t0 _MemMgr_TEST             # Check if testing enabled
+    la         $t0 .MemoryManager.TEST_ENABLED             # Check if testing enabled
     lw         $t0 0($t0)
-    beqz       $t0 _MemMgr_Test_false
-    la         $a0 _GenGC_Init_test_msg     # tell user GC is in test mode
+    beqz       $t0 .MemoryManager.Test_false
+    la         $a0 .GenGC_Init_test_msg     # tell user GC is in test mode
     li         $v0 4
     syscall
-    j          _GenGC_Init_end
-_MemMgr_Test_false:
-    la         $a0 _GenGC_Init_msg          # tell user GC NOT in test mode
+    j          .GenGC_Init_end
+.MemoryManager.Test_false:
+    la         $a0 .GenGC_Init_msg          # tell user GC NOT in test mode
     li         $v0 4
     syscall
-_GenGC_Init_end:
+.GenGC_Init_end:
     jr         $ra                          # return
 
-_GenGC_Init_error:
-    la         $a0 _GenGC_INITERROR     # show error message
+.GenGC_Init_error:
+    la         $a0 .GenGC_INITERROR     # show error message
     li         $v0 4
     syscall
     li         $v0 10                   # exit
@@ -631,7 +631,7 @@ _GenGC_Init_error:
 #   sm: $a0 is explicitly saved in the GC case so that in the normal
 #   case the caller need not save/restore $a0
 #
-#   sm: Apparently _GenGC_Collect wants $a0 to be the last+1 word
+#   sm: Apparently .GenGC_Collect wants $a0 to be the last+1 word
 #   of the stack, rather than the last word; I've therefore changed
 #     addiu   $a0 $sp 4
 #   to
@@ -640,22 +640,22 @@ _GenGC_Init_error:
 #   last spot so it will definitely be safely ignored.
 #
 
-    .global    _GenGC_Assign
-_GenGC_Assign:
+    .global    .GenGC_Assign
+.GenGC_Assign:
     addiu    $s7 $s7 -4
     sw       $a1 0($s7)                    # save pointer to assignment
-    bgt      $s7 $gp _GenGC_Assign_done
+    bgt      $s7 $gp .GenGC_Assign_done
     addiu    $sp $sp -8
     sw       $ra 8($sp)                    # save return address
     sw       $a0 4($sp)                    # sm: save $a0
     move     $a1 $0                        # size
     addiu    $a0 $sp 0                     # end of stack to collect
     sw       $0 0($sp)                     # play it safe with off-by-1
-    jal      _GenGC_Collect
+    jal      .GenGC_Collect
     lw       $ra 8($sp)                    # restore return address
     lw       $a0 4($sp)                    # restore $a0
     addiu    $sp $sp 8
-_GenGC_Assign_done:
+.GenGC_Assign_done:
     jr       $ra                           # return
 
     .global    _gc_check
@@ -679,11 +679,11 @@ _gc_abort:
 # Generational Garbage Collection
 #
 #   This function implements the generational garbage collection.
-#   It first calls the minor collector, "_GenGC_MinorC", and then
+#   It first calls the minor collector, ".GenGC_MinorC", and then
 #   updates its history in the header.  The breakpoint is then
 #   calculated.  If the breakpoint is reached or there is still not
 #   enough room to allocate the requested size, a major garbage
-#   collection then takes place by calling "_GenGC_MajorC".  After
+#   collection then takes place by calling ".GenGC_MajorC".  After
 #   the major collection, the size of the old area is analyzed.  If
 #   it is greater than 1/(2^GenGC_OLDRATIO) of the total usable heap
 #   size (L0 to L3), the heap is expanded.  Also, if there is still not
@@ -710,17 +710,17 @@ _gc_abort:
 #    $t0, $t1, $t2, $t3, $t4, $v0, $v1, $a0, $a2, $gp, $s7
 #
 
-    .global    _GenGC_Collect
-_GenGC_Collect:
+    .global    .GenGC_Collect
+.GenGC_Collect:
     addiu      $sp $sp -12
     sw         $ra 12($sp)                       # save return address
     sw         $a0 8($sp)                        # save stack end
     sw         $a1 4($sp)                        # save size
-    la         $a0 _GenGC_COLLECT                # print collection message
+    la         $a0 .GenGC_COLLECT                # print collection message
     li         $v0 4
     syscall
     lw         $a0 8($sp)                        # restore stack end
-    jal        _GenGC_MinorC                     # minor collection
+    jal        .GenGC_MinorC                     # minor collection
     la         $a1 heap_start
     lw         $t1 GenGC_HDRMINOR1($a1)
     addu       $t1 $t1 $a0
@@ -728,14 +728,14 @@ _GenGC_Collect:
     sw         $t1 GenGC_HDRMINOR1($a1)          # update histories
     sw         $a0 GenGC_HDRMINOR0($a1)
     move       $t0 $t1                           # set $t0 to max of minor
-    bgt        $t1 $a0 _GenGC_Collect_maxmaj
+    bgt        $t1 $a0 .GenGC_Collect_maxmaj
     move       $t0 $a0
-_GenGC_Collect_maxmaj:
+.GenGC_Collect_maxmaj:
     lw         $t1 GenGC_HDRMAJOR0($a1)          # set $t1 to max of major
     lw         $t2 GenGC_HDRMAJOR1($a1)
-    bgt        $t1 $t2 _GenGC_Collect_maxdef
+    bgt        $t1 $t2 .GenGC_Collect_maxdef
     move       $t1 $t2
-_GenGC_Collect_maxdef:
+.GenGC_Collect_maxdef:
     lw         $t2 GenGC_HDRL3($a1)
     sub        $t0 $t2 $t0                       # set $t0 to L3-$t0-$t1
     sub        $t0 $t0 $t1
@@ -743,11 +743,11 @@ _GenGC_Collect_maxdef:
     sub        $t1 $t2 $t1
     srl        $t1 $t1 1
     sub        $t1 $t2 $t1
-    blt        $t0 $t1 _GenGC_Collect_breakpt    # set $t0 to minimum of above
+    blt        $t0 $t1 .GenGC_Collect_breakpt    # set $t0 to minimum of above
     move       $t0 $t1
-_GenGC_Collect_breakpt:
+.GenGC_Collect_breakpt:
     lw         $t1 GenGC_HDRL1($a1)              # get end of old area
-    bge        $t1 $t0 _GenGC_Collect_major
+    bge        $t1 $t0 .GenGC_Collect_major
     lw         $t0 GenGC_HDRL2($a1)
     lw         $t1 GenGC_HDRL3($a1)
     lw         $t2 4($sp)                        # load requested size into $t2
@@ -757,20 +757,20 @@ _GenGC_Collect_breakpt:
     and        $t0 $t0 $t3
     sub        $t0 $t1 $t0                       # reserve/work barrier
     addu       $t2 $t0 $t2                       # test allocation
-    bge        $t2 $t1 _GenGC_Collect_major      # check if work area too small
-_GenGC_Collect_nomajor:
+    bge        $t2 $t1 .GenGC_Collect_major      # check if work area too small
+.GenGC_Collect_nomajor:
     lw         $t1 GenGC_HDRL2($a1)
     sw         $t1 GenGC_HDRL1($a1)              # expand old area
     sw         $t0 GenGC_HDRL2($a1)              # set new reserve/work barrier
     move       $gp $t0                           # set $gp
     lw         $s7 GenGC_HDRL3($a1)              # load limit into $s7
-    b          _GenGC_Collect_done
-_GenGC_Collect_major:
-    la         $a0 _GenGC_Major                  # print collection message
+    b          .GenGC_Collect_done
+.GenGC_Collect_major:
+    la         $a0 .GenGC_Major                  # print collection message
     li         $v0 4
     syscall
     lw         $a0 8($sp)                        # restore stack end
-    jal        _GenGC_MajorC                     # major collection
+    jal        .GenGC_MajorC                     # major collection
     la         $a1 heap_start
     lw         $t1 GenGC_HDRMAJOR1($a1)
     addu       $t1 $t1 $a0
@@ -798,10 +798,10 @@ _GenGC_Collect_major:
     sub        $t1 $t1 $t2                       # test allocation
     addiu      $t1 $t1 4                         # adjust for round off errors
     sll        $t1 $t1 1                         # need to allocate $t1 memory
-    blt        $t1 $t0 _GenGC_Collect_enough     # put max of $t0, $t1 in $t0
+    blt        $t1 $t0 .GenGC_Collect_enough     # put max of $t0, $t1 in $t0
     move       $t0 $t1
-_GenGC_Collect_enough:
-    blez       $t0 _GenGC_Collect_setL2          # no need to expand
+.GenGC_Collect_enough:
+    blez       $t0 .GenGC_Collect_setL2          # no need to expand
     addiu      $t1 $0 1                          # put 1 in $t1
     sll        $t1 $t1 GenGC_HEAPEXPGRAN         # get granularity of expansion
     addiu      $t1 $t1 -1                        # align to granularity
@@ -812,13 +812,13 @@ _GenGC_Collect_enough:
     lw         $t2 GenGC_HDRL4($a1)              # load L4
     sub        $t1 $t2 $t1
     sub        $t2 $t0 $t1                       # actual amount to allocate
-    bgtz       $t2 _GenGC_Collect_getmem         # check if really need to allocate
-_GenGC_Collect_xfermem:
+    bgtz       $t2 .GenGC_Collect_getmem         # check if really need to allocate
+.GenGC_Collect_xfermem:
     lw         $s7 GenGC_HDRL3($a1)              # load L3
     addu       $s7 $s7 $t0                       # expand by $t0, set $s7
     sw         $s7 GenGC_HDRL3($a1)              # save L3
-    b          _GenGC_Collect_findL2
-_GenGC_Collect_getmem:
+    b          .GenGC_Collect_findL2
+.GenGC_Collect_getmem:
     li         $v0 9                             # sbrk
     move       $a0 $t2                           # set the size to expand the heap
     syscall
@@ -828,10 +828,10 @@ _GenGC_Collect_getmem:
     sw         $v0 GenGC_HDRL4($a1)              # save L4
     sw         $v0 GenGC_HDRL3($a1)              # save L3
     move       $s7 $v0                           # set $s7
-    b          _GenGC_Collect_findL2
-_GenGC_Collect_setL2:
+    b          .GenGC_Collect_findL2
+.GenGC_Collect_setL2:
     lw         $s7 GenGC_HDRL3($a1)              # load L3
-_GenGC_Collect_findL2:
+.GenGC_Collect_findL2:
     lw         $t1 GenGC_HDRL1($a1)              # load L1
     sub        $t1 $s7 $t1
     srl        $t1 $t1 1
@@ -839,14 +839,14 @@ _GenGC_Collect_findL2:
     and        $t1 $t1 $t0
     sub        $gp $s7 $t1                       # reserve/work barrier
     sw         $gp GenGC_HDRL2($a1)              # save L2
-_GenGC_Collect_done:
+.GenGC_Collect_done:
 
 # Clear new generation to catch missing pointers
     move     $t0 $gp
-_GenGC_Clear_loop:
+.GenGC_Clear_loop:
     sw       $zero 0($t0)
     addiu    $t0 $t0 4
-    blt      $t0 $s7 _GenGC_Clear_loop
+    blt      $t0 $s7 .GenGC_Clear_loop
 
     lw       $a1 4($sp)      # restore size
     lw       $ra 12($sp)     # restore return address
@@ -885,19 +885,19 @@ _GenGC_Clear_loop:
 #    $t0, $t1, $t2, $v0, $a0, $gp
 #
 
-    .global    _GenGC_ChkCopy
-_GenGC_ChkCopy:
-    blt      $a0 $a1 _GenGC_ChkCopy_done    # check bounds
-    bge      $a0 $a2 _GenGC_ChkCopy_done
+    .global    .GenGC_ChkCopy
+.GenGC_ChkCopy:
+    blt      $a0 $a1 .GenGC_ChkCopy_done    # check bounds
+    bge      $a0 $a2 .GenGC_ChkCopy_done
     andi     $t2 $a0 1                      # check if odd
-    bnez     $t2 _GenGC_ChkCopy_done
+    bnez     $t2 .GenGC_ChkCopy_done
     addiu    $t2 $0 -1
     lw       $t1 obj_eyecatch($a0)          # check eyecatcher
     bne      $t2 $t1 _gc_abort
     lw       $t1 obj_tag($a0)               # check object tag
-    beq      $t2 $t1 _GenGC_ChkCopy_done
+    beq      $t2 $t1 .GenGC_ChkCopy_done
     lw       $t1 obj_size($a0)              # get size of object
-    beqz     $t1 _GenGC_ChkCopy_forward     # if size = 0, get forwarding pointer
+    beqz     $t1 .GenGC_ChkCopy_forward     # if size = 0, get forwarding pointer
     move     $t0 $a0                        # save pointer to old object in $t0
     addiu    $gp $gp 4                      # allocate memory for eyecatcher
     move     $a0 $gp                        # get address of new object
@@ -905,17 +905,17 @@ _GenGC_ChkCopy:
     sll      $t1 $t1 2                      # convert words to bytes
     addu     $t1 $t0 $t1                    # set $t1 to limit of copy
     move     $t2 $t0                        # set $t2 to old object
-_GenGC_ChkCopy_loop:
+.GenGC_ChkCopy_loop:
     lw       $v0 0($t0)                     # copy
     sw       $v0 0($gp)
     addiu    $t0 $t0 4                      # update each index
     addiu    $gp $gp 4
-    bne      $t0 $t1 _GenGC_ChkCopy_loop    # check for limit of copy
+    bne      $t0 $t1 .GenGC_ChkCopy_loop    # check for limit of copy
     sw       $0 obj_size($t2)               # set size to 0
     sw       $a0 obj_disp($t2)              # save forwarding pointer
-_GenGC_ChkCopy_done:
+.GenGC_ChkCopy_done:
     jr       $ra                            # return
-_GenGC_ChkCopy_forward:
+.GenGC_ChkCopy_forward:
     lw       $a0 obj_disp($a0)              # get forwarding pointer
     jr       $ra                            # return
 
@@ -934,19 +934,19 @@ _GenGC_ChkCopy_forward:
 #     2) Scan the stack for root pointers into the heap.  The beginning
 #        of the stack is in the header and the end is an input to this
 #        function.  Look for the appropriate stack flags and act
-#        accordingly.  Use "_GenGC_ChkCopy" to validate the pointer and
+#        accordingly.  Use ".GenGC_ChkCopy" to validate the pointer and
 #        get the new pointer, and then update the stack entry.
 #
 #     3) Check the registers specified in the Register (REG) mask to
 #        automatically update.  This mask is stored in the header.  If
 #        bit #n in the mask is set, register #n will be passed to
-#        "_GenGC_ChkCopy" and updated with its result.  "_GenGC_SetRegMask"
+#        ".GenGC_ChkCopy" and updated with its result.  ".GenGC_SetRegMask"
 #        can be used to update this mask.
 #
 #     4) The assignemnt table is now checked.  $s7 is moved from its
 #        current position until it hits the L3 pointer.  Each entry is a
 #        pointer to the pointer that must be checked.  Again,
-#        "_GenGC_ChkCopy" is used and the pointer updated.
+#        ".GenGC_ChkCopy" is used and the pointer updated.
 #
 #     5) At this point, all root objects are in the reserve area.  This
 #        area is now traversed object by object (from L1 to $gp).  It
@@ -974,8 +974,8 @@ _GenGC_ChkCopy_forward:
 #    $t0, $t1, $t2, $t3, $t4, $v0, $v1, $a0, $a1, $a2, $gp, $s7
 #
 
-    .global    _GenGC_MinorC
-_GenGC_MinorC:
+    .global    .GenGC_MinorC
+.GenGC_MinorC:
     addiu      $sp $sp -20
     sw         $ra 20($sp)                        # save return address
     la         $t0 heap_start
@@ -985,180 +985,180 @@ _GenGC_MinorC:
     sw         $a0 16($sp)                        # save stack end
     lw         $t0 GenGC_HDRSTK($t0)              # set $t0 to stack start
     move       $t1 $a0                            # set $t1 to stack end
-    ble        $t0 $t1 _GenGC_MinorC_stackend     # check for empty stack
+    ble        $t0 $t1 .GenGC_MinorC_stackend     # check for empty stack
                                                   # (stack grows from higher to lower addresses
                                                   # Hence, stack start <= stack end when stack is empty)
-_GenGC_MinorC_stackloop:                          # $t1 stack end, $t0 index
+.GenGC_MinorC_stackloop:                          # $t1 stack end, $t0 index
     addiu      $t0 $t0 -4                         # update index
     sw         $t0 12($sp)                        # save stack index
     lw         $a0 4($t0)                         # get stack item
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     lw         $t0 12($sp)                        # load stack index
     sw         $a0 4($t0)                         # replace stack item pointing to old object with pointer to new one
     lw         $t1 16($sp)                        # restore stack end
-    bgt        $t0 $t1 _GenGC_MinorC_stackloop    # loop
-_GenGC_MinorC_stackend:
+    bgt        $t0 $t1 .GenGC_MinorC_stackloop    # loop
+.GenGC_MinorC_stackend:
     la         $t0 heap_start
     lw         $t0 GenGC_HDRREG($t0)              # get Register mask
     sw         $t0 16($sp)                        # save Register mask
-_GenGC_MinorC_reg16:
+.GenGC_MinorC_reg16:
     srl        $t0 $t0 16                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg17         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg17         # check if set
     move       $a0 $16                            # set test pointer to potentially old object address
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $16 $a0                            # update register with potentilly new object address
-_GenGC_MinorC_reg17:
+.GenGC_MinorC_reg17:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 17                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg18         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg18         # check if set
     move       $a0 $17                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $17 $a0                            # update register
-_GenGC_MinorC_reg18:
+.GenGC_MinorC_reg18:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 18                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg19         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg19         # check if set
     move       $a0 $18                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $18 $a0                            # update register
-_GenGC_MinorC_reg19:
+.GenGC_MinorC_reg19:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 19                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg20         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg20         # check if set
     move       $a0 $19                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $19 $a0                            # update register
-_GenGC_MinorC_reg20:
+.GenGC_MinorC_reg20:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 20                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg21         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg21         # check if set
     move       $a0 $20                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $20 $a0                            # update register
-_GenGC_MinorC_reg21:
+.GenGC_MinorC_reg21:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 21                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg22         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg22         # check if set
     move       $a0 $21                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $21 $a0                            # update register
-_GenGC_MinorC_reg22:
+.GenGC_MinorC_reg22:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 22                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg24         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg24         # check if set
     move       $a0 $22                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $22 $a0                            # update register
-_GenGC_MinorC_reg24:
+.GenGC_MinorC_reg24:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 24                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg25         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg25         # check if set
     move       $a0 $24                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $24 $a0                            # update register
-_GenGC_MinorC_reg25:
+.GenGC_MinorC_reg25:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 25                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg30         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg30         # check if set
     move       $a0 $25                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $25 $a0                            # update register
-_GenGC_MinorC_reg30:
+.GenGC_MinorC_reg30:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 30                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_reg31         # check if set
+    beq        $t1 $0 .GenGC_MinorC_reg31         # check if set
     move       $a0 $30                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $30 $a0                            # update register
-_GenGC_MinorC_reg31:
+.GenGC_MinorC_reg31:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 31                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MinorC_regend        # check if set
+    beq        $t1 $0 .GenGC_MinorC_regend        # check if set
     move       $a0 $31                            # set test pointer
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     move       $31 $a0                            # update register
-_GenGC_MinorC_regend:
+.GenGC_MinorC_regend:
     la         $t0 heap_start
     lw         $t3 GenGC_HDRL0($t0)               # lower limit of old area
     lw         $t4 GenGC_HDRL1($t0)               # upper limit of old area
     lw         $t0 GenGC_HDRL3($t0)               # get L3
     sw         $t0 16($sp)                        # save index limit
-    bge        $s7 $t0 _GenGC_MinorC_assnend      # check for no assignments
-_GenGC_MinorC_assnloop:                           # $s7 index, $t0 limit
+    bge        $s7 $t0 .GenGC_MinorC_assnend      # check for no assignments
+.GenGC_MinorC_assnloop:                           # $s7 index, $t0 limit
     lw         $a0 0($s7)                         # get table entry
-    blt        $a0 $t3 _GenGC_MinorC_assnnext     # must point into old area
-    bge        $a0 $t4 _GenGC_MinorC_assnnext
+    blt        $a0 $t3 .GenGC_MinorC_assnnext     # must point into old area
+    bge        $a0 $t4 .GenGC_MinorC_assnnext
     lw         $a0 0($a0)                         # get pointer to check
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     lw         $t0 0($s7)
     sw         $a0 0($t0)                         # update pointer
     lw         $t0 16($sp)                        # restore index limit
-_GenGC_MinorC_assnnext:
+.GenGC_MinorC_assnnext:
     addiu      $s7 $s7 4                          # update index
-    blt        $s7 $t0 _GenGC_MinorC_assnloop     # loop
-_GenGC_MinorC_assnend:
+    blt        $s7 $t0 .GenGC_MinorC_assnloop     # loop
+.GenGC_MinorC_assnend:
     la         $t0 heap_start
     lw         $t0 GenGC_HDRL1($t0)               # start of reserve area
-    bge        $t0 $gp _GenGC_MinorC_heapend      # check for no objects
-_GenGC_MinorC_heaploop:                           # $t0: index, $gp: limit
+    bge        $t0 $gp .GenGC_MinorC_heapend      # check for no objects
+.GenGC_MinorC_heaploop:                           # $t0: index, $gp: limit
     addiu      $t0 $t0 4                          # skip over eyecatcher
     addiu      $t1 $0 -1                          # check for eyecatcher
     lw         $t2 obj_eyecatch($t0)
-    bne        $t1 $t2 _GenGC_MinorC_error        # eyecatcher not found
+    bne        $t1 $t2 .GenGC_MinorC_error        # eyecatcher not found
     lw         $a0 obj_size($t0)                  # get object size
     sll        $a0 $a0 2                          # words to bytes
     lw         $t1 obj_tag($t0)                   # get the object's tag
     lw         $t2 _int_tag                       # test for int object
-    beq        $t1 $t2 _GenGC_MinorC_int
+    beq        $t1 $t2 .GenGC_MinorC_int
     lw         $t2 _bool_tag                      # test for bool object
-    beq        $t1 $t2 _GenGC_MinorC_bool
+    beq        $t1 $t2 .GenGC_MinorC_bool
     lw         $t2 _string_tag                    # test for string object
-    beq        $t1 $t2 _GenGC_MinorC_string
-_GenGC_MinorC_other:
+    beq        $t1 $t2 .GenGC_MinorC_string
+.GenGC_MinorC_other:
     addi       $t1 $t0 obj_attr                   # start at first attribute
     add        $t2 $t0 $a0                        # limit of attributes
-    bge        $t1 $t2 _GenGC_MinorC_nextobj      # check for no attributes
+    bge        $t1 $t2 .GenGC_MinorC_nextobj      # check for no attributes
     sw         $t0 16($sp)                        # save pointer to object
     sw         $a0 12($sp)                        # save object size
     sw         $t2 4($sp)                         # save limit
-_GenGC_MinorC_objloop:                            # $t1: index, $t2: limit
+.GenGC_MinorC_objloop:                            # $t1: index, $t2: limit
     sw         $t1 8($sp)                         # save index
     lw         $a0 0($t1)                         # set pointer to check
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     lw         $t1 8($sp)                         # restore index
     sw         $a0 0($t1)                         # update object pointer
     lw         $t2 4($sp)                         # restore limit
     addiu      $t1 $t1 4
-    blt        $t1 $t2 _GenGC_MinorC_objloop      # loop
-_GenGC_MinorC_objend:
+    blt        $t1 $t2 .GenGC_MinorC_objloop      # loop
+.GenGC_MinorC_objend:
     lw         $t0 16($sp)                        # restore pointer to object
     lw         $a0 12($sp)                        # restore object size
-    b          _GenGC_MinorC_nextobj              # next object
-_GenGC_MinorC_string:
+    b          .GenGC_MinorC_nextobj              # next object
+.GenGC_MinorC_string:
     sw         $t0 16($sp)                        # save pointer to object
     sw         $a0 12($sp)                        # save object size
     lw         $a0 str_size($t0)                  # set test pointer to an Int object representing the string's size
-    jal        _GenGC_ChkCopy                     # check and copy
+    jal        .GenGC_ChkCopy                     # check and copy
     lw         $t0 16($sp)                        # restore pointer to object
     sw         $a0 str_size($t0)                  # update size pointer
     lw         $a0 12($sp)                        # restore object size
-_GenGC_MinorC_int:
-_GenGC_MinorC_bool:
-_GenGC_MinorC_nextobj:
+.GenGC_MinorC_int:
+.GenGC_MinorC_bool:
+.GenGC_MinorC_nextobj:
     add        $t0 $t0 $a0                        # find next object
-    blt        $t0 $gp _GenGC_MinorC_heaploop     # loop
-_GenGC_MinorC_heapend:
+    blt        $t0 $gp .GenGC_MinorC_heaploop     # loop
+.GenGC_MinorC_heapend:
     la         $t0 heap_start
     sw         $gp GenGC_HDRL2($t0)               # set L2 to $gp
     lw         $a0 GenGC_HDRL1($t0)
@@ -1166,8 +1166,8 @@ _GenGC_MinorC_heapend:
     lw         $ra 20($sp)                        # restore return address
     addiu      $sp $sp 20
     jr         $ra                                # return
-_GenGC_MinorC_error:
-    la         $a0 _GenGC_MINORERROR              # show error message
+.GenGC_MinorC_error:
+    la         $a0 .GenGC_MINORERROR              # show error message
     li         $v0 4
     syscall
     li         $v0 10                             # exit
@@ -1190,7 +1190,7 @@ _GenGC_MinorC_error:
 #   Finally, it returns this pointer.  Note that this pointer does not
 #   actually point to the object at this time.  This entire area will
 #   later be block copied.  After that, this pointer will be valid.
-#   The same tests are done here as in "_GenGC_ChkCopy" to verify that
+#   The same tests are done here as in ".GenGC_ChkCopy" to verify that
 #   this is a heap object.
 #
 #   INPUT:
@@ -1212,29 +1212,29 @@ _GenGC_MinorC_error:
 #    $t0, $t1, $t2, $v0, $a0, $gp, $s7
 #
 
-    .global    _GenGC_OfsCopy
-_GenGC_OfsCopy:
-    blt        $a0 $a1 _GenGC_OfsCopy_done     # check lower bound
-    bge        $a0 $v1 _GenGC_OfsCopy_done     # check upper bound
+    .global    .GenGC_OfsCopy
+.GenGC_OfsCopy:
+    blt        $a0 $a1 .GenGC_OfsCopy_done     # check lower bound
+    bge        $a0 $v1 .GenGC_OfsCopy_done     # check upper bound
     andi       $t2 $a0 1                       # check if odd
-    bnez       $t2 _GenGC_OfsCopy_done
+    bnez       $t2 .GenGC_OfsCopy_done
     addiu      $t2 $0 -1
     lw         $t1 obj_eyecatch($a0)           # check eyecatcher
     bne        $t2 $t1 _gc_abort
     lw         $t1 obj_tag($a0)                # check object tag
-    beq        $t2 $t1 _GenGC_OfsCopy_done
-    blt        $a0 $a2 _GenGC_OfsCopy_old      # check if old, X object
+    beq        $t2 $t1 .GenGC_OfsCopy_done
+    blt        $a0 $a2 .GenGC_OfsCopy_old      # check if old, X object
     sub        $v0 $a1 $a2                     # compute offset
     add        $a0 $a0 $v0                     # apply pointer offset
     jr         $ra                             # return
-_GenGC_OfsCopy_old:
+.GenGC_OfsCopy_old:
     lw         $t1 obj_size($a0)               # get size of object
     sll        $t1 $t1 2                       # convert words to bytes
-    beqz       $t1 _GenGC_OfsCopy_forward      # if size = 0, get forwarding pointer
+    beqz       $t1 .GenGC_OfsCopy_forward      # if size = 0, get forwarding pointer
     move       $t0 $a0                         # save pointer to old object in $t0
     addu       $v0 $gp $t1                     # test allocation
     addiu      $v0 $v0 4
-    blt        $v0 $s7 _GenGC_OfsCopy_memok    # check if enoguh room for object
+    blt        $v0 $s7 .GenGC_OfsCopy_memok    # check if enoguh room for object
     sub        $a0 $v0 $s7                     # amount to expand minus 1
     addiu      $v0 $0 1
     sll        $v0 $v0 GenGC_HEAPEXPGRAN
@@ -1249,25 +1249,25 @@ _GenGC_OfsCopy_old:
     syscall                                    # get end of heap in $v0
     move       $s7 $v0                         # save heap end in $s7
     move       $a0 $t0                         # restore pointer to old object in $a0
-_GenGC_OfsCopy_memok:
+.GenGC_OfsCopy_memok:
     addiu      $gp $gp 4                       # allocate memory for eyecatcher
     move       $a0 $gp                         # get address of new object
     sw         $t2 obj_eyecatch($a0)           # save eye catcher
     addu       $t1 $t0 $t1                     # set $t1 to limit of copy
     move       $t2 $t0                         # set $t2 to old object
-_GenGC_OfsCopy_loop:
+.GenGC_OfsCopy_loop:
     lw         $v0 0($t0)                      # copy
     sw         $v0 0($gp)
     addiu      $t0 $t0 4                       # update each index
     addiu      $gp $gp 4
-    bne        $t0 $t1 _GenGC_OfsCopy_loop     # check for limit of copy
+    bne        $t0 $t1 .GenGC_OfsCopy_loop     # check for limit of copy
     sw         $0 obj_size($t2)                # set size to 0
     sub        $v0 $a1 $a2                     # compute offset
     add        $a0 $a0 $v0                     # apply pointer offset
     sw         $a0 obj_disp($t2)               # save forwarding pointer
-_GenGC_OfsCopy_done:
+.GenGC_OfsCopy_done:
     jr         $ra                             # return
-_GenGC_OfsCopy_forward:
+.GenGC_OfsCopy_forward:
     lw         $a0 obj_disp($a0)               # get forwarding pointer
     jr         $ra                             # return
 
@@ -1281,20 +1281,20 @@ _GenGC_OfsCopy_forward:
 #   of five phases:
 #
 #     1) Set $gp into the new area (L2), and $s7 to L4.  Also set the
-#        inputs for "_GenGC_OfsCopy".
+#        inputs for ".GenGC_OfsCopy".
 #
-#     2) Traverse the stack (see the minor collector) using "_GenGC_OfsCopy".
+#     2) Traverse the stack (see the minor collector) using ".GenGC_OfsCopy".
 #
-#     3) Check the registers (see the minor collector) using "_GenGC_OfsCopy".
+#     3) Check the registers (see the minor collector) using ".GenGC_OfsCopy".
 #
-#     4) Traverse the heap from L1 to $gp using "_GenGC_OfsCopy".  Note
+#     4) Traverse the heap from L1 to $gp using ".GenGC_OfsCopy".  Note
 #        that this includes the X area.  (see the minor collector)
 #
 #     5) Block copy the region L1 to $gp back L1-L0 bytes to create the
 #        next old area.  Save the end in L1.  Calculate the size of the
 #        live objects collected from the old area and return this value.
 #
-#   Note that the pointers returned by "_GenGC_OfsCopy" are not valid
+#   Note that the pointers returned by ".GenGC_OfsCopy" are not valid
 #   until the block copy is done.
 #
 #   INPUT:
@@ -1308,8 +1308,8 @@ _GenGC_OfsCopy_forward:
 #    $t0, $t1, $t2, $v0, $v1, $a0, $a1, $a2, $gp, $s7
 #
 
-    .global    _GenGC_MajorC
-_GenGC_MajorC:
+    .global    .GenGC_MajorC
+.GenGC_MajorC:
     addiu      $sp $sp -20
     sw         $ra 20($sp)                        # save return address
     la         $t0 heap_start
@@ -1321,172 +1321,172 @@ _GenGC_MajorC:
     sw         $a0 16($sp)                        # save stack end
     lw         $t0 GenGC_HDRSTK($t0)              # set $t0 to stack start
     move       $t1 $a0                            # set $t1 to stack end
-    ble        $t0 $t1 _GenGC_MajorC_stackend     # check for empty stack
-_GenGC_MajorC_stackloop:                          # $t1 stack end, $t0 index
+    ble        $t0 $t1 .GenGC_MajorC_stackend     # check for empty stack
+.GenGC_MajorC_stackloop:                          # $t1 stack end, $t0 index
     addiu      $t0 $t0 -4                         # update index
     sw         $t0 12($sp)                        # save stack index
     lw         $a0 4($t0)                         # get stack item
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     lw         $t0 12($sp)                        # load stack index
     sw         $a0 4($t0)
     lw         $t1 16($sp)                        # restore stack end
-    bgt        $t0 $t1 _GenGC_MajorC_stackloop    # loop
-_GenGC_MajorC_stackend:
+    bgt        $t0 $t1 .GenGC_MajorC_stackloop    # loop
+.GenGC_MajorC_stackend:
     la         $t0 heap_start
     lw         $t0 GenGC_HDRREG($t0)              # get Register mask
     sw         $t0 16($sp)                        # save Register mask
-_GenGC_MajorC_reg16:
+.GenGC_MajorC_reg16:
     srl        $t0 $t0 16                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg17         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg17         # check if set
     move       $a0 $16                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $16 $a0                            # update register
-_GenGC_MajorC_reg17:
+.GenGC_MajorC_reg17:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 17                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg18         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg18         # check if set
     move       $a0 $17                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $17 $a0                            # update register
-_GenGC_MajorC_reg18:
+.GenGC_MajorC_reg18:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 18                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg19         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg19         # check if set
     move       $a0 $18                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $18 $a0                            # update register
-_GenGC_MajorC_reg19:
+.GenGC_MajorC_reg19:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 19                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg20         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg20         # check if set
     move       $a0 $19                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $19 $a0                            # update register
-_GenGC_MajorC_reg20:
+.GenGC_MajorC_reg20:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 20                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg21         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg21         # check if set
     move       $a0 $20                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $20 $a0                            # update register
-_GenGC_MajorC_reg21:
+.GenGC_MajorC_reg21:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 21                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg22         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg22         # check if set
     move       $a0 $21                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $21 $a0                            # update register
-_GenGC_MajorC_reg22:
+.GenGC_MajorC_reg22:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 22                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg24         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg24         # check if set
     move       $a0 $22                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $22 $a0                            # update register
-_GenGC_MajorC_reg24:
+.GenGC_MajorC_reg24:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 24                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg25         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg25         # check if set
     move       $a0 $24                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $24 $a0                            # update register
-_GenGC_MajorC_reg25:
+.GenGC_MajorC_reg25:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 25                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg30         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg30         # check if set
     move       $a0 $25                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $25 $a0                            # update register
-_GenGC_MajorC_reg30:
+.GenGC_MajorC_reg30:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 30                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_reg31         # check if set
+    beq        $t1 $0 .GenGC_MajorC_reg31         # check if set
     move       $a0 $30                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $30 $a0                            # update register
-_GenGC_MajorC_reg31:
+.GenGC_MajorC_reg31:
     lw         $t0 16($sp)                        # restore mask
     srl        $t0 $t0 31                         # shift to proper bit
     andi       $t1 $t0 1
-    beq        $t1 $0 _GenGC_MajorC_regend        # check if set
+    beq        $t1 $0 .GenGC_MajorC_regend        # check if set
     move       $a0 $31                            # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     move       $31 $a0                            # update register
-_GenGC_MajorC_regend:
+.GenGC_MajorC_regend:
     la         $t0 heap_start
     lw         $t0 GenGC_HDRL1($t0)               # start of X area
-    bge        $t0 $gp _GenGC_MajorC_heapend      # check for no objects
-_GenGC_MajorC_heaploop:                           # $t0: index, $gp: limit
+    bge        $t0 $gp .GenGC_MajorC_heapend      # check for no objects
+.GenGC_MajorC_heaploop:                           # $t0: index, $gp: limit
     addiu      $t0 $t0 4                          # skip over eyecatcher
     addiu      $t1 $0 -1                          # check for eyecatcher
     lw         $t2 obj_eyecatch($t0)
-    bne        $t1 $t2 _GenGC_MajorC_error        # eyecatcher not found
+    bne        $t1 $t2 .GenGC_MajorC_error        # eyecatcher not found
     lw         $a0 obj_size($t0)                  # get object size
     sll        $a0 $a0 2                          # words to bytes
     lw         $t1 obj_tag($t0)                   # get the object's tag
     lw         $t2 _int_tag                       # test for int object
-    beq        $t1 $t2 _GenGC_MajorC_int
+    beq        $t1 $t2 .GenGC_MajorC_int
     lw         $t2 _bool_tag                      # test for bool object
-    beq        $t1 $t2 _GenGC_MajorC_bool
+    beq        $t1 $t2 .GenGC_MajorC_bool
     lw         $t2 _string_tag                    # test for string object
-    beq        $t1 $t2 _GenGC_MajorC_string
-_GenGC_MajorC_other:
+    beq        $t1 $t2 .GenGC_MajorC_string
+.GenGC_MajorC_other:
     addi       $t1 $t0 obj_attr                   # start at first attribute
     add        $t2 $t0 $a0                        # limit of attributes
-    bge        $t1 $t2 _GenGC_MajorC_nextobj      # check for no attributes
+    bge        $t1 $t2 .GenGC_MajorC_nextobj      # check for no attributes
     sw         $t0 16($sp)                        # save pointer to object
     sw         $a0 12($sp)                        # save object size
     sw         $t2 4($sp)                         # save limit
-_GenGC_MajorC_objloop:                            # $t1: index, $t2: limit
+.GenGC_MajorC_objloop:                            # $t1: index, $t2: limit
     sw         $t1 8($sp)                         # save index
     lw         $a0 0($t1)                         # set pointer to check
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     lw         $t1 8($sp)                         # restore index
     sw         $a0 0($t1)                         # update object pointer
     lw         $t2 4($sp)                         # restore limit
     addiu      $t1 $t1 4
-    blt        $t1 $t2 _GenGC_MajorC_objloop      # loop
-_GenGC_MajorC_objend:
+    blt        $t1 $t2 .GenGC_MajorC_objloop      # loop
+.GenGC_MajorC_objend:
     lw         $t0 16($sp)                        # restore pointer to object
     lw         $a0 12($sp)                        # restore object size
-    b          _GenGC_MajorC_nextobj              # next object
-_GenGC_MajorC_string:
+    b          .GenGC_MajorC_nextobj              # next object
+.GenGC_MajorC_string:
     sw         $t0 16($sp)                        # save pointer to object
     sw         $a0 12($sp)                        # save object size
     lw         $a0 str_size($t0)                  # set test pointer
-    jal        _GenGC_OfsCopy                     # check and copy
+    jal        .GenGC_OfsCopy                     # check and copy
     lw         $t0 16($sp)                        # restore pointer to object
     sw         $a0 str_size($t0)                  # update size pointer
     lw         $a0 12($sp)                        # restore object size
-_GenGC_MajorC_int:
-_GenGC_MajorC_bool:
-_GenGC_MajorC_nextobj:
+.GenGC_MajorC_int:
+.GenGC_MajorC_bool:
+.GenGC_MajorC_nextobj:
     add        $t0 $t0 $a0                        # find next object
-    blt        $t0 $gp _GenGC_MajorC_heaploop     # loop
-_GenGC_MajorC_heapend:
+    blt        $t0 $gp .GenGC_MajorC_heaploop     # loop
+.GenGC_MajorC_heapend:
     la         $t0 heap_start
     lw         $a0 GenGC_HDRL2($t0)               # get end of collection
     sub        $a0 $gp $a0                        # get length after collection
     lw         $t1 GenGC_HDRL0($t0)               # get L0
     lw         $t2 GenGC_HDRL1($t0)               # get L1
-    bge        $t2 $gp _GenGC_MajorC_bcpyend      # test for empty copy
-_GenGC_MajorC_bcpyloop:                           # $t2 index, $gp limit, $t1 dest
+    bge        $t2 $gp .GenGC_MajorC_bcpyend      # test for empty copy
+.GenGC_MajorC_bcpyloop:                           # $t2 index, $gp limit, $t1 dest
     lw         $v0 0($t2)                         # copy
     sw         $v0 0($t1)
     addiu      $t2 $t2 4                          # update each index
     addiu      $t1 $t1 4
-    bne        $t2 $gp _GenGC_MajorC_bcpyloop     # loop
-_GenGC_MajorC_bcpyend:
+    bne        $t2 $gp .GenGC_MajorC_bcpyloop     # loop
+.GenGC_MajorC_bcpyend:
     sw         $s7 GenGC_HDRL4($t0)               # save end of heap
     lw         $t1 GenGC_HDRL0($t0)               # get L0
     lw         $t2 GenGC_HDRL1($t0)               # get L1
@@ -1496,8 +1496,8 @@ _GenGC_MajorC_bcpyend:
     lw         $ra 20($sp)                        # restore return address
     addiu      $sp $sp 20
     jr         $ra                                # return
-_GenGC_MajorC_error:
-    la         $a0 _GenGC_MAJORERROR              # show error message
+.GenGC_MajorC_error:
+    la         $a0 .GenGC_MAJORERROR              # show error message
     li         $v0 4
     syscall
     li         $v0 10                             # exit
@@ -1519,8 +1519,8 @@ _GenGC_MajorC_error:
 #    $t0
 #
 
-    .global    _GenGC_SetRegMask
-_GenGC_SetRegMask:
+    .global    .GenGC_SetRegMask
+.GenGC_SetRegMask:
     li     $t0 GenGC_ARU_MASK        # apply Automatic Register Mask (ARU)
     and    $a0 $a0 $t0
     la     $t0 heap_start            # set $t0 to the start of the heap
@@ -1540,8 +1540,8 @@ _GenGC_SetRegMask:
 #    none
 #
 
-    .global    _GenGC_QRegMask
-_GenGC_QRegMask:
+    .global    .GenGC_QRegMask
+.GenGC_QRegMask:
     la    $a0 heap_start            # set $a0 to the start of the heap
     lw    $a0 GenGC_HDRREG($a0)     # get the Register mask
     jr    $ra                       # return

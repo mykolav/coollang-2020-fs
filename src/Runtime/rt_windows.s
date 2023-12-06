@@ -12,8 +12,8 @@
     .global .Platform.new_line_len
 .Platform.new_line_len:     .quad  2
 
-ascii_init_failed:          .ascii "Init failed"
-ascii_init_failed_len =            (. - ascii_init_failed)
+MSG_INIT_FAILED_ASCII:          .ascii "Init failed"
+MSG_INIT_FAILED_LEN  =                 (. - MSG_INIT_FAILED_ASCII)
 
 
 ########################################
@@ -39,13 +39,13 @@ pageSize:                .quad 0
 ########################################
     .text
 
-    .set STD_INPUT_HANDLE, -10
-    .set STD_OUTPUT_HANDLE, -11
-    .set STD_ERROR_HANDLE, -12
+    STD_INPUT_HANDLE  = -10
+    STD_OUTPUT_HANDLE = -11
+    STD_ERROR_HANDLE  = -12
 
-    MEM_RESERVE    = 0x00002000
-    MEM_COMMIT     = 0x00001000
-    PAGE_READWRITE = 0x00000004
+    MEM_RESERVE       = 0x00002000
+    MEM_COMMIT        = 0x00001000
+    PAGE_READWRITE    = 0x00000004
 
 ########################################
 # .Platform
@@ -124,8 +124,8 @@ pageSize:                .quad 0
     # Allocation failed
     call    GetLastError
 
-    movq    $ascii_init_failed, %rdi
-    movq    $ascii_init_failed_len, %rsi
+    movq    $MSG_INIT_FAILED_ASCII, %rdi
+    movq    $MSG_INIT_FAILED_LEN, %rsi
     call    .Platform.out_string
 
     movq    $.Platform.ascii_new_line, %rdi
