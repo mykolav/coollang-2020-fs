@@ -69,6 +69,7 @@
         <Content Include="CoolPrograms\Runtime\InInt5.cool" />
         <Content Include="CoolPrograms\Runtime\InString.cool" />
         <Content Include="CoolPrograms\Runtime\InString1.cool" />
+        <Content Include="CoolPrograms\Runtime\Life.cool" />
         <Content Include="CoolPrograms\Syntax\SemiExpected.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls.cool" />
         <Content Include="CoolPrograms\Syntax\InvalidClassDecls_Extends.cool" />
