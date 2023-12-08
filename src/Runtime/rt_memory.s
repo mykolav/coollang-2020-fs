@@ -17,8 +17,6 @@
 .MemoryManager.TEST_ENABLED:    .quad 0
 ########################################
 
-work_area_start:                .quad 0
-work_area_end:                  .quad 0
 alloc_ptr:                      .quad 0
 
 #
@@ -150,7 +148,7 @@ alloc_ptr:                      .quad 0
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax                          # calc the new alloc ptr value
 
-    cmpq     work_area_end(%rip), %rax           # check if enough free space in the work area
+    cmpq     .Platform.heap_end(%rip), %rax      # check if enough free space in the work area
     jl       .MemoryManager.alloc.can_alloc      # yes, there is
  
     # Let's make enough free space.
@@ -203,7 +201,7 @@ alloc_ptr:                      .quad 0
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax                                 # calc the new alloc ptr value
 
-    cmpq     work_area_end(%rip), %rax                  # check if enough free space in the work area
+    cmpq     .Platform.heap_end(%rip), %rax             # check if enough free space in the work area
     jl       .MemoryManager.ensure_can_alloc.can_alloc  # yes, there is
 
     # Let's make enough free space
@@ -259,9 +257,7 @@ alloc_ptr:                      .quad 0
 
 #
 # Initialization
-#    Sets work_area_start to the value of .Platform.heap_start
-#    Sets work_area_end to the value of .Platform.heap_end
-#    Sets alloc_ptr to the value of work_area_start
+#    Sets alloc_ptr to the value of .Platform.heap_start
 #
 #   INPUT:
 #    none
@@ -275,10 +271,7 @@ alloc_ptr:                      .quad 0
     .global .NopGC.init
 .NopGC.init:
     movq    .Platform.heap_start(%rip), %rax
-    movq    %rax, work_area_start(%rip)
     movq    %rax, alloc_ptr(%rip)
-    movq    .Platform.heap_end(%rip), %rax
-    movq    %rax, work_area_end(%rip)
 
     ret
 
@@ -320,15 +313,12 @@ alloc_ptr:                      .quad 0
     movq     alloc_ptr(%rip), %rax
     movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi     # restore the allocation size in bytes
     addq     %rdi, %rax                            # calc the new alloc ptr value 
-    cmpq     work_area_end(%rip), %rax             # check if enough free space in the work area
+    cmpq     .Platform.heap_end(%rip), %rax        # check if enough free space in the work area
     jl       .NopGC.collect.exit                   # yes, there is
 
     # Let's make enough free space
     movq     $EXPAND_SIZE, %rdi                    # size in bytes
     call     .Platform.alloc                       # expand the heap
-
-    movq     .Platform.heap_end(%rip), %rax
-    movq     %rax, work_area_end(%rip)             # update the work-area end pointer
 
     jmp      .NopGC.collect.ensure_can_alloc       # keep expanding?
 
