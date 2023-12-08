@@ -147,9 +147,9 @@ pageSize:                .quad 0
 #  .Platform.alloc
 #
 #  INPUT:
-#      a size in quads in %rdi
+#      %rdi: the requested size in bytes
 #  OUTPUT:
-#      a pointer to the start of allocated memory block in %rax.
+#      %rax: a pointer to the start of allocated memory block.
 #.     if allocation fails, prints a message and exits the process.
 #  
 #  Rounds up (%rdi * 8) bytes to the nearest greater multiple of pageSize.
@@ -178,8 +178,7 @@ pageSize:                .quad 0
     movq    .Platform.heap_end, %rcx            # lpAddress
 
     # dwSize
-    movq    %rdi, %rdx                          # requested size in quads
-    salq    $3, %rdx                            # convert quads to to bytes
+    movq    %rdi, %rdx                          # requested size in bytes
 
     # round up the requested size in bytes to the nearest greater multiple of pageSize
     # e.g., for pageSize = 4KB = 4096, we effectively do

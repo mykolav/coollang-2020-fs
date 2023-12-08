@@ -449,15 +449,15 @@ IO_proto_obj:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    subq    $(8 + 8), %rsp  # 16 bytes boundary padding + prototype
-    movq    %rdi, -16(%rbp) # store the prototype
+    subq    $(8 + 8), %rsp          # 16 bytes boundary padding + prototype
+    movq    %rdi, -16(%rbp)         # store the prototype
 
-    movq    OBJ_SIZE(%rdi), %rdi # size in quads
-    incq    %rdi                 # add a quad for the eyecatch
-    call    .Platform.alloc
+    movq    OBJ_SIZE(%rdi), %rdi    # size in quads
+    incq    %rdi                    # add a quad for the eyecatch
+    call    .MemoryManager.Alloc
 
-    movq    $-1, (%rax) # write the eyecatch value
-    addq    $8, %rax    # move ptr to the beginning of object
+    movq    $-1, (%rax)             # write the eyecatch value
+    addq    $8, %rax                # move ptr to the beginning of object
 
     # %rdi - src
     # %rdx - src_end
@@ -776,20 +776,20 @@ String.create:
     movq    %rdi, -8(%rbp)  # length
 
     # Calc size in quads from length
-    addq    $(1 + 7), %rdi            # + 1 to account for null terminator
-                                      # + 7 to align
-    andq    $0xFFFFFFFFFFFFFFF8, %rdi # align to a quad boundary
-    sarq    $3, %rdi                  # div by 8
-    addq    $4, %rdi                  # + (tag + size + vtable + length)
-    movq    %rdi, -16(%rbp)           # size in quads
+    addq    $(1 + 7), %rdi               # + 1 to account for null terminator
+                                         # + 7 to align
+    andq    $0xFFFFFFFFFFFFFFF8, %rdi    # align to a quad boundary
+    sarq    $3, %rdi                     # div by 8
+    addq    $4, %rdi                     # + (tag + size + vtable + length)
+    movq    %rdi, -16(%rbp)              # size in quads
 
     # Allocate the result string
-    incq    %rdi            # add a quad for the eyecatch
-    call    .Platform.alloc
+    incq    %rdi                         # add a quad for the eyecatch
+    call    .MemoryManager.Alloc
 
-    movq    $-1, (%rax)     # write the eyecatch value
-    addq    $8, %rax        # move ptr to the beginning of object
-    movq    %rax, -24(%rbp) # result string object
+    movq    $-1, (%rax)                  # write the eyecatch value
+    addq    $8, %rax                     # move ptr to the beginning of object
+    movq    %rax, -24(%rbp)              # result string object
 
     # tag
     movq    $String_tag, OBJ_TAG(%rax)
@@ -1255,7 +1255,7 @@ ArrayAny..ctor:
     movq    %rsi, -16(%rbp)         # preserve the size in quads
 
     movq    %rsi, %rdi              # allocation size in quads
-    call    .Platform.alloc
+    call    .MemoryManager.Alloc
 
     movq    $-1, (%rax)             # write the eyecatch value
     addq    $8, %rax                # move ptr to the beginning of object
@@ -1574,6 +1574,7 @@ IO.in_int.input_not_digit:
     .global main
 main:
     call    .Platform.init
+    call    .MemoryManager.Init
 
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.

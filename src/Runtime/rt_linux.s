@@ -72,16 +72,15 @@ curr_break:
 #  .Platform.alloc
 #
 #  INPUT:
-#      a size in quads in %rdi
+#      %rdi: the requested size in bytes
 #  OUTPUT:
-#      a pointer to the start of allocated memory block in %rax.
+#      %rax: a pointer to the start of allocated memory block.
 #      If allocation fails, prints a message and exits the process.
 #  
-#  Allocates (%rdi * 8) bytes of memory on heap.
+#  Allocates additional %rdi bytes of memory on heap.
 #
     .global .Platform.alloc
 .Platform.alloc:
-    salq    $3, %rdi                    # convert quads to bytes
     addq    curr_break, %rdi            # calculate the new break
     movq    $12, %rax                   # brk
     syscall

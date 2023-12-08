@@ -8,13 +8,13 @@
 # TODO: The following globals should be emmitted by the compiler in the program's assembly,
 # TODO: but for now they are defined here.
     .global    .MemoryManager.FN_INIT
-.MemoryManager.FN_INIT:            .word .NopGC.Init
+.MemoryManager.FN_INIT:            .quad .NopGC.Init
 
     .global    .MemoryManager.FN_COLLECT
-.MemoryManager.FN_COLLECT:         .word .NopGC.Collect
+.MemoryManager.FN_COLLECT:         .quad .NopGC.Collect
 
     .global    .MemoryManager.TEST_ENABLED
-.MemoryManager.TEST_ENABLED:    .word 0
+.MemoryManager.TEST_ENABLED:       .quad 0
 ########################################
 
 work_area_start:    .quad 0
@@ -105,12 +105,9 @@ alloc_ptr:          .quad 0
 #   INPUT:
 #    %rdi: start of stack
 #    %rsi: initial Register mask
-#    %rdx: end of heap
-#    heap_start: start of the heap
 #
 #   OUTPUT:
-#    $gp: lower bound of the work area
-#    $s7: upper bound of the work area
+#    none
 #
 #   Registers modified:
 #    initializer function
@@ -129,36 +126,43 @@ alloc_ptr:          .quad 0
 #   to the start of the block.
 #
 #   INPUT:
-#    %rdi: size of allocation in bytes
+#    %rdi: size of allocation in quads
 #
 #   OUTPUT:
 #    %rax: pointer to new memory block
 #
 #   Registers modified:
-#    %rax, %rsi, collector function
+#    %rax, %rdi, %rsi, collector function
 #
 
     .global    .MemoryManager.Alloc
 .MemoryManager.Alloc:
-    subq     $8, %rsp                            # keep %rsp 16-bytes aligned: 
-                                                 # the return address + 8-bytes padding
+    pushq    %rbp
+    movq     %rsp, %rbp
+
+    salq     $3, %rdi                            # convert quads to bytes
+
     movq     alloc_ptr(%rip), %rax
-    addq     %rdi, %rax
+    addq     %rdi, %rax                          # calc the new alloc ptr value
+
     cmpq     work_area_end(%rip), %rax           # check if enough free space in the work area
     jl       .MemoryManager.Alloc.can_alloc      # yes, there is
+ 
     # Let's make enough free space.
-    movq     %rdi, %rsi                          # allocation size
-    leaq     8(%rsp), %rdi                       # end of stack to collect (except the padding we added)
+    # %rdi contains allocation size in bytes 
+    # and the collector fn preserves its value 
+    movq     %rbp, %rsi                          # end of stack to collect (except the padding we added)
     callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
-    movq     %rsi, %rdi                          # put the allocation size back into %rdi
-    movq     alloc_ptr(%rip), %rax
-    addq     %rdi, %rax                          # allocate
-.MemoryManager.Alloc.can_alloc:
-    movq     alloc_ptr(%rip), %rsi               # preserve the addr of allocated memory block
-    movq     %rax, alloc_ptr(%rip)               # advance the allocation pointer
-    movq     %rsi, %rax                          # place the addr of allocated memory block in %rax
 
-    addq     $8, %rsp                            # restore %rsp's original value
+    movq     alloc_ptr(%rip), %rax
+    addq     %rdi, %rax                          # calc the new alloc ptr value
+.MemoryManager.Alloc.can_alloc:
+    movq     alloc_ptr(%rip), %rdi               # preserve the addr of allocated memory block
+    movq     %rax, alloc_ptr(%rip)               # advance the allocation pointer
+    movq     %rdi, %rax                          # place the addr of allocated memory block in %rax
+
+    movq     %rbp, %rsp
+    popq     %rbp
     ret
 
 #
@@ -168,10 +172,10 @@ alloc_ptr:          .quad 0
 #   within the work area.
 #
 #   INPUT:
-#    %rdi: size of allocation in bytes
+#    %rdi: size of allocation in quads
 #
 #   OUTPUT:
-#    %rdi: size of allocation in bytes (unchanged)
+#    %rdi: size of allocation in quads (unchanged)
 #
 #   Registers modified:
 #    %rax, %rsi, collector function
@@ -179,20 +183,33 @@ alloc_ptr:          .quad 0
 
     .global    .MemoryManager.EnsureCanAlloc
 .MemoryManager.EnsureCanAlloc:
-    subq     $8, %rsp                                   # keep %rsp 16-bytes aligned: 
-                                                        # the return address + 8-bytes padding
+    REQUESTED_SIZE_SIZE   = 8
+    REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
+    PADDING_SIZE          = 8
+    FRAME_SIZE            = REQUESTED_SIZE_SIZE + PADDING_SIZE
+
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rdi, REQUESTED_SIZE_OFFSET(%rbp)          # preserve the allocation size in quads
+    salq     $3, %rdi                                   # convert quads to bytes
+
     movq     alloc_ptr(%rip), %rax
-    addq     %rdi, %rax
+    addq     %rdi, %rax                                 # calc the new alloc ptr value
+
     cmpq     work_area_end(%rip), %rax                  # check if enough free space in the work area
     jl       .MemoryManager.EnsureCanAlloc.can_alloc    # yes, there is
-    # Let's make enough free space
-    movq     %rdi, %rsi                                 # allocation size
-    leaq     8(%rsp), %rdi                              # end of stack to collect (except the padding we added)
-    callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
-    movq     %rsi, %rdi                                 # put the allocation size back into %rdi
-.MemoryManager.EnsureCanAlloc.can_alloc:
 
-    addq     $8, %rsp                                   # restore %rsp's original value
+    # Let's make enough free space
+    # %rdi contains allocation size in bytes 
+    movq     %rbp, %rsi                                 # end of stack to collect
+    callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
+.MemoryManager.EnsureCanAlloc.can_alloc:
+    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi          # restore the allocation size in quads
+
+    movq     %rbp, %rsp
+    popq     %rbp
     ret
 
 #
@@ -212,20 +229,20 @@ alloc_ptr:          .quad 0
 
     .global    .MemoryManager.Test
 .MemoryManager.Test:
-    subq     $8, %rsp                                   # keep %rsp 16-bytes aligned: 
-                                                        # the return address + 8-bytes padding
+    pushq    %rbp
+    movq     %rsp, %rbp
+
     movq     .MemoryManager.TEST_ENABLED(%rip), %rax    # Check if testing enabled
     testq    %rax, %rax
     jz       .MemoryManager.Test.exit
 
-    # Allocate 0 bytes
-    xorl     %esi, %esi                          # zero allocation size
-                                                 # (in x64 mode, `xor %esi, %esi` zeros the upper 32 bits too)
-    leaq     8(%rsp), %rdi                       # end of stack to collect (except the padding we added)
-    callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
+    xorl     %edi, %edi                                 # 0 bytes allocation size in %rdi
+    movq     %rbp, %rsi                                 # end of stack to collect
+    callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
 
 .MemoryManager.Test.exit:
-    addq     $8, %rsp                            # restore %rsp's original value
+    movq    %rbp, %rsp
+    popq    %rbp
     ret
 
 ########################################
@@ -234,12 +251,6 @@ alloc_ptr:          .quad 0
 #   NoGC does not attempt to do any garbage collection.
 #   It simply expands the heap if more memory is needed.
 ########################################
-
-#
-# Some constants
-#
-
-.NopGC.EXPAND_SIZE = 0x10000    # size to expand heap
 
 #
 # Initialization
@@ -272,41 +283,56 @@ alloc_ptr:          .quad 0
 #   Does not collect any garbage just expands the heap as necessary.
 #
 #   INPUT:
-#    %rdi: size will need to allocate in bytes
+#    %rdi: size to allocate in bytes
 #
 #   OUTPUT:
-#    %rdi: size will need to allocate in bytes (unchanged)
+#    %rdi: size to allocate in bytes (unchanged)
 #
 #   Registers modified:
-#    $t0, $a0, $v0, $gp, $s7
+#    %rax, %rsi, .Platform.alloc
 #
 
     .global    .NopGC.Collect
 .NopGC.Collect:
-    pushq   %rdi                                      # preserve the requested allocation size
+    EXPAND_SIZE           = 0x10000               # size in bytes to expand heap (65536KB)
+    REQUESTED_SIZE_SIZE   = 8
+    REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
+    PADDING_SIZE          = 8
+    FRAME_SIZE            = REQUESTED_SIZE_SIZE + PADDING_SIZE
+
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rdi, REQUESTED_SIZE_OFFSET(%rbp)    # preserve the allocation size in bytes
 
     # show collection message
-    movq    $.NopGC.MSG_COLLECTING, %rdi
-    movq    $.NopGC.MSG_COLLECTING_LEN, %rsi
-    call    .Platform.out_string
+    # movq     $.NopGC.MSG_COLLECTING_ASCII, %rdi
+    # movq     $.NopGC.MSG_COLLECTING_LEN, %rsi
+    # call     .Platform.out_string
 
 .NopGC.Collect.ensure_can_alloc:
-    movq    alloc_ptr(%rip), %rax
-    addq    %rdi, %rax
-    cmpq    work_area_end(%rip), %rax                 # check if enough free space in the work area
-    jl      .NopGC.Collect.exit                       # yes, there is
+    movq     alloc_ptr(%rip), %rax
+    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi     # restore the allocation size in bytes
+    addq     %rdi, %rax                            # calc the new alloc ptr value 
+    cmpq     work_area_end(%rip), %rax             # check if enough free space in the work area
+    jl       .NopGC.Collect.exit                   # yes, there is
 
     # Let's make enough free space
-    movq    .NopGC.EXPAND_SIZE, %rdi                  # size in quads
-    call    .Platform.alloc                           # expand the heap
+    movq     $EXPAND_SIZE, %rdi                    # size in bytes
+    call     .Platform.alloc                       # expand the heap
 
-    movq    .Platform.heap_end(%rip), %rax
-    movq    %rax, work_area_end(%rip)                 # update the work-area end pointer
+    movq     .Platform.heap_end(%rip), %rax
+    movq     %rax, work_area_end(%rip)             # update the work-area end pointer
 
-    jmp     .NopGC.Collect.ensure_can_alloc           # keep expanding?
+    jmp      .NopGC.Collect.ensure_can_alloc       # keep expanding?
 
 .NopGC.Collect.exit:
-    popq     %rdi                                     # restore the requested allocation size in %rdi
+    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi     # restore the allocation size in bytes
+
+    movq     %rbp, %rsp
+    popq     %rbp
+
     ret
 
 /*
@@ -488,18 +514,18 @@ alloc_ptr:          .quad 0
 # GenGC header offsets from "heap_start"
 #
 
-    .set GenGC_HDRSIZE,     44    # size of GenGC header
-    .set GenGC_HDRL0,       0     # pointers to GenGC areas
-    .set GenGC_HDRL1,       4
-    .set GenGC_HDRL2,       8
-    .set GenGC_HDRL3,       12
-    .set GenGC_HDRL4,       16
-    .set GenGC_HDRMAJOR0,   20    # history of major collections
-    .set GenGC_HDRMAJOR1,   24
-    .set GenGC_HDRMINOR0,   28    # history of minor collections
-    .set GenGC_HDRMINOR1,   32
-    .set GenGC_HDRSTK,      36    # start of stack
-    .set GenGC_HDRREG,      40    # current REG mask
+    GenGC_HDRSIZE     = 44    # size of GenGC header
+    GenGC_HDRL0       = 0     # pointers to GenGC areas
+    GenGC_HDRL1       = 4
+    GenGC_HDRL2       = 8
+    GenGC_HDRL3       = 12
+    GenGC_HDRL4       = 16
+    GenGC_HDRMAJOR0   = 20    # history of major collections
+    GenGC_HDRMAJOR1   = 24
+    GenGC_HDRMINOR0   = 28    # history of minor collections
+    GenGC_HDRMINOR1   = 32
+    GenGC_HDRSTK      = 36    # start of stack
+    GenGC_HDRREG      = 40    # current REG mask
 
 #
 # Granularity of heap expansion
@@ -508,7 +534,7 @@ alloc_ptr:          .quad 0
 #   k is the granularity.
 #
 
-    .set GenGC_HEAPEXPGRAN, 14    # 2^14=16K
+    GenGC_HEAPEXPGRAN = 14    # 2^14=16K
 
 #
 # Old to usable heap size ratio
@@ -517,7 +543,7 @@ alloc_ptr:          .quad 0
 #   size of the heap is at most 1/(2^k) where k is the value provided.
 #
 
-    .set GenGC_OLDRATIO,    2    # 1/(2^2)=.25=25%
+    GenGC_OLDRATIO    = 2    # 1/(2^2)=.25=25%
 
 #
 # Mask to speficy which registers can be automatically updated
@@ -536,7 +562,7 @@ alloc_ptr:          .quad 0
 #    C   3   7   F   0   0   0   0     ($16-$22, $24-$25, $30, $31)
 #
 
-    .set GenGC_ARU_MASK,    0xC37F0000
+    GenGC_ARU_MASK    = 0xC37F0000
 
 #
 # Functions
@@ -697,8 +723,8 @@ _gc_abort:
 #   then set.
 #
 #   INPUT:
-#    $a0: end of stack
-#    $a1: size will need to allocate in bytes
+#    $a0: end of stack (%rsi)
+#    $a1: size will need to allocate in bytes (%rdi)
 #    $s7: limit pointer of the work area
 #    $gp: current allocation pointer
 #    heap_start: start of heap
