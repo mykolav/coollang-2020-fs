@@ -91,10 +91,13 @@ alloc_ptr:                      .quad 0
 #     2) The initialization functions all take the same arguments as
 #        defined in ".MemoryManager.init".
 #
-#     3) The garbage collector functions all take the arguments.  "$a0"
-#        contains the end of the stack to check for pointers.  "$a1"
-#        contains the size in bytes needed by the program and must be
-#        preserved across the function call.
+#     3) The garbage collector functions all take the following arguments.
+#        %rdi: the allocation size in bytes needed by the program,
+#              must be preserved across the function call.
+#        %rsi: the top of the stack to start checking for pointers from.
+#              (remember the stack grows down, 
+#               so the top is at the lowest address)
+#
 ########################################
 
 #
@@ -103,8 +106,10 @@ alloc_ptr:                      .quad 0
 #   Call the initialization routine for the garbage collector.
 #
 #   INPUT:
-#    %rdi: start of stack
-#    %rsi: initial Register mask
+#    %rdi: initial Register mask
+#    %rsi: the bottom of stack to stop checking for pointers at.
+#          (remember the stack grows down, 
+#           so the bottom is at the highest address)
 #
 #   OUTPUT:
 #    none

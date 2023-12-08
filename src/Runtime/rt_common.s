@@ -1574,6 +1574,12 @@ IO.in_int.input_not_digit:
     .global main
 main:
     call    .Platform.init
+
+    # initial Register mask.
+    # TODO: load an actual mask, instead of just zeroing out!
+    xor     %edi, %edi
+    # the bottom of stack to stop checking for pointers at.
+    movq    %rsp, %rsi
     call    .MemoryManager.init
 
     # A class 'Main' must be present in every Cool2020 program.
