@@ -454,7 +454,7 @@ IO_proto_obj:
 
     movq    OBJ_SIZE(%rdi), %rdi    # size in quads
     incq    %rdi                    # add a quad for the eyecatch
-    call    .MemoryManager.Alloc
+    call    .MemoryManager.alloc
 
     movq    $-1, (%rax)             # write the eyecatch value
     addq    $8, %rax                # move ptr to the beginning of object
@@ -785,7 +785,7 @@ String.create:
 
     # Allocate the result string
     incq    %rdi                         # add a quad for the eyecatch
-    call    .MemoryManager.Alloc
+    call    .MemoryManager.alloc
 
     movq    $-1, (%rax)                  # write the eyecatch value
     addq    $8, %rax                     # move ptr to the beginning of object
@@ -1255,7 +1255,7 @@ ArrayAny..ctor:
     movq    %rsi, -16(%rbp)         # preserve the size in quads
 
     movq    %rsi, %rdi              # allocation size in quads
-    call    .MemoryManager.Alloc
+    call    .MemoryManager.alloc
 
     movq    $-1, (%rax)             # write the eyecatch value
     addq    $8, %rax                # move ptr to the beginning of object
@@ -1574,7 +1574,7 @@ IO.in_int.input_not_digit:
     .global main
 main:
     call    .Platform.init
-    call    .MemoryManager.Init
+    call    .MemoryManager.init
 
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.

@@ -8,18 +8,18 @@
 # TODO: The following globals should be emmitted by the compiler in the program's assembly,
 # TODO: but for now they are defined here.
     .global    .MemoryManager.FN_INIT
-.MemoryManager.FN_INIT:            .quad .NopGC.Init
+.MemoryManager.FN_INIT:         .quad .NopGC.init
 
     .global    .MemoryManager.FN_COLLECT
-.MemoryManager.FN_COLLECT:         .quad .NopGC.Collect
+.MemoryManager.FN_COLLECT:      .quad .NopGC.collect
 
     .global    .MemoryManager.TEST_ENABLED
-.MemoryManager.TEST_ENABLED:       .quad 0
+.MemoryManager.TEST_ENABLED:    .quad 0
 ########################################
 
-work_area_start:    .quad 0
-work_area_end:      .quad 0
-alloc_ptr:          .quad 0
+work_area_start:                .quad 0
+work_area_end:                  .quad 0
+alloc_ptr:                      .quad 0
 
 #
 # TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
@@ -89,7 +89,7 @@ alloc_ptr:          .quad 0
 #        called before $s7 is exceeded by $gp.
 #
 #     2) The initialization functions all take the same arguments as
-#        defined in ".MemoryManager.Init".
+#        defined in ".MemoryManager.init".
 #
 #     3) The garbage collector functions all take the arguments.  "$a0"
 #        contains the end of the stack to check for pointers.  "$a1"
@@ -113,8 +113,8 @@ alloc_ptr:          .quad 0
 #    initializer function
 #
 
-    .global    .MemoryManager.Init
-.MemoryManager.Init:
+    .global .MemoryManager.init
+.MemoryManager.init:
     callq    *.MemoryManager.FN_INIT(%rip)   # pointer to initialization procedure
                                              # defined in another compilation unit
     ret
@@ -135,8 +135,8 @@ alloc_ptr:          .quad 0
 #    %rax, %rdi, %rsi, collector function
 #
 
-    .global    .MemoryManager.Alloc
-.MemoryManager.Alloc:
+    .global .MemoryManager.alloc
+.MemoryManager.alloc:
     pushq    %rbp
     movq     %rsp, %rbp
 
@@ -146,7 +146,7 @@ alloc_ptr:          .quad 0
     addq     %rdi, %rax                          # calc the new alloc ptr value
 
     cmpq     work_area_end(%rip), %rax           # check if enough free space in the work area
-    jl       .MemoryManager.Alloc.can_alloc      # yes, there is
+    jl       .MemoryManager.alloc.can_alloc      # yes, there is
  
     # Let's make enough free space.
     # %rdi contains allocation size in bytes 
@@ -156,7 +156,7 @@ alloc_ptr:          .quad 0
 
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax                          # calc the new alloc ptr value
-.MemoryManager.Alloc.can_alloc:
+.MemoryManager.alloc.can_alloc:
     movq     alloc_ptr(%rip), %rdi               # preserve the addr of allocated memory block
     movq     %rax, alloc_ptr(%rip)               # advance the allocation pointer
     movq     %rdi, %rax                          # place the addr of allocated memory block in %rax
@@ -166,7 +166,7 @@ alloc_ptr:          .quad 0
     ret
 
 #
-# Ensure Memory Allocation
+# Ensure Enough Memory for Allocation
 #
 #   Makes sure that the requested amount of memory can be allocated
 #   within the work area.
@@ -181,8 +181,8 @@ alloc_ptr:          .quad 0
 #    %rax, %rsi, collector function
 #
 
-    .global    .MemoryManager.EnsureCanAlloc
-.MemoryManager.EnsureCanAlloc:
+    .global .MemoryManager.ensure_can_alloc 
+.MemoryManager.ensure_can_alloc:
     REQUESTED_SIZE_SIZE   = 8
     REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
     PADDING_SIZE          = 8
@@ -199,13 +199,13 @@ alloc_ptr:          .quad 0
     addq     %rdi, %rax                                 # calc the new alloc ptr value
 
     cmpq     work_area_end(%rip), %rax                  # check if enough free space in the work area
-    jl       .MemoryManager.EnsureCanAlloc.can_alloc    # yes, there is
+    jl       .MemoryManager.ensure_can_alloc.can_alloc  # yes, there is
 
     # Let's make enough free space
     # %rdi contains allocation size in bytes 
     movq     %rbp, %rsi                                 # end of stack to collect
     callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
-.MemoryManager.EnsureCanAlloc.can_alloc:
+.MemoryManager.ensure_can_alloc.can_alloc:
     movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi          # restore the allocation size in quads
 
     movq     %rbp, %rsp
@@ -227,28 +227,28 @@ alloc_ptr:          .quad 0
 #   Registers modified:
 #    %rax, %rdi, %rsi, collector function
 
-    .global    .MemoryManager.Test
-.MemoryManager.Test:
+    .global .MemoryManager.test
+.MemoryManager.test:
     pushq    %rbp
     movq     %rsp, %rbp
 
     movq     .MemoryManager.TEST_ENABLED(%rip), %rax    # Check if testing enabled
     testq    %rax, %rax
-    jz       .MemoryManager.Test.exit
+    jz       .MemoryManager.test.exit
 
     xorl     %edi, %edi                                 # 0 bytes allocation size in %rdi
     movq     %rbp, %rsi                                 # end of stack to collect
     callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
 
-.MemoryManager.Test.exit:
+.MemoryManager.test.exit:
     movq    %rbp, %rsp
     popq    %rbp
     ret
 
 ########################################
-# NoGC Garbage Collector
+# No Operation Garbage Collector
 #
-#   NoGC does not attempt to do any garbage collection.
+#   NopGC does not attempt to do any garbage collection.
 #   It simply expands the heap if more memory is needed.
 ########################################
 
@@ -267,8 +267,8 @@ alloc_ptr:          .quad 0
 #   Registers modified:
 #    %rax
 #
-    .global    .NopGC.Init
-.NopGC.Init:
+    .global .NopGC.init
+.NopGC.init:
     movq    .Platform.heap_start(%rip), %rax
     movq    %rax, work_area_start(%rip)
     movq    %rax, alloc_ptr(%rip)
@@ -292,8 +292,8 @@ alloc_ptr:          .quad 0
 #    %rax, %rsi, .Platform.alloc
 #
 
-    .global    .NopGC.Collect
-.NopGC.Collect:
+    .global .NopGC.collect
+.NopGC.collect:
     EXPAND_SIZE           = 0x10000               # size in bytes to expand heap (65536KB)
     REQUESTED_SIZE_SIZE   = 8
     REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
@@ -311,12 +311,12 @@ alloc_ptr:          .quad 0
     # movq     $.NopGC.MSG_COLLECTING_LEN, %rsi
     # call     .Platform.out_string
 
-.NopGC.Collect.ensure_can_alloc:
+.NopGC.collect.ensure_can_alloc:
     movq     alloc_ptr(%rip), %rax
     movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi     # restore the allocation size in bytes
     addq     %rdi, %rax                            # calc the new alloc ptr value 
     cmpq     work_area_end(%rip), %rax             # check if enough free space in the work area
-    jl       .NopGC.Collect.exit                   # yes, there is
+    jl       .NopGC.collect.exit                   # yes, there is
 
     # Let's make enough free space
     movq     $EXPAND_SIZE, %rdi                    # size in bytes
@@ -325,9 +325,9 @@ alloc_ptr:          .quad 0
     movq     .Platform.heap_end(%rip), %rax
     movq     %rax, work_area_end(%rip)             # update the work-area end pointer
 
-    jmp      .NopGC.Collect.ensure_can_alloc       # keep expanding?
+    jmp      .NopGC.collect.ensure_can_alloc       # keep expanding?
 
-.NopGC.Collect.exit:
+.NopGC.collect.exit:
     movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi     # restore the allocation size in bytes
 
     movq     %rbp, %rsp
@@ -592,7 +592,7 @@ alloc_ptr:          .quad 0
 #    $t0, $t1, $v0, $a0
 #
 
-    .global    .GenGC_Init
+    .global .GenGC_Init
 .GenGC_Init:
     la         $t0 heap_start
     addiu      $t1 $t0 GenGC_HDRSIZE
@@ -619,12 +619,12 @@ alloc_ptr:          .quad 0
     sw         $v0 GenGC_HDRL4($t0)         # save heap limit
     la         $t0 .MemoryManager.TEST_ENABLED             # Check if testing enabled
     lw         $t0 0($t0)
-    beqz       $t0 .MemoryManager.Test_false
+    beqz       $t0 .MemoryManager.test_disabled
     la         $a0 .GenGC_Init_test_msg     # tell user GC is in test mode
     li         $v0 4
     syscall
     j          .GenGC_Init_end
-.MemoryManager.Test_false:
+.MemoryManager.test_disabled:
     la         $a0 .GenGC_Init_msg          # tell user GC NOT in test mode
     li         $v0 4
     syscall
@@ -666,7 +666,7 @@ alloc_ptr:          .quad 0
 #   last spot so it will definitely be safely ignored.
 #
 
-    .global    .GenGC_Assign
+    .global .GenGC_Assign
 .GenGC_Assign:
     addiu    $s7 $s7 -4
     sw       $a1 0($s7)                    # save pointer to assignment
@@ -684,7 +684,7 @@ alloc_ptr:          .quad 0
 .GenGC_Assign_done:
     jr       $ra                           # return
 
-    .global    _gc_check
+    .global _gc_check
 _gc_check:
     beqz     $a1, _gc_ok               # void is ok
     lw       $a2 obj_eyecatch($a1)     # and check if it is valid
