@@ -18,6 +18,8 @@
 ########################################
 
 alloc_ptr:                      .quad 0
+# GenGC's assignment stack tip pointer
+assign_sp:                      .quad 0
 
 #
 # TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
@@ -27,21 +29,32 @@ alloc_ptr:                      .quad 0
 # Messages for the GenGC garbage collector
 ########################################
 
-.GenGC.MSG_INITERROR_ASCII:        .ascii "GenGC: Unable to initialize the garbage collector"
+.GenGC.MSG_INIT_OK_ASCII:          .ascii "GenGC: initialized"
+.GenGC.MSG_INIT_OK_LEN  =                 (. - .GenGC.MSG_INIT_OK_ASCII)
+.GenGC.MSG_INITED_IN_TEST_ASCII:   .ascii "GenGC: initialized in test mode"
+.GenGC.MSG_INITED_IN_TEST_LEN  =          (. - .GenGC.MSG_INITED_IN_TEST_ASCII)
+.GenGC.MSG_INIT_ERROR_ASCII:       .ascii "GenGC: Unable to initialize the garbage collector"
+.GenGC.MSG_INIT_ERROR_LEN  =              (. - .GenGC.MSG_INIT_ERROR_ASCII)
+
 .GenGC.MSG_COLLECTING_ASCII:       .ascii "GenGC: Garbage collecting ..."
+.GenGC.MSG_COLLECTING_LEN  =              (. - .GenGC.MSG_COLLECTING_ASCII)
+
 .GenGC.MSG_MAJOR_ASCII:            .ascii "GenGC: Major ..."
-.GenGC.MSG_MINOR_ASCII:            .ascii "GenGC: Minor ..."
-.GenGC.MSG_MINOR_ERROR_ASCII:      .ascii "GenGC: Error during minor garbage collection"
+.GenGC.MSG_MAJOR_LEN  =                   (. - .GenGC.MSG_MAJOR_ASCII)
 .GenGC.MSG_MAJOR_ERROR_ASCII:      .ascii "GenGC: Error during major garbage collection"
-.GenGC.MSG_INIT_TEST_ASCII:        .ascii "GenGC: initialized in test mode"
-.GenGC.MSG_INIT_ASCII:             .ascii "GenGC: initialized"
+.GenGC.MSG_MAJOR_ERROR_LEN  =             (. - .GenGC.MSG_MAJOR_ERROR_ASCII)
+
+.GenGC.MSG_MINOR_ASCII:            .ascii "GenGC: Minor ..."
+.GenGC.MSG_MINOR_LEN  =                   (. - .GenGC.MSG_MINOR_ASCII)
+.GenGC.MSG_MINOR_ERROR_ASCII:      .ascii "GenGC: Error during minor garbage collection"
+.GenGC.MSG_MINOR_ERROR_LEN  =             (. - .GenGC.MSG_MINOR_ERROR_ASCII)
 
 ########################################
 # Messages for the NoGC garabge collector
 ########################################
 
-.NopGC.MSG_COLLECTING_ASCII:        .ascii "NoGC: Increasing heap..."
-.NopGC.MSG_COLLECTING_LEN  =               (. - .NopGC.MSG_COLLECTING_ASCII)
+.NopGC.MSG_COLLECTING_ASCII:       .ascii "NoGC: Increasing heap..."
+.NopGC.MSG_COLLECTING_LEN  =              (. - .NopGC.MSG_COLLECTING_ASCII)
 
 ########################################
 # Text
@@ -73,7 +86,7 @@ alloc_ptr:                      .quad 0
     .text
 
 ########################################
-# MemoryManager Memory Manager
+# Memory Manager
 #
 #   The MemMgr functions give a consistent view of the garbage collectors.
 #   This allows multiple collectors to exist in one file and the easy
@@ -92,9 +105,9 @@ alloc_ptr:                      .quad 0
 #     3) The garbage collector functions all take the following arguments.
 #        %rdi: the allocation size in bytes needed by the program,
 #              must be preserved across the function call.
-#        %rsi: the top of the stack to start checking for pointers from.
+#        %rsi: the tip of the stack to start checking for pointers from.
 #              (remember the stack grows down, 
-#               so the top is at the lowest address)
+#               so the tip is at the lowest address)
 #
 ########################################
 
@@ -105,9 +118,9 @@ alloc_ptr:                      .quad 0
 #
 #   INPUT:
 #    %rdi: initial Register mask
-#    %rsi: the bottom of stack to stop checking for pointers at.
+#    %rsi: the base of stack to stop checking for pointers at.
 #          (remember the stack grows down, 
-#           so the bottom is at the highest address)
+#           so the base is at the highest address)
 #
 #   OUTPUT:
 #    none
@@ -154,7 +167,7 @@ alloc_ptr:                      .quad 0
     # Let's make enough free space.
     # %rdi contains allocation size in bytes 
     # and the collector fn preserves its value 
-    movq     %rbp, %rsi                          # end of stack to collect (except the padding we added)
+    movq     %rbp, %rsi                          # tip of stack to start collecting from
     callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
 
     movq     alloc_ptr(%rip), %rax
@@ -206,7 +219,7 @@ alloc_ptr:                      .quad 0
 
     # Let's make enough free space
     # %rdi contains allocation size in bytes 
-    movq     %rbp, %rsi                                 # end of stack to collect
+    movq     %rbp, %rsi                                 # tip of stack to start collecting from
     callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
 .MemoryManager.ensure_can_alloc.can_alloc:
     movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi          # restore the allocation size in quads
@@ -240,7 +253,7 @@ alloc_ptr:                      .quad 0
     jz       .MemoryManager.test.exit
 
     xorl     %edi, %edi                                 # 0 bytes allocation size in %rdi
-    movq     %rbp, %rsi                                 # end of stack to collect
+    movq     %rbp, %rsi                                 # tip of stack to start collecting from
     callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
 
 .MemoryManager.test.exit:
@@ -292,7 +305,7 @@ alloc_ptr:                      .quad 0
 
     .global .NopGC.collect
 .NopGC.collect:
-    EXPAND_SIZE           = 0x10000               # size in bytes to expand heap (65536KB)
+    EXPAND_SIZE           = 0x10000               # size in bytes to expand heap (65536B)
     REQUESTED_SIZE_SIZE   = 8
     REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
     PADDING_SIZE          = 8
@@ -330,7 +343,6 @@ alloc_ptr:                      .quad 0
 
     ret
 
-/*
 ########################################
 # GenGC Generational Garbage Collector
 #
@@ -341,48 +353,48 @@ alloc_ptr:                      .quad 0
 #   to handle root pointers located in the older generation objects.
 #
 #   When the work area is filled, a minor garbage collection takes place
-#   which moves all live objects into the reserve area.  These objects
+#   which moves all live objects into the reserve area. These objects
 #   are then incorporated into the old area.  New reserve and work areas
-#   are setup and allocation can continue in the work area.  If a break-
+#   are setup and allocation can continue in the work area. If a break-
 #   point is reached in the size of the old area just after a minor
-#   collection, a major collection then takes place.  All live objects in
+#   collection, a major collection then takes place. All live objects in
 #   the old area are then copied into the new area, expanding the heap if
-#   necessary.  The X and new areas are then block copied back L1-L0
+#   necessary. The X and new areas are then block copied back L1-L0
 #   bytes to form the next old area.
 #
 #   The assignment table is implemented as a stack growing towards the
-#   allocation pointer ($gp) in the work area.  If they cross, a minor
-#   collection is then carried out.  This allows the garbage collector to
-#   to have to keep a fixed table of assignments.  As a result, programs
+#   allocation pointer (`alloc_ptr`) in the work area. If they cross, a minor
+#   collection is then carried out. This allows the garbage collector 
+#   not to have to keep a fixed table of assignments. As a result, programs
 #   with many assignments will tend not to be bogged down with extra
-#   garbage collections.
+#   garbage collections [to make space in a fixed-size assignment table?].
 #
 #   The unused area was implemented to help keep the garbage collector
-#   from continually expanding the heap.  This buffer zone allows major
+#   from continually expanding the heap. This buffer zone allows major
 #   garbage collections to happen earlier, reducing the risk of expansions
-#   due to too many live objects in the old area.  The histories kept by
+#   due to too many live objects in the old area. The histories kept by
 #   the garbage collector in MAJOR0, MAJOR1, MINOR0, and MINOR1 also help
-#   to prevent unnecessary expansions of the heap.  If many live objects
+#   to prevent unnecessary expansions of the heap. If many live objects
 #   were recently collected, the garbage collections will start to occur
 #   sooner.
 #
 #   Note that during a minor collection, the work area is guaranteed to
-#   fit within the reserve area.  However, during a major collection, the
-#   old area will not necessarily fit in the new area.  If the latter occurs,
-#   ".GenGC_OfsCopy" will detect this and expand the heap.
+#   fit within the reserve area. However, during a major collection, the
+#   old area will not necessarily fit in the new area. If the latter occurs,
+#   `.GenGC.offset_copy` will detect this and expand the heap.
 #
 #   The heap is expanded on two different occasions:
 #
 #     1) After a major collection, the old area is set to be at most
-#        1/(2^GenGC_OLDRATIO) of the usable heap (L0 to L3).  Note that
+#        1/(2^GenGC_OLDRATIO) of the usable heap (L0 to L3). Note that
 #        first L4 is checked to see if any of the unused memory between L3
-#        and L4 is enough to satisfy this requirement.  If not, then the
+#        and L4 is enough to satisfy this requirement. If not, then the
 #        heap will be expanded.  If it is, the appropriate amount will be
 #        transfered from the unused area to the work/reserve area.
 #
 #     2) During a major collection, if the live objects in the old area
-#        do not fit within the new area, the heap is expanded and $s7
-#        is updated to reflact this.  This value later gets stored back
+#        do not fit within the new area, the heap is expanded and `assign_sp`
+#        is updated to reflact this. This value later gets stored back
 #        into L4.
 #
 #   During a normal allocation and minor collections, the heap has the
@@ -396,26 +408,28 @@ alloc_ptr:                      .quad 0
 #     |    |              |
 #     |    |              |                 Allocation area
 #     |    |              |                 |
-#     |    |              |                 |            Assignment table
-#     |    |              |                 |            |
-#     |    |              |                 |            |    Unused
-#     |    |              |                 |            |    |
-#     v    v              v                 v            v    v
+#     |    |              |                 |             Assignment table
+#     |    |              |                 |             |
+#     |    |              |                 |             |   Unused
+#     |    |              |                 |             |   |
+#     v    v              v                 v             v   v
 #     +----+--------------+-----------------+-------------+---+---------+
 #     |XXXX| Old Area     | Reserve Area    | Work Area   |XXX| Unused  |
 #     +----+--------------+-----------------+-------------+---+---------+
 #     ^    ^              ^                 ^    ^        ^   ^         ^
 #     |    |              |                 |    |-->  <--|   |         |
-#     |    L0             L1                L2  $gp      $s7  L3        L4
-#     |
-#     heap_start
+#     |    L0             L1                L2   |        |   L3        L4
+#     |                                          |        |
+#     heap_start                            alloc_ptr    assign_sp
 #
-#     $gp (allocation pointer): points to the next free word in the work
+#     alloc_ptr: points to the next free word in the work
 #         area during normal allocation.  During a minor garbage collection,
 #         it points to the next free work in the reserve area.
 #
-#     $s7 (limit pointer): points to the limit that $gp can traverse.  Between
-#         it and L3 sits the assignment table which grows towards $gp.
+#     assign_sp: points to the tip of the assignment stack, 
+#                `alloc_ptr` cannot go past `assign_sp`.
+#                Between `assign_sp` and L3 sits the assignment stack 
+#                which grows towards `alloc_ptr`.
 #
 #   During a Major collection, the heap has the following form:
 #
@@ -431,19 +445,20 @@ alloc_ptr:                      .quad 0
 #     +----+------------------+----------+------------------------------+
 #     |XXXX| Old Area         | X        | New Area                     |
 #     +----+------------------+----------+------------------------------+
-#      ^    ^                  ^      ^   ^      ^                       ^
-#      |    |                  |      |   |      |-->                    |
-#      |    L0                 L1     |   L2    $gp                   L4, $s7
-#      |                              |
+#     ^    ^                  ^      ^   ^      ^                       ^
+#     |    |                  |      |   |      |-->                    |
+#     |    L0                 L1     |   L2    alloc_ptr      assign_sp, L4
+#     |                              |
 #     heap_start                     breakpoint
 #
-#     $gp (allocation pointer): During a major collection, this points
+#     `alloc_ptr` (allocation pointer): During a major collection, this points
 #         into the next free word in the new area.
 #
-#     $s7 (limit pointer): During a major collection, the points to the
-#         limit of heap memory.  $gp is not allowed to pass this value.
-#         If the objects in the live old area cannot fit in the new area,
-#         more memory is allocated and $s7 is adjusted accordingly.
+#     `assign_sp`: During a major collection, this points to the tip of an empty 
+#         assignment stack wich is the same as the limit of heap memory.
+#         `alloc_ptr` is not allowed to pass this value. If the live objects 
+#         in the old area cannot fit in the new area, more memory is allocated 
+#         and `assign_sp` is adjusted accordingly.
 #
 #     breakpoint: Point where a major collection will occur.  It is
 #         calculated by the following formula:
@@ -464,9 +479,9 @@ alloc_ptr:                      .quad 0
 #
 #     1) Pointers on the Stack:
 #        Every word on the stack that ends in 0 (i.e., is even) and is
-#     a valid address in the heap is assumed to point to an object
+#        a valid address in the heap is assumed to point to an object
 #        in the heap.  Even heap addresses on the stack that are actually
-#     something else (e.g., raw integers) will probably cause an
+#        something else (e.g., raw integers) will probably cause an
 #        garbage collection error.
 #
 #     2) Object Layout:
@@ -487,40 +502,40 @@ alloc_ptr:                      .quad 0
 #             -1 cannot be a class tag)
 #
 #        These tests are performed whenever any data could be a pointer
-#        to keep any non-pointers from being updated accidentally.  The
-#        functions ".GenGC_ChkCopy" and ".GenGC_OfsCopy" are responsible
+#        to keep any non-pointers from being updated accidentally. The
+#        functions `.GenGC.check_copy` and `.GenGC.offset_copy` are responsible
 #        for these checks.
 #
 #     4) The size stored in the object does not include the word required
 #        to store the eyecatcher for the object in the heap.  This allows
 #        the prototype objects to not require its own eyecatcher.  Also,
 #        a size of 0 is invalid because it is used as a flag by the garbage
-#        collector to indicate a forwarding pointer in the "obj_disp" field.
+#        collector to indicate a forwarding pointer in the `obj_disp` field.
 #
 #     5) Roots are contained in the following areas: the stack, registers
 #        specified in the REG mask, and the assignment table.
 ########################################
 
 #
-# Constants
+# GenGC header offsets from `.Platform.heap_start`
 #
 
-#
-# GenGC header offsets from "heap_start"
-#
+.GenGC.HDR_SIZE      = 88    # size of GenGC header
+.GenGC.HDR_L0        = 0     # old area start
+.GenGC.HDR_L1        = 8     # old area end/reserve area start
+.GenGC.HDR_L2        = 16    # reserve area end/work area start
+.GenGC.HDR_L3        = 24    # assignment table end/unused start
+.GenGC.HDR_L4        = 32    # unused end
 
-    GenGC_HDRSIZE     = 44    # size of GenGC header
-    GenGC_HDRL0       = 0     # pointers to GenGC areas
-    GenGC_HDRL1       = 4
-    GenGC_HDRL2       = 8
-    GenGC_HDRL3       = 12
-    GenGC_HDRL4       = 16
-    GenGC_HDRMAJOR0   = 20    # history of major collections
-    GenGC_HDRMAJOR1   = 24
-    GenGC_HDRMINOR0   = 28    # history of minor collections
-    GenGC_HDRMINOR1   = 32
-    GenGC_HDRSTK      = 36    # start of stack
-    GenGC_HDRREG      = 40    # current REG mask
+.GenGC.HDR_MAJOR0    = 40    # total size of objects in the new area 
+                             # after last major collection
+.GenGC.HDR_MAJOR1    = 48    # (MAJOR0+MAJOR1)/2
+
+.GenGC.HDR_MINOR0    = 56    # history of minor collections
+.GenGC.HDR_MINOR1    = 64
+
+.GenGC.HDR_STK       = 72    # base of stack
+.GenGC.HDR_REG       = 80    # current REG mask
 
 #
 # Granularity of heap expansion
@@ -529,7 +544,7 @@ alloc_ptr:                      .quad 0
 #   k is the granularity.
 #
 
-    GenGC_HEAPEXPGRAN = 14    # 2^14=16K
+.GenGC.HEAP_EXP_GRAN = 14    # 2^14=16K
 
 #
 # Old to usable heap size ratio
@@ -538,7 +553,7 @@ alloc_ptr:                      .quad 0
 #   size of the heap is at most 1/(2^k) where k is the value provided.
 #
 
-    GenGC_OLDRATIO    = 2    # 1/(2^2)=.25=25%
+.GenGC.OLD_RATIO     = 2     # 1/(2^2)=.25=25%
 
 #
 # Mask to speficy which registers can be automatically updated
@@ -557,82 +572,115 @@ alloc_ptr:                      .quad 0
 #    C   3   7   F   0   0   0   0     ($16-$22, $24-$25, $30, $31)
 #
 
-    GenGC_ARU_MASK    = 0xC37F0000
-
-#
-# Functions
-#
+.GenGC.ARU_MASK      = 0xC37F0000
 
 #
 # Initialization
 #
 #   Sets up the header information block for the garbage collector.
-#   This block is located at the start of the heap ("heap_start")
+#   This block is located at the start of the heap (`Platform.heap_start`)
 #   and includes information needed by the garbage collector.  It
-#   also calculates the barrier for the reserve and work areas and
+#   also calculates the boundary for the reserve and work areas and
 #   sets the L2 pointer accordingly, rounding off in favor of the
 #   reserve area.
 #
 #   INPUT:
-#    $a0: start of stack
-#    $a1: initial Register mask
-#    $a2: end of heap
-#    heap_start: start of the heap
+#    %rdi: initial Register mask
+#    %rsi: the base of stack to stop checking for pointers at.
+#          (remember the stack grows down, 
+#           so the base is at the highest address)
 #
 #   OUTPUT:
-#    $gp: lower bound of the work area
-#    $s7: upper bound of the work area
+#    none
 #
 #   Registers modified:
-#    $t0, $t1, $v0, $a0
+#    %rax, %rdi, %rsi, .Platform.alloc
 #
 
-    .global .GenGC_Init
-.GenGC_Init:
-    la         $t0 heap_start
-    addiu      $t1 $t0 GenGC_HDRSIZE
-    sw         $t1 GenGC_HDRL0($t0)         # save start of old area
-    sw         $t1 GenGC_HDRL1($t0)         # save start of reserve area
-    sub        $t1 $a2 $t1                  # find reserve/work area barrier ($t1 = end of heap - (heap_start + GenGC_HDRSIZE))
-    srl        $t1 $t1 1                    # $t1 = $t1 / 2
-    la         $v0 0xfffffffc
-    and        $t1 $t1 $v0                  # floor $t1 to the closest multiple of 4
-    blez       $t1 .GenGC_Init_error        # heap initially to small
-    sub        $gp $a2 $t1                  # initial work area size is half the heap size excluding the GC header aligned on a 4-byte boundary
-    sw         $gp GenGC_HDRL2($t0)         # save start of work area
-    sw         $a2 GenGC_HDRL3($t0)         # save end of work area
-    move       $s7 $a2                      # set limit pointer
-    sw         $0 GenGC_HDRMAJOR0($t0)      # clear histories
-    sw         $0 GenGC_HDRMAJOR1($t0)
-    sw         $0 GenGC_HDRMINOR0($t0)
-    sw         $0 GenGC_HDRMINOR1($t0)
-    sw         $a0 GenGC_HDRSTK($t0)        # save stack start
-    sw         $a1 GenGC_HDRREG($t0)        # save register mask
-    li         $v0 9                        # get heap end
-    move       $a0 $zero
-    syscall                                 # sbrk
-    sw         $v0 GenGC_HDRL4($t0)         # save heap limit
-    la         $t0 .MemoryManager.TEST_ENABLED             # Check if testing enabled
-    lw         $t0 0($t0)
-    beqz       $t0 .MemoryManager.test_disabled
-    la         $a0 .GenGC_Init_test_msg     # tell user GC is in test mode
-    li         $v0 4
-    syscall
-    j          .GenGC_Init_end
-.MemoryManager.test_disabled:
-    la         $a0 .GenGC_Init_msg          # tell user GC NOT in test mode
-    li         $v0 4
-    syscall
-.GenGC_Init_end:
-    jr         $ra                          # return
+    .global .GenGC.init
+.GenGC.init:
+    REGMASK_SIZE      = 8
+    REGMASK_OFFSET    = -REGMASK_SIZE
+    STKBASE_SIZE      = 8
+    STKBASE_OFFSET    = -(STKBASE_SIZE + REGMASK_SIZE)
+    FRAME_SIZE        = STKBASE_SIZE + REGMASK_SIZE
 
-.GenGC_Init_error:
-    la         $a0 .GenGC_INITERROR     # show error message
-    li         $v0 4
-    syscall
-    li         $v0 10                   # exit
-    syscall
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
 
+    movq     %rdi, REGMASK_OFFSET(%rbp)
+    movq     %rsi, STKBASE_OFFSET(%rbp)
+
+    movq     $.GenGC.HDR_SIZE, %rdi                    # allocate heap space for the GC header
+    call     .Platform.alloc
+    
+    movq     .Platform.heap_start(%rip), %rdi
+    movq     $.GenGC.HDR_SIZE, %rax
+    addq     %rdi, %rax                                # %rax contains the first addr past the header
+    movq     %rax, .GenGC.HDR_L0(%rdi)                 # init the header's L0 field
+    movq     %rax, .GenGC.HDR_L1(%rdi)                 # init the header's L1 field
+
+    movq     .Platform.heap_end(%rip), %rsi
+    subq     %rax, %rsi                                # heap_end - (heap_start + .GenGC.HDR_SIZE)
+    sarq     $1, %rsi                                  # (heap_end - (heap_start + .GenGC.HDR_SIZE)) / 2
+    andq     $(-8), %rsi                               # round down to the closest smaller multiple of 8 bytes
+                                                       # since our object sizes are multiples of 8 bytes
+    jz       .GenGC.init.error                         # heap initially too small
+                                                       # TODO: It is too small! We haven't allocated anything
+                                                       #       except a chunk for the header...
+    movq     .Platform.heap_end(%rip), %rax
+    movq     %rax, .GenGC.HDR_L3(%rdi)                 # initially the end of work area is at the heap end
+    movq     %rax, assign_sp(%rdi)                     # initially the tip of assign stack is at the end of work area
+    movq     %rax, .GenGC.HDR_L4(%rdi)                 # the end of unused area is at the heap end
+
+    subq     %rsi, %rax                                # %rsi contains the work area size
+                                                       # L3 - %rsi = reserve area end/work area start
+    movq     %rax, .GenGC.HDR_L2(%rdi)                 # store the calculated start of work area
+    movq     %rax, alloc_ptr(%rip)                     # initially the allocation pointer is at the start of work area
+
+    movq     $0, .GenGC.HDR_MAJOR0(%rdi)               # init histories with zeros
+    movq     $0, .GenGC.HDR_MAJOR1(%rdi)
+    movq     $0, .GenGC.HDR_MINOR0(%rdi)
+    movq     $0, .GenGC.HDR_MINOR1(%rdi)
+
+    movq     REGMASK_OFFSET(%rbp), %rax
+    movq     %rax, .GenGC.HDR_REG(%rdi)                # init register mask
+
+    movq     STKBASE_OFFSET(%rbp), %rax
+    movq     %rax, .GenGC.HDR_STK(%rdi)                # init stack base
+
+    movq     .MemoryManager.TEST_ENABLED(%rip), %rax   # check if heap testing enabled
+    testq    %rax, %rax
+    jz       .GenGC.init.heap_test_disabled
+
+    movq     $.GenGC.MSG_INITED_IN_TEST_ASCII, %rdi
+    movq     $.GenGC.MSG_INITED_IN_TEST_LEN, %rsi
+    call     .Platform.out_string
+    call     .Runtime.out_nl
+    jmp      .GenGC.init.ok
+
+.GenGC.init.heap_test_disabled:
+    movq     $.GenGC.MSG_INIT_OK_ASCII, %rdi
+    movq     $.GenGC.MSG_INIT_OK_LEN, %rsi
+    call     .Platform.out_string
+    call     .Runtime.out_nl
+
+.GenGC.init.ok:
+    movq     %rbp, %rsp
+    popq     %rbp
+    ret
+
+.GenGC.init.error:
+    movq     $.GenGC.MSG_INIT_ERROR_ASCII, %rdi
+    movq     $.GenGC.MSG_INIT_ERROR_LEN, %rsi
+    call     .Platform.out_string
+    call     .Runtime.out_nl
+
+    movq   $1, %rdi
+    jmp    .Platform.exit_process
+
+/*
 #
 # Record Assignment
 #
