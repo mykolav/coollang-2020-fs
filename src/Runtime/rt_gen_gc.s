@@ -137,17 +137,17 @@ assign_sp:                      .quad 0
 #     +----+--------------+-----------------+-------------+---+---------+
 #     |XXXX| Old Area     | Reserve Area    | Work Area   |XXX| Unused  |
 #     +----+--------------+-----------------+-------------+---+---------+
-#     ^    ^              ^                 ^    ^        ^   ^         ^
-#     |    |              |                 |    |-->  <--|   |         |
-#     |    L0             L1                L2   |        |   L3        L4
-#     |                                          |        |
-#     heap_start                            alloc_ptr    assign_sp
+#      ^    ^              ^                 ^    ^        ^   ^         ^
+#      |    |              |                 |    |-->  <--|   |         |
+#      |    L0             L1                L2   |        |   L3        L4
+#      |                                          |        |
+#      heap_start                            alloc_ptr    assign_sp
 #
-#     alloc_ptr: points to the next free word in the work
+#     `alloc_ptr`: points to the next free word in the work
 #         area during normal allocation.  During a minor garbage collection,
 #         it points to the next free work in the reserve area.
 #
-#     assign_sp: points to the tip of the assignment stack, 
+#     `assign_sp`: points to the tip of the assignment stack, 
 #         `alloc_ptr` cannot go past `assign_sp`.
 #         Between `assign_sp` and L3 sits the assignment stack 
 #         which grows towards `alloc_ptr`.
@@ -448,19 +448,26 @@ assign_sp:                      .quad 0
 #   This function implements the generational garbage collection.
 #
 #   It first calls the minor collector, `.GenGC.minor_collect`, and then
-#   updates its history in the header. The breakpoint is then
-#   calculated.
-#   If the breakpoint is reached or there is still not
-#   enough room to allocate the requested size, a major garbage
-#   collection then takes place by calling `.GenGC.major_collect`.
+#   updates its history in the header.
+#
+#   The breakpoint is then calculated. If the breakpoint is reached or 
+#   there is still not enough room to allocate the requested size, 
+#   a major garbage collection takes place by calling `.GenGC.major_collect`.
+#
 #   After the major collection, the size of the old area is analyzed.
 #   If it is greater than 1/(2^GenGC_OLDRATIO) of the total usable heap
-#   size (L0 to L3), the heap is expanded. Also, if there is still not
-#   enough room to allocate the requested size, the heap is expanded
-#   further to make sure that the specified amount of memory can be
-#   allocated. If there is enough room in the unused area (L3 to L4),
-#   this memory is used and the heap is not expanded. The `assign_sp`
-#   and `alloc_ptr` pointers are then set as well as the L2 pointer.
+#   size (L0 to L3), the heap is expanded. 
+#
+#   If there is still not enough room to allocate the requested size, 
+#   the heap is expanded further to make sure that the specified 
+#   amount of memory can be allocated.
+#
+#   If there is enough room in the unused area (L3 to L4),
+#   this memory is used and the heap is not expanded.
+#
+#   The `assign_sp` and `alloc_ptr` pointers are then set 
+#   as well as the L2 pointer.
+#
 #   If a major collection is not done, the X area is incorporated 
 #   into the old area (i.e. the value of L2 is moved into L1) and 
 #   `assign_sp`, `alloc_ptr`, and L2 are then set.
@@ -473,11 +480,10 @@ assign_sp:                      .quad 0
 #    %rdi: requested allocation size in bytes (unchanged)
 #
 #   Registers modified:
-#    %rax, %rdi, %rsi, .GenGC.minor_collect, .GenGC.major_collect
-#    $t0, $t1, $t2, $t3, $t4, $v0, $v1, $a0, $a2, $gp, $s7
+#    %rax, %rdi, %rsi, %rcx, %rdx, .GenGC.minor_collect, .GenGC.major_collect
 #
 
-    .global    .GenGC.collect
+    .global .GenGC.collect
 .GenGC.collect:
     REQUESTED_SIZE_SIZE   = 8
     REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
@@ -499,53 +505,117 @@ assign_sp:                      .quad 0
 
     movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi 
     movq     STACK_TIP_OFFSET(%rbp), %rsi
-    call     .GenGC.minor_collect
+    call     .GenGC.minor_collect                # %rax contains the size of all collected live objects
+
+    # %rdi = heap_start
+    movq     .Platform.heap_start(%rip), %rdi
+    # Update MINOR0, MINOR1
+    movq     %rax, .GenGC.HDR_MINOR0(%rdi)       # MINOR0 = the size of all collected live objects
+    movq     .GenGC.HDR_MINOR1(%rdi), %rsi       # %rsi = MINOR1
+    addq     %rax, %rsi                          # %rsi = MINOR1 + MINOR0
+    sarq     $1, %rsi                            # %rsi = (MINOR0 + MINOR1) / 2
+    movq     %rsi, .GenGC.HDR_MINOR1(%rdi)       # MINOR1 = (MINOR0 + MINOR1) / 2
     
-#    la         $a1 heap_start
-#    lw         $t1 GenGC_HDRMINOR1($a1)
-#    addu       $t1 $t1 $a0
-#    srl        $t1 $t1 1
-#    sw         $t1 GenGC_HDRMINOR1($a1)          # update histories
-#    sw         $a0 GenGC_HDRMINOR0($a1)
-#    move       $t0 $t1                           # set $t0 to max of minor
-#    bgt        $t1 $a0 .GenGC_Collect_maxmaj
-#    move       $t0 $a0
-#.GenGC_Collect_maxmaj:
-#    lw         $t1 GenGC_HDRMAJOR0($a1)          # set $t1 to max of major
-#    lw         $t2 GenGC_HDRMAJOR1($a1)
-#    bgt        $t1 $t2 .GenGC_Collect_maxdef
-#    move       $t1 $t2
-#.GenGC_Collect_maxdef:
-#    lw         $t2 GenGC_HDRL3($a1)
-#    sub        $t0 $t2 $t0                       # set $t0 to L3-$t0-$t1
-#    sub        $t0 $t0 $t1
-#    lw         $t1 GenGC_HDRL0($a1)              # set $t1 to L3-(L3-L0)/2
-#    sub        $t1 $t2 $t1
-#    srl        $t1 $t1 1
-#    sub        $t1 $t2 $t1
-#    blt        $t0 $t1 .GenGC_Collect_breakpt    # set $t0 to minimum of above
-#    move       $t0 $t1
-#.GenGC_Collect_breakpt:
-#    lw         $t1 GenGC_HDRL1($a1)              # get end of old area
-#    bge        $t1 $t0 .GenGC_Collect_major
-#    lw         $t0 GenGC_HDRL2($a1)
-#    lw         $t1 GenGC_HDRL3($a1)
-#    lw         $t2 4($sp)                        # load requested size into $t2
-#    sub        $t0 $t1 $t0                       # find reserve/work area barrier
-#    srl        $t0 $t0 1
-#    la         $t3 0xfffffffc
-#    and        $t0 $t0 $t3
-#    sub        $t0 $t1 $t0                       # reserve/work barrier
-#    addu       $t2 $t0 $t2                       # test allocation
-#    bge        $t2 $t1 .GenGC_Collect_major      # check if work area too small
-#.GenGC_Collect_nomajor:
-#    lw         $t1 GenGC_HDRL2($a1)
-#    sw         $t1 GenGC_HDRL1($a1)              # expand old area
-#    sw         $t0 GenGC_HDRL2($a1)              # set new reserve/work barrier
-#    move       $gp $t0                           # set $gp
-#    lw         $s7 GenGC_HDRL3($a1)              # load limit into $s7
-#    b          .GenGC_Collect_done
-#.GenGC_Collect_major:
+    # breakpoint = MIN(L3 - MAX(MAJOR0, MAJOR1) - MAX(MINOR0, MINOR1), 
+    #                  L3 - (L3 - L0) / 2)
+    #
+    # L3 - MAX(MAJOR0, MAJOR1) - MAX(MINOR0, MINOR1)
+    # %rdx = MAX(MINOR0, MINOR1)
+    movq     %rax, %rdx                          # %rdx = MINOR0
+    cmpq     %rsi, %rax                          # MINOR0 >= MINOR1?
+    jge      .GenGC.collect.calc_max_of_majors   # if yes, go to .GenGC.collect.calc_max_of_majors
+    movq     %rsi, %rdx                          # if no, %rdx = MINOR1
+.GenGC.collect.calc_max_of_majors:
+    # %rcx = MAX(MAJOR0, MAJOR1)
+    movq     .GenGC.HDR_MAJOR0(%rdi), %rcx       # %rcx = MAJOR0
+    movq     .GenGC.HDR_MAJOR1(%rdi), %rax       # %rax = MAJOR1
+    cmpq     %rax, %rcx                          # MAJOR0 >= MAJOR1?
+    jge      .GenGC.collect.calc_min_breakpoint  # if yes, go to .GenGC.collect.calc_min_breakpoint
+    movq     %rax, %rcx                          # if no, %rcx = MAJOR1
+.GenGC.collect.calc_min_breakpoint:
+    movq     .GenGC.HDR_L3(%rdi), %rsi           # %rsi = L3
+    subq     %rcx, %rsi                          # %rsi = L3 - MAX(MAJOR0, MAJOR1)
+    subq     %rdx, %rsi                          # %rsi = L3 - MAX(MAJOR0, MAJOR1) - MAX(MINOR0, MINOR1)
+
+    # L3 - (L3 - L0) / 2
+    movq     .GenGC.HDR_L3(%rdi), %rax           # %rax = L3
+    movq     %rax, %rcx                          # %rcx = L3
+    subq     .GenGC.HDR_L0(%rdi), %rax           # %rax = L3 - L0
+    sarq     $1, %rax                            # %rax = (L3 - L0) / 2
+    subq     %rax, %rcx                          # %rcx = L3 - (L3 - L0) / 2
+
+    # %rcx = MIN(%rcx, %rsi) = breakpoint
+    cmpq     %rsi, %rcx                          # %rcx <= %rsi?
+    jle      .GenGC.collect.check_breakpoint     # if yes, go to .GenGC.collect.check_breakpoint
+    movq     %rsi, %rcx                          # if no, %rcx = %rsi
+.GenGC.collect.check_breakpoint:
+    # %rcx contains the breakpoint value
+    movq     .GenGC.HDR_L1(%rdi), %rax
+    cmpq     %rcx, %rax                          # Has L1 (the end of Old Area) crossed the breakpoint?
+                                                 # (%rax >= %rcx?)
+    jge      .GenGC.collect.do_major             # if yes, perform a major collection
+    #. if no, update L1, set up the new Reserve/Work areas,
+    #  reset `alloc_ptr`, and `assign_sp`, etc
+    movq     .GenGC.HDR_L2(%rdi), %rcx           # %rcx = L2
+    movq     .GenGC.HDR_L3(%rdi), %rdx           # %rdx = L3
+    movq     %rdx, %rsi                          # %rsi = L3
+    # find Reserve/Work areas boundary
+    subq     %rcx, %rdx                          # %rdx = L3 - L2
+    sarq     $1, %rdx                            # %rdx = (L3 - L2) / 2
+    andq     $(-8), %rdx                         # %rdx = the nearest smaller multiple of 8
+                                                 # so Reserve Area >= Work Area by 8 bytes
+    subq     %rdx, %rsi                          # %rsi = the new L2
+                                                 # (L3 - round_down((L3 - L2) / 2))
+    movq     %rsi, %rcx                          # %rcx = the new L2
+
+    # Enough space to allocate the requested size?
+    movq     REQUESTED_SIZE_OFFSET(%rbp), %rax   # %rax = the requested allocation size
+    addq     %rax, %rsi                          # %rsi = (the new L2) + alloc size
+    movq     .GenGC.HDR_L3(%rdi), %rdx           # %rdx = L3
+    cmpq     %rdx, %rsi                          # %rsi >= L3?
+    jge      .GenGC.collect.do_major             # if yes, there's not engough space,
+                                                 # we'll have to preform a major collection
+    # No major collection required
+    movq     .GenGC.HDR_L2(%rdi), %rax
+    movq     %rax, .GenGC.HDR_L1(%rdi)           # include the live object collected
+                                                 # by `.GenGC.minor_collect` into Old Area
+    # %rcx contains the new L2 value
+    movq     %rcx, .GenGC.HDR_L2(%rdi)           # set up the new Reserver/Work boundary
+    movq     %rcx, alloc_ptr(%rip)               # set `alloc_ptr` at the start of Work Area
+    movq     %rdx, assign_sp(%rip)               # set `assign_sp` to L3 (Work Area's end)
+                                                 # effectively clearing the assignment stack.
+                                                 # Garbage collecting the young gen results in
+                                                 # no old gen objects pointing to young gen
+                                                 # objects anymore, so we can clear the stack.
+    jmp      .GenGC.collect.done
+.GenGC.collect.do_major:
+    
+    # movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
+    # movq     $.GenGC.MSG_MAJOR_LEN, %rsi
+    # call     .Platform.out_string
+    # call     .Runtime.out_nl
+
+    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi 
+    movq     STACK_TIP_OFFSET(%rbp), %rsi
+    call     .GenGC.major_collect                # %rax contains the size of all collected live objects
+
+    # %rdi = heap_start
+    movq     .Platform.heap_start(%rip), %rdi
+    # Update MAJOR0, MAJOR1
+    movq     %rax, .GenGC.HDR_MAJOR0(%rdi)       # MAJOR0 = total size of objects in the new area 
+                                                 #          after the major collection.
+    movq     .GenGC.HDR_MAJOR1(%rdi), %rsi       # %rsi = MAJOR1
+    addq     %rax, %rsi                          # %rsi = MAJOR1 + MAJOR0
+    sarq     $1, %rsi                            # %rsi = (MAJOR0 + MAJOR1) / 2
+    movq     %rsi, .GenGC.HDR_MAJOR1(%rdi)       # MAJOR1 = (MAJOR0 + MAJOR1) / 2
+
+    # find ratio of Old Area
+    movq     .GenGC.HDR_L0(%rdi), %rdx           # %rdx = L0
+    movq     .GenGC.HDR_L3(%rdi), %rcx           # %rcx = L3
+    movq     %rcx, %rsi                          # %rsi = L3
+    subq     %rdx, %rsi                          # %rsi = L3 - L0
+    sarq     $.GenGC.OLD_RATIO, %rsi             # %rsi = (L3 - L0) / 2^.GenGC.OLD_RATIO
+
 #    la         $a0 .GenGC_Major                  # print collection message
 #    li         $v0 4
 #    syscall
@@ -557,48 +627,66 @@ assign_sp:                      .quad 0
 #    srl        $t1 $t1 1
 #    sw         $t1 GenGC_HDRMAJOR1($a1)          # update histories
 #    sw         $a0 GenGC_HDRMAJOR0($a1)
-#    lw         $t1 GenGC_HDRL3($a1)              # find ratio of the old area
-#    lw         $t0 GenGC_HDRL0($a1)
-#    sub        $t1 $t1 $t0                       # $t1 = L3-L0
-#    srl        $t1 $t1 GenGC_OLDRATIO            # $t1 = (L3-L0)/2^GenGC_OLDRATIO
-#    addu       $t1 $t0 $t1                       # $t1 = L0+(L3-L0)/2^GenGC_OLDRATIO
-#    lw         $t0 GenGC_HDRL1($a1)              # $t0 = L1
-#    sub        $t0 $t0 $t1                       # $t0 = L1-(L0+(L3-L0)/2^GenGC_OLDRATIO) -> $t0 > 0?
-#    sll        $t0 $t0 GenGC_OLDRATIO            # ??? amount to expand in $t0
-#    lw         $t1 GenGC_HDRL3($a1)              # load L3
-#    lw         $t2 GenGC_HDRL1($a1)              # load L1
-#    sub        $t2 $t1 $t2
-#    srl        $t2 $t2 1
-#    la         $t3 0xfffffffc
-#    and        $t2 $t2 $t3
-#    sub        $t1 $t1 $t2                       # reserve/work barrier
-#    lw         $t2 4($sp)                        # restore size
-#    addu       $t1 $t1 $t2
-#    lw         $t2 GenGC_HDRL3($a1)              # load L3
-#    sub        $t1 $t1 $t2                       # test allocation
-#    addiu      $t1 $t1 4                         # adjust for round off errors
-#    sll        $t1 $t1 1                         # need to allocate $t1 memory
-#    blt        $t1 $t0 .GenGC_Collect_enough     # put max of $t0, $t1 in $t0
-#    move       $t0 $t1
-#.GenGC_Collect_enough:
-#    blez       $t0 .GenGC_Collect_setL2          # no need to expand
-#    addiu      $t1 $0 1                          # put 1 in $t1
-#    sll        $t1 $t1 GenGC_HEAPEXPGRAN         # get granularity of expansion
-#    addiu      $t1 $t1 -1                        # align to granularity
-#    addu       $t0 $t0 $t1
-#    nor        $t1 $t1 $t1                       # ???
-#    and        $t0 $t0 $t1                       # total memory needed
-#    lw         $t1 GenGC_HDRL3($a1)              # load L3
-#    lw         $t2 GenGC_HDRL4($a1)              # load L4
-#    sub        $t1 $t2 $t1
-#    sub        $t2 $t0 $t1                       # actual amount to allocate
-#    bgtz       $t2 .GenGC_Collect_getmem         # check if really need to allocate
-#.GenGC_Collect_xfermem:
+#                                                 # find ratio of the old area
+#    lw         $t1 .GenGC.HDR_L3($a1)            # $t1 = L3
+#    lw         $t0 .GenGC.HDR_L0($a1)            # $t0 = L0
+#    sub        $t1 $t1 $t0                       # $t1 = L3 - L0
+#    srl        $t1 $t1 .GenGC.OLD_RATIO          # $t1 = (L3 - L0) / 2^.GenGC.OLD_RATIO
+## >>>>>
+#    addu       $t1 $t0 $t1                       # $t1 = L0 + (L3 - L0) / 2^.GenGC.OLD_RATIO
+#    lw         $t0 .GenGC.HDR_L1($a1)            # $t0 = L1 = L0 + sizeof(Old Area)
+#    sub        $t0 $t0 $t1                       # $t0 = L1 - (L0 + (L3 - L0) / 2^.GenGC.OLD_RATIO)
+#                                                 # $t0 = (L0 + sizeof(Old Area)) - (L0 + (L3 - L0) / 2^.GenGC.OLD_RATIO)
+#                                                 # $t0 = sizeof(Old Area) - (L3 - L0) / 2^.GenGC.OLD_RATIO
+#    sll        $t0 $t0 .GenGC.OLD_RATIO          # $t0 = $t0 * 2^.GenGC.OLD_RATIO
+#
+#    lw         $t1 GenGC_HDRL3($a1)              # $t1 = L3
+#    lw         $t2 GenGC_HDRL1($a1)              # $t2 = L1
+#    sub        $t2 $t1 $t2                       # $t2 = L3 - L1
+#    srl        $t2 $t2 1                         # $t2 = (L3 - L1) / 2
+#    la         $t3 0xfffffffc                    # $t3 = -4
+#    and        $t2 $t2 $t3                       # $t2 = ((L3 - L1) / 2) & (-4)
+#    sub        $t1 $t1 $t2                       # $t1 = L3 - ((L3 - L1) / 2) & (-4) -- reserve/work barrier
+#    lw         $t2 4($sp)                        # $t2 = the requested allocation size
+#    addu       $t1 $t1 $t2                       # $t1 = Work Area's start + requested alloc size
+#    lw         $t2 GenGC_HDRL3($a1)              # $t2 = L3
+#    sub        $t1 $t1 $t2                       # $t1 = (Work Area's start + requested alloc size) - L3
+#    addiu      $t1 $t1 4                         # $t1 = $t1 + 4 -- adjust for round off errors
+#    sll        $t1 $t1 1                         # $t1 = $t1 * 2 -- need to allocate $t1 memory
+#                                                 # we multiply $t1 by 2, as Reserve Area is guaranteed 
+#                                                 # to be at least the size of Work Area we need to allocate:
+#                                                 #    $t1 bytes for Work Area +
+#                                                 #    $t1 bytes for Reserve Area
+#                                                 # $t0 = max($t0, $t1)
+#    blt        $t1 $t0 .GenGC.collect.enough     # if ($t1 < $t0) go to .GenGC.collect.enough
+#    move       $t0 $t1                           # else           $t0 = $t1
+#.GenGC.collect.enough:
+#                                                 # no need to expand?
+#    blez       $t0 .GenGC.collect.set_L2         # if ($t0 <= 0) go to .GenGC.collect.set_L2
+#    # there is a need to expand
+#    # $t0 = ($t0 + 16383) & (-16384)
+#    # i.e., round $t0 up to the nearest multiple of 16K
+#    addiu      $t1 $0 1                          # $t1 = 1      = 00000000_00000000_00000000_00000001
+#    sll        $t1 $t1 GenGC_HEAPEXPGRAN         # $t1 = 16384  = 00000000_00000000_01000000_00000000
+#    addiu      $t1 $t1 -1                        # $t1 = 16383  = 00000000_00000000_00111111_11111111
+#    addu       $t0 $t0 $t1                       # $t0 = $t0 + 16383
+#    nor        $t1 $t1 $t1                       # $t1 = -16384 = 11111111_11111111_11000000_00000000
+#    and        $t0 $t0 $t1                       # $t0 = $t0 & (-16384) -- total memory needed
+#    # see how much of the total memory needed is covered by Unused
+#    lw         $t1 GenGC_HDRL3($a1)              # $t1 = L3
+#    lw         $t2 GenGC_HDRL4($a1)              # $t2 = L4
+#    sub        $t1 $t2 $t1                       # $t1 = L4 - L3
+#    sub        $t2 $t0 $t1                       # $t2 = $t0 - (L4 - L3) = 
+#                                                 # total memory needed - sizeof(Unused) =
+#                                                 # actual amount to allocate
+#    bgtz       $t2 .GenGC.collect.allocate       # check if really need to allocate
+#                                                 #. if ($t2 > 0) go to .GenGC.collect.allocate 
+#.GenGC.collect.xfermem:
 #    lw         $s7 GenGC_HDRL3($a1)              # load L3
 #    addu       $s7 $s7 $t0                       # expand by $t0, set $s7
 #    sw         $s7 GenGC_HDRL3($a1)              # save L3
-#    b          .GenGC_Collect_findL2
-#.GenGC_Collect_getmem:
+#    b          .GenGC.collect.find_L2
+#.GenGC.collect.allocate:
 #    li         $v0 9                             # sbrk
 #    move       $a0 $t2                           # set the size to expand the heap
 #    syscall
@@ -609,9 +697,9 @@ assign_sp:                      .quad 0
 #    sw         $v0 GenGC_HDRL3($a1)              # save L3
 #    move       $s7 $v0                           # set $s7
 #    b          .GenGC_Collect_findL2
-#.GenGC_Collect_setL2:
+#.GenGC.collect.set_L2:
 #    lw         $s7 GenGC_HDRL3($a1)              # load L3
-#.GenGC_Collect_findL2:
+#.GenGC.collect.find_L2:
 #    lw         $t1 GenGC_HDRL1($a1)              # load L1
 #    sub        $t1 $s7 $t1
 #    srl        $t1 $t1 1
@@ -619,31 +707,22 @@ assign_sp:                      .quad 0
 #    and        $t1 $t1 $t0
 #    sub        $gp $s7 $t1                       # reserve/work barrier
 #    sw         $gp GenGC_HDRL2($a1)              # save L2
-#.GenGC_Collect_done:
-#
-## Clear new generation to catch missing pointers
-#    move     $t0 $gp
-#.GenGC_Clear_loop:
-#    sw       $zero 0($t0)
-#    addiu    $t0 $t0 4
-#    blt      $t0 $s7 .GenGC_Clear_loop
-#
-#    lw       $a1 4($sp)      # restore size
-#    lw       $ra 12($sp)     # restore return address
-#    addiu    $sp $sp 12
-#    jr       $ra             # return
+.GenGC.collect.done:
 
+    # Zero out the new generation (the new Work Area) to help catch missing pointers
+    movq     alloc_ptr(%rip), %rax
+.GenGC.collect.work_area_clear_loop:
+    movq     $0, 0(%rax)                         # zero out the quad at %rax
+    addq     $8, %rax
+    cmpq     assign_sp(%rip), %rax               # %rax < `assign_sp`
+    jl       .GenGC.collect.work_area_clear_loop # if yes, we haven't reached 
+                                                 # the end of Work Area yet
+
+    movq    REQUESTED_SIZE_OFFSET(%rbp), %rdi    # restore requested allocation size in bytes
     movq    %rbp, %rsp
     popq    %rbp
     ret
 
-.GenGC.minor_collect:
-    ret
-
-.GenGC.major_collect:
-    ret
-
-/*
 #
 # Check and Copy an Object
 #
@@ -676,6 +755,10 @@ assign_sp:                      .quad 0
 #    $t0, $t1, $t2, $v0, $a0, $gp
 #
 
+.GenGC.copy_with_check:
+    ret
+
+/*
     .global    .GenGC_ChkCopy
 .GenGC_ChkCopy:
     blt      $a0 $a1 .GenGC_ChkCopy_done    # check bounds
@@ -709,7 +792,7 @@ assign_sp:                      .quad 0
 .GenGC_ChkCopy_forward:
     lw       $a0 obj_disp($a0)              # get forwarding pointer
     jr       $ra                            # return
-
+*/
 
 #
 # Minor Garbage Collection
@@ -753,18 +836,30 @@ assign_sp:                      .quad 0
 #        returned.
 #
 #   INPUT:
+#    %rsi: the tip of stack to start checking for roots from
+#
 #    $a0: end of stack
 #    $s7: limit pointer of this area of storage
 #    $gp: current allocation pointer
 #    heap_start: start of heap
 #
 #   OUTPUT:
+#    %rax: the size of all collected live objects
+#
 #    $a0: size of all live objects collected
 #
+#   Global variables modified:
+#    L2: the end of the live objects in Reserve area
+#
 #   Registers modified:
+#
 #    $t0, $t1, $t2, $t3, $t4, $v0, $v1, $a0, $a1, $a2, $gp, $s7
 #
 
+.GenGC.minor_collect:
+    ret
+
+/*
     .global    .GenGC_MinorC
 .GenGC_MinorC:
     addiu      $sp $sp -20
@@ -963,6 +1058,7 @@ assign_sp:                      .quad 0
     syscall
     li         $v0 10                             # exit
     syscall
+*/
 
 #
 # Check and Copy an Object with an Offset
@@ -1003,6 +1099,10 @@ assign_sp:                      .quad 0
 #    $t0, $t1, $t2, $v0, $a0, $gp, $s7
 #
 
+.GenGC.copy_with_offset:
+    ret
+
+/*
     .global    .GenGC_OfsCopy
 .GenGC_OfsCopy:
     blt        $a0 $a1 .GenGC_OfsCopy_done     # check lower bound
@@ -1061,12 +1161,13 @@ assign_sp:                      .quad 0
 .GenGC_OfsCopy_forward:
     lw         $a0 obj_disp($a0)               # get forwarding pointer
     jr         $ra                             # return
+*/
 
 #
 # Major Garbage Collection
 #
 #   This collection occurs when ever the old area grows beyond a specified
-#   point.  The minor collector sets up the Old, X, and New areas for
+#   point.  `.GenGC.minor_collect` sets up the Old, X, and New areas for
 #   this collector.  It then collects all the live objects in the old
 #   area (L0 to L1) into the new area (L2 to L3).  This collection consists
 #   of five phases:
@@ -1089,16 +1190,27 @@ assign_sp:                      .quad 0
 #   until the block copy is done.
 #
 #   INPUT:
+#    %rsi: the tip of stack to start checking for roots from
+#
 #    $a0: end of stack
 #    heap_start: start of heap
 #
 #   OUTPUT:
+#    %rax: the size of all collected live objects
+#
 #    $a0: size of all live objects collected
+#
+#   Global variables modified:
+#    L1: the new Old Area's end
 #
 #   Registers modified:
 #    $t0, $t1, $t2, $v0, $v1, $a0, $a1, $a2, $gp, $s7
 #
 
+.GenGC.major_collect:
+    ret
+
+/*
     .global    .GenGC_MajorC
 .GenGC_MajorC:
     addiu      $sp $sp -20
@@ -1293,6 +1405,7 @@ assign_sp:                      .quad 0
     syscall
     li         $v0 10                             # exit
     syscall
+*/
 
 #
 # Set the Register (REG) mask
@@ -1310,6 +1423,10 @@ assign_sp:                      .quad 0
 #    $t0
 #
 
+.GenGC.set_reg_mask:
+    ret
+
+/*
     .global    .GenGC_SetRegMask
 .GenGC_SetRegMask:
     li     $t0 GenGC_ARU_MASK        # apply Automatic Register Mask (ARU)
@@ -1317,6 +1434,7 @@ assign_sp:                      .quad 0
     la     $t0 heap_start            # set $t0 to the start of the heap
     sw     $a0 GenGC_HDRREG($t0)     # save the Register mask
     jr     $ra                       # return
+*/
 
 #
 # Query the Register (REG) mask
@@ -1331,9 +1449,13 @@ assign_sp:                      .quad 0
 #    none
 #
 
+.GenGC.get_reg_mask:
+    ret
+
+/*
     .global    .GenGC_QRegMask
 .GenGC_QRegMask:
     la    $a0 heap_start            # set $a0 to the start of the heap
     lw    $a0 GenGC_HDRREG($a0)     # get the Register mask
     jr    $ra                       # return
-# */
+*/
