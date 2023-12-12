@@ -150,7 +150,7 @@ pageSize:                .quad 0
 #      %rdi: the requested size in bytes
 #  OUTPUT:
 #      %rax: a pointer to the start of allocated memory block.
-#.     if allocation fails, prints a message and exits the process.
+#.           if allocation fails, prints a message and exits the process.
 #  
 #  Rounds up (%rdi * 8) bytes to the nearest greater multiple of pageSize.
 #  Allocates that amount of physical memory 

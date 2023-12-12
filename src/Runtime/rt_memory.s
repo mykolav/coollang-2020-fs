@@ -66,6 +66,8 @@ alloc_ptr:                      .quad 0
 ########################################
     .text
 
+    .include "constants.inc"
+
 ########################################
 # Memory Manager
 #
@@ -98,8 +100,7 @@ alloc_ptr:                      .quad 0
 #   Call the initialization routine for the garbage collector.
 #
 #   INPUT:
-#    %rdi: initial Register mask
-#    %rsi: the base of stack to stop checking for pointers at.
+#    %rdi: the base of stack to stop checking for GC roots at.
 #          (remember the stack grows down, 
 #           so the base is at the highest address)
 #
@@ -112,8 +113,8 @@ alloc_ptr:                      .quad 0
 
     .global .MemoryManager.init
 .MemoryManager.init:
-    callq    *.MemoryManager.FN_INIT(%rip)   # pointer to initialization procedure
-                                             # defined in another compilation unit
+    # pointer to init procedure of a GC implementation
+    callq    *.MemoryManager.FN_INIT(%rip)
     ret
 
 #
@@ -247,10 +248,14 @@ alloc_ptr:                      .quad 0
 ########################################
 
 #
-# Check a pointer contains an address of an object
+# Check a pointer contains an address of an object.
+# If the check fails, abort.
 #
 #   INPUT:
 #    %rdi: a pointer to an object
+#
+#   OUTPUT:
+#    %rdi: unchanged
 #
 #   Registers modified:
 #    %rax
@@ -258,15 +263,13 @@ alloc_ptr:                      .quad 0
 
     .global .GC.validate_ptr
 .GC.validate_ptr:
-    OBJ_EYE_CATCH = -8
-
     testq    %rdi, %rdi
-    jz       .GC.validate_ptr.ok          # null is valid
-    movq     OBJ_EYE_CATCH(%rdi), %rax
-    cmpq     $(-1), %rax
-    je       .GC.validate_ptr.ok          # found the eye-catch just before the object
+    jz       .GC.validate_ptr.ok           # null is valid
+    movq     EYE_CATCH_OFFSET(%rdi), %rax
+    cmpq     $EYE_CATCH_VALUE, %rax
+    je       .GC.validate_ptr.ok           # found the eye-catch just before the object
 
-    jmp      .GC.abort                    # this is not a pointer to an object
+    jmp      .GC.abort                     # this is not a pointer to an object
 .GC.validate_ptr.ok:
     ret
 

@@ -1,7 +1,9 @@
 #!/bin/bash
 
-as -o ./src/Runtime/rt_linux.o ./src/Runtime/rt_linux.s && \
-as -o ./src/Runtime/rt_windows.o ./src/Runtime/rt_windows.s && \
-as -o ./src/Runtime/rt_gen_gc.o ./src/Runtime/rt_gen_gc.s && \
-as -o ./src/Runtime/rt_memory.o ./src/Runtime/rt_memory.s && \
-as -o ./src/Runtime/rt_common.o ./src/Runtime/rt_common.s
+pushd ./src/Runtime && \
+as -o ./rt_linux.o ./rt_linux.s && \
+as -o ./rt_windows.o ./rt_windows.s && \
+as -o ./rt_gen_gc.o ./rt_gen_gc.s && \
+as -o ./rt_memory.o ./rt_memory.s && \
+as -o ./rt_common.o ./rt_common.s && \
+popd

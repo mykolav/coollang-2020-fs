@@ -164,19 +164,7 @@ IO_proto_obj:
 ########################################
     .text
 
-    .set OBJ_TAG,   0
-    .set OBJ_SIZE,  8
-    .set OBJ_VTAB,  16
-    
-    .set STR_LEN,   24
-    .set STR_VAL,   32
-
-    .set ARR_LEN,   24
-    .set ARR_ITEMS, 32
-
-    .set BOOL_VAL,  24
-
-    .set INT_VAL,   24
+    .include "constants.inc"
 
 ########################################
 # .Runtime
@@ -1575,11 +1563,8 @@ IO.in_int.input_not_digit:
 main:
     call    .Platform.init
 
-    # initial Register mask.
-    # TODO: load an actual mask, instead of just zeroing out!
-    xor     %edi, %edi
-    # the bottom of stack to stop checking for pointers at.
-    movq    %rsp, %rsi
+    # the base of stack -- to stop checking for stack GC roots at.
+    movq    %rsp, %rdi
     call    .MemoryManager.init
 
     # A class 'Main' must be present in every Cool2020 program.
