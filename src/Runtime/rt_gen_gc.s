@@ -154,6 +154,21 @@ assign_sp:                      .quad 0
 #         Between `assign_sp` and L3 sits the assignment stack 
 #         which grows towards `alloc_ptr`.
 #
+#   The following invariant is maintained for `alloc_ptr` and `assign_ptr` by 
+#   the garbage collector's code at all times:
+#
+#      `alloc_ptr` is always strictly less than `assign_sp`.
+#      Hence there is always enough room for at least one assignment record 
+#      at the tip of assignment stack.
+#
+#      If the above invariant hadn't been maintained, we would've ended up
+#      in a situation where at the moment we're requested to record an 
+#      assignment, `alloc_ptr` == `assign_sp`. As there is no room to 
+#      record the assignment a garbage collection has to run first. 
+#      As the unrecorded assignment can point to a GC root, the garbage 
+#      collection would've missed that root and removed a live object or 
+#      multiple live objects...
+#
 #   During a Major collection, the heap has the following form:
 #
 #      Header
@@ -182,6 +197,8 @@ assign_sp:                      .quad 0
 #         `alloc_ptr` is not allowed to pass this value. If the live objects 
 #         in the old area cannot fit in the new area, more memory is allocated 
 #         and `assign_sp` is adjusted accordingly.
+#
+#   See the `alloc_ptr` < `assign_sp` invariant descriptions above.
 #
 #     breakpoint: Point where a major collection will occur.  It is
 #         calculated by the following formula:
@@ -402,9 +419,17 @@ assign_sp:                      .quad 0
 #
 # Record an Assignment in the Assignment Stack
 #
-#   Records an assignment in the assignment table. Note that because
-#   `assign_sp` is always a higher addr than `alloc_ptr`, an assignment
-#   can always be recorded.
+#   The GC's code guarantees `alloc_ptr` is always strictly less than `assign_sp`.
+#   Hence there is always enough room for at least one assignment record 
+#   at the tip of assignment stack.
+#
+#   If the above invariant hadn't been maintained, we would've ended up
+#   in a situation where at the moment we're requested to record an 
+#   assignment, `alloc_ptr` == `assign_sp`. As there is no room to 
+#   record the assignment a garbage collection has to run first. 
+#   As the unrecorded assignment can point to a GC root, the garbage 
+#   collection would've missed that root and removed a live object or 
+#   multiple live objects...
 #
 #   INPUT:
 #    %rdi: pointer to the pointer being assigned to
@@ -882,8 +907,6 @@ assign_sp:                      .quad 0
     movq     $0, OBJ_SIZE(%rdi)                        # put 0 into the source obj's size
     movq     %rcx, OBJ_VTAB(%rdi)                      # put a forwarding pointer to the copy
                                                        # into the source obj's vtab slot
-    jmp      .GenGC.check_copy.copy_done
-
 .GenGC.check_copy.copy_done:
     movq     POINTER_OFFSET(%rbp), %rdi
     movq     OBJ_VTAB(%rdi), %rax                      # %rax = a pointer to the obj copy
@@ -1163,108 +1186,191 @@ assign_sp:                      .quad 0
 #
 # Check and Copy an Object with an Offset
 #
-#   Checks that the input pointer points to an object is a heap object.
-#   If so, the pointer is checked to be in one of two areas.  If the
-#   pointer is in the X area, L0-L1 is added to the pointer, and the
-#   new pointer is returned.  If the pointer points within the old area,
-#   it then checks for a forwarding pointer by checking for an object
-#   size of 0.  If found, the forwarding pointer is returned.  If not
-#   found, the heap is then analyzed to make sure the object can be
-#   copied.  It then expands the heap if necessary (updating only $s7),
-#   and the copies the object to the $gp pointer.  It takes the new
-#   pointer, adds L0-L1 to it, then saves this modified new pointer in
-#   the forwarding (obj_disp) field and sets the flag (obj_size to 0).
-#   Finally, it returns this pointer.  Note that this pointer does not
-#   actually point to the object at this time.  This entire area will
-#   later be block copied.  After that, this pointer will be valid.
-#   The same tests are done here as in ".GenGC.check_copy" to verify that
-#   this is a heap object.
+#   Checks that the input pointer points to a heap object:
+#     1) The pointer is a multiple of 8 (a quad is our chosen minimal granularity)
+#     2) The pointer is within the specified limits
+#     3) The word before the pointer is the eye catcher 0xFFFF_FFFF
+#     4) The word at the pointer is a valid tag (i.e. not equal to
+#        0xFFFF_FFFF)
+#
+#   If so, the pointer is checked to be in one of two areas.
+#
+#   If the pointer is in the X area, L0-L1 is added to the pointer, 
+#   and the new pointer is returned.
+#
+#   If the pointer points to an object within the Old Area, 
+#   it then checks the object for a forwarding pointer by checking the 
+#   object's size for 0.
+#
+#   If found, the forwarding pointer is returned.
+#   Else, the heap is analyzed to make sure the object can be copied.
+#
+#   The heap is expanded if necessary (updating only `assign_sp`),
+#   and the object gets copied to `alloc_ptr`.
+#
+#   After copying is complete, the procedure places 
+#       - 0 into the source object's OBJ_SIZE slot
+#       - (the address of copy object + (L0 - L1)) 
+#         into the source object's OBJ_VTAB slot
+#
+#   Finally, the return value (the address of copy object + (L0 - L1)) is placed in %rax
+#   Note that %rax does not actually point to the copy object initially.
+#   The entire area will later be block copied. Once that is complete, the address in %rax 
+#   will become valid.
 #
 #   INPUT:
-#    $a0: pointer to check and copy with an offset
-#    $a1: L0 pointer
-#    $a2: L1 pointer
-#    $v1: L2 pointer
-#    $gp: current allocation pointer
-#    $s7: L4 pointer
+#    %rdi: pointer to check and copy with an offset
 #
 #   OUTPUT:
-#    $a0: if input points to a heap object then it is set to the
-#            new location of object.  If not, it is unchanged.
-#    $a1: L0 pointer (unchanged)
-#    $a2: L1 pointer (unchanged)
-#    $v1: L2 pointer (unchanged)
+#    %rax: if %rdi points to a heap object 
+#          then it is set to the location of copied object.
+#          Else, unchanged value from %rdi.
 #
 #   GLOBALS MODIFIED:
 #    alloc_ptr, assign_sp
 #
 #   Registers modified:
-#    $t0, $t1, $t2, $v0, $a0, $gp, $s7
+#    %rax, %rdi, %rsi, %rdx, %rcx
 #
 
-.GenGC.copy_with_offset:
-    ret
+.GenGC.offset_copy:
+    POINTER_SIZE       = 8
+    POINTER_OFFSET     = -POINTER_SIZE
+    FRAME_SIZE         =  POINTER_SIZE
 
-/*
-    .global    .GenGC_OfsCopy
-.GenGC_OfsCopy:
-    blt        $a0 $a1 .GenGC_OfsCopy_done     # check lower bound
-    bge        $a0 $v1 .GenGC_OfsCopy_done     # check upper bound
-    andi       $t2 $a0 1                       # check if odd
-    bnez       $t2 .GenGC_OfsCopy_done
-    addiu      $t2 $0 -1
-    lw         $t1 obj_eyecatch($a0)           # check eyecatcher
-    bne        $t2 $t1 _gc_abort
-    lw         $t1 obj_tag($a0)                # check object tag
-    beq        $t2 $t1 .GenGC_OfsCopy_done
-    blt        $a0 $a2 .GenGC_OfsCopy_old      # check if old, X object
-    sub        $v0 $a1 $a2                     # compute offset
-    add        $a0 $a0 $v0                     # apply pointer offset
-    jr         $ra                             # return
-.GenGC_OfsCopy_old:
-    lw         $t1 obj_size($a0)               # get size of object
-    sll        $t1 $t1 2                       # convert words to bytes
-    beqz       $t1 .GenGC_OfsCopy_forward      # if size = 0, get forwarding pointer
-    move       $t0 $a0                         # save pointer to old object in $t0
-    addu       $v0 $gp $t1                     # test allocation
-    addiu      $v0 $v0 4
-    blt        $v0 $s7 .GenGC_OfsCopy_memok    # check if enoguh room for object
-    sub        $a0 $v0 $s7                     # amount to expand minus 1
-    addiu      $v0 $0 1
-    sll        $v0 $v0 GenGC_HEAPEXPGRAN
-    add        $a0 $a0 $v0
-    addiu      $v0 $v0 -1
-    nor        $v0 $v0 $v0                     # get grain mask
-    and        $a0 $a0 $v0                     # align to grain size
-    li         $v0 9
-    syscall                                    # expand heap
-    li         $v0 9
-    move       $a0 $0
-    syscall                                    # get end of heap in $v0
-    move       $s7 $v0                         # save heap end in $s7
-    move       $a0 $t0                         # restore pointer to old object in $a0
-.GenGC_OfsCopy_memok:
-    addiu      $gp $gp 4                       # allocate memory for eyecatcher
-    move       $a0 $gp                         # get address of new object
-    sw         $t2 obj_eyecatch($a0)           # save eye catcher
-    addu       $t1 $t0 $t1                     # set $t1 to limit of copy
-    move       $t2 $t0                         # set $t2 to old object
-.GenGC_OfsCopy_loop:
-    lw         $v0 0($t0)                      # copy
-    sw         $v0 0($gp)
-    addiu      $t0 $t0 4                       # update each index
-    addiu      $gp $gp 4
-    bne        $t0 $t1 .GenGC_OfsCopy_loop     # check for limit of copy
-    sw         $0 obj_size($t2)                # set size to 0
-    sub        $v0 $a1 $a2                     # compute offset
-    add        $a0 $a0 $v0                     # apply pointer offset
-    sw         $a0 obj_disp($t2)               # save forwarding pointer
-.GenGC_OfsCopy_done:
-    jr         $ra                             # return
-.GenGC_OfsCopy_forward:
-    lw         $a0 obj_disp($a0)               # get forwarding pointer
-    jr         $ra                             # return
-*/
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rdi, %rax                                # if a check doesn't pass
+                                                       # we promised %rax = %rdi
+    movq     %rdi, POINTER_OFFSET(%rbp)
+
+    # If the pointer is a muliple of 8, 
+    # its least significant 3 bits are 000
+    testq    $7, %rdi
+    jnz      .GenGC.offset_copy.done                   # if (%rdi % 8 != 0)
+                                                       # go to .GenGC.offset_copy.done
+
+    movq     .Platform.heap_start(%rip), %rsi          # %rsi = heap_start
+
+    # Check if the pointer is within [L0, L2)
+    cmpq     .GenGC.HDR_L0(%rsi), %rdi
+    jl       .GenGC.offset_copy.done                   # if (%rdi < L0) 
+                                                       # go to .GenGC.offset_copy.done
+    cmpq     .GenGC.HDR_L2(%rsi), %rdi
+    jge      .GenGC.offset_copy.done                   # if (%rdi >= L2)
+                                                       # go to .GenGC.offset_copy.done
+
+    # Check the eye catcher is present
+    cmpq     $EYE_CATCH_VALUE, EYE_CATCH_OFFSET(%rdi)
+    jne      .GC.abort                                 # if no eye catcher,
+                                                       # go to .GC.abort
+    # Check the object's tag != EYE_CATCH_VALUE
+    cmpq     $EYE_CATCH_VALUE, OBJ_TAG(%rdi)
+    je       .GenGC.offset_copy.done                   # if (tag == EYE_CATCH_VALUE)
+                                                       # go to .GenGC.offset_copy.done
+    cmpq     .GenGC.HDR_L1(%rsi), %rdi
+    jl       .GenGC.offset_copy.ensure_copied          # if (L0 <= %rdi < L1)
+                                                       # go to .GenGC.offset_copy.ensure_copied
+    # %rdi points to an object in the X area.
+    # Add (L0 - L1) to the pointer and return it.
+    movq     .GenGC.HDR_L0(%rsi), %rax                 # %rax = L0
+    subq     .GenGC.HDR_L1(%rsi), %rax                 # %rax = L0 - L1
+    addq     %rdi, %rax                                # %rax = %rdi + (L0 - L1)
+    jmp      .GenGC.offset_copy.done
+
+.GenGC.offset_copy.ensure_copied:
+    # %rdi points to an object in Old Area, make sure we either 
+    # already copied it to the X area or copy now.
+    movq     OBJ_SIZE(%rdi), %rcx                      # %rcx = sizeof(obj) in quads
+    testq    %rcx, %rcx
+    jz       .GenGC.offset_copy.copy_done              # if (sizeof(obj) == 0)
+                                                       # the source obj has already been copied
+
+    salq     $3, %rcx                                  # %rcx = sizeof(obj) in bytes
+    addq     alloc_ptr(%rip), %rcx                     # %rcx = alloc_ptr + sizeof(obj)
+    addq     $8, %rcx                                  # %rcx = alloc_ptr + sizeof(obj) + sizeof(eye catcher)
+    subq     assign_sp(%rip), %rcx                     # %rcx = %rcx - assign_sp
+    jl       .GenGC.offset_copy.copy                   # if (%rcx < 0)
+                                                       # go to .GenGC.offset_copy.copy
+    # There is not engough heap space to copy the source obj.
+    # %rcx contains the amount of required additional memory in bytes.
+    # We add 8 bytes to %rcx, to maintain `alloc_ptr` < `assign_sp` after the allocation.
+    # So, there is room to record an assignment before a garbage collection has to run (if any).
+    # See the comments at `.GenGC.handle_assignment` for details.
+    addq $8, %rcx
+
+    # Now, as usual, round up %rcx to the nearest greater multiple of 
+    # .GenGC.HEAP_EXP_SIZE (e.g., 32768 bytes):
+    # %rcx = (%rcx + 32767) & (-32768)
+    movq     $.GenGC.HEAP_EXP_SIZE, %rax               # %rax = 32768  = 00000000_00000000_10000000_00000000
+    decq     %rax                                      # %rax = 32767  = 00000000_00000000_01111111_11111111
+    addq     %rax, %rcx                                # %rcx = %rcx + 32767
+    notq     %rax                                      # %rax = -32768 = 11111111_11111111_10000000_00000000
+    andq     %rax, %rcx                                # %rcx = %rcx & (-32768)
+    movq     $.GenGC.HEAP_EXP_SIZE, %rax               # %rax = 32768  = 00000000_00000000_10000000_00000000
+    decq     %rax                                      # %rax = 32767  = 00000000_00000000_01111111_11111111
+    addq     %rax, %rcx                                # %rcx = %rcx + 32767
+    notq     %rax                                      # %rax = -32768 = 11111111_11111111_10000000_00000000
+    andq     %rax, %rcx                                # %rcx = %rcx & (-32768)
+
+    movq     %rcx, %rdi                                # %rdi = %rcx = total expansion size
+    call     .Platform.alloc                           # %rax: allocated memory block's start
+
+    movq     .Platform.heap_end(%rip), %rax            # %rax      = heap_end after the allocation
+    movq     %rax, assign_sp(%rip)                     # assign_sp = heap_end
+
+    movq     POINTER_OFFSET(%rbp), %rdi                # %rdi = the start of source obj
+
+.GenGC.offset_copy.copy:
+    # The checks have passed, 
+    # we're going to copy the object now.
+    addq     $8, alloc_ptr(%rip)                       # reserve a quad for the eye catcher
+    movq     alloc_ptr(%rip), %rcx                     # %rcx = the start of copy obj
+    movq     %rcx, %rdx                                # %rdx = the start of copy obj
+    movq     $EYE_CATCH_VALUE, EYE_CATCH_OFFSET(%rdx)  # place the eye catcher before the copy obj
+    movq     OBJ_SIZE(%rdi), %rsi                      # %rsi = sizeof(obj) in quads
+    salq     $3, %rsi                                  # %rsi = sizeof(obj) in quads * 8 = sizeof(obj) in bytes
+    addq     %rdi, %rsi                                # %rsi = the start of source obj + sizeof(obj) in bytes
+                                                       #      = the end of source obj
+    # %rdi: the start of source object
+    # %rsi: the end of source obj
+    # %rcx: the start of destination (copy) object
+    # %rdx: the start of destination (copy) object
+
+.GenGC.offset_copy.copy_loop:
+    movq     0(%rdi), %rax
+    movq     %rax, 0(%rdx)
+    addq     $8, %rdi
+    addq     $8, %rdx
+    cmpq     %rsi, %rdi
+    jl       .GenGC.offset_copy.copy_loop              # if (%rdi < %rsi) 
+                                                       # go to .GenGC.offset_copy.copy_loop
+    # %rcx: the start of destination (copy) object
+    # %rdx: the end of destination (copy) object
+
+    movq     %rdx, alloc_ptr(%rip)                     # alloc_ptr = the end of dest (copy) obj
+
+    # Add (L0 - L1) to the pointer and return it.
+    movq     .Platform.heap_start(%rip), %rsi          # %rsi = heap_start
+    movq     .GenGC.HDR_L0(%rsi), %rax                 # %rax = L0
+    subq     .GenGC.HDR_L1(%rsi), %rax                 # %rax = L0 - L1
+    addq     %rax, %rcx                                # %rcx = %rcx + (L0 - L1)
+                                                       #      = the start of dest (copy) object + (L0 - L1)
+    # Mark the source object as copied
+    movq     POINTER_OFFSET(%rbp), %rdi                # %rdi = the start of source obj
+    movq     $0, OBJ_SIZE(%rdi)                        # put 0 into the source obj's size
+    movq     %rcx, OBJ_VTAB(%rdi)                      # put a forwarding pointer to the copy + (L0 - L1) 
+                                                       # into the source obj's VTAB slot
+.GenGC.offset_copy.copy_done:
+    movq     POINTER_OFFSET(%rbp), %rdi
+    movq     OBJ_VTAB(%rdi), %rax                      # %rax = a pointer to the obj copy
+
+.GenGC.offset_copy.done:
+    movq     %rbp, %rsp
+    popq     %rbp
+    ret
 
 #
 # Major Garbage Collection
