@@ -444,7 +444,7 @@ IO_proto_obj:
     incq    %rdi                    # add a quad for the eyecatch
     call    .MemoryManager.alloc
 
-    movq    $-1, (%rax)             # write the eyecatch value
+    movq    $EYE_CATCH, (%rax)      # write the eyecatch value
     addq    $8, %rax                # move ptr to the beginning of object
 
     # %rdi - src
@@ -775,7 +775,7 @@ String.create:
     incq    %rdi                         # add a quad for the eyecatch
     call    .MemoryManager.alloc
 
-    movq    $-1, (%rax)                  # write the eyecatch value
+    movq    $EYE_CATCH, (%rax)           # write the eyecatch value
     addq    $8, %rax                     # move ptr to the beginning of object
     movq    %rax, -24(%rbp)              # result string object
 
@@ -1245,7 +1245,7 @@ ArrayAny..ctor:
     movq    %rsi, %rdi              # allocation size in quads
     call    .MemoryManager.alloc
 
-    movq    $-1, (%rax)             # write the eyecatch value
+    movq    $EYE_CATCH, (%rax)      # write the eyecatch value
     addq    $8, %rax                # move ptr to the beginning of object
 
     movq    $ArrayAny_tag, OBJ_TAG(%rax)

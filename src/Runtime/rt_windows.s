@@ -68,11 +68,11 @@ pageSize:                .quad 0
     .global .Platform.init
 .Platform.init:
 
-    SHADOW_SPACE_SIZE                = 32
-    SYSTEM_INFO_SIZE                 = 48
-    FRAME_SIZE                       = SYSTEM_INFO_SIZE + SHADOW_SPACE_SIZE
-    SYSTEM_INFO_OFFSET               = -SYSTEM_INFO_SIZE
-    DW_PAGE_SIZE_OFFSET              = SYSTEM_INFO_OFFSET + 4
+    SYSTEM_INFO_SIZE     = 48
+    SYSTEM_INFO          = -SYSTEM_INFO_SIZE
+    PAGE_SIZE            = SYSTEM_INFO + 4
+    SHADOW_SPACE_SIZE    = 32
+    FRAME_SIZE           = SYSTEM_INFO_SIZE + SHADOW_SPACE_SIZE
 
     pushq   %rbp
     movq    %rsp, %rbp
@@ -82,12 +82,12 @@ pageSize:                .quad 0
     # void GetSystemInfo(
     #   [out] LPSYSTEM_INFO lpSystemInfo
     # );
-    leaq    SYSTEM_INFO_OFFSET(%rbp), %rcx      # lpSystemInfo
+    leaq    SYSTEM_INFO(%rbp), %rcx    # lpSystemInfo
     call    GetSystemInfo
 
     # 32-bit operands generate a 32-bit result, 
     # zero-extended to a 64-bit result in the destination general-purpose register.
-    movl    DW_PAGE_SIZE_OFFSET(%rbp), %eax
+    movl    PAGE_SIZE(%rbp), %eax
     movq    %rax, pageSize
 
     # We reserve a 655360-pages-long (2.5GB for 4KB page) contiguous virtual addresses range
@@ -103,7 +103,7 @@ pageSize:                .quad 0
     #   [in]           DWORD  flProtect
     # );
 
-    xor     %ecx, %ecx                          # lpAddress = NULL
+    xor     %ecx, %ecx                 # lpAddress = NULL
     
     # dwSize
     # 655360 * pageSize
@@ -114,8 +114,8 @@ pageSize:                .quad 0
     salq    $17, %rax
     addq    %rax, %rdx
     
-    movq    $MEM_RESERVE, %r8                   # flAllocationType
-    movq    $PAGE_READWRITE, %r9                # flProtect
+    movq    $MEM_RESERVE, %r8          # flAllocationType
+    movq    $PAGE_READWRITE, %r9       # flProtect
     call    VirtualAlloc
 
     testq   %rax, %rax
@@ -158,11 +158,11 @@ pageSize:                .quad 0
 #
     .global .Platform.alloc
 .Platform.alloc:
-    DW_SIZE_SIZE        = 8
-    DW_SIZE_OFFSET      = -DW_SIZE_SIZE
-    PADDING_SIZE        = 8
-    SHADOW_SPACE_SIZE   = 32
-    FRAME_SIZE          = DW_SIZE_SIZE + PADDING_SIZE + SHADOW_SPACE_SIZE
+    SIZE_SIZE            = 8
+    SIZE                 = -SIZE_SIZE
+    PADDING_SIZE         = 8
+    SHADOW_SPACE_SIZE    = 32
+    FRAME_SIZE           = SIZE_SIZE + PADDING_SIZE + SHADOW_SPACE_SIZE
 
     pushq   %rbp
     movq    %rsp, %rbp
@@ -188,7 +188,7 @@ pageSize:                .quad 0
     addq    %rax, %rdx                          # %rdx + 4095
     notq    %rax                                # -4096 = ..._1111_1111_0000_0000_0000
     andq    %rax, %rdx                          # & (-4096)
-    movq    %rdx, DW_SIZE_OFFSET(%rbp)          # preserve dwSize
+    movq    %rdx, SIZE(%rbp)                    # preserve dwSize
     
     movq    $MEM_COMMIT, %r8                    # flAllocationType
     movq    $PAGE_READWRITE, %r9                # flProtect
@@ -202,7 +202,7 @@ pageSize:                .quad 0
     jmp     .Runtime.abort_out_of_mem
  
 .Platform.alloc.ok:
-    movq    DW_SIZE_OFFSET(%rbp), %rdx          # load dwSize
+    movq    SIZE(%rbp), %rdx                    # load dwSize
     addq    %rax, %rdx                          # %rdx = dwSize + the allocation's base address
     movq    %rdx, .Platform.heap_end            # advance the heap end pointer
 

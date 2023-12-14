@@ -862,12 +862,12 @@ assign_sp:                      .quad 0
                                                        # go to .GenGC.check_copy.check_fail
 
     # Check the eye catcher is present
-    cmpq     $EYE_CATCH_VALUE, EYE_CATCH_OFFSET(%rdi)
+    cmpq     $EYE_CATCH, OBJ_EYE_CATCH(%rdi)
     jne      .GC.abort                                 # if no eye catcher,
                                                        # go to .GC.abort
-    # Check the object's tag != EYE_CATCH_VALUE
-    cmpq     $EYE_CATCH_VALUE, OBJ_TAG(%rdi)
-    je       .GenGC.check_copy.check_fail              # if (tag == EYE_CATCH_VALUE)
+    # Check the object's tag != EYE_CATCH
+    cmpq     $EYE_CATCH, OBJ_TAG(%rdi)
+    je       .GenGC.check_copy.check_fail              # if (tag == $EYE_CATCH)
                                                        # go to .GenGC.check_copy.check_fail
 
     movq     OBJ_SIZE(%rdi), %rsi                      # %rsi = sizeof(obj) in quads
@@ -880,7 +880,7 @@ assign_sp:                      .quad 0
     addq     $8, alloc_ptr(%rip)                       # reserve a quad for the eye catcher
     movq     alloc_ptr(%rip), %rcx                     # %rcx = the start of copy obj
     movq     %rcx, %rdx                                # %rdx = the start of copy obj
-    movq     $EYE_CATCH_VALUE, EYE_CATCH_OFFSET(%rdx)  # place the eye catcher before the copy obj
+    movq     $EYE_CATCH, OBJ_EYE_CATCH(%rdx)           # place the eye catcher before the copy obj
     salq     $3, %rsi                                  # %rsi = sizeof(obj) in quads * 8 = sizeof(obj) in bytes
     addq     %rdi, %rsi                                # %rsi = the start of source obj + sizeof(obj) in bytes
                                                        #      = the end of source obj
@@ -1263,12 +1263,12 @@ assign_sp:                      .quad 0
                                                        # go to .GenGC.offset_copy.done
 
     # Check the eye catcher is present
-    cmpq     $EYE_CATCH_VALUE, EYE_CATCH_OFFSET(%rdi)
+    cmpq     $EYE_CATCH, OBJ_EYE_CATCH(%rdi)
     jne      .GC.abort                                 # if no eye catcher,
                                                        # go to .GC.abort
-    # Check the object's tag != EYE_CATCH_VALUE
-    cmpq     $EYE_CATCH_VALUE, OBJ_TAG(%rdi)
-    je       .GenGC.offset_copy.done                   # if (tag == EYE_CATCH_VALUE)
+    # Check the object's tag != $EYE_CATCH
+    cmpq     $EYE_CATCH, OBJ_TAG(%rdi)
+    je       .GenGC.offset_copy.done                   # if (tag == $EYE_CATCH)
                                                        # go to .GenGC.offset_copy.done
     cmpq     .GenGC.HDR_L1(%rsi), %rdi
     jl       .GenGC.offset_copy.ensure_copied          # if (L0 <= %rdi < L1)
@@ -1329,7 +1329,7 @@ assign_sp:                      .quad 0
     addq     $8, alloc_ptr(%rip)                       # reserve a quad for the eye catcher
     movq     alloc_ptr(%rip), %rcx                     # %rcx = the start of copy obj
     movq     %rcx, %rdx                                # %rdx = the start of copy obj
-    movq     $EYE_CATCH_VALUE, EYE_CATCH_OFFSET(%rdx)  # place the eye catcher before the copy obj
+    movq     $EYE_CATCH, OBJ_EYE_CATCH(%rdx)           # place the eye catcher before the copy obj
     movq     OBJ_SIZE(%rdi), %rsi                      # %rsi = sizeof(obj) in quads
     salq     $3, %rsi                                  # %rsi = sizeof(obj) in quads * 8 = sizeof(obj) in bytes
     addq     %rdi, %rsi                                # %rsi = the start of source obj + sizeof(obj) in bytes

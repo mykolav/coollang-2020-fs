@@ -13,8 +13,8 @@
     .global .MemoryManager.FN_COLLECT
 .MemoryManager.FN_COLLECT:      .quad .NopGC.collect
 
-    .global .MemoryManager.TEST_ENABLED
-.MemoryManager.TEST_ENABLED:    .quad 0
+    .global .MemoryManager.IS_TESTING
+.MemoryManager.IS_TESTING:      .quad 0
 ########################################
 
     .global alloc_ptr
@@ -181,16 +181,16 @@ alloc_ptr:                      .quad 0
 
     .global .MemoryManager.ensure_can_alloc 
 .MemoryManager.ensure_can_alloc:
-    REQUESTED_SIZE_SIZE   = 8
-    REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
-    PADDING_SIZE          = 8
-    FRAME_SIZE            = REQUESTED_SIZE_SIZE + PADDING_SIZE
+    ALLOC_SIZE_SIZE   = 8
+    ALLOC_SIZE        = -ALLOC_SIZE_SIZE
+    PADDING_SIZE      = 8
+    FRAME_SIZE        = ALLOC_SIZE_SIZE + PADDING_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, REQUESTED_SIZE_OFFSET(%rbp)          # preserve the allocation size in quads
+    movq     %rdi, ALLOC_SIZE(%rbp)                     # preserve the allocation size in quads
     salq     $3, %rdi                                   # convert quads to bytes
 
     movq     alloc_ptr(%rip), %rax
@@ -204,7 +204,7 @@ alloc_ptr:                      .quad 0
     movq     %rbp, %rsi                                 # tip of stack to start collecting from
     callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
 .MemoryManager.ensure_can_alloc.can_alloc:
-    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi          # restore the allocation size in quads
+    movq     ALLOC_SIZE(%rbp), %rdi                     # restore the allocation size in quads
 
     movq     %rbp, %rsp
     popq     %rbp
@@ -230,13 +230,13 @@ alloc_ptr:                      .quad 0
     pushq    %rbp
     movq     %rsp, %rbp
 
-    movq     .MemoryManager.TEST_ENABLED(%rip), %rax    # Check if testing enabled
+    movq     .MemoryManager.IS_TESTING(%rip), %rax    # Check if testing enabled
     testq    %rax, %rax
     jz       .MemoryManager.test.done
 
-    xorl     %edi, %edi                                 # 0 bytes allocation size in %rdi
-    movq     %rbp, %rsi                                 # tip of stack to start collecting from
-    callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
+    xorl     %edi, %edi                               # 0 bytes allocation size in %rdi
+    movq     %rbp, %rsi                               # tip of stack to start collecting from
+    callq    *.MemoryManager.FN_COLLECT(%rip)         # collect garbage
 
 .MemoryManager.test.done:
     movq    %rbp, %rsp
@@ -264,12 +264,10 @@ alloc_ptr:                      .quad 0
     .global .GC.validate_ptr
 .GC.validate_ptr:
     testq    %rdi, %rdi
-    jz       .GC.validate_ptr.ok           # null is valid
-    movq     EYE_CATCH_OFFSET(%rdi), %rax
-    cmpq     $EYE_CATCH_VALUE, %rax
-    je       .GC.validate_ptr.ok           # found the eye-catch just before the object
-
-    jmp      .GC.abort                     # this is not a pointer to an object
+    jz       .GC.validate_ptr.ok                # null is valid
+    cmpq     $EYE_CATCH, OBJ_EYE_CATCH(%rdi)
+    je       .GC.validate_ptr.ok                # found the eye-catch just before the object
+    jmp      .GC.abort                          # this is not a pointer to an object
 .GC.validate_ptr.ok:
     ret
 
@@ -337,17 +335,18 @@ alloc_ptr:                      .quad 0
 
     .global .NopGC.collect
 .NopGC.collect:
-    EXPAND_SIZE           = 0x10000               # size in bytes to expand heap (65536B)
-    REQUESTED_SIZE_SIZE   = 8
-    REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
-    PADDING_SIZE          = 8
-    FRAME_SIZE            = REQUESTED_SIZE_SIZE + PADDING_SIZE
+    .NopGC.EXPAND_SIZE    = 0x10000                # size in bytes to expand heap (65536B)
+
+    ALLOC_SIZE_SIZE   = 8
+    ALLOC_SIZE        = -ALLOC_SIZE_SIZE
+    PADDING_SIZE      = 8
+    FRAME_SIZE        = ALLOC_SIZE_SIZE + PADDING_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, REQUESTED_SIZE_OFFSET(%rbp)    # preserve the allocation size in bytes
+    movq     %rdi, ALLOC_SIZE(%rbp)                # preserve the allocation size in bytes
 
     # show collection message
     # movq     $.NopGC.MSG_COLLECTING_ASCII, %rdi
@@ -356,19 +355,19 @@ alloc_ptr:                      .quad 0
 
 .NopGC.collect.ensure_can_alloc:
     movq     alloc_ptr(%rip), %rax
-    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi     # restore the allocation size in bytes
+    movq     ALLOC_SIZE(%rbp), %rdi                # restore the allocation size in bytes
     addq     %rdi, %rax                            # calc the new alloc ptr value 
     cmpq     .Platform.heap_end(%rip), %rax        # check if enough free space in the work area
     jl       .NopGC.collect.done                   # yes, there is
 
     # Let's make enough free space
-    movq     $EXPAND_SIZE, %rdi                    # size in bytes
+    movq     $.NopGC.EXPAND_SIZE, %rdi             # size in bytes
     call     .Platform.alloc                       # expand the heap
 
     jmp      .NopGC.collect.ensure_can_alloc       # keep expanding?
 
 .NopGC.collect.done:
-    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi     # restore the allocation size in bytes
+    movq     ALLOC_SIZE(%rbp), %rdi                # restore the allocation size in bytes
 
     movq     %rbp, %rsp
     popq     %rbp
