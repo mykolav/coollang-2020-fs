@@ -27,12 +27,12 @@ assign_sp:                      .quad 0
 
 .GenGC.MSG_MAJOR_ASCII:            .ascii "GenGC: Major ..."
 .GenGC.MSG_MAJOR_LEN  =                   (. - .GenGC.MSG_MAJOR_ASCII)
-.GenGC.MSG_MAJOR_ERROR_ASCII:      .ascii "GenGC: Error during major garbage collection"
+.GenGC.MSG_MAJOR_ERROR_ASCII:      .ascii "GenGC: Fatal error during major garbage collection"
 .GenGC.MSG_MAJOR_ERROR_LEN  =             (. - .GenGC.MSG_MAJOR_ERROR_ASCII)
 
 .GenGC.MSG_MINOR_ASCII:            .ascii "GenGC: Minor ..."
 .GenGC.MSG_MINOR_LEN  =                   (. - .GenGC.MSG_MINOR_ASCII)
-.GenGC.MSG_MINOR_ERROR_ASCII:      .ascii "GenGC: Error during minor garbage collection"
+.GenGC.MSG_MINOR_ERROR_ASCII:      .ascii "GenGC: Fatal error during minor garbage collection"
 .GenGC.MSG_MINOR_ERROR_LEN  =             (. - .GenGC.MSG_MINOR_ERROR_ASCII)
 
 ########################################
@@ -279,35 +279,13 @@ assign_sp:                      .quad 0
 .GenGC.HDR_STK       = 72    # base of stack
 
 #
-# The ROOT_REG_MASK bit mask tells the garbage collector which register(s) it
-# should check for roots and automatically update on a garbage collection. 
-#
-# The registers are numbered 0 to 15 in the following way (in descending order).
-# A register number corresponds to its bit in the mask.
-#
-# 15 - 08: r15 - r8
-# 07 - 00: rsp, rbp, rdi, rsi, rdx, rcx, rbx, rax
-#
-# Only 16 lest significant bits of the mask are used.
-# The other bits are padding the mask to 32 bit, their value is always 0.
-#
-# 3 2          1          0
-# 10987654_32109876_54321098_76543210 |
-# 00000000_00000000_11111111_00111111 | r15 - r8, rdi - rax
-# ------++-------++-------++-------++ | (i.e., all the registers, except rsp, rbp)
-#       00       00       FF       3F |
-#
-
-.GenGC.ROOT_REG_MASK = 0x0000FF3F
-
-#
 # Granularity of heap expansion
 #
 #   The heap is always expanded in multiples of 2^k, where
 #   k is the granularity.
 #
 
-.GenGC.HEAP_EXP_SIZE = 32768 # in bytes
+.GenGC.HEAP_PAGE     = 32768 # in bytes
 
 #
 # Old to usable heap size ratio
@@ -342,17 +320,17 @@ assign_sp:                      .quad 0
 
     .global .GenGC.init
 .GenGC.init:
-    STKBASE_SIZE      = 8
-    STKBASE_OFFSET    = -STKBASE_SIZE
-    FRAME_SIZE        = STKBASE_SIZE
+    STKBASE_SIZE    = 8
+    STKBASE         = -STKBASE_SIZE
+    FRAME_SIZE      = STKBASE_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, STKBASE_OFFSET(%rbp)
+    movq     %rdi, STKBASE(%rbp)
 
-    movq     $.GenGC.HEAP_EXP_SIZE, %rdi               # allocate initial heap space
+    movq     $.GenGC.HEAP_PAGE, %rdi                   # allocate initial heap space
     call     .Platform.alloc
     
     movq     .Platform.heap_start(%rip), %rdi
@@ -366,7 +344,7 @@ assign_sp:                      .quad 0
     sarq     $1, %rsi                                  # (heap_end - (heap_start + .GenGC.HDR_SIZE)) / 2
     andq     $(-8), %rsi                               # round down to the closest smaller multiple of 8 bytes
                                                        # since our object sizes are multiples of 8 bytes
-    jz       .GenGC.init.error                         # heap initially too small
+    jz       .GenGC.init.abort                         # heap initially too small
 
     movq     .Platform.heap_end(%rip), %rax
     movq     %rax, .GenGC.HDR_L3(%rdi)                 # initially the end of work area is at the heap end
@@ -407,7 +385,7 @@ assign_sp:                      .quad 0
     popq     %rbp
     ret
 
-.GenGC.init.error:
+.GenGC.init.abort:
     movq     $.GenGC.MSG_INIT_ERROR_ASCII, %rdi
     movq     $.GenGC.MSG_INIT_ERROR_LEN, %rsi
     call     .Platform.out_string
@@ -513,26 +491,25 @@ assign_sp:                      .quad 0
 
     .global .GenGC.collect
 .GenGC.collect:
-    REQUESTED_SIZE_SIZE   = 8
-    REQUESTED_SIZE_OFFSET = -REQUESTED_SIZE_SIZE
-    STACK_TIP_SIZE        = 8
-    STACK_TIP_OFFSET      = -(STACK_TIP_SIZE + REQUESTED_SIZE_SIZE)
-    FRAME_SIZE            = STACK_TIP_SIZE + REQUESTED_SIZE_SIZE
+    ALLOC_SIZE_SIZE    = 8
+    ALLOC_SIZE         = -ALLOC_SIZE_SIZE
+    STACK_TIP_SIZE     = 8
+    STACK_TIP          = -(STACK_TIP_SIZE + ALLOC_SIZE_SIZE)
+    FRAME_SIZE         = STACK_TIP_SIZE + ALLOC_SIZE_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, REQUESTED_SIZE_OFFSET(%rbp)
-    movq     %rsi, STACK_TIP_OFFSET(%rbp)
+    movq     %rdi, ALLOC_SIZE(%rbp)
+    movq     %rsi, STACK_TIP(%rbp)
 
     # movq     $.GenGC.MSG_COLLECTING_ASCII, %rdi
     # movq     $.GenGC.MSG_COLLECTING_LEN, %rsi
     # call     .Platform.out_string
     # call     .Runtime.out_nl
 
-    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi 
-    movq     STACK_TIP_OFFSET(%rbp), %rsi
+    movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.minor_collect                # %rax contains the size of all collected live objects
 
     # %rdi = heap_start
@@ -597,7 +574,7 @@ assign_sp:                      .quad 0
     movq     %rsi, %rcx                          # %rcx = the new L2
 
     # Enough space to allocate the requested size?
-    movq     REQUESTED_SIZE_OFFSET(%rbp), %rax   # %rax = the requested allocation size
+    movq     ALLOC_SIZE(%rbp), %rax              # %rax = the requested allocation size
     addq     %rax, %rsi                          # %rsi = (the new L2) + alloc size
     movq     .GenGC.HDR_L3(%rdi), %rdx           # %rdx = L3
     cmpq     %rdx, %rsi                          # %rsi >= L3?
@@ -623,8 +600,7 @@ assign_sp:                      .quad 0
     # call     .Platform.out_string
     # call     .Runtime.out_nl
 
-    movq     REQUESTED_SIZE_OFFSET(%rbp), %rdi 
-    movq     STACK_TIP_OFFSET(%rbp), %rsi
+    movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.major_collect                # %rax: the size of all collected live objects
                                                  # L1:   the new Old Area's end
 
@@ -700,7 +676,7 @@ assign_sp:                      .quad 0
     # If the difference > 0 we need to allocate %rdx * 2 memory
     # as we guarantee Reserve Area to be >= the size of Work Area we need
     # %rdx bytes for Work Area + %rdx bytes for Reserve Area.
-    addq     REQUESTED_SIZE_OFFSET(%rbp), %rdx   # %rdx =  Work Area start + requested alloc size
+    addq     ALLOC_SIZE(%rbp), %rdx   # %rdx =  Work Area start + requested alloc size
     subq     .GenGC.HDR_L3(%rdi), %rdx           # %rdx =  (Work Area's start + requested alloc size) - L3
     addq     $8, %rdx                            # %rdx += 8 -- adjust for round off errors 
                                                  #              (interger division by 2, etc)
@@ -719,16 +695,16 @@ assign_sp:                      .quad 0
     jle      .GenGC.collect.set_assign_sp_and_L2    # if (%rcx <= 0) 
                                                     #     go to .GenGC.collect.set_assign_sp_and_L2
     # %rcx: we need to expand the heap by at least this number of bytes.
-    # Round up %rcx to the nearest greater multiple of .GenGC.HEAP_EXP_SIZE (e.g., 32768 bytes):
+    # Round up %rcx to the nearest greater multiple of .GenGC.HEAP_PAGE (e.g., 32768 bytes):
     # %rcx = (%rcx + 32767) & (-32768)
-    movq    $.GenGC.HEAP_EXP_SIZE, %rax          # %rax = 32768  = 00000000_00000000_10000000_00000000
+    movq    $.GenGC.HEAP_PAGE, %rax              # %rax = 32768  = 00000000_00000000_10000000_00000000
     decq    %rax                                 # %rax = 32767  = 00000000_00000000_01111111_11111111
     addq    %rax, %rcx                           # %rcx = %rcx + 32767
     notq    %rax                                 # %rax = -32768 = 11111111_11111111_10000000_00000000
     andq    %rax, %rcx                           # %rcx = %rcx & (-32768)
 
     # %rcx: the total  number of bytes to expand the heap by.
-    #       (a multiple of .GenGC.HEAP_EXP_SIZE).
+    #       (a multiple of .GenGC.HEAP_PAGE).
     # See how much of the total expansion is covered by Unused.
     movq     .GenGC.HDR_L4(%rdi), %rax           # %rax = L4
     subq     .GenGC.HDR_L3(%rdi), %rax           # %rax = L4 - L3 = sizeof(Unused)
@@ -783,7 +759,7 @@ assign_sp:                      .quad 0
     jl       .GenGC.collect.work_area_clear_loop # if yes, we haven't reached 
                                                  # the end of Work Area yet
 
-    movq    REQUESTED_SIZE_OFFSET(%rbp), %rdi    # restore requested allocation size in bytes
+    movq    ALLOC_SIZE(%rbp), %rdi               # restore requested allocation size in bytes
     movq    %rbp, %rsp
     popq    %rbp
     ret
@@ -811,15 +787,15 @@ assign_sp:                      .quad 0
 #
 #   INPUT:
 #    %rdi: pointer to check and copy
-#    %rsi: lower bound object should be within.
-#    %rdx: upper bound object should be within.
+#    %rsi: lower bound object should be within
+#    %rdx: upper bound object should be within
 #
 #   OUTPUT:
 #    %rax: if %rdi points to a heap object 
 #          then it is set to the location of copied object.
 #          Else, unchanged value from %rdi.
-#    %rsi: lower bound object should be within. (unchanged)
-#    %rdx: upper bound object should be within. (unchanged)
+#    %rsi: lower bound object should be within (unchanged)
+#    %rdx: upper bound object should be within (unchanged)
 #
 #   GLOBALS MODIFIED:
 #    alloc_ptr
@@ -830,60 +806,60 @@ assign_sp:                      .quad 0
 
 .GenGC.check_copy:
     POINTER_SIZE       = 8
-    POINTER_OFFSET     = -POINTER_SIZE
+    POINTER            = -POINTER_SIZE
     LOWER_BOUND_SIZE   = 8
-    LOWER_BOUND_OFFSET = -(POINTER_SIZE + LOWER_BOUND_SIZE)
+    LOWER_BOUND        = -(POINTER_SIZE + LOWER_BOUND_SIZE)
     UPPER_BOUND_SIZE   = 8
-    UPPER_BOUND_OFFSET = -(POINTER_SIZE + LOWER_BOUND_SIZE + UPPER_BOUND_SIZE)
+    UPPER_BOUND        = -(POINTER_SIZE + LOWER_BOUND_SIZE + UPPER_BOUND_SIZE)
     FRAME_SIZE         =  (POINTER_SIZE + LOWER_BOUND_SIZE + UPPER_BOUND_SIZE)
 
     pushq    %rbp
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, %rax                                # if a check doesn't pass
-                                                       # we promised %rax = %rdi
-    movq     %rdi, POINTER_OFFSET(%rbp)
-    movq     %rsi, LOWER_BOUND_OFFSET(%rbp)
-    movq     %rdx, UPPER_BOUND_OFFSET(%rbp)
+    movq     %rdi, %rax                         # if a check doesn't pass
+                                                # we promised %rax = %rdi
+    movq     %rdi, POINTER(%rbp)
+    movq     %rsi, LOWER_BOUND(%rbp)
+    movq     %rdx, UPPER_BOUND(%rbp)
 
     # If the pointer is a muliple of 8, 
     # its least significant 3 bits are 000
     testq    $7, %rdi
-    jnz      .GenGC.check_copy.check_fail              # if (%rdi % 8 != 0)
-                                                       # go to .GenGC.check_copy.check_fail
+    jnz      .GenGC.check_copy.done             # if (%rdi % 8 != 0)
+                                                # go to .GenGC.check_copy.done
 
     # Check if the pointer is within [%rsi, %rdx)
     cmpq     %rsi, %rdi
-    jl       .GenGC.check_copy.check_fail              # if (%rdi < %rsi) 
-                                                       # go to .GenGC.check_copy.check_fail
+    jl       .GenGC.check_copy.done             # if (%rdi < %rsi) 
+                                                # go to .GenGC.check_copy.done
     cmpq     %rdx, %rdi
-    jge      .GenGC.check_copy.check_fail              # if (%rdi >= %rdx)
-                                                       # go to .GenGC.check_copy.check_fail
+    jge      .GenGC.check_copy.done             # if (%rdi >= %rdx)
+                                                # go to .GenGC.check_copy.done
 
     # Check the eye catcher is present
     cmpq     $EYE_CATCH, OBJ_EYE_CATCH(%rdi)
-    jne      .GC.abort                                 # if no eye catcher,
-                                                       # go to .GC.abort
+    jne      .GC.abort                          # if no eye catcher,
+                                                # go to .GC.abort
     # Check the object's tag != EYE_CATCH
     cmpq     $EYE_CATCH, OBJ_TAG(%rdi)
-    je       .GenGC.check_copy.check_fail              # if (tag == $EYE_CATCH)
-                                                       # go to .GenGC.check_copy.check_fail
+    je       .GenGC.check_copy.done             # if (tag == $EYE_CATCH)
+                                                # go to .GenGC.check_copy.done
 
-    movq     OBJ_SIZE(%rdi), %rsi                      # %rsi = sizeof(obj) in quads
+    movq     OBJ_SIZE(%rdi), %rsi               # %rsi = sizeof(obj) in quads
     testq    %rsi, %rsi
-    jz       .GenGC.check_copy.copy_done               # if (sizeof(obj) == 0)
-                                                       # the source obj has already been copied
+    jz       .GenGC.check_copy.copy_done        # if (sizeof(obj) == 0)
+                                                # the source obj has already been copied
 .GenGC.check_copy.copy:
     # The checks have passed, 
     # we're going to copy the object now.
-    addq     $8, alloc_ptr(%rip)                       # reserve a quad for the eye catcher
-    movq     alloc_ptr(%rip), %rcx                     # %rcx = the start of copy obj
-    movq     %rcx, %rdx                                # %rdx = the start of copy obj
-    movq     $EYE_CATCH, OBJ_EYE_CATCH(%rdx)           # place the eye catcher before the copy obj
-    salq     $3, %rsi                                  # %rsi = sizeof(obj) in quads * 8 = sizeof(obj) in bytes
-    addq     %rdi, %rsi                                # %rsi = the start of source obj + sizeof(obj) in bytes
-                                                       #      = the end of source obj
+    addq     $8, alloc_ptr(%rip)                # reserve a quad for the eye catcher
+    movq     alloc_ptr(%rip), %rcx              # %rcx = the start of copy obj
+    movq     %rcx, %rdx                         # %rdx = the start of copy obj
+    movq     $EYE_CATCH, OBJ_EYE_CATCH(%rdx)    # place the eye catcher before the copy obj
+    salq     $3, %rsi                           # %rsi = sizeof(obj) in quads * 8 = sizeof(obj) in bytes
+    addq     %rdi, %rsi                         # %rsi = the start of source obj + sizeof(obj) in bytes
+                                                #      = the end of source obj
     # %rdi: the start of source object
     # %rsi: the end of source obj
     # %rcx: the start of destination (copy) object
@@ -895,25 +871,25 @@ assign_sp:                      .quad 0
     addq     $8, %rdi
     addq     $8, %rdx
     cmpq     %rsi, %rdi
-    jl       .GenGC.check_copy.copy_loop               # if (%rdi < %rsi) 
-                                                       # go to .GenGC.check_copy.copy_loop
+    jl       .GenGC.check_copy.copy_loop        # if (%rdi < %rsi) 
+                                                # go to .GenGC.check_copy.copy_loop
     # %rcx: the start of destination (copy) object
     # %rdx: the end of destination (copy) object
 
-    movq     %rdx, alloc_ptr(%rip)                     # alloc_ptr = the end of dest (copy) obj
+    movq     %rdx, alloc_ptr(%rip)              # alloc_ptr = the end of dest (copy) obj
 
     # Mark the source object as copied
-    movq     POINTER_OFFSET(%rbp), %rdi                # %rdi = the start of source obj
-    movq     $0, OBJ_SIZE(%rdi)                        # put 0 into the source obj's size
-    movq     %rcx, OBJ_VTAB(%rdi)                      # put a forwarding pointer to the copy
-                                                       # into the source obj's vtab slot
+    movq     POINTER(%rbp), %rdi                # %rdi = the start of source obj
+    movq     $0, OBJ_SIZE(%rdi)                 # put 0 into the source obj's size
+    movq     %rcx, OBJ_VTAB(%rdi)               # put a forwarding pointer to the copy
+                                                # into the source obj's vtab slot
 .GenGC.check_copy.copy_done:
-    movq     POINTER_OFFSET(%rbp), %rdi
-    movq     OBJ_VTAB(%rdi), %rax                      # %rax = a pointer to the obj copy
-    movq     LOWER_BOUND_OFFSET(%rbp), %rsi            # %rsi = the original value
-    movq     UPPER_BOUND_OFFSET(%rbp), %rdx            # %rdx = the original value
+    movq     POINTER(%rbp), %rdi
+    movq     OBJ_VTAB(%rdi), %rax               # %rax = a pointer to the obj copy
+    movq     LOWER_BOUND(%rbp), %rsi            # %rsi = the original value
+    movq     UPPER_BOUND(%rbp), %rdx            # %rdx = the original value
 
-.GenGC.check_copy.check_fail:
+.GenGC.check_copy.done:
     movq     %rbp, %rsp
     popq     %rbp
     ret
@@ -927,261 +903,230 @@ assign_sp:                      .quad 0
 #   is then set to the end of the live objects.  The collector consists
 #   of six phases:
 #
-#     1) Set $gp into the reserve area and set the inputs for ChkCopy
+#     1) Set `alloc_ptr` at the start of Reserve Area and 
+#        set up the bounds for `.GenGC.check_copy`
 #
 #     2) Scan the stack for root pointers into the heap.  The beginning
 #        of the stack is in the header and the end is an input to this
 #        function.  Look for the appropriate stack flags and act
-#        accordingly.  Use ".GenGC.check_copy" to validate the pointer and
+#        accordingly.  Use `.GenGC.check_copy` to validate the pointer and
 #        get the new pointer, and then update the stack entry.
 #
-#     3) Check the registers specified in the .GenGC.ROOT_REG_MASK mask 
+#     3) Inspect the %rbx, %r12, %r13, %r14, %r15 registers
 #        for GC roots and to automatically update. 
-#        This mask is stored in the header.  If bit #n in the mask is set, 
-#        register #n will be passed to ".GenGC.check_copy" and updated with 
-#        its result.
 #
-#     4) The assignemnt table is now checked.  $s7 is moved from its
-#        current position until it hits the L3 pointer.  Each entry is a
-#        pointer to the pointer that must be checked.  Again,
-#        ".GenGC.check_copy" is used and the pointer updated.
+#     4) The assignment stack is now inspected. `assign_sp` is moved from its
+#        current position until it hits the L3 pointer (the base of assignment stack).
+#        Each entry is a pointer to object A's attribute itself pointing to object B.
+#        If object A resides in Old Area and object B resides in Work Area,
+#        Object B lives on.
+#        Again, `.GenGC.check_copy` is used and object A's attribute is updated to
+#        point to object B's copy in Reserve Area.
 #
-#     5) At this point, all root objects are in the reserve area.  This
-#        area is now traversed object by object (from L1 to $gp).  It
-#        results in a breadth first search of the live objects collected.
-#        All attributes of objects are treated as pointers except the
-#        "Int", "Bool", and "String" objects.  The first two are skipped
-#        completely, and the first attribute of the string object is
-#        analyzed (should be a pointer to an "Int" object).
+#     5) At this stage, all root objects are in Reserve Area.
+#        This area is now traversed object by object (from L1 to `alloc_ptr`).
+#        It results in a breadth-first search of the live objects 
+#        collected in Reserve Area.
+#        All attributes of objects are treated as pointers except the 
+#        `Int`, `Bool`, and `String` objects. The first two are skipped
+#        completely, and only the first attribute of the string object is
+#        analyzed (should be a pointer to an `Int` object).
 #
-#     6) At this point, L2 is set to the end of the live objects in the
-#        reserve area.  This is in preparation for a major collection.
+#     6) At this stage, L2 is set to the end of the live objects in
+#        Reserve Area. This is in preparation for a major collection.
 #        The size of all the live objects collected is then computed and
 #        returned.
 #
 #   INPUT:
-#    %rsi: the tip of stack to start checking for roots from
-#
-#    $a0: end of stack
-#    $s7: limit pointer of this area of storage
-#    $gp: current allocation pointer
-#    heap_start: start of heap
+#    %rdi: the tip of stack to start checking for roots from
 #
 #   OUTPUT:
 #    %rax: the size of all collected live objects
-#
-#    $a0: size of all live objects collected
 #
 #   GLOBALS MODIFIED:
 #    L2: the end of the live objects in Reserve area
 #
 #   Registers modified:
-#
-#    $t0, $t1, $t2, $t3, $t4, $v0, $v1, $a0, $a1, $a2, $gp, $s7
+#    %rax, %rdi, %rsi, %rdx, %rcx, %r8, %r9, .GenGC.check_copy
 #
 
 .GenGC.minor_collect:
+    STACK_TIP_SIZE     = 8
+    STACK_TIP          = -STACK_TIP_SIZE
+    FRAME_SIZE         = STACK_TIP_SIZE
+
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rdi, STACK_TIP(%rbp)
+
+    movq     .Platform.heap_start(%rip), %rcx     # %rcx = heap_start
+    # Set up the bounds for `.GenGC.check_copy`
+    movq     .GenGC.HDR_L2(%rcx), %rsi            # $rsi = [lower bound for .GenGC.check_copy
+    movq     .assign_sp(%rip), %rdx               # %rdx = upper bound) for .GenGC.check_copy
+    # Set up the destination for `.GenGC.check_copy`
+    movq     .GenGC.HDR_L1(%rcx), %rax            # %rax = L1 = the start of Reserve Area
+    movq     %rax, alloc_ptr(%rip)                # alloc_ptr = the start of Reserve Area
+
+    # Inspect the stack for GC roots within [%r8, %r9)
+    movq    .GenGC.HDR_STK(%rcx), %r9             # %r9 = stack base
+    movq    %rdi, %r8                             # %r8 = %rdi = stack tip
+    cmpq    %r8, %r9
+    jle     .GenGC.minor_collect.registers        # if (stack base <= stack tip) // stack grows down!
+                                                  # go to .GenGC.minor_collect.registers
+.GenGC.minor_collect.stack_loop:
+    movq     0(%r8), %rdi                         # %rdi = stack item at %r8
+    call    .GenGC.check_copy
+    movq    %rax, 0(%r8)                          # replace the stack item pointing to old object 
+                                                  # with the pointer to copy
+    addq    $8, %r8                               # move up one stack item closer to the base
+    cmpq    %r8, %r9
+    jg      .GenGC.minor_collect.stack_loop       # if (stack base > %rdi) // stack grows down
+                                                  # go to .GenGC.minor_collect.stack_loop
+.GenGC.minor_collect.registers:
+    # Inspect %rbx, %r12, %r13, %r14, %r15 for GC roots
+    #
+    # We follow the SYSV AMD64 ABI convention.
+    #
+    # The callee must preserve the value of %rbx, %r12, %r13, %r14, %r15.
+    # So the calling code is free to store GC roots in these registers and
+    # rely on them to be preserved across a procedure call. Hence we must
+    # inspect these registers.
+    #
+    # On the other hand, the calling code is responsible for placing 
+    # %rdi, %rsi, %rdx, %rcx, %r8, %r9 if it wants the registers preserved across 
+    # a procedure call. Therefore, when we inspect the stack for GC roots it 
+    # includes any GC roots from the caller-saved registers.
+
+    # %rbx
+    movq    %rbx, %rdi                            # %rdi = %rdx = a potential pointer to an object 
+    call    .GenGC.check_copy                     # if $rdx indeed points to an object,
+                                                  # we make a copy and the object lives on.
+                                                  # %rax = the start of copy or %rdi's original value.
+    movq    %rax, %rbx                            # %rbx = the start of copy or unchanges.
+    # %r12
+    movq    %r12, %rdi
+    call    .GenGC.check_copy
+    movq    %rax, %r12
+    # %r13:
+    movq    %r13, %rdi
+    call    .GenGC.check_copy
+    movq    %rax, %r13
+    # %r14:
+    movq    %r14, %rdi
+    call    .GenGC.check_copy
+    movq    %rax, %r14
+    # %r15:
+    movq    %r15, %rdi
+    call    .GenGC.check_copy
+    movq    %rax, %r15
+
+    # Inspect the assignment stack for GC roots
+    movq    .Platform.heap_start(%rip), %r8       # %r8  = heap_start
+
+    movq    assign_sp(%rip), %r9                  # %r9  = assign_sp
+    # See if the assignment stack is empty
+    cmpq    .GenGC.HDR_L3(%r8), %r9
+    jge     .GenGC.minor_collect.reserve_area     # if (assign_sp >= L3)
+                                                  # go to .GenGC.minor_collect.reserve_area
+.GenGC.minor_collect.assign_loop:
+    movq    0(%r9), %rdi                          # %rdi = current assignment stack entry
+    # If %rdi points to an attribute of an Old-Area object,
+    # the address will be within [L0, L1).
+    cmpq    .GenGC.HDR_L0(%r8), %rdi
+    jl      .GenGC.minor_collect.assign_continue  # if (%rdi < L0) continue
+    cmpq    .GenGC.HDR_L1(%r8), %rdi
+    jge     .GenGC.minor_collect.assign_continue  # if (%rdi >= L1) continue
+    # Check the object pointed to by the attribute
+    movq    0(%rdi), %rdi                         # %rdi = obj A's attr = a pointer to obj B
+    call    .GenGC.check_copy
+    
+    movq    0(%r9), %rdi                          # %rdi = current assignment stack entry
+    movq    %rax, 0(%rdi)                         # obj A's attr = a pointer to obj B's copy
+    addq    $8, %r9                               # move up one entry closer to L3
+.GenGC.minor_collect.assign_continue:
+    cmpq    .GenGC.HDR_L3(%r8), %r9
+    jl      .GenGC.minor_collect.assign_loop      # if (%r9 < L3) 
+                                                  # go to .GenGC.minor_collect.assign_loop
+    movq    %r9, assign_sp(%rip)                  # assign_sp = L3
+.GenGC.minor_collect.reserve_area:
+    # The objects we've copied to Reserve Area so far
+    # are GC roots. Now traverse them in breadth-first order
+    # and append any objects they point to at the end of Reserve Area.
+    # Keep traversing the appended objects. This process stops when we
+    # can't find any more objects to append to Reserve Area.
+#    la         $t0 heap_start
+#    lw         $t0 GenGC_HDRL1($t0)               # start of reserve area
+#    bge        $t0 $gp .GenGC.minor_collect.done  # check for no objects
+#.GenGC.minor_collect.ra_loop:                     # $t0: index, $gp: limit
+#    addiu      $t0 $t0 4                          # skip over eyecatcher
+#    addiu      $t1 $0 -1                          # check for eyecatcher
+#    lw         $t2 obj_eyecatch($t0)
+#    bne        $t1 $t2 .GenGC.minor_collect.abort # eyecatcher not found
+#    lw         $a0 obj_size($t0)                  # get object size
+#    sll        $a0 $a0 2                          # words to bytes
+#    lw         $t1 obj_tag($t0)                   # get the object's tag
+#    lw         $t2 _int_tag                       # test for int object
+#    beq        $t1 $t2 .GenGC.minor_collect.ra_int
+#    lw         $t2 _bool_tag                      # test for bool object
+#    beq        $t1 $t2 .GenGC.minor_collect.ra_bool
+#    lw         $t2 _string_tag                    # test for string object
+#    beq        $t1 $t2 .GenGC.minor_collect.ra_string
+#    # Handle an object of any other type
+#    addi       $t1 $t0 obj_attr                   # start at first attribute
+#    add        $t2 $t0 $a0                        # limit of attributes
+#    bge        $t1 $t2 .GenGC.minor_collect.ra_continue      # check for no attributes
+#    sw         $t0 16($sp)                        # save pointer to object
+#    sw         $a0 12($sp)                        # save object size
+#    sw         $t2 4($sp)                         # save limit
+#.GenGC.minor_collect.ra_obj_loop:                     # $t1: index, $t2: limit
+#    sw         $t1 8($sp)                         # save index
+#    lw         $a0 0($t1)                         # set pointer to check
+#    jal        .GenGC.check_copy                  # check and copy
+#    lw         $t1 8($sp)                         # restore index
+#    sw         $a0 0($t1)                         # update object pointer
+#    lw         $t2 4($sp)                         # restore limit
+#    addiu      $t1 $t1 4
+#    blt        $t1 $t2 .GenGC.minor_collect.ra_obj_loop      # loop
+#    # Done inspecting the current object
+#    lw         $t0 16($sp)                        # restore pointer to object
+#    lw         $a0 12($sp)                        # restore object size
+#    b          .GenGC.minor_collect.ra_continue       # next object
+#.GenGC.minor_collect.ra_array_loop:
+#    b          .GenGC.minor_collect.ra_continue       # next object
+#.GenGC.minor_collect.ra_string:
+#    sw         $t0 16($sp)                        # save pointer to object
+#    sw         $a0 12($sp)                        # save object size
+#    lw         $a0 str_size($t0)                  # set test pointer to an Int object representing the string's size
+#    jal        .GenGC.check_copy                  # check and copy
+#    lw         $t0 16($sp)                        # restore pointer to object
+#    sw         $a0 str_size($t0)                  # update size pointer
+#    lw         $a0 12($sp)                        # restore object size
+#.GenGC.minor_collect.ra_int:
+#.GenGC.minor_collect.ra_bool:
+#.GenGC.minor_collect.ra_continue:
+#    add        $t0 $t0 $a0                        # find next object
+#    blt        $t0 $gp .GenGC.minor_collect.ra_loop     # loop
+.GenGC.minor_collect.done:
+    movq     .Platform.heap_start(%rip), %rdi
+    movq     .alloc_ptr(%rip), %rax               # %rax = the end of collected live objects
+    movq     %rax, .GenGC.HDR_L2(%rdi)            # L2 = the end of collected live objects
+    subq     .GenGC.HDR_L1(%rdi), %rax            # %rax = L2 - L1 = sizeof(the collected live objects)
+
+    movq     %rbp, %rsp
+    popq     %rbp
     ret
 
-/*
-    .global    .GenGC_MinorC
-.GenGC_MinorC:
-    addiu      $sp $sp -20
-    sw         $ra 20($sp)                        # save return address
-    la         $t0 heap_start
-    lw         $a1 GenGC_HDRL2($t0)               # set lower bound to work area
-    move       $a2 $s7                            # set upper bound for ChkCopy
-    lw         $gp GenGC_HDRL1($t0)               # set $gp into reserve area
-    sw         $a0 16($sp)                        # save stack end
-    lw         $t0 GenGC_HDRSTK($t0)              # set $t0 to stack start
-    move       $t1 $a0                            # set $t1 to stack end
-    ble        $t0 $t1 .GenGC_MinorC_stackend     # check for empty stack
-                                                  # (stack grows from higher to lower addresses
-                                                  # Hence, stack start <= stack end when stack is empty)
-.GenGC_MinorC_stackloop:                          # $t1 stack end, $t0 index
-    addiu      $t0 $t0 -4                         # update index
-    sw         $t0 12($sp)                        # save stack index
-    lw         $a0 4($t0)                         # get stack item
-    jal        .GenGC.check_copy                     # check and copy
-    lw         $t0 12($sp)                        # load stack index
-    sw         $a0 4($t0)                         # replace stack item pointing to old object with pointer to new one
-    lw         $t1 16($sp)                        # restore stack end
-    bgt        $t0 $t1 .GenGC_MinorC_stackloop    # loop
-.GenGC_MinorC_stackend:
-    li         $t0 .GenGC.ROOT_REG_MASK           # get Register mask
-    sw         $t0 16($sp)                        # save Register mask
-.GenGC_MinorC_reg16:
-    srl        $t0 $t0 16                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg17         # check if set
-    move       $a0 $16                            # set test pointer to potentially old object address
-    jal        .GenGC.check_copy                     # check and copy
-    move       $16 $a0                            # update register with potentilly new object address
-.GenGC_MinorC_reg17:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 17                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg18         # check if set
-    move       $a0 $17                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $17 $a0                            # update register
-.GenGC_MinorC_reg18:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 18                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg19         # check if set
-    move       $a0 $18                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $18 $a0                            # update register
-.GenGC_MinorC_reg19:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 19                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg20         # check if set
-    move       $a0 $19                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $19 $a0                            # update register
-.GenGC_MinorC_reg20:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 20                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg21         # check if set
-    move       $a0 $20                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $20 $a0                            # update register
-.GenGC_MinorC_reg21:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 21                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg22         # check if set
-    move       $a0 $21                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $21 $a0                            # update register
-.GenGC_MinorC_reg22:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 22                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg24         # check if set
-    move       $a0 $22                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $22 $a0                            # update register
-.GenGC_MinorC_reg24:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 24                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg25         # check if set
-    move       $a0 $24                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $24 $a0                            # update register
-.GenGC_MinorC_reg25:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 25                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg30         # check if set
-    move       $a0 $25                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $25 $a0                            # update register
-.GenGC_MinorC_reg30:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 30                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_reg31         # check if set
-    move       $a0 $30                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $30 $a0                            # update register
-.GenGC_MinorC_reg31:
-    lw         $t0 16($sp)                        # restore mask
-    srl        $t0 $t0 31                         # shift to proper bit
-    andi       $t1 $t0 1
-    beq        $t1 $0 .GenGC_MinorC_regend        # check if set
-    move       $a0 $31                            # set test pointer
-    jal        .GenGC.check_copy                     # check and copy
-    move       $31 $a0                            # update register
-.GenGC_MinorC_regend:
-    la         $t0 heap_start
-    lw         $t3 GenGC_HDRL0($t0)               # lower limit of old area
-    lw         $t4 GenGC_HDRL1($t0)               # upper limit of old area
-    lw         $t0 GenGC_HDRL3($t0)               # get L3
-    sw         $t0 16($sp)                        # save index limit
-    bge        $s7 $t0 .GenGC_MinorC_assnend      # check for no assignments
-.GenGC_MinorC_assnloop:                           # $s7 index, $t0 limit
-    lw         $a0 0($s7)                         # get table entry
-    blt        $a0 $t3 .GenGC_MinorC_assnnext     # must point into old area
-    bge        $a0 $t4 .GenGC_MinorC_assnnext
-    lw         $a0 0($a0)                         # get pointer to check
-    jal        .GenGC.check_copy                     # check and copy
-    lw         $t0 0($s7)
-    sw         $a0 0($t0)                         # update pointer
-    lw         $t0 16($sp)                        # restore index limit
-.GenGC_MinorC_assnnext:
-    addiu      $s7 $s7 4                          # update index
-    blt        $s7 $t0 .GenGC_MinorC_assnloop     # loop
-.GenGC_MinorC_assnend:
-    la         $t0 heap_start
-    lw         $t0 GenGC_HDRL1($t0)               # start of reserve area
-    bge        $t0 $gp .GenGC_MinorC_heapend      # check for no objects
-.GenGC_MinorC_heaploop:                           # $t0: index, $gp: limit
-    addiu      $t0 $t0 4                          # skip over eyecatcher
-    addiu      $t1 $0 -1                          # check for eyecatcher
-    lw         $t2 obj_eyecatch($t0)
-    bne        $t1 $t2 .GenGC_MinorC_error        # eyecatcher not found
-    lw         $a0 obj_size($t0)                  # get object size
-    sll        $a0 $a0 2                          # words to bytes
-    lw         $t1 obj_tag($t0)                   # get the object's tag
-    lw         $t2 _int_tag                       # test for int object
-    beq        $t1 $t2 .GenGC_MinorC_int
-    lw         $t2 _bool_tag                      # test for bool object
-    beq        $t1 $t2 .GenGC_MinorC_bool
-    lw         $t2 _string_tag                    # test for string object
-    beq        $t1 $t2 .GenGC_MinorC_string
-.GenGC_MinorC_other:
-    addi       $t1 $t0 obj_attr                   # start at first attribute
-    add        $t2 $t0 $a0                        # limit of attributes
-    bge        $t1 $t2 .GenGC_MinorC_nextobj      # check for no attributes
-    sw         $t0 16($sp)                        # save pointer to object
-    sw         $a0 12($sp)                        # save object size
-    sw         $t2 4($sp)                         # save limit
-.GenGC_MinorC_objloop:                            # $t1: index, $t2: limit
-    sw         $t1 8($sp)                         # save index
-    lw         $a0 0($t1)                         # set pointer to check
-    jal        .GenGC.check_copy                     # check and copy
-    lw         $t1 8($sp)                         # restore index
-    sw         $a0 0($t1)                         # update object pointer
-    lw         $t2 4($sp)                         # restore limit
-    addiu      $t1 $t1 4
-    blt        $t1 $t2 .GenGC_MinorC_objloop      # loop
-.GenGC_MinorC_objend:
-    lw         $t0 16($sp)                        # restore pointer to object
-    lw         $a0 12($sp)                        # restore object size
-    b          .GenGC_MinorC_nextobj              # next object
-.GenGC_MinorC_string:
-    sw         $t0 16($sp)                        # save pointer to object
-    sw         $a0 12($sp)                        # save object size
-    lw         $a0 str_size($t0)                  # set test pointer to an Int object representing the string's size
-    jal        .GenGC.check_copy                     # check and copy
-    lw         $t0 16($sp)                        # restore pointer to object
-    sw         $a0 str_size($t0)                  # update size pointer
-    lw         $a0 12($sp)                        # restore object size
-.GenGC_MinorC_int:
-.GenGC_MinorC_bool:
-.GenGC_MinorC_nextobj:
-    add        $t0 $t0 $a0                        # find next object
-    blt        $t0 $gp .GenGC_MinorC_heaploop     # loop
-.GenGC_MinorC_heapend:
-    la         $t0 heap_start
-    sw         $gp GenGC_HDRL2($t0)               # set L2 to $gp
-    lw         $a0 GenGC_HDRL1($t0)
-    sub        $a0 $gp $a0                        # find size after collection
-    lw         $ra 20($sp)                        # restore return address
-    addiu      $sp $sp 20
-    jr         $ra                                # return
-.GenGC_MinorC_error:
-    la         $a0 .GenGC_MINORERROR              # show error message
-    li         $v0 4
-    syscall
-    li         $v0 10                             # exit
-    syscall
-*/
+.GenGC.minor_collect.abort:
+    movq     $.GenGC.MSG_MINOR_ERROR_ASCII, %rdi
+    movq     $.GenGC.MSG_MINOR_ERROR_LEN, %rsi
+    call     .Platform.out_string
+    call     .Runtime.out_nl
+
+    movq   $1, %rdi
+    jmp    .Platform.exit_process
+
 
 #
 # Check and Copy an Object with an Offset
@@ -1234,9 +1179,9 @@ assign_sp:                      .quad 0
 #
 
 .GenGC.offset_copy:
-    POINTER_SIZE       = 8
-    POINTER_OFFSET     = -POINTER_SIZE
-    FRAME_SIZE         =  POINTER_SIZE
+    POINTER_SIZE    = 8
+    POINTER         = -POINTER_SIZE
+    FRAME_SIZE      =  POINTER_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -1244,7 +1189,7 @@ assign_sp:                      .quad 0
 
     movq     %rdi, %rax                                # if a check doesn't pass
                                                        # we promised %rax = %rdi
-    movq     %rdi, POINTER_OFFSET(%rbp)
+    movq     %rdi, POINTER(%rbp)
 
     # If the pointer is a muliple of 8, 
     # its least significant 3 bits are 000
@@ -1302,14 +1247,14 @@ assign_sp:                      .quad 0
     addq $8, %rcx
 
     # Now, as usual, round up %rcx to the nearest greater multiple of 
-    # .GenGC.HEAP_EXP_SIZE (e.g., 32768 bytes):
+    # .GenGC.HEAP_PAGE (e.g., 32768 bytes):
     # %rcx = (%rcx + 32767) & (-32768)
-    movq     $.GenGC.HEAP_EXP_SIZE, %rax               # %rax = 32768  = 00000000_00000000_10000000_00000000
+    movq     $.GenGC.HEAP_PAGE, %rax                   # %rax = 32768  = 00000000_00000000_10000000_00000000
     decq     %rax                                      # %rax = 32767  = 00000000_00000000_01111111_11111111
     addq     %rax, %rcx                                # %rcx = %rcx + 32767
     notq     %rax                                      # %rax = -32768 = 11111111_11111111_10000000_00000000
     andq     %rax, %rcx                                # %rcx = %rcx & (-32768)
-    movq     $.GenGC.HEAP_EXP_SIZE, %rax               # %rax = 32768  = 00000000_00000000_10000000_00000000
+    movq     $.GenGC.HEAP_PAGE, %rax                   # %rax = 32768  = 00000000_00000000_10000000_00000000
     decq     %rax                                      # %rax = 32767  = 00000000_00000000_01111111_11111111
     addq     %rax, %rcx                                # %rcx = %rcx + 32767
     notq     %rax                                      # %rax = -32768 = 11111111_11111111_10000000_00000000
@@ -1321,7 +1266,7 @@ assign_sp:                      .quad 0
     movq     .Platform.heap_end(%rip), %rax            # %rax      = heap_end after the allocation
     movq     %rax, assign_sp(%rip)                     # assign_sp = heap_end
 
-    movq     POINTER_OFFSET(%rbp), %rdi                # %rdi = the start of source obj
+    movq     POINTER(%rbp), %rdi                       # %rdi = the start of source obj
 
 .GenGC.offset_copy.copy:
     # The checks have passed, 
@@ -1359,12 +1304,12 @@ assign_sp:                      .quad 0
     addq     %rax, %rcx                                # %rcx = %rcx + (L0 - L1)
                                                        #      = the start of dest (copy) object + (L0 - L1)
     # Mark the source object as copied
-    movq     POINTER_OFFSET(%rbp), %rdi                # %rdi = the start of source obj
+    movq     POINTER(%rbp), %rdi                       # %rdi = the start of source obj
     movq     $0, OBJ_SIZE(%rdi)                        # put 0 into the source obj's size
     movq     %rcx, OBJ_VTAB(%rdi)                      # put a forwarding pointer to the copy + (L0 - L1) 
                                                        # into the source obj's VTAB slot
 .GenGC.offset_copy.copy_done:
-    movq     POINTER_OFFSET(%rbp), %rdi
+    movq     POINTER(%rbp), %rdi
     movq     OBJ_VTAB(%rdi), %rax                      # %rax = a pointer to the obj copy
 
 .GenGC.offset_copy.done:
@@ -1399,7 +1344,7 @@ assign_sp:                      .quad 0
 #   until the block copy is done.
 #
 #   INPUT:
-#    %rsi: the tip of stack to start checking for roots from
+#    %rdi: the tip of stack to start checking for roots from
 #
 #    $a0: end of stack
 #    heap_start: start of heap
