@@ -257,23 +257,23 @@
 # GenGC header offsets from `.Platform.heap_start`
 #
 
-.GenGC.HDR_SIZE      = 80    # size of GenGC header
+.GenGC.HDR_SIZE        = 80    # size of GenGC header
 
-.GenGC.HDR_L0        = 0     # old area start
-.GenGC.HDR_L1        = 8     # old area end/reserve area start
-.GenGC.HDR_L2        = 16    # reserve area end/work area start
-.GenGC.HDR_L3        = 24    # assignment table end/unused start
-.GenGC.HDR_L4        = 32    # unused end
+.GenGC.HDR_L0          = 0     # old area start
+.GenGC.HDR_L1          = 8     # old area end/reserve area start
+.GenGC.HDR_L2          = 16    # reserve area end/work area start
+.GenGC.HDR_L3          = 24    # assignment table end/unused start
+.GenGC.HDR_L4          = 32    # unused end
 
-.GenGC.HDR_MAJOR0    = 40    # total size of objects in the new area 
-                             # after last major collection
-.GenGC.HDR_MAJOR1    = 48    # (MAJOR0 + MAJOR1) / 2
+.GenGC.HDR_MAJOR0      = 40    # total size of objects in the new area 
+                               # after last major collection
+.GenGC.HDR_MAJOR1      = 48    # (MAJOR0 + MAJOR1) / 2
 
-.GenGC.HDR_MINOR0    = 56    # size of all live objects collected
-                             # during last minor collection
-.GenGC.HDR_MINOR1    = 64    # (MINOR0 + MINOR1) / 2
+.GenGC.HDR_MINOR0      = 56    # size of all live objects collected
+                               # during last minor collection
+.GenGC.HDR_MINOR1      = 64    # (MINOR0 + MINOR1) / 2
 
-.GenGC.HDR_STK       = 72    # base of stack
+.GenGC.HDR_STACK_BASE  = 72    # base of stack
 
 #
 # Granularity of heap expansion
@@ -317,51 +317,51 @@
 
     .global .GenGC.init
 .GenGC.init:
-    STKBASE_SIZE    = 8
-    STKBASE         = -STKBASE_SIZE
-    FRAME_SIZE      = STKBASE_SIZE
+    STACK_BASE_SIZE    = 8
+    STACK_BASE         = -STACK_BASE_SIZE
+    FRAME_SIZE         = STACK_BASE_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, STKBASE(%rbp)
+    movq     %rdi, STACK_BASE(%rbp)
 
-    movq     $.GenGC.HEAP_PAGE, %rdi                   # allocate initial heap space
+    movq     $.GenGC.HEAP_PAGE, %rdi                # allocate initial heap space
     call     .Platform.alloc
     
     movq     .Platform.heap_start(%rip), %rdi
     movq     $.GenGC.HDR_SIZE, %rax
-    addq     %rdi, %rax                                # %rax contains the first addr past the header
-    movq     %rax, .GenGC.HDR_L0(%rdi)                 # init the header's L0 field
-    movq     %rax, .GenGC.HDR_L1(%rdi)                 # init the header's L1 field
+    addq     %rdi, %rax                             # %rax contains the first addr past the header
+    movq     %rax, .GenGC.HDR_L0(%rdi)              # init the header's L0 field
+    movq     %rax, .GenGC.HDR_L1(%rdi)              # init the header's L1 field
 
     movq     .Platform.heap_end(%rip), %rsi
-    subq     %rax, %rsi                                # heap_end - (heap_start + .GenGC.HDR_SIZE)
-    sarq     $1, %rsi                                  # (heap_end - (heap_start + .GenGC.HDR_SIZE)) / 2
-    andq     $(-8), %rsi                               # round down to the closest smaller multiple of 8 bytes
-                                                       # since our object sizes are multiples of 8 bytes
-    jz       .GenGC.init.abort                         # heap initially too small
+    subq     %rax, %rsi                             # heap_end - (heap_start + .GenGC.HDR_SIZE)
+    sarq     $1, %rsi                               # (heap_end - (heap_start + .GenGC.HDR_SIZE)) / 2
+    andq     $(-8), %rsi                            # round down to the closest smaller multiple of 8 bytes
+                                                    # since our object sizes are multiples of 8 bytes
+    jz       .GenGC.init.abort                      # heap initially too small
 
     movq     .Platform.heap_end(%rip), %rax
-    movq     %rax, .GenGC.HDR_L3(%rdi)                 # initially the end of work area is at the heap end
-    movq     %rax, .Alloc.limit(%rdi)                  # initially the tip of assign stack is at the end of work area
-    movq     %rax, .GenGC.HDR_L4(%rdi)                 # initially the end of unused area is at the heap end
+    movq     %rax, .GenGC.HDR_L3(%rdi)              # initially the end of work area is at the heap end
+    movq     %rax, .Alloc.limit(%rdi)               # initially the tip of assign stack is at the end of work area
+    movq     %rax, .GenGC.HDR_L4(%rdi)              # initially the end of unused area is at the heap end
 
-    subq     %rsi, %rax                                # %rsi contains the work area size
-                                                       # L3 - %rsi = reserve area end/work area start
-    movq     %rax, .GenGC.HDR_L2(%rdi)                 # store the calculated start of work area
-    movq     %rax, .Alloc.ptr(%rip)                    # initially the allocation pointer is at the start of work area
+    subq     %rsi, %rax                             # %rsi contains the work area size
+                                                    # L3 - %rsi = reserve area end/work area start
+    movq     %rax, .GenGC.HDR_L2(%rdi)              # store the calculated start of work area
+    movq     %rax, .Alloc.ptr(%rip)                 # initially the allocation pointer is at the start of work area
 
-    movq     $0, .GenGC.HDR_MAJOR0(%rdi)               # init histories with zeros
+    movq     $0, .GenGC.HDR_MAJOR0(%rdi)            # init histories with zeros
     movq     $0, .GenGC.HDR_MAJOR1(%rdi)
     movq     $0, .GenGC.HDR_MINOR0(%rdi)
     movq     $0, .GenGC.HDR_MINOR1(%rdi)
 
-    movq     STKBASE_OFFSET(%rbp), %rax
-    movq     %rax, .GenGC.HDR_STK(%rdi)                # init stack base
+    movq     STACK_BASE(%rbp), %rax
+    movq     %rax, .GenGC.HDR_STACK_BASE(%rdi)      # init stack base
 
-    movq     .MemoryManager.TEST_ENABLED(%rip), %rax   # check if heap testing enabled
+    movq     .MemoryManager.IS_TESTING(%rip), %rax  # check if heap testing enabled
     testq    %rax, %rax
     jz       .GenGC.init.heap_test_disabled
 
@@ -971,7 +971,7 @@
     movq     %rax, .Alloc.ptr(%rip)               # .Alloc.ptr = the start of Reserve Area
 
     # Inspect the stack for GC roots within [%r9, %r10)
-    movq    .GenGC.HDR_STK(%r8), %r10             # %r10 = stack base
+    movq    .GenGC.HDR_STACK_BASE(%r8), %r10      # %r10 = stack base
     movq    %rdi, %r9                             # %r9 = %rdi = stack tip
     cmpq    %r10, %r9 
     jge     .GenGC.minor_collect.registers        # if (stack tip >= stack base) // stack grows down!
@@ -1077,7 +1077,7 @@
     movq    OBJ_TAG(%r9), %rax                    # %rax = the obj's tag
     cmpq    $INT_TAG, %rax
     je      .GenGC.minor_collect.ra_int
-    cmpq    $BOOL_TAG, %rax
+    cmpq    $BOOLEAN_TAG, %rax
     je      .GenGC.minor_collect.ra_bool
     cmpq    $STRING_TAG, %rax
     je      .GenGC.minor_collect.ra_string
@@ -1469,7 +1469,7 @@
 
     # Inspect the stack for GC roots within [%r9, %r10)
     movq    %rdi, %r9                             # %r9 = %rdi = stack tip
-    movq    .GenGC.HDR_STK(%r8), %r10             # %r10       = stack base
+    movq    .GenGC.HDR_STACK_BASE(%r8), %r10      # %r10       = stack base
     cmpq    %r10, %r9
     # See if the stack is empty
     jge     .GenGC.major_collect.registers        # if (stack tip >= stack base) // stack grows down!
@@ -1564,7 +1564,7 @@
     movq    OBJ_TAG(%r9), %rax                    # %rax = the obj's tag
     cmpq    $INT_TAG, %rax
     je      .GenGC.major_collect.xa_int
-    cmpq    $BOOL_TAG, %rax
+    cmpq    $BOOLEAN_TAG, %rax
     je      .GenGC.major_collect.xa_bool
     cmpq    $STRING_TAG, %rax
     je      .GenGC.major_collect.xa_string

@@ -98,7 +98,7 @@ IO_vtable:
     .quad -1
     .global Int_proto_obj
 Int_proto_obj:
-    .quad Int_tag    # tag
+    .quad INT_TAG    # tag
     .quad 4          # size in quads
     .quad Int_vtable
     .quad 0          # value
@@ -106,7 +106,7 @@ Int_proto_obj:
     .quad -1
     .global Int_0
 Int_0:
-    .quad Int_tag    # tag
+    .quad INT_TAG    # tag
     .quad 4          # size in quads
     .quad Int_vtable
     .quad 0          # value
@@ -499,7 +499,7 @@ IO_proto_obj:
     cmpq    %rdx, %rcx
     jne     .Runtime.are_equal.false
 
-    cmpq    $Int_tag, %rdx
+    cmpq    $INT_TAG, %rdx
     je      .Runtime.are_equal.int
 
     cmpq    $BOOLEAN_TAG, %rdx
