@@ -90,15 +90,7 @@ IO_vtable:
     .quad IO.in_string
     .quad IO.in_int
 
-########################################
-# Tags
-########################################
-    .set Unit_tag,      1
-    .set Int_tag,       2
-    .set String_tag,    3
-    .set Boolean_tag,   4
-    .set ArrayAny_tag,  5
-    .set IO_tag,        6
+    .include "constants.inc"
 
 ########################################
 # Prototype objects
@@ -122,14 +114,14 @@ Int_0:
     .quad -1
     .global Unit_value
 Unit_value:
-    .quad Unit_tag    # tag
+    .quad UNIT_TAG    # tag
     .quad 3           # size in quads
     .quad Unit_vtable
     
     .quad -1
     .global String_empty
 String_empty:
-    .quad String_tag    # tag
+    .quad STRING_TAG    # tag
     .quad 5             # size in quads
     .quad String_vtable
     .quad Int_0         # length
@@ -139,7 +131,7 @@ String_empty:
     .quad -1
     .global Boolean_true
 Boolean_true:
-    .quad Boolean_tag    # tag
+    .quad BOOLEAN_TAG    # tag
     .quad 4              # size in quads
     .quad Boolean_vtable
     .quad 1              # value
@@ -147,7 +139,7 @@ Boolean_true:
     .quad -1
     .global Boolean_false
 Boolean_false:
-    .quad Boolean_tag    # tag
+    .quad BOOLEAN_TAG    # tag
     .quad 4              # size in quads
     .quad Boolean_vtable
     .quad 0              # value
@@ -155,7 +147,7 @@ Boolean_false:
     .quad -1
     .global IO_proto_obj
 IO_proto_obj:
-    .quad IO_tag         # tag
+    .quad IO_TAG         # tag
     .quad 3              # size in quads
     .quad IO_vtable
 
@@ -163,8 +155,6 @@ IO_proto_obj:
 # Text
 ########################################
     .text
-
-    .include "constants.inc"
 
 ########################################
 # .Runtime
@@ -512,13 +502,13 @@ IO_proto_obj:
     cmpq    $Int_tag, %rdx
     je      .Runtime.are_equal.int
 
-    cmpq    $Boolean_tag, %rdx
+    cmpq    $BOOLEAN_TAG, %rdx
     je      .Runtime.are_equal.int
 
-    cmpq    $Unit_tag, %rdx
+    cmpq    $UNIT_TAG, %rdx
     je      .Runtime.are_equal.unit
 
-    cmpq    $String_tag, %rdx
+    cmpq    $STRING_TAG, %rdx
     jne     .Runtime.are_equal.false    # Not a primitive type, return false
 
 #.Runtime.are_equal.string:
@@ -780,7 +770,7 @@ String.create:
     movq    %rax, -24(%rbp)              # result string object
 
     # tag
-    movq    $String_tag, OBJ_TAG(%rax)
+    movq    $STRING_TAG, OBJ_TAG(%rax)
     
     # size in quads
     movq    -16(%rbp), %rcx # size in quads
@@ -1248,7 +1238,7 @@ ArrayAny..ctor:
     movq    $EYE_CATCH, (%rax)      # write the eyecatch value
     addq    $8, %rax                # move ptr to the beginning of object
 
-    movq    $ArrayAny_tag, OBJ_TAG(%rax)
+    movq    $ARRAYANY_TAG, OBJ_TAG(%rax)
 
     movq    -16(%rbp), %rsi         # size in quads
     movq    %rsi, OBJ_SIZE(%rax)

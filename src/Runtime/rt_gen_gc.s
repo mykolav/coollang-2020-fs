@@ -559,12 +559,12 @@ assign_sp:                      .quad 0
     cmpq     %rcx, %rax                          # Has L1 (the end of Old Area) crossed the breakpoint?
                                                  # (%rax >= %rcx?)
     jge      .GenGC.collect.do_major             # if yes, perform a major collection
-    #. if no, update L1, set up the new Reserve/Work areas,
-    #  reset `alloc_ptr`, and `assign_sp`, etc
+    # If no, update L1, set up the new Reserve/Work areas,
+    # reset `alloc_ptr`, and `assign_sp`, etc
     movq     .GenGC.HDR_L2(%rdi), %rcx           # %rcx = L2
     movq     .GenGC.HDR_L3(%rdi), %rdx           # %rdx = L3
     movq     %rdx, %rsi                          # %rsi = L3
-    # find Reserve/Work areas boundary
+    # Calculate Reserve/Work areas boundary
     subq     %rcx, %rdx                          # %rdx = L3 - L2
     sarq     $1, %rdx                            # %rdx = (L3 - L2) / 2
     andq     $(-8), %rdx                         # %rdx = the nearest smaller multiple of 8
@@ -897,10 +897,10 @@ assign_sp:                      .quad 0
 #
 # Minor Garbage Collection
 #
-#   This garbage collector is run when ever the space in the work
-#   area is used up by objects and the assignment table.  The live
-#   objects are found and copied to the reserve area.  The L2 pointer
-#   is then set to the end of the live objects.  The collector consists
+#   A minor garbage collector is run whenever the space in Work Area 
+#   is used up by objects and the assignment table. The live
+#   objects are found and copied to Reserve Area. The L2 pointer
+#   is then set right past the last live object. The collector consists
 #   of six phases:
 #
 #     1) Set `alloc_ptr` at the start of Reserve Area and 
@@ -953,7 +953,9 @@ assign_sp:                      .quad 0
 .GenGC.minor_collect:
     STACK_TIP_SIZE     = 8
     STACK_TIP          = -STACK_TIP_SIZE
-    FRAME_SIZE         = STACK_TIP_SIZE
+    RA_OBJ_SIZE_SIZE   = 8
+    RA_OBJ_SIZE        = -(STACK_TIP_SIZE + RA_OBJ_SIZE_SIZE)
+    FRAME_SIZE         = STACK_TIP_SIZE + RA_OBJ_SIZE_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -961,28 +963,29 @@ assign_sp:                      .quad 0
 
     movq     %rdi, STACK_TIP(%rbp)
 
-    movq     .Platform.heap_start(%rip), %rcx     # %rcx = heap_start
+    movq     .Platform.heap_start(%rip), %r8      # %r8 = heap_start
+
     # Set up the bounds for `.GenGC.check_copy`
-    movq     .GenGC.HDR_L2(%rcx), %rsi            # $rsi = [lower bound for .GenGC.check_copy
-    movq     .assign_sp(%rip), %rdx               # %rdx = upper bound) for .GenGC.check_copy
+    movq     .GenGC.HDR_L2(%r8), %rsi             # $rsi = [lower bound for .GenGC.check_copy
+    movq     assign_sp(%rip), %rdx                # %rdx = upper bound) for .GenGC.check_copy
     # Set up the destination for `.GenGC.check_copy`
-    movq     .GenGC.HDR_L1(%rcx), %rax            # %rax = L1 = the start of Reserve Area
+    movq     .GenGC.HDR_L1(%r8), %rax             # %rax = L1 = the start of Reserve Area
     movq     %rax, alloc_ptr(%rip)                # alloc_ptr = the start of Reserve Area
 
-    # Inspect the stack for GC roots within [%r8, %r9)
-    movq    .GenGC.HDR_STK(%rcx), %r9             # %r9 = stack base
-    movq    %rdi, %r8                             # %r8 = %rdi = stack tip
-    cmpq    %r8, %r9
-    jle     .GenGC.minor_collect.registers        # if (stack base <= stack tip) // stack grows down!
+    # Inspect the stack for GC roots within [%r9, %r10)
+    movq    .GenGC.HDR_STK(%r8), %r10             # %r10 = stack base
+    movq    %rdi, %r9                             # %r9 = %rdi = stack tip
+    cmpq    %r10, %r9 
+    jge     .GenGC.minor_collect.registers        # if (stack tip >= stack base) // stack grows down!
                                                   # go to .GenGC.minor_collect.registers
 .GenGC.minor_collect.stack_loop:
-    movq     0(%r8), %rdi                         # %rdi = stack item at %r8
+    movq     0(%r9), %rdi                         # %rdi = stack entry at %r9
     call    .GenGC.check_copy
-    movq    %rax, 0(%r8)                          # replace the stack item pointing to old object 
+    movq    %rax, 0(%r9)                          # replace the stack entry pointing to old object 
                                                   # with the pointer to copy
-    addq    $8, %r8                               # move up one stack item closer to the base
-    cmpq    %r8, %r9
-    jg      .GenGC.minor_collect.stack_loop       # if (stack base > %rdi) // stack grows down
+    addq    $8, %r9                               # move up one stack entry closer to the base
+    cmpq    %r10, %r9
+    jl      .GenGC.minor_collect.stack_loop       # if (%rdi < stack base) // stack grows down!
                                                   # go to .GenGC.minor_collect.stack_loop
 .GenGC.minor_collect.registers:
     # Inspect %rbx, %r12, %r13, %r14, %r15 for GC roots
@@ -1023,8 +1026,6 @@ assign_sp:                      .quad 0
     movq    %rax, %r15
 
     # Inspect the assignment stack for GC roots
-    movq    .Platform.heap_start(%rip), %r8       # %r8  = heap_start
-
     movq    assign_sp(%rip), %r9                  # %r9  = assign_sp
     # See if the assignment stack is empty
     cmpq    .GenGC.HDR_L3(%r8), %r9
@@ -1056,61 +1057,117 @@ assign_sp:                      .quad 0
     # and append any objects they point to at the end of Reserve Area.
     # Keep traversing the appended objects. This process stops when we
     # can't find any more objects to append to Reserve Area.
-#    la         $t0 heap_start
-#    lw         $t0 GenGC_HDRL1($t0)               # start of reserve area
-#    bge        $t0 $gp .GenGC.minor_collect.done  # check for no objects
-#.GenGC.minor_collect.ra_loop:                     # $t0: index, $gp: limit
-#    addiu      $t0 $t0 4                          # skip over eyecatcher
-#    addiu      $t1 $0 -1                          # check for eyecatcher
-#    lw         $t2 obj_eyecatch($t0)
-#    bne        $t1 $t2 .GenGC.minor_collect.abort # eyecatcher not found
-#    lw         $a0 obj_size($t0)                  # get object size
-#    sll        $a0 $a0 2                          # words to bytes
-#    lw         $t1 obj_tag($t0)                   # get the object's tag
-#    lw         $t2 _int_tag                       # test for int object
-#    beq        $t1 $t2 .GenGC.minor_collect.ra_int
-#    lw         $t2 _bool_tag                      # test for bool object
-#    beq        $t1 $t2 .GenGC.minor_collect.ra_bool
-#    lw         $t2 _string_tag                    # test for string object
-#    beq        $t1 $t2 .GenGC.minor_collect.ra_string
-#    # Handle an object of any other type
-#    addi       $t1 $t0 obj_attr                   # start at first attribute
-#    add        $t2 $t0 $a0                        # limit of attributes
-#    bge        $t1 $t2 .GenGC.minor_collect.ra_continue      # check for no attributes
-#    sw         $t0 16($sp)                        # save pointer to object
-#    sw         $a0 12($sp)                        # save object size
-#    sw         $t2 4($sp)                         # save limit
-#.GenGC.minor_collect.ra_obj_loop:                     # $t1: index, $t2: limit
-#    sw         $t1 8($sp)                         # save index
-#    lw         $a0 0($t1)                         # set pointer to check
-#    jal        .GenGC.check_copy                  # check and copy
-#    lw         $t1 8($sp)                         # restore index
-#    sw         $a0 0($t1)                         # update object pointer
-#    lw         $t2 4($sp)                         # restore limit
-#    addiu      $t1 $t1 4
-#    blt        $t1 $t2 .GenGC.minor_collect.ra_obj_loop      # loop
-#    # Done inspecting the current object
-#    lw         $t0 16($sp)                        # restore pointer to object
-#    lw         $a0 12($sp)                        # restore object size
-#    b          .GenGC.minor_collect.ra_continue       # next object
-#.GenGC.minor_collect.ra_array_loop:
-#    b          .GenGC.minor_collect.ra_continue       # next object
-#.GenGC.minor_collect.ra_string:
-#    sw         $t0 16($sp)                        # save pointer to object
-#    sw         $a0 12($sp)                        # save object size
-#    lw         $a0 str_size($t0)                  # set test pointer to an Int object representing the string's size
-#    jal        .GenGC.check_copy                  # check and copy
-#    lw         $t0 16($sp)                        # restore pointer to object
-#    sw         $a0 str_size($t0)                  # update size pointer
-#    lw         $a0 12($sp)                        # restore object size
-#.GenGC.minor_collect.ra_int:
-#.GenGC.minor_collect.ra_bool:
-#.GenGC.minor_collect.ra_continue:
-#    add        $t0 $t0 $a0                        # find next object
-#    blt        $t0 $gp .GenGC.minor_collect.ra_loop     # loop
+    movq    .GenGC.HDR_L1(%r8), %r9               # %r9 = the first obj in Reserve Area's eye catcher
+    # See if Reserve Area is empty
+    # `alloc_ptr` points right past the last obj 
+    # copied by `.GenGC.check_copy` into Reserve Area
+    cmpq    alloc_ptr(%rip), %r9
+    jle     .GenGC.minor_collect.done             # if (%r9 >= alloc_ptr) go to ...
+.GenGC.minor_collect.ra_loop:
+    # Check the current obj is prefixed by $EYE_CATCH
+    addq    $8, %r9                               # %r9 = the first obj in Reserve Area
+                                                  #       (skip the eye-catcher)
+    cmpq    $EYE_CATCH, OBJ_EYE_CATCH(%r9)
+    jnz     .GenGC.minor_collect.abort
+
+    # Calculate the current obj's size in bytes
+    movq    OBJ_SIZE(%r9), %r11                   # %r11 = sizeof(obj) in quads
+    salq    $3, %r11                              # quads to bytes
+    movq    %r11, RA_OBJ_SIZE(%rbp)
+    
+    # Switch on the obj's type 
+    movq    OBJ_TAG(%r9), %rax                    # %rax = the obj's tag
+    cmpq    $INT_TAG, %rax
+    je      .GenGC.minor_collect.ra_int
+    cmpq    $BOOL_TAG, %rax
+    je      .GenGC.minor_collect.ra_bool
+    cmpq    $STRING_TAG, %rax
+    je      .GenGC.minor_collect.ra_string
+    cmpq    $ARRAYANY_TAG, %rax
+    je      .GenGC.minor_collect.ra_array
+
+    # Handle an object of any other type
+    # As we handle objects of special types individually,
+    # we know every attribute of this object points to another object.
+    # Just check and copy them one by one, updating each attribute with the copy's address.
+    leaq    OBJ_ATTR(%r9), %r10                   # %r10 = a ptr to the obj's first attribute
+    addq    %r9, %r11                             # %r11 = sizeof(obj) + the start of obj 
+                                                  #      = the limit of attrs
+    # See if the object has not attributes
+    cmpq    %r11, %r10
+    jge     .GenGC.minor_collect.ra_continue      # if (%r10 >= %r11) continue
+.GenGC.minor_collect.ra_obj_loop:
+    # Check and copy the object pointed to by the attribute
+    movq    0(%r10), %rdi                         # %rdi = the current attr's value
+                                                  #      = a pointer to object
+    call    .GenGC.check_copy
+    movq    %rax, 0(%r10)                         # update the attr's value with
+                                                  # a pointer to the obj's copy
+    addq    $8, %r10                              # %r10 = a ptr to the next attribute
+    cmpq    %r11, %r10
+    jl      .GenGC.minor_collect.ra_obj_loop      # if (%r10 < %r11) go to ...
+    # Done checking and copying objects pointed to 
+    # by the current object's attributes
+    jmp     .GenGC.minor_collect.ra_continue      # next object
+
+.GenGC.minor_collect.ra_array:
+    # `ArrayAny` contains one attr pointing to another obj.
+    # Namely, `ArrayAny.length` points to an `Int` obj.
+    # Plus each array item points to an obj.
+    movq    ARR_LEN(%r9), %rdi                    # %rdi = a pointer to an Int obj
+    call    .GenGC.check_copy
+    movq    %rax, ARR_LEN(%r9)                    # Update the attr with the copy address
+
+    # Check and copy array items one by one, updating each item with the copy's address.
+    leaq    ARR_ITEMS(%r9), %r10                  # %r10 = a ptr to the first array item
+    addq    %r9, %r11                             # %r11 = sizeof(array obj) + the start of array obj
+                                                  #      = the limit of array items
+    # See if it's an empty array
+    cmpq    %r11, %r10
+    jge     .GenGC.minor_collect.ra_continue      # if (%r10 >= %r11) continue
+.GenGC.minor_collect.ra_array_loop:
+    # Check and copy the object pointed to by the attribute
+    movq    0(%r10), %rdi                         # %rdi = the current item's value
+                                                  #      = a pointer to object
+    call    .GenGC.check_copy
+    movq    %rax, 0(%r10)                         # update the item's value with
+                                                  # a pointer to the obj's copy
+    addq    $8, %r10                              # %r10 = a ptr to the next item
+    cmpq    %r11, %r10
+    jl      .GenGC.minor_collect.ra_array_loop    # if (%r10 < %r11) go to ...
+    # Done checking and copying objects pointed to 
+    # by the array items
+    jmp     .GenGC.minor_collect.ra_continue      # next object
+.GenGC.minor_collect.ra_string:
+    # `String` contains one attr pointing to another obj.
+    # Namely, `String.length` points to an `Int` obj.
+    movq    STR_LEN(%r9), %rdi                    # %rdi = a pointer to an Int obj
+    call    .GenGC.check_copy
+    movq    %rax, STR_LEN(%r9)                    # Update the attr with the copy address
+    # From here, we'll just fall through to `.GenGC.minor_collect.ra_continue`.
+    # So, no need to jump.
+.GenGC.minor_collect.ra_int:
+.GenGC.minor_collect.ra_bool:
+    # Int and Bool don't contain any pointers to other objects.
+    # So, there's nothing to do for them.
+.GenGC.minor_collect.ra_continue:
+    # Move %r9 past the current obj's last attribute
+    # and see if it has reached `alloc_ptr`. As during a minor collection
+    # `alloc_ptr` points to the start of free space in Reserve Area,
+    # reaching it means we've inspected all the objs in Reserve Area.
+    # `.GenGC.check_copy` advances `alloc_ptr` whenever it copies an obj.
+    addq    RA_OBJ_SIZE(%rbp), %r9                # %r9 = a pointer to the next Reserve Area obj's eye-catcher
+    cmpq    alloc_ptr(%rip), %r9
+    jl      .GenGC.minor_collect.ra_loop          # if (%r9 < alloc_ptr) go to ...
+
 .GenGC.minor_collect.done:
+    # The minor collection is complete. We are going to:
+    # 1) Set L2 to the end of collected live objects 
+    #    (`.GenGC.collect` will take care of actually extending Old Area over 
+    #     the collected live objs residing in Reserve Area).
+    # 2) %rax = the size of collected live objects
     movq     .Platform.heap_start(%rip), %rdi
-    movq     .alloc_ptr(%rip), %rax               # %rax = the end of collected live objects
+    movq     alloc_ptr(%rip), %rax                # %rax = the end of collected live objects
     movq     %rax, .GenGC.HDR_L2(%rdi)            # L2 = the end of collected live objects
     subq     .GenGC.HDR_L1(%rdi), %rax            # %rax = L2 - L1 = sizeof(the collected live objects)
 
@@ -1175,7 +1232,7 @@ assign_sp:                      .quad 0
 #    alloc_ptr, assign_sp
 #
 #   Registers modified:
-#    %rax, %rdi, %rsi, %rdx, %rcx
+#    %rax, %rdi, %rsi, %rdx, %rcx, .Platform.alloc
 #
 
 .GenGC.offset_copy:
@@ -1320,28 +1377,49 @@ assign_sp:                      .quad 0
 #
 # Major Garbage Collection
 #
-#   This collection occurs when ever the old area grows beyond a specified
-#   point.  `.GenGC.minor_collect` sets up the Old, X, and New areas for
-#   this collector.  It then collects all the live objects in the old
-#   area (L0 to L1) into the new area (L2 to L3).  This collection consists
-#   of five phases:
+#   A major collection is carried out whenever either 
+#     - Old Area grows beyond the breakpoint
+#     - After a minor collection there's still not enough space in 
+#       Work Area to satisfy the allocation request
+#   `.GenGC.minor_collect` sets up the Old, X, and New areas for us.
+#   In particular, once a minor collection completes, 
+#     - [L0; L1) are the boundaries of Old Area (unchanged) 
+#     - [L1; L2) (ex-Reserve Area) contains all the live objects 
+#       collected by the minor collection.
+#     - L2 points right past the last live object.
+#   `.GenGC.major_collect` then collects all the live objects in 
+#   Old Area [L0; L1) into New Area [L2; L3).
 #
-#     1) Set $gp into the new area (L2), and $s7 to L4.  Also set the
-#        inputs for ".GenGC_OfsCopy".
+#   A major collection consists of five phases:
 #
-#     2) Traverse the stack (see the minor collector) using ".GenGC_OfsCopy".
+#     1) Set `alloc_ptr` into New Area (L2), and `assign_sp` to L4. Also set the
+#        inputs for `.GenGC.offset_copy`.
 #
-#     3) Check the registers (see the minor collector) using ".GenGC_OfsCopy".
+#     2) Traverse the stack (see the minor collector) using `.GenGC.offset_copy`.
 #
-#     4) Traverse the heap from L1 to $gp using ".GenGC_OfsCopy".  Note
-#        that this includes the X area.  (see the minor collector)
+#     3) Check the registers (see the minor collector) using `.GenGC.offset_copy`.
 #
-#     5) Block copy the region L1 to $gp back L1-L0 bytes to create the
-#        next old area.  Save the end in L1.  Calculate the size of the
-#        live objects collected from the old area and return this value.
+#     4) Traverse the heap from L1 to `alloc_ptr` using `.GenGC.offset_copy`. 
+#        Note that this includes X area. (See the minor collector)
 #
-#   Note that the pointers returned by ".GenGC_OfsCopy" are not valid
+#     5) Block copy the region [L1; alloc_ptr) back L1-L0 bytes to create the
+#        next Old Area. Save the next Old Area's end in L1. 
+#        Calculate the size of the live objects collected from Old Area 
+#        and return this value.
+#
+#   Note that the pointers returned by `.GenGC.offset_copy` are not valid
 #   until the block copy is done.
+#
+#   A bug? Consider the following.
+#   An object O from Old Area points to an object W from Work Area. 
+#   A minor collection finds the corresponding record in the assignment stack 
+#   and (properly) detects the object W as alive.
+#   Now, during the major collection immediately following this minor collection,
+#   the object O is detected as garbage and hence not copied over into [L2; L3).
+#   Therefore, the object W doesn't have any references to it anymore, and is
+#   garbage itself. The major collection still copies it from [L1; alloc_ptr)
+#   at the step 5 above, but it must not. The object W (errorneously) 
+#   lives on until the next minor collection.
 #
 #   INPUT:
 #    %rdi: the tip of stack to start checking for roots from
@@ -1358,11 +1436,241 @@ assign_sp:                      .quad 0
 #    L1: the new Old Area's end
 #
 #   Registers modified:
+#    .GenGC.offset_copy
+#
 #    $t0, $t1, $t2, $v0, $v1, $a0, $a1, $a2, $gp, $s7
 #
 
 .GenGC.major_collect:
+    STACK_TIP_SIZE     = 8
+    STACK_TIP          = -STACK_TIP_SIZE
+    RA_OBJ_SIZE_SIZE   = 8
+    RA_OBJ_SIZE        = -(STACK_TIP_SIZE + RA_OBJ_SIZE_SIZE)
+    FRAME_SIZE         = STACK_TIP_SIZE + RA_OBJ_SIZE_SIZE
+
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rdi, STACK_TIP(%rbp)
+
+    movq     .Platform.heap_start(%rip), %r8      # %r8 = heap_start
+
+    # Set up the destination for `.GenGC.offset_copy`
+    movq     .GenGC.HDR_L2(%r8), %rax             # %rax = L2 = the end of collected live objs
+    movq     %rax, alloc_ptr(%rip)                # alloc_ptr = the end of collected live objs
+
+    # Inspect the stack for GC roots within [%r9, %r10)
+    movq    .GenGC.HDR_STK(%r8), %r10             # %r10 = stack base
+    movq    %rdi, %r9                             # %r9 = %rdi = stack tip
+    cmpq    %r10, %r9 
+    jge     .GenGC.major_collect.registers        # if (stack tip >= stack base) // stack grows down!
+                                                  # go to .GenGC.major_collect.registers
+.GenGC.major_collect.stack_loop:
+    movq     0(%r9), %rdi                         # %rdi = stack entry at %r9
+    call    .GenGC.offset_copy
+    movq    %rax, 0(%r9)                          # replace the stack entry pointing to old object 
+                                                  # with the pointer to copy
+    addq    $8, %r9                               # move up one stack entry closer to the base
+    cmpq    %r10, %r9
+    jl      .GenGC.major_collect.stack_loop       # if (%rdi < stack base) // stack grows down!
+                                                  # go to .GenGC.major_collect.stack_loop
+.GenGC.major_collect.registers:
+    # Inspect %rbx, %r12, %r13, %r14, %r15 for GC roots
+    #
+    # We follow the SYSV AMD64 ABI convention.
+    #
+    # The callee must preserve the value of %rbx, %r12, %r13, %r14, %r15.
+    # So the calling code is free to store GC roots in these registers and
+    # rely on them to be preserved across a procedure call. Hence we must
+    # inspect these registers.
+    #
+    # On the other hand, the calling code is responsible for placing 
+    # %rdi, %rsi, %rdx, %rcx, %r8, %r9 if it wants the registers preserved across 
+    # a procedure call. Therefore, when we inspect the stack for GC roots it 
+    # includes any GC roots from the caller-saved registers.
+
+    # %rbx
+    movq    %rbx, %rdi                            # %rdi = %rdx = a potential pointer to an object 
+    call    .GenGC.offset_copy                     # if $rdx indeed points to an object,
+                                                  # we make a copy and the object lives on.
+                                                  # %rax = the start of copy or %rdi's original value.
+    movq    %rax, %rbx                            # %rbx = the start of copy or unchanges.
+    # %r12
+    movq    %r12, %rdi
+    call    .GenGC.offset_copy
+    movq    %rax, %r12
+    # %r13:
+    movq    %r13, %rdi
+    call    .GenGC.offset_copy
+    movq    %rax, %r13
+    # %r14:
+    movq    %r14, %rdi
+    call    .GenGC.offset_copy
+    movq    %rax, %r14
+    # %r15:
+    movq    %r15, %rdi
+    call    .GenGC.offset_copy
+    movq    %rax, %r15
+
+    # Inspect the assignment stack for GC roots
+    movq    assign_sp(%rip), %r9                  # %r9  = assign_sp
+    # See if the assignment stack is empty
+    cmpq    .GenGC.HDR_L3(%r8), %r9
+    jge     .GenGC.major_collect.reserve_area     # if (assign_sp >= L3)
+                                                  # go to .GenGC.major_collect.reserve_area
+.GenGC.major_collect.assign_loop:
+    movq    0(%r9), %rdi                          # %rdi = current assignment stack entry
+    # If %rdi points to an attribute of an Old-Area object,
+    # the address will be within [L0, L1).
+    cmpq    .GenGC.HDR_L0(%r8), %rdi
+    jl      .GenGC.major_collect.assign_continue  # if (%rdi < L0) continue
+    cmpq    .GenGC.HDR_L1(%r8), %rdi
+    jge     .GenGC.major_collect.assign_continue  # if (%rdi >= L1) continue
+    # Check the object pointed to by the attribute
+    movq    0(%rdi), %rdi                         # %rdi = obj A's attr = a pointer to obj B
+    call    .GenGC.offset_copy
+    
+    movq    0(%r9), %rdi                          # %rdi = current assignment stack entry
+    movq    %rax, 0(%rdi)                         # obj A's attr = a pointer to obj B's copy
+    addq    $8, %r9                               # move up one entry closer to L3
+.GenGC.major_collect.assign_continue:
+    cmpq    .GenGC.HDR_L3(%r8), %r9
+    jl      .GenGC.major_collect.assign_loop      # if (%r9 < L3) 
+                                                  # go to .GenGC.major_collect.assign_loop
+    movq    %r9, assign_sp(%rip)                  # assign_sp = L3
+.GenGC.major_collect.reserve_area:
+    # The objects we've copied to Reserve Area so far
+    # are GC roots. Now traverse them in breadth-first order
+    # and append any objects they point to at the end of Reserve Area.
+    # Keep traversing the appended objects. This process stops when we
+    # can't find any more objects to append to Reserve Area.
+    movq    .GenGC.HDR_L1(%r8), %r9               # %r9 = the first obj in Reserve Area's eye catcher
+    # See if Reserve Area is empty
+    # `alloc_ptr` points right past the last obj 
+    # copied by `.GenGC.offset_copy` into Reserve Area
+    cmpq    alloc_ptr(%rip), %r9
+    jle     .GenGC.major_collect.done             # if (%r9 >= alloc_ptr) go to ...
+.GenGC.major_collect.ra_loop:
+    # Check the current obj is prefixed by $EYE_CATCH
+    addq    $8, %r9                               # %r9 = the first obj in Reserve Area
+                                                  #       (skip the eye-catcher)
+    cmpq    $EYE_CATCH, OBJ_EYE_CATCH(%r9)
+    jnz     .GenGC.major_collect.abort
+
+    # Calculate the current obj's size in bytes
+    movq    OBJ_SIZE(%r9), %r11                   # %r11 = sizeof(obj) in quads
+    salq    $3, %r11                              # quads to bytes
+    movq    %r11, RA_OBJ_SIZE(%rbp)
+    
+    # Switch on the obj's type 
+    movq    OBJ_TAG(%r9), %rax                    # %rax = the obj's tag
+    cmpq    $INT_TAG, %rax
+    je      .GenGC.major_collect.ra_int
+    cmpq    $BOOL_TAG, %rax
+    je      .GenGC.major_collect.ra_bool
+    cmpq    $STRING_TAG, %rax
+    je      .GenGC.major_collect.ra_string
+    cmpq    $ARRAYANY_TAG, %rax
+    je      .GenGC.major_collect.ra_array
+
+    # Handle an object of any other type
+    # As we handle objects of special types individually,
+    # we know every attribute of this object points to another object.
+    # Just check and copy them one by one, updating each attribute with the copy's address.
+    leaq    OBJ_ATTR(%r9), %r10                   # %r10 = a ptr to the obj's first attribute
+    addq    %r9, %r11                             # %r11 = sizeof(obj) + the start of obj 
+                                                  #      = the limit of attrs
+    # See if the object has not attributes
+    cmpq    %r11, %r10
+    jge     .GenGC.major_collect.ra_continue      # if (%r10 >= %r11) continue
+.GenGC.major_collect.ra_obj_loop:
+    # Check and copy the object pointed to by the attribute
+    movq    0(%r10), %rdi                         # %rdi = the current attr's value
+                                                  #      = a pointer to object
+    call    .GenGC.offset_copy
+    movq    %rax, 0(%r10)                         # update the attr's value with
+                                                  # a pointer to the obj's copy
+    addq    $8, %r10                              # %r10 = a ptr to the next attribute
+    cmpq    %r11, %r10
+    jl      .GenGC.major_collect.ra_obj_loop      # if (%r10 < %r11) go to ...
+    # Done checking and copying objects pointed to 
+    # by the current object's attributes
+    jmp     .GenGC.major_collect.ra_continue      # next object
+
+.GenGC.major_collect.ra_array:
+    # `ArrayAny` contains one attr pointing to another obj.
+    # Namely, `ArrayAny.length` points to an `Int` obj.
+    # Plus each array item points to an obj.
+    movq    ARR_LEN(%r9), %rdi                    # %rdi = a pointer to an Int obj
+    call    .GenGC.offset_copy
+    movq    %rax, ARR_LEN(%r9)                    # Update the attr with the copy address
+
+    # Check and copy array items one by one, updating each item with the copy's address.
+    leaq    ARR_ITEMS(%r9), %r10                  # %r10 = a ptr to the first array item
+    addq    %r9, %r11                             # %r11 = sizeof(array obj) + the start of array obj
+                                                  #      = the limit of array items
+    # See if it's an empty array
+    cmpq    %r11, %r10
+    jge     .GenGC.major_collect.ra_continue      # if (%r10 >= %r11) continue
+.GenGC.major_collect.ra_array_loop:
+    # Check and copy the object pointed to by the attribute
+    movq    0(%r10), %rdi                         # %rdi = the current item's value
+                                                  #      = a pointer to object
+    call    .GenGC.offset_copy
+    movq    %rax, 0(%r10)                         # update the item's value with
+                                                  # a pointer to the obj's copy
+    addq    $8, %r10                              # %r10 = a ptr to the next item
+    cmpq    %r11, %r10
+    jl      .GenGC.major_collect.ra_array_loop    # if (%r10 < %r11) go to ...
+    # Done checking and copying objects pointed to 
+    # by the array items
+    jmp     .GenGC.major_collect.ra_continue      # next object
+.GenGC.major_collect.ra_string:
+    # `String` contains one attr pointing to another obj.
+    # Namely, `String.length` points to an `Int` obj.
+    movq    STR_LEN(%r9), %rdi                    # %rdi = a pointer to an Int obj
+    call    .GenGC.offset_copy
+    movq    %rax, STR_LEN(%r9)                    # Update the attr with the copy address
+    # From here, we'll just fall through to `.GenGC.major_collect.ra_continue`.
+    # So, no need to jump.
+.GenGC.major_collect.ra_int:
+.GenGC.major_collect.ra_bool:
+    # Int and Bool don't contain any pointers to other objects.
+    # So, there's nothing to do for them.
+.GenGC.major_collect.ra_continue:
+    # Move %r9 past the current obj's last attribute
+    # and see if it has reached `alloc_ptr`. As during a minor collection
+    # `alloc_ptr` points to the start of free space in Reserve Area,
+    # reaching it means we've inspected all the objs in Reserve Area.
+    # `.GenGC.offset_copy` advances `alloc_ptr` whenever it copies an obj.
+    addq    RA_OBJ_SIZE(%rbp), %r9                # %r9 = a pointer to the next Reserve Area obj's eye-catcher
+    cmpq    alloc_ptr(%rip), %r9
+    jl      .GenGC.major_collect.ra_loop          # if (%r9 < alloc_ptr) go to ...
+
+.GenGC.major_collect.done:
+    # The minor collection is complete. We are going to:
+    # 1) Set L2 to the end of collected live objects 
+    #    (`.GenGC.collect` will take care of actually extending Old Area over 
+    #     the collected live objs residing in Reserve Area).
+    # 2) %rax = the size of collected live objects
+    movq     .Platform.heap_start(%rip), %rdi
+    movq     alloc_ptr(%rip), %rax                # %rax = the end of collected live objects
+    movq     %rax, .GenGC.HDR_L2(%rdi)            # L2 = the end of collected live objects
+    subq     .GenGC.HDR_L1(%rdi), %rax            # %rax = L2 - L1 = sizeof(the collected live objects)
+
+    movq     %rbp, %rsp
+    popq     %rbp
     ret
+
+.GenGC.major_collect.abort:
+    movq     $.GenGC.MSG_MAJOR_ERROR_ASCII, %rdi
+    movq     $.GenGC.MSG_MAJOR_ERROR_LEN, %rsi
+    call     .Platform.out_string
+    call     .Runtime.out_nl
+
+    movq   $1, %rdi
+    jmp    .Platform.exit_process
 
 /*
     .global    .GenGC_MajorC
