@@ -722,9 +722,9 @@ assign_sp:                      .quad 0
                                                  # (therefore, the assign stack size = 0)
     jmp      .GenGC.collect.set_L2
 .GenGC.collect.platform_allocate:
-    # TODO: Why aren't we allocating %rdx instead of %rcx?
-    movq     %rcx, %rdi                          # %rdi = %rcx = total expansion size
-    call     .Platform.alloc                     # %rax: allocated memory block's start
+    # %rdx = total expansion size - sizeof(Unused)
+    movq     %rdx, %rdi                          # %rdi      = requested alloc size
+    call     .Platform.alloc                     # %rax      = allocated memory block's start
 
     movq     .Platform.heap_start(%rip), %rdi    # %rdi      = heap_start
     movq     .Platform.heap_end(%rip), %rax      # %rax      = heap_end after the allocation
@@ -1672,6 +1672,9 @@ assign_sp:                      .quad 0
     jl      .GenGC.major_collect.xa_loop          # if (%r9 < alloc_ptr) go to ...
 
 .GenGC.major_collect.copy_back:
+    # We've collected all the live objects into [L1; alloc_ptr).
+    # Now copy them from [L1; alloc_ptr) back to L0.
+    # This is going to be the new Old Area.
     movq    .Platform.heap_start(%rip), %r8       # %r8  = heap_start
 
     movq    .GenGC.HDR_L0(%r8), %r9               # %r9  = L0 = dest
@@ -1695,12 +1698,14 @@ assign_sp:                      .quad 0
     movq    %rax, .GenGC.HDR_L4(%r8)              # L4 = assign_sp
 
     movq    alloc_ptr(%rip), %rax
-    subq    .GenGC.HDR_L2(%r8), %rax              # %rax = the size of objects collected into New Area [L2; alloc_ptr)
+    subq    .GenGC.HDR_L2(%r8), %rax              # %rax      = the size of objects collected into New Area [L2; alloc_ptr)
 
-    movq    alloc_ptr(%rip), %r9                  # %r10 = alloc_ptr = the end of collected objects
+    movq    alloc_ptr(%rip), %r9                  # %r10      = alloc_ptr 
+                                                  #           = the end of collected objects
+    # (L1 - L0) is the number of bytes we back copied the live object.
     addq    .GenGC.HDR_L0(%r8), %r9
-    subq    .GenGC.HDR_L1(%r8), %r9               # %r9  = alloc_ptr - (L1 - L0) = the new end of Old Area
-
+    subq    .GenGC.HDR_L1(%r8), %r9               # %r9       = alloc_ptr - (L1 - L0) 
+                                                  #           = the new end of Old Area
     movq    %r9, alloc_ptr(%rip)                  # alloc_ptr = the new end of Old Area
     movq    %r9, .GenGC.HDR_L1(%r8)               # L1        = the new end of Old Area
 
