@@ -83,7 +83,7 @@
 #   bytes to form the next old area.
 #
 #   The assignment table is implemented as a stack growing towards the
-#   allocation pointer (`alloc_ptr`) in the work area. If they cross, a minor
+#   allocation pointer (`.Alloc.ptr`) in the work area. If they cross, a minor
 #   collection is then carried out. This allows the garbage collector 
 #   not to have to keep a fixed table of assignments. As a result, programs
 #   with many assignments will tend not to be bogged down with extra
@@ -113,7 +113,7 @@
 #        transfered from the unused area to the work/reserve area.
 #
 #     2) During a major collection, if the live objects in the old area
-#        do not fit within the new area, the heap is expanded and `alloc_limit`
+#        do not fit within the new area, the heap is expanded and `.Alloc.limit`
 #        is updated to reflect this. This value later gets stored back
 #        into L4.
 #
@@ -140,27 +140,27 @@
 #      |    |              |                 |    |-->  <--|   |         |
 #      |    L0             L1                L2   |        |   L3        L4
 #      |                                          |        |
-#      heap_start                            alloc_ptr    alloc_limit
+#      heap_start                            .Alloc.ptr    .Alloc.limit
 #
-#     `alloc_ptr`: points to the next free word in the work
+#     `.Alloc.ptr`: points to the next free word in the work
 #         area during normal allocation.  During a minor garbage collection,
 #         it points to the next free work in the reserve area.
 #
-#     `alloc_limit`: points to the tip of the assignment stack, 
-#         `alloc_ptr` cannot go past `alloc_limit`.
-#         Between `alloc_limit` and L3 sits the assignment stack 
-#         which grows towards `alloc_ptr`.
+#     `.Alloc.limit`: points to the tip of the assignment stack, 
+#         `.Alloc.ptr` cannot go past `.Alloc.limit`.
+#         Between `.Alloc.limit` and L3 sits the assignment stack 
+#         which grows towards `.Alloc.ptr`.
 #
-#   The following invariant is maintained for `alloc_ptr` and `assign_ptr` by 
+#   The following invariant is maintained for `.Alloc.ptr` and `assign_ptr` by 
 #   the garbage collector's code at all times:
 #
-#      `alloc_ptr` is always strictly less than `alloc_limit`.
+#      `.Alloc.ptr` is always strictly less than `.Alloc.limit`.
 #      Hence there is always enough room for at least one assignment record 
 #      at the tip of assignment stack.
 #
 #      If the above invariant hadn't been maintained, we would've ended up
 #      in a situation where at the moment we're requested to record an 
-#      assignment, `alloc_ptr` == `alloc_limit`. As there is no room to 
+#      assignment, `.Alloc.ptr` == `.Alloc.limit`. As there is no room to 
 #      record the assignment a garbage collection has to run first. 
 #      As the unrecorded assignment can point to a GC root, the garbage 
 #      collection would've missed that root and removed a live object or 
@@ -182,20 +182,20 @@
 #     +----+------------------+----------+------------------------------+
 #     ^    ^                  ^      ^   ^      ^                       ^
 #     |    |                  |      |   |      |-->                    |
-#     |    L0                 L1     |   L2    alloc_ptr      alloc_limit, L4
+#     |    L0                 L1     |   L2    .Alloc.ptr      .Alloc.limit, L4
 #     |                              |
 #     heap_start                     breakpoint
 #
-#     `alloc_ptr` (allocation pointer): During a major collection, this points
+#     `.Alloc.ptr` (allocation pointer): During a major collection, this points
 #         into the next free word in the new area.
 #
-#     `alloc_limit`: During a major collection, this points to the tip of an 
+#     `.Alloc.limit`: During a major collection, this points to the tip of an 
 #         empty assignment stack wich is the same as the limit of heap memory.
-#         `alloc_ptr` is not allowed to pass this value. If the live objects 
+#         `.Alloc.ptr` is not allowed to pass this value. If the live objects 
 #         in the old area cannot fit in the new area, more memory is allocated 
-#         and `alloc_limit` is adjusted accordingly.
+#         and `.Alloc.limit` is adjusted accordingly.
 #
-#   See the `alloc_ptr` < `alloc_limit` invariant descriptions above.
+#   See the `.Alloc.ptr` < `.Alloc.limit` invariant descriptions above.
 #
 #     breakpoint: Point where a major collection will occur.  It is
 #         calculated by the following formula:
@@ -345,13 +345,13 @@
 
     movq     .Platform.heap_end(%rip), %rax
     movq     %rax, .GenGC.HDR_L3(%rdi)                 # initially the end of work area is at the heap end
-    movq     %rax, alloc_limit(%rdi)                   # initially the tip of assign stack is at the end of work area
+    movq     %rax, .Alloc.limit(%rdi)                  # initially the tip of assign stack is at the end of work area
     movq     %rax, .GenGC.HDR_L4(%rdi)                 # initially the end of unused area is at the heap end
 
     subq     %rsi, %rax                                # %rsi contains the work area size
                                                        # L3 - %rsi = reserve area end/work area start
     movq     %rax, .GenGC.HDR_L2(%rdi)                 # store the calculated start of work area
-    movq     %rax, alloc_ptr(%rip)                     # initially the allocation pointer is at the start of work area
+    movq     %rax, .Alloc.ptr(%rip)                    # initially the allocation pointer is at the start of work area
 
     movq     $0, .GenGC.HDR_MAJOR0(%rdi)               # init histories with zeros
     movq     $0, .GenGC.HDR_MAJOR1(%rdi)
@@ -394,13 +394,13 @@
 #
 # Record an Assignment in the Assignment Stack
 #
-#   The GC's code guarantees `alloc_ptr` is always strictly less than `alloc_limit`.
+#   The GC's code guarantees `.Alloc.ptr` is always strictly less than `.Alloc.limit`.
 #   Hence there is always enough room for at least one assignment record 
 #   at the tip of assignment stack.
 #
 #   If the above invariant hadn't been maintained, we would've ended up
 #   in a situation where at the moment we're requested to record an 
-#   assignment, `alloc_ptr` == `alloc_limit`. As there is no room to 
+#   assignment, `.Alloc.ptr` == `.Alloc.limit`. As there is no room to 
 #   record the assignment a garbage collection has to run first. 
 #   As the unrecorded assignment can point to a GC root, the garbage 
 #   collection would've missed that root and removed a live object or 
@@ -422,12 +422,12 @@
 
     # TODO: Preserve %rdi?
 
-    movq     alloc_limit(%rip), %rax
+    movq     .Alloc.limit(%rip), %rax
     subq     $POINTER_SIZE, %rax
-    movq     %rax, alloc_limit(%rip)       # make room in the assignment stack
+    movq     %rax, .Alloc.limit(%rip)      # make room in the assignment stack
     movq     %rdi, 0(%rax)                 # place pointer to the pointer being assigned to
                                            # at the tip of assignment stack
-    cmpq     alloc_ptr(%rdi), %rax         # if `alloc_ptr` and `alloc_limit` have met
+    cmpq     .Alloc.ptr(%rdi), %rax        # if `.Alloc.ptr` and `.Alloc.limit` have met
                                            # we'll have to collect garbage
     jg       .GenGC.handle_assign.done
 
@@ -464,12 +464,12 @@
 #   If there is enough room in the unused area (L3 to L4),
 #   this memory is used and the heap is not expanded.
 #
-#   The `alloc_limit` and `alloc_ptr` pointers are then set 
+#   The `.Alloc.limit` and `.Alloc.ptr` pointers are then set 
 #   as well as the L2 pointer.
 #
 #   If a major collection is not done, the X area is incorporated 
 #   into the old area (i.e. the value of L2 is moved into L1) and 
-#   `alloc_limit`, `alloc_ptr`, and L2 are then set.
+#   `.Alloc.limit`, `.Alloc.ptr`, and L2 are then set.
 #
 #   INPUT:
 #    %rdi: requested allocation size in bytes
@@ -479,7 +479,7 @@
 #    %rdi: requested allocation size in bytes (unchanged)
 #
 #   GLOBALS MODIFIED:
-#    L1, L2, L3, L4, alloc_ptr, alloc_limit,
+#    L1, L2, L3, L4, .Alloc.ptr, .Alloc.limit,
 #    MINOR0, MINOR1, MAJOR0, MAJOR1
 #
 #   Registers modified:
@@ -557,7 +557,7 @@
                                                  # (%rax >= %rcx?)
     jge      .GenGC.collect.do_major             # if yes, perform a major collection
     # If no, update L1, set up the new Reserve/Work areas,
-    # reset `alloc_ptr`, and `alloc_limit`, etc
+    # reset `.Alloc.ptr`, and `.Alloc.limit`, etc
     movq     .GenGC.HDR_L2(%rdi), %rcx           # %rcx = L2
     movq     .GenGC.HDR_L3(%rdi), %rdx           # %rdx = L3
     movq     %rdx, %rsi                          # %rsi = L3
@@ -583,8 +583,8 @@
                                                  # by `.GenGC.minor_collect` into Old Area
     # %rcx contains the new L2 value
     movq     %rcx, .GenGC.HDR_L2(%rdi)           # set up the new Reserver/Work boundary
-    movq     %rcx, alloc_ptr(%rip)               # set `alloc_ptr` at the start of Work Area
-    movq     %rdx, alloc_limit(%rip)             # set `alloc_limit` to L3 (Work Area's end)
+    movq     %rcx, .Alloc.ptr(%rip)              # set `.Alloc.ptr` at the start of Work Area
+    movq     %rdx, .Alloc.limit(%rip)            # set `.Alloc.limit` to L3 (Work Area's end)
                                                  # effectively clearing the assignment stack.
                                                  # Garbage collecting the young gen results in
                                                  # no old gen objects pointing to young gen
@@ -689,8 +689,8 @@
     #   3) We have enough space in Work Area to
     #      accomodate the requested allocation size
     cmpq     $0, %rcx
-    jle      .GenGC.collect.set_alloc_limit_and_L2  # if (%rcx <= 0) 
-                                                    #     go to .GenGC.collect.set_alloc_limit_and_L2
+    jle      .GenGC.collect.set_.Alloc.limit_and_L2  # if (%rcx <= 0) 
+                                                     #     go to .GenGC.collect.set_.Alloc.limit_and_L2
     # %rcx: we need to expand the heap by at least this number of bytes.
     # Round up %rcx to the nearest greater multiple of .GenGC.HEAP_PAGE (e.g., 32768 bytes):
     # %rcx = (%rcx + 32767) & (-32768)
@@ -715,7 +715,7 @@
     movq     .GenGC.HDR_L3(%rdi), %rax           # %rax      = L3
     addq     %rcx, %rax                          # %rax      = L3 + total expansion size
     movq     %rax, .GenGC.HDR_L3(%rdi)           # L3        = L3 + total expansion size
-    movq     %rax, alloc_limit(%rip)             # alloc_limit = L3 + total expansion size
+    movq     %rax, .Alloc.limit(%rip)            # .Alloc.limit = L3 + total expansion size
                                                  # (therefore, the assign stack size = 0)
     jmp      .GenGC.collect.set_L2
 .GenGC.collect.platform_allocate:
@@ -726,14 +726,14 @@
     movq     .Platform.heap_start(%rip), %rdi    # %rdi      = heap_start
     movq     .Platform.heap_end(%rip), %rax      # %rax      = heap_end after the allocation
     movq     %rax, .GenGC.HDR_L3(%rdi)           # L3        = heap_end after the allocation
-    movq     %rax, alloc_limit(%rip)             # alloc_limit = heap_end after the allocation
+    movq     %rax, .Alloc.limit(%rip)            # .Alloc.limit = heap_end after the allocation
                                                  # (therefore, the assign stack size = 0)
     movq     %rax, .GenGC.HDR_L4(%rdi)           # L4        = heap_end after the allocation
                                                  # (therefore, sizeof(Unused) = 0 at this point)
     jmp      .GenGC.collect.set_L2
-.GenGC.collect.set_alloc_limit_and_L2:
+.GenGC.collect.set_.Alloc.limit_and_L2:
     movq     .GenGC.HDR_L3(%rdi), %rax           # %rax = L3
-    movq     %rax, alloc_limit(%rip)             # alloc_limit = L3
+    movq     %rax, .Alloc.limit(%rip)            # .Alloc.limit = L3
                                                  # (therefore, the assign stack size = 0)
 .GenGC.collect.set_L2:
     # %rax must be equal to L3 at this point
@@ -745,15 +745,15 @@
     subq     %rax, %rsi                          # %rsi = L3 - sizeof(Work Area)
                                                  #      = Reserve/Work areas boundary
     movq     %rsi, .GenGC.HDR_L2(%rdi)           # L2 = %rsi
-    movq     %rsi, alloc_ptr(%rip)               # alloc_ptr = %rsi
+    movq     %rsi, .Alloc.ptr(%rip)              # .Alloc.ptr = %rsi
 
 .GenGC.collect.done:
     # Zero out the new generation (the new Work Area) to help catch missing pointers
-    movq     alloc_ptr(%rip), %rax
+    movq     .Alloc.ptr(%rip), %rax
 .GenGC.collect.work_area_clear_loop:
     movq     $0, 0(%rax)                         # zero out the quad at %rax
     addq     $8, %rax
-    cmpq     alloc_limit(%rip), %rax             # %rax < `alloc_limit`
+    cmpq     .Alloc.limit(%rip), %rax            # %rax < `.Alloc.limit`
     jl       .GenGC.collect.work_area_clear_loop # if yes, we haven't reached 
                                                  # the end of Work Area yet
 
@@ -771,7 +771,7 @@
 #   checking the object's size for 0.
 #
 #   If found, the forwarding pointer is returned.
-#   Else, the object is copied to `alloc_ptr` and a pointer to 
+#   Else, the object is copied to `.Alloc.ptr` and a pointer to 
 #   this copy is returned.
 #
 #   The following tests are done to determine if the object is 
@@ -796,7 +796,7 @@
 #    %rdx: upper bound object should be within (unchanged)
 #
 #   GLOBALS MODIFIED:
-#    alloc_ptr
+#    .Alloc.ptr
 #
 #   Registers modified:
 #    %rax, %rdi, %rcx
@@ -851,8 +851,8 @@
 .GenGC.check_copy.copy:
     # The checks have passed, 
     # we're going to copy the object now.
-    addq     $8, alloc_ptr(%rip)                # reserve a quad for the eye catcher
-    movq     alloc_ptr(%rip), %rcx              # %rcx = the start of copy obj
+    addq     $8, .Alloc.ptr(%rip)               # reserve a quad for the eye catcher
+    movq     .Alloc.ptr(%rip), %rcx             # %rcx = the start of copy obj
     movq     %rcx, %rdx                         # %rdx = the start of copy obj
     movq     $EYE_CATCH, OBJ_EYE_CATCH(%rdx)    # place the eye catcher before the copy obj
     salq     $3, %rsi                           # %rsi = sizeof(obj) in quads * 8 = sizeof(obj) in bytes
@@ -874,7 +874,7 @@
     # %rcx: the start of destination (copy) object
     # %rdx: the end of destination (copy) object
 
-    movq     %rdx, alloc_ptr(%rip)              # alloc_ptr = the end of dest (copy) obj
+    movq     %rdx, .Alloc.ptr(%rip)             # .Alloc.ptr = the end of dest (copy) obj
 
     # Mark the source object as copied
     movq     POINTER(%rbp), %rdi                # %rdi = the start of source obj
@@ -901,7 +901,7 @@
 #   is then set right past the last live object. The collector consists
 #   of six phases:
 #
-#     1) Set `alloc_ptr` at the start of Reserve Area and 
+#     1) Set `.Alloc.ptr` at the start of Reserve Area and 
 #        set up the bounds for `.GenGC.check_copy`
 #
 #     2) Scan the stack for root pointers into the heap.  The beginning
@@ -913,7 +913,7 @@
 #     3) Inspect the %rbx, %r12, %r13, %r14, %r15 registers
 #        for GC roots and to automatically update. 
 #
-#     4) The assignment stack is now inspected. `alloc_limit` is moved from its
+#     4) The assignment stack is now inspected. `.Alloc.limit` is moved from its
 #        current position until it hits the L3 pointer (the base of assignment stack).
 #        Each entry is a pointer to object A's attribute itself pointing to object B.
 #        If object A resides in Old Area and object B resides in Work Area,
@@ -922,7 +922,7 @@
 #        point to object B's copy in Reserve Area.
 #
 #     5) At this stage, all root objects are in Reserve Area.
-#        This area is now traversed object by object (from L1 to `alloc_ptr`).
+#        This area is now traversed object by object (from L1 to `.Alloc.ptr`).
 #        It results in a breadth-first search of the live objects 
 #        collected in Reserve Area.
 #        All attributes of objects are treated as pointers except the 
@@ -965,10 +965,10 @@
 
     # Set up the bounds for `.GenGC.check_copy`
     movq     .GenGC.HDR_L2(%r8), %rsi             # $rsi = [lower bound for .GenGC.check_copy
-    movq     alloc_limit(%rip), %rdx              # %rdx = upper bound) for .GenGC.check_copy
+    movq     .Alloc.limit(%rip), %rdx             # %rdx = upper bound) for .GenGC.check_copy
     # Set up the destination for `.GenGC.check_copy`
     movq     .GenGC.HDR_L1(%r8), %rax             # %rax = L1 = the start of Reserve Area
-    movq     %rax, alloc_ptr(%rip)                # alloc_ptr = the start of Reserve Area
+    movq     %rax, .Alloc.ptr(%rip)               # .Alloc.ptr = the start of Reserve Area
 
     # Inspect the stack for GC roots within [%r9, %r10)
     movq    .GenGC.HDR_STK(%r8), %r10             # %r10 = stack base
@@ -1024,10 +1024,10 @@
     movq    %rax, %r15
 
     # Inspect the assignment stack for GC roots
-    movq    alloc_limit(%rip), %r9                # %r9  = alloc_limit
+    movq    .Alloc.limit(%rip), %r9               # %r9  = .Alloc.limit
     # See if the assignment stack is empty
     cmpq    .GenGC.HDR_L3(%r8), %r9
-    jge     .GenGC.minor_collect.reserve_area     # if (alloc_limit >= L3)
+    jge     .GenGC.minor_collect.reserve_area     # if (.Alloc.limit >= L3)
                                                   # go to .GenGC.minor_collect.reserve_area
 .GenGC.minor_collect.assign_loop:
     movq    0(%r9), %rdi                          # %rdi = current assignment stack entry
@@ -1048,7 +1048,7 @@
     cmpq    .GenGC.HDR_L3(%r8), %r9
     jl      .GenGC.minor_collect.assign_loop      # if (%r9 < L3) 
                                                   # go to .GenGC.minor_collect.assign_loop
-    movq    %r9, alloc_limit(%rip)                # alloc_limit = L3
+    movq    %r9, .Alloc.limit(%rip)               # .Alloc.limit = L3
 .GenGC.minor_collect.reserve_area:
     # The objects we've copied to Reserve Area so far
     # are GC roots. Now traverse them in breadth-first order
@@ -1057,10 +1057,10 @@
     # can't find any more objects to append to Reserve Area.
     movq    .GenGC.HDR_L1(%r8), %r9               # %r9 = the first obj in Reserve Area's eye catcher
     # See if Reserve Area is empty
-    # `alloc_ptr` points right past the last obj 
+    # `.Alloc.ptr` points right past the last obj 
     # copied by `.GenGC.check_copy` into Reserve Area
-    cmpq    alloc_ptr(%rip), %r9
-    jge     .GenGC.minor_collect.done             # if (%r9 >= alloc_ptr) go to ...
+    cmpq    .Alloc.ptr(%rip), %r9
+    jge     .GenGC.minor_collect.done             # if (%r9 >= .Alloc.ptr) go to ...
 .GenGC.minor_collect.ra_loop:
     # Check the current obj is prefixed by $EYE_CATCH
     addq    $8, %r9                               # %r9 = the first obj in Reserve Area
@@ -1150,13 +1150,13 @@
     # So, there's nothing to do for them.
 .GenGC.minor_collect.ra_continue:
     # Move %r9 past the current obj's last attribute
-    # and see if it has reached `alloc_ptr`. As during a minor collection
-    # `alloc_ptr` points to the start of free space in Reserve Area,
+    # and see if it has reached `.Alloc.ptr`. As during a minor collection
+    # `.Alloc.ptr` points to the start of free space in Reserve Area,
     # reaching it means we've inspected all the objs in Reserve Area.
-    # `.GenGC.check_copy` advances `alloc_ptr` whenever it copies an obj.
+    # `.GenGC.check_copy` advances `.Alloc.ptr` whenever it copies an obj.
     addq    RA_OBJ_SIZE(%rbp), %r9                # %r9 = a pointer to the next Reserve Area obj's eye-catcher
-    cmpq    alloc_ptr(%rip), %r9
-    jl      .GenGC.minor_collect.ra_loop          # if (%r9 < alloc_ptr) go to ...
+    cmpq    .Alloc.ptr(%rip), %r9
+    jl      .GenGC.minor_collect.ra_loop          # if (%r9 < .Alloc.ptr) go to ...
 
 .GenGC.minor_collect.done:
     # The minor collection is complete. We are going to:
@@ -1165,7 +1165,7 @@
     #     the collected live objs residing in Reserve Area).
     # 2) %rax = the size of collected live objects
     movq     .Platform.heap_start(%rip), %rdi
-    movq     alloc_ptr(%rip), %rax                # %rax = the end of collected live objects
+    movq     .Alloc.ptr(%rip), %rax               # %rax = the end of collected live objects
     movq     %rax, .GenGC.HDR_L2(%rdi)            # L2 = the end of collected live objects
     subq     .GenGC.HDR_L1(%rdi), %rax            # %rax = L2 - L1 = sizeof(the collected live objects)
 
@@ -1205,8 +1205,8 @@
 #   If found, the forwarding pointer is returned.
 #   Else, the heap is analyzed to make sure the object can be copied.
 #
-#   The heap is expanded if necessary (updating only `alloc_limit`),
-#   and the object gets copied to `alloc_ptr`.
+#   The heap is expanded if necessary (updating only `.Alloc.limit`),
+#   and the object gets copied to `.Alloc.ptr`.
 #
 #   After copying is complete, the procedure places 
 #       - 0 into the source object's OBJ_SIZE slot
@@ -1227,7 +1227,7 @@
 #          Else, unchanged value from %rdi.
 #
 #   GLOBALS MODIFIED:
-#    alloc_ptr, alloc_limit
+#    .Alloc.ptr, .Alloc.limit
 #
 #   Registers modified:
 #    %rax, %rdi, %rsi, %rdx, %rcx, .Platform.alloc
@@ -1289,14 +1289,14 @@
                                                        # the source obj has already been copied
 
     salq     $3, %rcx                                  # %rcx = sizeof(obj) in bytes
-    addq     alloc_ptr(%rip), %rcx                     # %rcx = alloc_ptr + sizeof(obj)
-    addq     $8, %rcx                                  # %rcx = alloc_ptr + sizeof(obj) + sizeof(eye catcher)
-    subq     alloc_limit(%rip), %rcx                   # %rcx = %rcx - alloc_limit
+    addq     .Alloc.ptr(%rip), %rcx                    # %rcx = .Alloc.ptr + sizeof(obj)
+    addq     $8, %rcx                                  # %rcx = .Alloc.ptr + sizeof(obj) + sizeof(eye catcher)
+    subq     .Alloc.limit(%rip), %rcx                  # %rcx = %rcx - .Alloc.limit
     jl       .GenGC.offset_copy.copy                   # if (%rcx < 0)
                                                        # go to .GenGC.offset_copy.copy
     # There is not engough heap space to copy the source obj.
     # %rcx contains the amount of required additional memory in bytes.
-    # We add 8 bytes to %rcx, to maintain `alloc_ptr` < `alloc_limit` after the allocation.
+    # We add 8 bytes to %rcx, to maintain `.Alloc.ptr` < `.Alloc.limit` after the allocation.
     # So, there is room to record an assignment before a garbage collection has to run (if any).
     # See the comments at `.GenGC.handle_assignment` for details.
     addq $8, %rcx
@@ -1319,15 +1319,15 @@
     call     .Platform.alloc                           # %rax: allocated memory block's start
 
     movq     .Platform.heap_end(%rip), %rax            # %rax      = heap_end after the allocation
-    movq     %rax, alloc_limit(%rip)                   # alloc_limit = heap_end
+    movq     %rax, .Alloc.limit(%rip)                  # .Alloc.limit = heap_end
 
     movq     POINTER(%rbp), %rdi                       # %rdi = the start of source obj
 
 .GenGC.offset_copy.copy:
     # The checks have passed, 
     # we're going to copy the object now.
-    addq     $8, alloc_ptr(%rip)                       # reserve a quad for the eye catcher
-    movq     alloc_ptr(%rip), %rcx                     # %rcx = the start of copy obj
+    addq     $8, .Alloc.ptr(%rip)                      # reserve a quad for the eye catcher
+    movq     .Alloc.ptr(%rip), %rcx                    # %rcx = the start of copy obj
     movq     %rcx, %rdx                                # %rdx = the start of copy obj
     movq     $EYE_CATCH, OBJ_EYE_CATCH(%rdx)           # place the eye catcher before the copy obj
     movq     OBJ_SIZE(%rdi), %rsi                      # %rsi = sizeof(obj) in quads
@@ -1350,7 +1350,7 @@
     # %rcx: the start of destination (copy) object
     # %rdx: the end of destination (copy) object
 
-    movq     %rdx, alloc_ptr(%rip)                     # alloc_ptr = the end of dest (copy) obj
+    movq     %rdx, .Alloc.ptr(%rip)                    # .Alloc.ptr = the end of dest (copy) obj
 
     # Subtract (L1 - L0) from the pointer and return it.
     movq     .Platform.heap_start(%rip), %rsi          # %rsi = heap_start
@@ -1382,7 +1382,7 @@
 #       Work Area to satisfy the allocation request
 #   `.GenGC.minor_collect` sets up the Old, X, and New areas for us. additionaly,
 #   `.GenGC.minor_collect` empties out the assignment stack (see the comments there
-#   for details). Consequently, a major collection is free to set `alloc_limit` = L4.
+#   for details). Consequently, a major collection is free to set `.Alloc.limit` = L4.
 #   In particular, once a minor collection completes, 
 #     - [L0; L1) are the boundaries of Old Area (unchanged) 
 #     - [L1; L2) (ex-Reserve Area) contains all the live objects 
@@ -1393,17 +1393,17 @@
 #
 #   A major collection consists of five phases:
 #
-#     1) Set `alloc_ptr` into New Area (L2), and `alloc_limit` to L4. Also set the
+#     1) Set `.Alloc.ptr` into New Area (L2), and `.Alloc.limit` to L4. Also set the
 #        inputs for `.GenGC.offset_copy`.
 #
 #     2) Traverse the stack (see the minor collector) using `.GenGC.offset_copy`.
 #
 #     3) Check the registers (see the minor collector) using `.GenGC.offset_copy`.
 #
-#     4) Traverse the heap from L1 to `alloc_ptr` using `.GenGC.offset_copy`. 
+#     4) Traverse the heap from L1 to `.Alloc.ptr` using `.GenGC.offset_copy`. 
 #        Note that this includes X area. (See the minor collector)
 #
-#     5) Block copy the region [L1; alloc_ptr) back L1-L0 bytes to create the
+#     5) Block copy the region [L1; .Alloc.ptr) back L1-L0 bytes to create the
 #        next Old Area. Save the next Old Area's end in L1. 
 #        Calculate the size of the live objects collected from Old Area 
 #        and return this value.
@@ -1418,7 +1418,7 @@
 #   Now, during the major collection immediately following this minor collection,
 #   the object O is detected as garbage and hence not copied over into [L2; L3).
 #   Therefore, the object W doesn't have any references to it anymore, and is
-#   garbage itself. The major collection still copies it from [L1; alloc_ptr)
+#   garbage itself. The major collection still copies it from [L1; .Alloc.ptr)
 #   at the step 5 above, but it must not. The object W (errorneously) 
 #   lives on until the next major collection.
 #
@@ -1463,9 +1463,9 @@
     # At this stage, L2 points right past the last live object 
     # collected by `.GenGC.minor_collect`
     movq    .GenGC.HDR_L2(%r8), %rax
-    movq    %rax, alloc_ptr(%rip)                 # alloc_ptr = L2 = the end of collected live objs
+    movq    %rax, .Alloc.ptr(%rip)                # .Alloc.ptr = L2 = the end of collected live objs
     movq    .GenGC.HDR_L4(%r8), %rax
-    movq    %rax, alloc_limit(%rip)               # alloc_limit = L4 = the end of heap (including Unused Area)
+    movq    %rax, .Alloc.limit(%rip)              # .Alloc.limit = L4 = the end of heap (including Unused Area)
 
     # Inspect the stack for GC roots within [%r9, %r10)
     movq    %rdi, %r9                             # %r9 = %rdi = stack tip
@@ -1528,7 +1528,7 @@
     call    .GenGC.offset_copy
     movq    %rax, %r15
 
-    # The objects we've copied to X Area [L1; alloc_ptr) so far
+    # The objects we've copied to X Area [L1; .Alloc.ptr) so far
     # (including the live objects copied by minor collection and 
     # the live objects copied by us from Old Area) are GC roots. 
     # Now traverse them in breadth-first order and append any objects 
@@ -1539,10 +1539,10 @@
     movq    .GenGC.HDR_L1(%r9), %r9               # %r9 = L1 = the first obj's eye-catcher
 
     # See if we have any live objects at all.
-    # `alloc_ptr` points right past the last obj copied by `.GenGC.offset_copy`
-    # into X Area. `alloc_ptr` <= L1 means no objects have been copied.
-    cmpq    alloc_ptr(%rip), %r9
-    jge     .GenGC.major_collect.copy_back             # if (L1 >= alloc_ptr) go to ...
+    # `.Alloc.ptr` points right past the last obj copied by `.GenGC.offset_copy`
+    # into X Area. `.Alloc.ptr` <= L1 means no objects have been copied.
+    cmpq    .Alloc.ptr(%rip), %r9
+    jge     .GenGC.major_collect.copy_back             # if (L1 >= .Alloc.ptr) go to ...
 
     # X Area loop
     # %r9 = L1 = the first obj's eye-catcher
@@ -1659,51 +1659,51 @@
     # So, there's nothing to do for them.
 .GenGC.major_collect.xa_continue:
     # Move %r9 past the current obj's last attribute
-    # and see if it has reached `alloc_ptr`. As during a minor collection
-    # `alloc_ptr` points to the start of free space in Reserve Area,
+    # and see if it has reached `.Alloc.ptr`. As during a minor collection
+    # `.Alloc.ptr` points to the start of free space in Reserve Area,
     # reaching it means we've inspected all the objs in Reserve Area.
-    # `.GenGC.offset_copy` advances `alloc_ptr` whenever it copies an obj.
+    # `.GenGC.offset_copy` advances `.Alloc.ptr` whenever it copies an obj.
     movq    XA_OBJ(%rbp), %r9                     # %r0 = a ptr to the curr obj
     addq    XA_OBJ_SIZE(%rbp), %r9                # %r9 = a ptr to the next obj's eye-catcher
-    cmpq    alloc_ptr(%rip), %r9
-    jl      .GenGC.major_collect.xa_loop          # if (%r9 < alloc_ptr) go to ...
+    cmpq    .Alloc.ptr(%rip), %r9
+    jl      .GenGC.major_collect.xa_loop          # if (%r9 < .Alloc.ptr) go to ...
 
 .GenGC.major_collect.copy_back:
-    # We've collected all the live objects into [L1; alloc_ptr).
-    # Now copy them from [L1; alloc_ptr) back to L0.
+    # We've collected all the live objects into [L1; .Alloc.ptr).
+    # Now copy them from [L1; .Alloc.ptr) back to L0.
     # This is going to be the new Old Area.
     movq    .Platform.heap_start(%rip), %r8       # %r8  = heap_start
 
     movq    .GenGC.HDR_L0(%r8), %r9               # %r9  = L0 = dest
     movq    .GenGC.HDR_L1(%r8), %r10              # %r10 = L1 = source
-    cmpq    alloc_ptr(%rip), %r10
-    jge     .GenGC.major_collect.done             # if (L1 >= alloc_ptr) go to ...
+    cmpq    .Alloc.ptr(%rip), %r10
+    jge     .GenGC.major_collect.done             # if (L1 >= .Alloc.ptr) go to ...
 
 .GenGC.major_collect.copy_back_loop:
     movq    0(%r10), %rax
     movq    %rax, 0(%r9)
     addq    $8, %r9
     addq    $8, %r10
-    cmpq    alloc_ptr(%rip), %r10
-    jl      .GenGC.major_collect.copy_back_loop   # if (%r10 < alloc_ptr) go to ...
+    cmpq    .Alloc.ptr(%rip), %r10
+    jl      .GenGC.major_collect.copy_back_loop   # if (%r10 < .Alloc.ptr) go to ...
 
 .GenGC.major_collect.done:
     # This is the only place, where we potentially increase the size of Unused Area [L3; L4)
-    # As L3 stays the same but `alloc_limit` initialized to L4 at the beginning of 
+    # As L3 stays the same but `.Alloc.limit` initialized to L4 at the beginning of 
     # the procedure, increases if `.GenGC.offset_copy` allocates additional memory.
-    movq    alloc_limit(%rip), %rax
-    movq    %rax, .GenGC.HDR_L4(%r8)              # L4 = alloc_limit
+    movq    .Alloc.limit(%rip), %rax
+    movq    %rax, .GenGC.HDR_L4(%r8)              # L4 = .Alloc.limit
 
-    movq    alloc_ptr(%rip), %rax
-    subq    .GenGC.HDR_L2(%r8), %rax              # %rax      = the size of objects collected into New Area [L2; alloc_ptr)
+    movq    .Alloc.ptr(%rip), %rax
+    subq    .GenGC.HDR_L2(%r8), %rax              # %rax      = the size of objects collected into New Area [L2; .Alloc.ptr)
 
-    movq    alloc_ptr(%rip), %r9                  # %r10      = alloc_ptr 
+    movq    .Alloc.ptr(%rip), %r9                 # %r10      = .Alloc.ptr 
                                                   #           = the end of collected objects
     # (L1 - L0) is the number of bytes we back copied the live object.
     addq    .GenGC.HDR_L0(%r8), %r9
-    subq    .GenGC.HDR_L1(%r8), %r9               # %r9       = alloc_ptr - (L1 - L0) 
+    subq    .GenGC.HDR_L1(%r8), %r9               # %r9       = .Alloc.ptr - (L1 - L0) 
                                                   #           = the new end of Old Area
-    movq    %r9, alloc_ptr(%rip)                  # alloc_ptr = the new end of Old Area
+    movq    %r9, .Alloc.ptr(%rip)                 # .Alloc.ptr = the new end of Old Area
     movq    %r9, .GenGC.HDR_L1(%r8)               # L1        = the new end of Old Area
 
     movq    %rbp, %rsp
