@@ -155,9 +155,9 @@ alloc_ptr:                      .quad 0
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax                          # calc the new alloc ptr value
 .MemoryManager.alloc.can_alloc:
-    movq     alloc_ptr(%rip), %rdi               # preserve the addr of allocated memory block
+    movq     alloc_ptr(%rip), %rdi               # preserve the start addr of allocated memory block
     movq     %rax, alloc_ptr(%rip)               # advance the allocation pointer
-    movq     %rdi, %rax                          # place the addr of allocated memory block in %rax
+    movq     %rdi, %rax                          # place the start addr of allocated memory block in %rax
 
     movq     %rbp, %rsp
     popq     %rbp

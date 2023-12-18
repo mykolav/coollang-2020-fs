@@ -34,8 +34,14 @@ pageSize:                .quad 0
 # Text
 #
 # Under the Microsoft x64 calling convention:
-# %rax, %rcx, %rdx, %r8, %r9, %r10, and %r11 are volatile, 
-# %rbx, %rbp, %rdi, %rsi, %rsp, and %r12 through %r15 are non-volatile and must be saved be the callee if used.
+#
+# %rax, %rcx, %rdx, %r8, %r9, %r10, and %r11 are volatile:
+#    If the caller wants to preserve them across a procedure call, 
+#    it's responsible for saving and restoring the values.
+#    Importantly, under SysV AMD64 ABI the caller is responsible for preserving them too.
+#
+# %rbx, %rbp, %rdi, %rsi, %rsp, and %r12 through %r15 are non-volatile:
+#    Must be saved be the callee if changed.
 ########################################
     .text
 
