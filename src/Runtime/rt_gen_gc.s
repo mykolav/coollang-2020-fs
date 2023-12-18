@@ -4,9 +4,6 @@
 
     .data
 
-# Assignment stack's tip pointer
-assign_sp:                      .quad 0
-
 #
 # TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
 #
@@ -116,8 +113,8 @@ assign_sp:                      .quad 0
 #        transfered from the unused area to the work/reserve area.
 #
 #     2) During a major collection, if the live objects in the old area
-#        do not fit within the new area, the heap is expanded and `assign_sp`
-#        is updated to reflact this. This value later gets stored back
+#        do not fit within the new area, the heap is expanded and `alloc_limit`
+#        is updated to reflect this. This value later gets stored back
 #        into L4.
 #
 #   During a normal allocation and minor collections, the heap has the
@@ -143,27 +140,27 @@ assign_sp:                      .quad 0
 #      |    |              |                 |    |-->  <--|   |         |
 #      |    L0             L1                L2   |        |   L3        L4
 #      |                                          |        |
-#      heap_start                            alloc_ptr    assign_sp
+#      heap_start                            alloc_ptr    alloc_limit
 #
 #     `alloc_ptr`: points to the next free word in the work
 #         area during normal allocation.  During a minor garbage collection,
 #         it points to the next free work in the reserve area.
 #
-#     `assign_sp`: points to the tip of the assignment stack, 
-#         `alloc_ptr` cannot go past `assign_sp`.
-#         Between `assign_sp` and L3 sits the assignment stack 
+#     `alloc_limit`: points to the tip of the assignment stack, 
+#         `alloc_ptr` cannot go past `alloc_limit`.
+#         Between `alloc_limit` and L3 sits the assignment stack 
 #         which grows towards `alloc_ptr`.
 #
 #   The following invariant is maintained for `alloc_ptr` and `assign_ptr` by 
 #   the garbage collector's code at all times:
 #
-#      `alloc_ptr` is always strictly less than `assign_sp`.
+#      `alloc_ptr` is always strictly less than `alloc_limit`.
 #      Hence there is always enough room for at least one assignment record 
 #      at the tip of assignment stack.
 #
 #      If the above invariant hadn't been maintained, we would've ended up
 #      in a situation where at the moment we're requested to record an 
-#      assignment, `alloc_ptr` == `assign_sp`. As there is no room to 
+#      assignment, `alloc_ptr` == `alloc_limit`. As there is no room to 
 #      record the assignment a garbage collection has to run first. 
 #      As the unrecorded assignment can point to a GC root, the garbage 
 #      collection would've missed that root and removed a live object or 
@@ -185,20 +182,20 @@ assign_sp:                      .quad 0
 #     +----+------------------+----------+------------------------------+
 #     ^    ^                  ^      ^   ^      ^                       ^
 #     |    |                  |      |   |      |-->                    |
-#     |    L0                 L1     |   L2    alloc_ptr      assign_sp, L4
+#     |    L0                 L1     |   L2    alloc_ptr      alloc_limit, L4
 #     |                              |
 #     heap_start                     breakpoint
 #
 #     `alloc_ptr` (allocation pointer): During a major collection, this points
 #         into the next free word in the new area.
 #
-#     `assign_sp`: During a major collection, this points to the tip of an 
+#     `alloc_limit`: During a major collection, this points to the tip of an 
 #         empty assignment stack wich is the same as the limit of heap memory.
 #         `alloc_ptr` is not allowed to pass this value. If the live objects 
 #         in the old area cannot fit in the new area, more memory is allocated 
-#         and `assign_sp` is adjusted accordingly.
+#         and `alloc_limit` is adjusted accordingly.
 #
-#   See the `alloc_ptr` < `assign_sp` invariant descriptions above.
+#   See the `alloc_ptr` < `alloc_limit` invariant descriptions above.
 #
 #     breakpoint: Point where a major collection will occur.  It is
 #         calculated by the following formula:
@@ -348,7 +345,7 @@ assign_sp:                      .quad 0
 
     movq     .Platform.heap_end(%rip), %rax
     movq     %rax, .GenGC.HDR_L3(%rdi)                 # initially the end of work area is at the heap end
-    movq     %rax, assign_sp(%rdi)                     # initially the tip of assign stack is at the end of work area
+    movq     %rax, alloc_limit(%rdi)                   # initially the tip of assign stack is at the end of work area
     movq     %rax, .GenGC.HDR_L4(%rdi)                 # initially the end of unused area is at the heap end
 
     subq     %rsi, %rax                                # %rsi contains the work area size
@@ -397,13 +394,13 @@ assign_sp:                      .quad 0
 #
 # Record an Assignment in the Assignment Stack
 #
-#   The GC's code guarantees `alloc_ptr` is always strictly less than `assign_sp`.
+#   The GC's code guarantees `alloc_ptr` is always strictly less than `alloc_limit`.
 #   Hence there is always enough room for at least one assignment record 
 #   at the tip of assignment stack.
 #
 #   If the above invariant hadn't been maintained, we would've ended up
 #   in a situation where at the moment we're requested to record an 
-#   assignment, `alloc_ptr` == `assign_sp`. As there is no room to 
+#   assignment, `alloc_ptr` == `alloc_limit`. As there is no room to 
 #   record the assignment a garbage collection has to run first. 
 #   As the unrecorded assignment can point to a GC root, the garbage 
 #   collection would've missed that root and removed a live object or 
@@ -425,12 +422,12 @@ assign_sp:                      .quad 0
 
     # TODO: Preserve %rdi?
 
-    movq     assign_sp(%rip), %rax
+    movq     alloc_limit(%rip), %rax
     subq     $POINTER_SIZE, %rax
-    movq     %rax, assign_sp(%rip)         # make room in the assignment stack
+    movq     %rax, alloc_limit(%rip)       # make room in the assignment stack
     movq     %rdi, 0(%rax)                 # place pointer to the pointer being assigned to
                                            # at the tip of assignment stack
-    cmpq     alloc_ptr(%rdi), %rax         # if `alloc_ptr` and `assign_sp` have met
+    cmpq     alloc_ptr(%rdi), %rax         # if `alloc_ptr` and `alloc_limit` have met
                                            # we'll have to collect garbage
     jg       .GenGC.handle_assign.done
 
@@ -467,12 +464,12 @@ assign_sp:                      .quad 0
 #   If there is enough room in the unused area (L3 to L4),
 #   this memory is used and the heap is not expanded.
 #
-#   The `assign_sp` and `alloc_ptr` pointers are then set 
+#   The `alloc_limit` and `alloc_ptr` pointers are then set 
 #   as well as the L2 pointer.
 #
 #   If a major collection is not done, the X area is incorporated 
 #   into the old area (i.e. the value of L2 is moved into L1) and 
-#   `assign_sp`, `alloc_ptr`, and L2 are then set.
+#   `alloc_limit`, `alloc_ptr`, and L2 are then set.
 #
 #   INPUT:
 #    %rdi: requested allocation size in bytes
@@ -482,7 +479,7 @@ assign_sp:                      .quad 0
 #    %rdi: requested allocation size in bytes (unchanged)
 #
 #   GLOBALS MODIFIED:
-#    L1, L2, L3, L4, alloc_ptr, assign_sp,
+#    L1, L2, L3, L4, alloc_ptr, alloc_limit,
 #    MINOR0, MINOR1, MAJOR0, MAJOR1
 #
 #   Registers modified:
@@ -560,7 +557,7 @@ assign_sp:                      .quad 0
                                                  # (%rax >= %rcx?)
     jge      .GenGC.collect.do_major             # if yes, perform a major collection
     # If no, update L1, set up the new Reserve/Work areas,
-    # reset `alloc_ptr`, and `assign_sp`, etc
+    # reset `alloc_ptr`, and `alloc_limit`, etc
     movq     .GenGC.HDR_L2(%rdi), %rcx           # %rcx = L2
     movq     .GenGC.HDR_L3(%rdi), %rdx           # %rdx = L3
     movq     %rdx, %rsi                          # %rsi = L3
@@ -587,7 +584,7 @@ assign_sp:                      .quad 0
     # %rcx contains the new L2 value
     movq     %rcx, .GenGC.HDR_L2(%rdi)           # set up the new Reserver/Work boundary
     movq     %rcx, alloc_ptr(%rip)               # set `alloc_ptr` at the start of Work Area
-    movq     %rdx, assign_sp(%rip)               # set `assign_sp` to L3 (Work Area's end)
+    movq     %rdx, alloc_limit(%rip)             # set `alloc_limit` to L3 (Work Area's end)
                                                  # effectively clearing the assignment stack.
                                                  # Garbage collecting the young gen results in
                                                  # no old gen objects pointing to young gen
@@ -692,8 +689,8 @@ assign_sp:                      .quad 0
     #   3) We have enough space in Work Area to
     #      accomodate the requested allocation size
     cmpq     $0, %rcx
-    jle      .GenGC.collect.set_assign_sp_and_L2    # if (%rcx <= 0) 
-                                                    #     go to .GenGC.collect.set_assign_sp_and_L2
+    jle      .GenGC.collect.set_alloc_limit_and_L2  # if (%rcx <= 0) 
+                                                    #     go to .GenGC.collect.set_alloc_limit_and_L2
     # %rcx: we need to expand the heap by at least this number of bytes.
     # Round up %rcx to the nearest greater multiple of .GenGC.HEAP_PAGE (e.g., 32768 bytes):
     # %rcx = (%rcx + 32767) & (-32768)
@@ -718,7 +715,7 @@ assign_sp:                      .quad 0
     movq     .GenGC.HDR_L3(%rdi), %rax           # %rax      = L3
     addq     %rcx, %rax                          # %rax      = L3 + total expansion size
     movq     %rax, .GenGC.HDR_L3(%rdi)           # L3        = L3 + total expansion size
-    movq     %rax, assign_sp(%rip)               # assign_sp = L3 + total expansion size
+    movq     %rax, alloc_limit(%rip)             # alloc_limit = L3 + total expansion size
                                                  # (therefore, the assign stack size = 0)
     jmp      .GenGC.collect.set_L2
 .GenGC.collect.platform_allocate:
@@ -729,14 +726,14 @@ assign_sp:                      .quad 0
     movq     .Platform.heap_start(%rip), %rdi    # %rdi      = heap_start
     movq     .Platform.heap_end(%rip), %rax      # %rax      = heap_end after the allocation
     movq     %rax, .GenGC.HDR_L3(%rdi)           # L3        = heap_end after the allocation
-    movq     %rax, assign_sp(%rip)               # assign_sp = heap_end after the allocation
+    movq     %rax, alloc_limit(%rip)             # alloc_limit = heap_end after the allocation
                                                  # (therefore, the assign stack size = 0)
     movq     %rax, .GenGC.HDR_L4(%rdi)           # L4        = heap_end after the allocation
                                                  # (therefore, sizeof(Unused) = 0 at this point)
     jmp      .GenGC.collect.set_L2
-.GenGC.collect.set_assign_sp_and_L2:
+.GenGC.collect.set_alloc_limit_and_L2:
     movq     .GenGC.HDR_L3(%rdi), %rax           # %rax = L3
-    movq     %rax, assign_sp(%rip)               # assign_sp = L3
+    movq     %rax, alloc_limit(%rip)             # alloc_limit = L3
                                                  # (therefore, the assign stack size = 0)
 .GenGC.collect.set_L2:
     # %rax must be equal to L3 at this point
@@ -756,7 +753,7 @@ assign_sp:                      .quad 0
 .GenGC.collect.work_area_clear_loop:
     movq     $0, 0(%rax)                         # zero out the quad at %rax
     addq     $8, %rax
-    cmpq     assign_sp(%rip), %rax               # %rax < `assign_sp`
+    cmpq     alloc_limit(%rip), %rax             # %rax < `alloc_limit`
     jl       .GenGC.collect.work_area_clear_loop # if yes, we haven't reached 
                                                  # the end of Work Area yet
 
@@ -916,7 +913,7 @@ assign_sp:                      .quad 0
 #     3) Inspect the %rbx, %r12, %r13, %r14, %r15 registers
 #        for GC roots and to automatically update. 
 #
-#     4) The assignment stack is now inspected. `assign_sp` is moved from its
+#     4) The assignment stack is now inspected. `alloc_limit` is moved from its
 #        current position until it hits the L3 pointer (the base of assignment stack).
 #        Each entry is a pointer to object A's attribute itself pointing to object B.
 #        If object A resides in Old Area and object B resides in Work Area,
@@ -968,7 +965,7 @@ assign_sp:                      .quad 0
 
     # Set up the bounds for `.GenGC.check_copy`
     movq     .GenGC.HDR_L2(%r8), %rsi             # $rsi = [lower bound for .GenGC.check_copy
-    movq     assign_sp(%rip), %rdx                # %rdx = upper bound) for .GenGC.check_copy
+    movq     alloc_limit(%rip), %rdx              # %rdx = upper bound) for .GenGC.check_copy
     # Set up the destination for `.GenGC.check_copy`
     movq     .GenGC.HDR_L1(%r8), %rax             # %rax = L1 = the start of Reserve Area
     movq     %rax, alloc_ptr(%rip)                # alloc_ptr = the start of Reserve Area
@@ -1027,10 +1024,10 @@ assign_sp:                      .quad 0
     movq    %rax, %r15
 
     # Inspect the assignment stack for GC roots
-    movq    assign_sp(%rip), %r9                  # %r9  = assign_sp
+    movq    alloc_limit(%rip), %r9                # %r9  = alloc_limit
     # See if the assignment stack is empty
     cmpq    .GenGC.HDR_L3(%r8), %r9
-    jge     .GenGC.minor_collect.reserve_area     # if (assign_sp >= L3)
+    jge     .GenGC.minor_collect.reserve_area     # if (alloc_limit >= L3)
                                                   # go to .GenGC.minor_collect.reserve_area
 .GenGC.minor_collect.assign_loop:
     movq    0(%r9), %rdi                          # %rdi = current assignment stack entry
@@ -1051,7 +1048,7 @@ assign_sp:                      .quad 0
     cmpq    .GenGC.HDR_L3(%r8), %r9
     jl      .GenGC.minor_collect.assign_loop      # if (%r9 < L3) 
                                                   # go to .GenGC.minor_collect.assign_loop
-    movq    %r9, assign_sp(%rip)                  # assign_sp = L3
+    movq    %r9, alloc_limit(%rip)                # alloc_limit = L3
 .GenGC.minor_collect.reserve_area:
     # The objects we've copied to Reserve Area so far
     # are GC roots. Now traverse them in breadth-first order
@@ -1208,7 +1205,7 @@ assign_sp:                      .quad 0
 #   If found, the forwarding pointer is returned.
 #   Else, the heap is analyzed to make sure the object can be copied.
 #
-#   The heap is expanded if necessary (updating only `assign_sp`),
+#   The heap is expanded if necessary (updating only `alloc_limit`),
 #   and the object gets copied to `alloc_ptr`.
 #
 #   After copying is complete, the procedure places 
@@ -1230,7 +1227,7 @@ assign_sp:                      .quad 0
 #          Else, unchanged value from %rdi.
 #
 #   GLOBALS MODIFIED:
-#    alloc_ptr, assign_sp
+#    alloc_ptr, alloc_limit
 #
 #   Registers modified:
 #    %rax, %rdi, %rsi, %rdx, %rcx, .Platform.alloc
@@ -1294,12 +1291,12 @@ assign_sp:                      .quad 0
     salq     $3, %rcx                                  # %rcx = sizeof(obj) in bytes
     addq     alloc_ptr(%rip), %rcx                     # %rcx = alloc_ptr + sizeof(obj)
     addq     $8, %rcx                                  # %rcx = alloc_ptr + sizeof(obj) + sizeof(eye catcher)
-    subq     assign_sp(%rip), %rcx                     # %rcx = %rcx - assign_sp
+    subq     alloc_limit(%rip), %rcx                   # %rcx = %rcx - alloc_limit
     jl       .GenGC.offset_copy.copy                   # if (%rcx < 0)
                                                        # go to .GenGC.offset_copy.copy
     # There is not engough heap space to copy the source obj.
     # %rcx contains the amount of required additional memory in bytes.
-    # We add 8 bytes to %rcx, to maintain `alloc_ptr` < `assign_sp` after the allocation.
+    # We add 8 bytes to %rcx, to maintain `alloc_ptr` < `alloc_limit` after the allocation.
     # So, there is room to record an assignment before a garbage collection has to run (if any).
     # See the comments at `.GenGC.handle_assignment` for details.
     addq $8, %rcx
@@ -1322,7 +1319,7 @@ assign_sp:                      .quad 0
     call     .Platform.alloc                           # %rax: allocated memory block's start
 
     movq     .Platform.heap_end(%rip), %rax            # %rax      = heap_end after the allocation
-    movq     %rax, assign_sp(%rip)                     # assign_sp = heap_end
+    movq     %rax, alloc_limit(%rip)                   # alloc_limit = heap_end
 
     movq     POINTER(%rbp), %rdi                       # %rdi = the start of source obj
 
@@ -1385,7 +1382,7 @@ assign_sp:                      .quad 0
 #       Work Area to satisfy the allocation request
 #   `.GenGC.minor_collect` sets up the Old, X, and New areas for us. additionaly,
 #   `.GenGC.minor_collect` empties out the assignment stack (see the comments there
-#   for details). Consequently, a major collection is free to set `assign_sp` = L4.
+#   for details). Consequently, a major collection is free to set `alloc_limit` = L4.
 #   In particular, once a minor collection completes, 
 #     - [L0; L1) are the boundaries of Old Area (unchanged) 
 #     - [L1; L2) (ex-Reserve Area) contains all the live objects 
@@ -1396,7 +1393,7 @@ assign_sp:                      .quad 0
 #
 #   A major collection consists of five phases:
 #
-#     1) Set `alloc_ptr` into New Area (L2), and `assign_sp` to L4. Also set the
+#     1) Set `alloc_ptr` into New Area (L2), and `alloc_limit` to L4. Also set the
 #        inputs for `.GenGC.offset_copy`.
 #
 #     2) Traverse the stack (see the minor collector) using `.GenGC.offset_copy`.
@@ -1466,9 +1463,9 @@ assign_sp:                      .quad 0
     # At this stage, L2 points right past the last live object 
     # collected by `.GenGC.minor_collect`
     movq    .GenGC.HDR_L2(%r8), %rax
-    movq    %rax, alloc_ptr(%rip)                # alloc_ptr = L2 = the end of collected live objs
+    movq    %rax, alloc_ptr(%rip)                 # alloc_ptr = L2 = the end of collected live objs
     movq    .GenGC.HDR_L4(%r8), %rax
-    movq    %rax, assign_sp(%rip)                # assign_sp = L4 = the end of heap (including Unused Area)
+    movq    %rax, alloc_limit(%rip)               # alloc_limit = L4 = the end of heap (including Unused Area)
 
     # Inspect the stack for GC roots within [%r9, %r10)
     movq    %rdi, %r9                             # %r9 = %rdi = stack tip
@@ -1692,10 +1689,10 @@ assign_sp:                      .quad 0
 
 .GenGC.major_collect.done:
     # This is the only place, where we potentially increase the size of Unused Area [L3; L4)
-    # As L3 stays the same but `assign_sp` initialized to L4 at the beginning of 
+    # As L3 stays the same but `alloc_limit` initialized to L4 at the beginning of 
     # the procedure, increases if `.GenGC.offset_copy` allocates additional memory.
-    movq    assign_sp(%rip), %rax
-    movq    %rax, .GenGC.HDR_L4(%r8)              # L4 = assign_sp
+    movq    alloc_limit(%rip), %rax
+    movq    %rax, .GenGC.HDR_L4(%r8)              # L4 = alloc_limit
 
     movq    alloc_ptr(%rip), %rax
     subq    .GenGC.HDR_L2(%r8), %rax              # %rax      = the size of objects collected into New Area [L2; alloc_ptr)

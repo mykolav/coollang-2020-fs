@@ -19,6 +19,8 @@
 
     .global alloc_ptr
 alloc_ptr:                      .quad 0
+    .global alloc_limit
+alloc_limit:                    .quad 0
 
 #
 # TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
@@ -27,15 +29,15 @@ alloc_ptr:                      .quad 0
 # Common GC messages
 ########################################
 
-.GC.MSG_INTERNAL_ERROR_ASCII:          .ascii "The garbage collector encountered an internal error"
-.GC.MSG_INTERNAL_ERROR_LEN  =                 (. - .GC.MSG_INTERNAL_ERROR_ASCII)
+.GC.MSG_INTERNAL_ERROR_ASCII:    .ascii "The garbage collector encountered an internal error"
+.GC.MSG_INTERNAL_ERROR_LEN  =           (. - .GC.MSG_INTERNAL_ERROR_ASCII)
 
 ########################################
 # Messages for the NoGC garabge collector
 ########################################
 
-.NopGC.MSG_COLLECTING_ASCII:       .ascii "NoGC: Increasing heap..."
-.NopGC.MSG_COLLECTING_LEN  =              (. - .NopGC.MSG_COLLECTING_ASCII)
+.NopGC.MSG_COLLECTING_ASCII:    .ascii "NoGC: Increasing heap..."
+.NopGC.MSG_COLLECTING_LEN  =           (. - .NopGC.MSG_COLLECTING_ASCII)
 
 ########################################
 # Text
@@ -143,7 +145,7 @@ alloc_ptr:                      .quad 0
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax                          # calc the new alloc ptr value
 
-    cmpq     .Platform.heap_end(%rip), %rax      # check if enough free space in the work area
+    cmpq     alloc_limit(%rip), %rax             # check if enough free space in the work area
     jl       .MemoryManager.alloc.can_alloc      # yes, there is
  
     # Let's make enough free space.
@@ -196,7 +198,7 @@ alloc_ptr:                      .quad 0
     movq     alloc_ptr(%rip), %rax
     addq     %rdi, %rax                                 # calc the new alloc ptr value
 
-    cmpq     .Platform.heap_end(%rip), %rax             # check if enough free space in the work area
+    cmpq     alloc_limit(%rip), %rax                    # check if enough free space in the work area
     jl       .MemoryManager.ensure_can_alloc.can_alloc  # yes, there is
 
     # Let's make enough free space
@@ -300,7 +302,10 @@ alloc_ptr:                      .quad 0
 
 #
 # Initialization
-#    Sets alloc_ptr to the value of .Platform.heap_start
+#    Sets `alloc_ptr`   = `.Platform.heap_start`
+#    Sets `alloc_limit` = `.Platform.heap_end`
+#    In the case of NopGC, `alloc_limit` is simply 
+#    the same as `.Platform.heap_end` 
 #
 #   INPUT:
 #    none
@@ -315,6 +320,8 @@ alloc_ptr:                      .quad 0
 .NopGC.init:
     movq    .Platform.heap_start(%rip), %rax
     movq    %rax, alloc_ptr(%rip)
+    movq    .Platform.heap_end(%rip), %rax
+    movq    %rax, alloc_limit(%rip)
 
     ret
 
@@ -335,18 +342,18 @@ alloc_ptr:                      .quad 0
 
     .global .NopGC.collect
 .NopGC.collect:
-    .NopGC.EXPAND_SIZE    = 0x10000                # size in bytes to expand heap (65536B)
+    .NopGC.HEAP_PAGE    = 0x10000               # size in bytes to expand heap (65536B)
 
-    ALLOC_SIZE_SIZE   = 8
-    ALLOC_SIZE        = -ALLOC_SIZE_SIZE
-    PADDING_SIZE      = 8
-    FRAME_SIZE        = ALLOC_SIZE_SIZE + PADDING_SIZE
+    ALLOC_SIZE_SIZE     = 8
+    ALLOC_SIZE          = -ALLOC_SIZE_SIZE
+    PADDING_SIZE        = 8
+    FRAME_SIZE          = ALLOC_SIZE_SIZE + PADDING_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, ALLOC_SIZE(%rbp)                # preserve the allocation size in bytes
+    movq     %rdi, ALLOC_SIZE(%rbp)             # preserve the allocation size in bytes
 
     # show collection message
     # movq     $.NopGC.MSG_COLLECTING_ASCII, %rdi
@@ -355,19 +362,23 @@ alloc_ptr:                      .quad 0
 
 .NopGC.collect.ensure_can_alloc:
     movq     alloc_ptr(%rip), %rax
-    movq     ALLOC_SIZE(%rbp), %rdi                # restore the allocation size in bytes
-    addq     %rdi, %rax                            # calc the new alloc ptr value 
-    cmpq     .Platform.heap_end(%rip), %rax        # check if enough free space in the work area
-    jl       .NopGC.collect.done                   # yes, there is
+    movq     ALLOC_SIZE(%rbp), %rdi             # restore the allocation size in bytes
+    addq     %rdi, %rax                         # calc the new alloc ptr value 
+    cmpq     alloc_limit(%rip), %rax            # check if enough free space in the work area
+    jl       .NopGC.collect.done                # yes, there is
 
     # Let's make enough free space
-    movq     $.NopGC.EXPAND_SIZE, %rdi             # size in bytes
-    call     .Platform.alloc                       # expand the heap
+    movq     $.NopGC.HEAP_PAGE, %rdi            # size in bytes
+    call     .Platform.alloc                    # expand the heap
+    # In the case of NopGC, `alloc_limit` is simply 
+    # the same as `.Platform.heap_end` 
+    movq     .Platform.heap_end(%rip), %rax
+    movq     %rax, alloc_limit(%rip)
 
-    jmp      .NopGC.collect.ensure_can_alloc       # keep expanding?
+    jmp      .NopGC.collect.ensure_can_alloc    # keep expanding?
 
 .NopGC.collect.done:
-    movq     ALLOC_SIZE(%rbp), %rdi                # restore the allocation size in bytes
+    movq     ALLOC_SIZE(%rbp), %rdi             # restore the allocation size in bytes
 
     movq     %rbp, %rsp
     popq     %rbp
