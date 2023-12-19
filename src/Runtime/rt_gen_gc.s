@@ -345,7 +345,7 @@
 
     movq     .Platform.heap_end(%rip), %rax
     movq     %rax, .GenGC.HDR_L3(%rdi)              # initially the end of work area is at the heap end
-    movq     %rax, .Alloc.limit(%rdi)               # initially the tip of assign stack is at the end of work area
+    movq     %rax, .Alloc.limit(%rip)               # initially the tip of assign stack is at the end of work area
     movq     %rax, .GenGC.HDR_L4(%rdi)              # initially the end of unused area is at the heap end
 
     subq     %rsi, %rax                             # %rsi contains the work area size
@@ -372,10 +372,10 @@
     jmp      .GenGC.init.ok
 
 .GenGC.init.heap_test_disabled:
-    movq     $.GenGC.MSG_INIT_OK_ASCII, %rdi
-    movq     $.GenGC.MSG_INIT_OK_LEN, %rsi
-    call     .Platform.out_string
-    call     .Runtime.out_nl
+    # movq     $.GenGC.MSG_INIT_OK_ASCII, %rdi
+    # movq     $.GenGC.MSG_INIT_OK_LEN, %rsi
+    # call     .Platform.out_string
+    # call     .Runtime.out_nl
 
 .GenGC.init.ok:
     movq     %rbp, %rsp
@@ -427,7 +427,7 @@
     movq     %rax, .Alloc.limit(%rip)      # make room in the assignment stack
     movq     %rdi, 0(%rax)                 # place pointer to the pointer being assigned to
                                            # at the tip of assignment stack
-    cmpq     .Alloc.ptr(%rdi), %rax        # if `.Alloc.ptr` and `.Alloc.limit` have met
+    cmpq     .Alloc.ptr(%rip), %rax        # if `.Alloc.ptr` and `.Alloc.limit` have met
                                            # we'll have to collect garbage
     jg       .GenGC.handle_assign.done
 
