@@ -8,10 +8,10 @@
 # TODO: The following globals should be emmitted by the compiler in the program's assembly,
 # TODO: but for now they are defined here.
     .global .MemoryManager.FN_INIT
-.MemoryManager.FN_INIT:         .quad .NopGC.init
+.MemoryManager.FN_INIT:         .quad .GenGC.init
 
     .global .MemoryManager.FN_COLLECT
-.MemoryManager.FN_COLLECT:      .quad .NopGC.collect
+.MemoryManager.FN_COLLECT:      .quad .GenGC.collect
 
     .global .MemoryManager.IS_TESTING
 .MemoryManager.IS_TESTING:      .quad 0
@@ -185,8 +185,8 @@
 .MemoryManager.ensure_can_alloc:
     ALLOC_SIZE_SIZE   = 8
     ALLOC_SIZE        = -ALLOC_SIZE_SIZE
-    PADDING_SIZE      = 8
-    FRAME_SIZE        = ALLOC_SIZE_SIZE + PADDING_SIZE
+    PAD_SIZE          = 8
+    FRAME_SIZE        = ALLOC_SIZE_SIZE + PAD_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -346,8 +346,8 @@
 
     ALLOC_SIZE_SIZE     = 8
     ALLOC_SIZE          = -ALLOC_SIZE_SIZE
-    PADDING_SIZE        = 8
-    FRAME_SIZE          = ALLOC_SIZE_SIZE + PADDING_SIZE
+    PAD_SIZE            = 8
+    FRAME_SIZE          = ALLOC_SIZE_SIZE + PAD_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp

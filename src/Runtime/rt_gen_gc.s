@@ -319,7 +319,8 @@
 .GenGC.init:
     STACK_BASE_SIZE    = 8
     STACK_BASE         = -STACK_BASE_SIZE
-    FRAME_SIZE         = STACK_BASE_SIZE
+    PAD_SIZE           = 8
+    FRAME_SIZE         = STACK_BASE_SIZE + PAD_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -492,7 +493,8 @@
     ALLOC_SIZE         = -ALLOC_SIZE_SIZE
     STACK_TIP_SIZE     = 8
     STACK_TIP          = -(STACK_TIP_SIZE + ALLOC_SIZE_SIZE)
-    FRAME_SIZE         = STACK_TIP_SIZE + ALLOC_SIZE_SIZE
+    PAD_SIZE           = 0
+    FRAME_SIZE         = STACK_TIP_SIZE + ALLOC_SIZE_SIZE + PAD_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -809,7 +811,8 @@
     LOWER_BOUND        = -(POINTER_SIZE + LOWER_BOUND_SIZE)
     UPPER_BOUND_SIZE   = 8
     UPPER_BOUND        = -(POINTER_SIZE + LOWER_BOUND_SIZE + UPPER_BOUND_SIZE)
-    FRAME_SIZE         =  (POINTER_SIZE + LOWER_BOUND_SIZE + UPPER_BOUND_SIZE)
+    PAD_SIZE           = 8
+    FRAME_SIZE         =  (POINTER_SIZE + LOWER_BOUND_SIZE + UPPER_BOUND_SIZE + PAD_SIZE)
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -953,7 +956,8 @@
     STACK_TIP          = -STACK_TIP_SIZE
     RA_OBJ_SIZE_SIZE   = 8
     RA_OBJ_SIZE        = -(STACK_TIP_SIZE + RA_OBJ_SIZE_SIZE)
-    FRAME_SIZE         = STACK_TIP_SIZE + RA_OBJ_SIZE_SIZE
+    PAD_SIZE           = 0
+    FRAME_SIZE         = STACK_TIP_SIZE + RA_OBJ_SIZE_SIZE + PAD_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -1236,7 +1240,8 @@
 .GenGC.offset_copy:
     POINTER_SIZE    = 8
     POINTER         = -POINTER_SIZE
-    FRAME_SIZE      =  POINTER_SIZE
+    PAD_SIZE        = 8
+    FRAME_SIZE      =  POINTER_SIZE + PAD_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -1449,11 +1454,12 @@
     XA_OBJ          = -(STACK_TIP_SZ + LOOP_INDEX_SZ + LOOP_LIMIT_SZ + XA_OBJ_SZ)
     XA_OBJ_SIZE_SZ  = 8
     XA_OBJ_SIZE     = -(STACK_TIP_SZ + LOOP_INDEX_SZ + LOOP_LIMIT_SZ + XA_OBJ_SZ + XA_OBJ_SIZE_SZ)
-    FRAM_SZ         =   STACK_TIP_SZ + LOOP_INDEX_SZ + LOOP_LIMIT_SZ + XA_OBJ_SZ + XA_OBJ_SIZE_SZ
+    PAD_SZ          = 8
+    FRAME_SZ        =   STACK_TIP_SZ + LOOP_INDEX_SZ + LOOP_LIMIT_SZ + XA_OBJ_SZ + XA_OBJ_SIZE_SZ + PAD_SZ
 
-    push    %rbp
+    pushq   %rbp
     movq    %rsp, %rbp
-    subq    $FRAME_SIZE, %rsp
+    subq    $FRAME_SZ, %rsp
 
     movq    %rdi, STACK_TIP(%rbp)
 
