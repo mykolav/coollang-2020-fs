@@ -1551,16 +1551,28 @@ IO.in_int.input_not_digit:
 ########################################
     .global main
 main:
+    MAIN_OBJ_SIZE    = 8
+    MAIN_OBJ         = -MAIN_OBJ_SIZE
+    FRAME_SIZE       =  MAIN_OBJ_SIZE
+
+    pushq   %rbp
+    movq    %rsp, %rbp
+    subq    $FRAME_SIZE, %rsp
+
     call    .Platform.init
 
-    # the base of stack -- to stop checking for stack GC roots at.
-    movq    %rsp, %rdi
+    # The base of stack -- to stop checking for stack GC roots at.
+    movq    %rbp, %rdi
     call    .MemoryManager.init
 
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.
     movq    $Main_proto_obj, %rdi
     call    .Runtime.copy_object
+
+    # Place the created `Main` object on the stack
+    # to let the GC know it's not garbage.
+    movq    %rax, MAIN_OBJ(%rbp)
 
     # 'Main..ctor' is a Cool2020 program's entry point.
     # Pass a reference to the newly created 'Main' instance in %rdi.
