@@ -92,12 +92,14 @@ type EmitExeHandler(_writer: IWriteLine) =
     static member Link(obj_file: string, exe_file: string): string[] =
         let rt_dir = EmitExeHandler.ResolveRtDir()
         let rt_common_path = Path.Combine(rt_dir, "rt_common.o")
+        let rt_runtime_path = Path.Combine(rt_dir, "rt_runtime.o")
         let rt_gen_gc_path = Path.Combine(rt_dir, "rt_gen_gc.o")
         let rt_memory_path = Path.Combine(rt_dir, "rt_memory.o")
         let ld_args = StringBuilder(
             $"-o %s{exe_file} " +
             $"-e main %s{obj_file} " +
             $"\"%s{rt_common_path}\" " +
+            $"\"%s{rt_runtime_path}\" " +
             $"\"%s{rt_memory_path}\" " +
             $"\"%s{rt_gen_gc_path}\" ")
 
