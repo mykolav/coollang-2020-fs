@@ -263,16 +263,28 @@ type AsmBuilder(_context: TranslationContext) =
             .Instr("movq    %rax, {0}", result_reg)
     
 
+    member this.GenGCHandleAssign(dest_addr_frag: AddrFragment): AsmBuilder =
+        this.PushCallerSavedRegs()
+            .Instr("leaq    {0}, %rdi", dest_addr_frag.Addr)
+            .Instr("call    {0}", RtNames.GenGCHandleAssign)
+            .PopCallerSavedRegs()
+
+
     member this.PushCallerSavedRegs(): AsmBuilder =
         for reg in SysVAmd64AbiFacts.CallerSavedRegs do
             if _context.RegSet.IsAllocated(reg)
             then
                 this.Instr("pushq   {0}", reg, ?comment=None).AsUnit()
                 _pushed_caller_saved_regs.Push(reg)
+        // TODO: If the number of pushed regs is odd,
+        //       should `subq $8, %rsp` to align the stack by 16 bytes?
         this
             
             
     member this.PopCallerSavedRegs(): AsmBuilder =
+        // TODO: If the number of pushed regs was odd,
+        //       should `addq $8, %rsp` to compensate
+        //       for padding the stack to 16 bytes boundary?
         while _pushed_caller_saved_regs.Count > 0 do
             let reg = _pushed_caller_saved_regs.Pop()
             this.Instr("popq    {0}", reg, ?comment=None).AsUnit()

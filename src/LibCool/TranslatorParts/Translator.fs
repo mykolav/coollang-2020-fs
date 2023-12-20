@@ -36,21 +36,26 @@ type Translator private () =
         map :> IReadOnlyDictionary<_, _>
     
     
-    static member Translate(program_syntax: ProgramSyntax, diags: DiagnosticBag, source: Source): string =
+    static member Translate(
+        program_syntax: ProgramSyntax,
+        diags: DiagnosticBag,
+        source: Source,
+        code_gen_options: CodeGenOptions
+    ): string =
         let class_node_map = collectClassNodes program_syntax diags source
         if diags.ErrorsCount <> 0
         then
             ""
         else
-            
-        let class_sym_map = ClassSymbolCollector(program_syntax,
-                                                 class_node_map,
-                                                 source,
-                                                 diags).Collect()
+
+        let class_sym_map = ClassSymbolCollector(
+            program_syntax, class_node_map, source, diags).Collect()
+
         if diags.ErrorsCount <> 0
         then
             ""
         else
-        
-        let asm = ProgramTranslator(program_syntax, class_sym_map, diags, source).Translate()
+
+        let asm = ProgramTranslator(
+            program_syntax, class_sym_map, diags, source, code_gen_options).Translate()
         asm

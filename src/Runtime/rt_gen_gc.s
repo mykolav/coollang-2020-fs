@@ -410,6 +410,9 @@
 #   INPUT:
 #    %rdi: pointer to the pointer being assigned to
 #
+#   OUTPUT:
+#    None
+#
 #   Registers modified:
 #    %rax, %rdi, %rsi, .GenGC.collect
 #

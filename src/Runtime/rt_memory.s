@@ -3,19 +3,14 @@
 ########################################
 
     .data
-
 ########################################
-# TODO: The following globals should be emmitted by the compiler in the program's assembly,
-# TODO: but for now they are defined here.
-    .global .MemoryManager.FN_INIT
-.MemoryManager.FN_INIT:         .quad .GenGC.init
-
-    .global .MemoryManager.FN_COLLECT
-.MemoryManager.FN_COLLECT:      .quad .GenGC.collect
-
-    .global .MemoryManager.IS_TESTING
-.MemoryManager.IS_TESTING:      .quad 0
+# Memory Manager Globals
 ########################################
+
+# The compiler emits the following globals
+#   .MemoryManager.FN_INIT
+#   .MemoryManager.FN_COLLECT
+#   .MemoryManager.IS_TESTING
 
     .global .Alloc.ptr
 .Alloc.ptr:                      .quad 0

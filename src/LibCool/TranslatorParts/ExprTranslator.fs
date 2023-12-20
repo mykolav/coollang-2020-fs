@@ -68,46 +68,53 @@ type private ExprTranslator(_context: TranslationContext,
         | Error ->
             Error
         | Ok expr_frag ->
-            let id_sym = _sym_table.TryResolve(id.Syntax)
-            if id_sym.IsNone
-            then
+            let id_sym_opt = _sym_table.TryResolve(id.Syntax)
+            match id_sym_opt with
+            | ValueNone ->
                 _context.Diags.Error(
                     $"The name '{id.Syntax}' does not exist in the current context",
                     id.Span)
 
                 _context.RegSet.Free(expr_frag.Reg)
                 Error
-            else
+            | ValueSome id_sym ->
+                let addr_frag = this.AddrOf(id_sym)
 
-            let addr_frag = this.AddrOf(id_sym.Value)
+                if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Type))
+                then
+                    _context.Diags.Error(
+                        $"The expression's type '{expr_frag.Type.Name}' does not conform to " +
+                        $"the type '{addr_frag.Type.Name}' of '{id.Syntax}'",
+                        rvalue_expr.Span)
 
-            if not (_context.TypeCmp.Conforms(ancestor=addr_frag.Type, descendant=expr_frag.Type))
-            then
-                _context.Diags.Error(
-                    $"The expression's type '{expr_frag.Type.Name}' does not conform to " +
-                    $"the type '{addr_frag.Type.Name}' of '{id.Syntax}'",
-                    rvalue_expr.Span)
+                    _context.RegSet.Free(addr_frag.Reg)
+                    _context.RegSet.Free(expr_frag.Reg)
+                    Error
+                else
+
+                let asm =
+                    this.EmitAsm()
+                        .Paste(expr_frag.Asm)
+                        .Location(assign_node_span)
+                        .Instr("movq    {0}, {1}", expr_frag.Reg, addr_frag, comment=id.Syntax.ToString())
+
+                // If we are assigning a value to an attribute of an object
+                // residing in the Generational GC's Old Area, this object keeps
+                // the object pointed to by its attribute alive.
+                if id_sym.Kind = SymbolKind.Attr &&
+                   _context.CodeGenOptions.GC = GarbageCollectorKind.Generational
+                then
+                    asm.GenGCHandleAssign(addr_frag)
+                       .AsUnit()
 
                 _context.RegSet.Free(addr_frag.Reg)
-                _context.RegSet.Free(expr_frag.Reg)
-                Error
-            else
 
-            let asm =
-                this.EmitAsm()
-                    .Paste(expr_frag.Asm)
-                    .Location(assign_node_span)
-                    .Instr("movq    {0}, {1}", expr_frag.Reg, addr_frag, comment=id.Syntax.ToString())
-                    .ToString()
+                // We do not free up expr_frag.Value.Reg,
+                // to support assignments of the form `ID = ID = ...`
 
-            _context.RegSet.Free(addr_frag.Reg)
-
-            // We do not free up expr_frag.Value.Reg,
-            // to support assignments of the form `ID = ID = ...`
-
-            Ok { AsmFragment.Asm = asm.ToString()
-                 Reg = expr_frag.Reg
-                 Type = addr_frag.Type }
+                Ok { AsmFragment.Asm = asm.ToString()
+                     Reg = expr_frag.Reg
+                     Type = addr_frag.Type }
         
         
     and translateBoolNegation (bool_negation_node: AstNode<ExprSyntax>)

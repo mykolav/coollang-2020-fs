@@ -9,12 +9,14 @@ open System.Text
 open LibCool.DiagnosticParts
 open LibCool.SharedParts
 open LibCool.SourceParts
+open LibCool.TranslatorParts
 
 
 [<IsReadOnly; Struct>]
 type EmitExeArgs =
     { SourceParts: seq<SourcePart>
-      ExeFile: string }
+      ExeFile: string
+      CodeGenOptions: CodeGenOptions }
 
 
 [<Sealed>]
@@ -33,7 +35,7 @@ type EmitExeHandler(_writer: IWriteLine) =
         //
         // Compile to assembly
         //
-        let result = CompileToAsmStep.Invoke(source, diags)
+        let result = CompileToAsmStep.Invoke(source, diags, args.CodeGenOptions)
         match result with
         | Error ->
             DiagRenderer.Render(diags, source, _writer)

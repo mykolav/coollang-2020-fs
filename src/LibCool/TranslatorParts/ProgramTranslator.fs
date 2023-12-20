@@ -16,11 +16,13 @@ open LibCool.TranslatorParts
 type private ProgramTranslator(_program_syntax: ProgramSyntax,
                                _class_sym_map: IReadOnlyDictionary<TYPENAME, ClassSymbol>,
                                _diags: DiagnosticBag,
-                               _source: Source) =
-    
-    
+                               _source: Source,
+                               _code_gen_options: CodeGenOptions) =
+
+
     let _sb_data = StringBuilder()
-    let _context = { TranslationContext.ClassSymMap = _class_sym_map
+    let _context = { TranslationContext.CodeGenOptions = _code_gen_options
+                     ClassSymMap = _class_sym_map
                      TypeCmp = TypeComparer(_class_sym_map)
                      RegSet = RegisterSet()
                      LabelGen = LabelGenerator()
@@ -250,9 +252,24 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         emitClassVTables()
         emitPrototypeObjs()
 
+        let gc_name =
+            match _context.CodeGenOptions.GC with
+            | Nop          -> ".NopGC"
+            | Generational -> ".GenGC"
+
         let asm = 
             StringBuilder()
                 .AppendLine("    .data")
+                .AppendLine()
+                .AppendLine( "    .global .MemoryManager.FN_INIT")
+                .AppendLine($".MemoryManager.FN_INIT:         .quad {gc_name}.init")
+                .AppendLine()
+                .AppendLine( "    .global .MemoryManager.FN_COLLECT")
+                .AppendLine($".MemoryManager.FN_COLLECT:      .quad {gc_name}.collect")
+                .AppendLine()
+                .AppendLine( "    .global .MemoryManager.IS_TESTING")
+                .AppendLine( ".MemoryManager.IS_TESTING:      .quad 0")
+                .AppendLine()
                 .AppendLine("    .global class_name_table")
                 .AppendLine("    .global Main_proto_obj")
                 .AppendLine("    .global Main..ctor")

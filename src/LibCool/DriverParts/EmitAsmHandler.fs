@@ -6,12 +6,14 @@ open System.Runtime.CompilerServices
 open LibCool.DiagnosticParts
 open LibCool.SharedParts
 open LibCool.SourceParts
+open LibCool.TranslatorParts
 
 
 [<IsReadOnly; Struct>]
 type EmitAsmArgs =
     { SourceParts: seq<SourcePart>
-      AsmFile: string voption }
+      AsmFile: string voption
+      CodeGenOptions: CodeGenOptions }
 
 
 [<Sealed>]
@@ -20,7 +22,7 @@ type EmitAsmHandler(_writer: IWriteLine) =
         let source = Source(args.SourceParts)
         let diags = DiagnosticBag()
 
-        let result = CompileToAsmStep.Invoke(source, diags)
+        let result = CompileToAsmStep.Invoke(source, diags, args.CodeGenOptions)
         DiagRenderer.Render(diags, source, _writer)
         
         match result with

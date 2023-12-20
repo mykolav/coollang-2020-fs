@@ -9,7 +9,7 @@ open LibCool.TranslatorParts
 
 
 module CompileToAsmStep =
-    let Invoke(source: Source, diags: DiagnosticBag): LcResult<string> =
+    let Invoke(source: Source, diags: DiagnosticBag, code_gen_options: CodeGenOptions): LcResult<string> =
         // ERROR HANDLING:
         // 1) If any lexical errors, report and stop
         // 2) If any syntax errors, report and stop
@@ -33,7 +33,7 @@ module CompileToAsmStep =
             Error
         else
 
-        let asm = Translator.Translate(ast, diags, source)
+        let asm = Translator.Translate(ast, diags, source, code_gen_options)
         if diags.ErrorsCount <> 0
         then
             Error

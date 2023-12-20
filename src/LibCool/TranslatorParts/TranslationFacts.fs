@@ -64,3 +64,5 @@ module RtNames =
     let RtAbortDispatch = ".Runtime.abort_dispatch"
     
     let StringConcat = "String.concat"
+
+    let GenGCHandleAssign = ".GenGC.handle_assign"

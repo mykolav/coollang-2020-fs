@@ -8,6 +8,7 @@ open System.Runtime.InteropServices
 open System.Text
 open LibCool.SharedParts
 open LibCool.SourceParts
+open LibCool.TranslatorParts
 
 
 type Cmd
@@ -59,6 +60,10 @@ type Driver(?_writer: IWriteLine) =
 
         let mutable S_seen = 0
         let mutable asm_file: string voption = ValueNone
+
+        // TODO: The code gen options are temporarily hard-coded.
+        //       They should be parsed from the command line flags.
+        let code_gen_options = { CodeGenOptions.GC = GarbageCollectorKind.Generational }
         
         let mutable have_error = false
         let mutable i = 0
@@ -128,7 +133,13 @@ type Driver(?_writer: IWriteLine) =
         
         if S_seen > 0
         then
-            Cmd.EmitAsm { SourceParts = source_parts; AsmFile = asm_file }
+            Cmd.EmitAsm {
+                SourceParts = source_parts
+                AsmFile = asm_file
+                CodeGenOptions = code_gen_options }
         else
             
-        Cmd.EmitExe { SourceParts = source_parts; ExeFile = exe_file }
+        Cmd.EmitExe {
+            SourceParts = source_parts
+            ExeFile = exe_file
+            CodeGenOptions = code_gen_options }
