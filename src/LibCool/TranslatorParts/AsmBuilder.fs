@@ -34,7 +34,10 @@ type AsmBuilder(_context: TranslationContext) =
         _asm.Append(_indent)
             .Append(directive)
             .AsUnit()
-        this.Ln(?comment=comment)
+
+        this.Ln(
+            ?line_len=Some(_indent.Length + directive.Length),
+            ?comment=comment)
 
 
     member this.Directive(directive: string, value: obj, ?comment: string): AsmBuilder =
@@ -46,7 +49,10 @@ type AsmBuilder(_context: TranslationContext) =
         _asm.Append(_indent)
             .Append(instruction)
             .AsUnit()
-        this.Ln(?comment=comment)
+
+        this.Ln(
+            ?line_len=Some(_indent.Length + instruction.Length),
+            ?comment=comment)
 
         
     // Instr[uction]
@@ -147,9 +153,10 @@ type AsmBuilder(_context: TranslationContext) =
         
         
     member this.Label(label: Label, comment: string) =
-        _asm.AppendFormat("{0}:", _context.LabelGen.NameOf(label))
+        let label_name = _context.LabelGen.NameOf(label)
+        _asm.AppendFormat("{0}:", label_name)
             .AsUnit()
-        this.Ln(comment)
+        this.Ln(comment, label_name.Length + 1)
         
         
     member this.Label(label: string) =
@@ -307,10 +314,15 @@ type AsmBuilder(_context: TranslationContext) =
         
         
     // Line end
-    member this.Ln(?comment: string): AsmBuilder =
+    member this.Ln(?comment: string, ?line_len: int): AsmBuilder =
         if comment.IsSome
         then
-            _asm.AppendFormat(" # {0}", comment.Value.ToString())
+            let left_pad = match line_len with
+                           | None -> " "
+                           | Some line_len ->
+                               let comment_col = 50;
+                               String(' ', Math.Max(comment_col - line_len, 1))
+            _asm.AppendFormat("{0}# {1}", left_pad, comment.Value.ToString())
                 .AsUnit()
                 
         _asm.AppendLine()
