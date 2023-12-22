@@ -798,31 +798,45 @@ ArrayAny.get.abort_index:
 #
 #  ArrayAny.set
 #
-#      array object in %rdi
-#      element index (an int object) in %rsi
-#      value to set in %rdx
-#
 #  Sets the array's element with the given index to the supplied value.
+#
+#  INPUT
+#   %rdi: array object
+#   %rsi: element index (an int object)
+#   %rdx: value to set
+#
+#  OUTPUT
+#   None
+#
+#  Registers modified
+#   %rdi, %rsi, %rcx, .MemoryManager.on_assign
 #
 
     .global ArrayAny.set
 ArrayAny.set:
-    movq    INT_VAL(%rsi), %rsi
+    pushq   %rbp
+    movq    %rsp, %rbp
+
+    movq    INT_VAL(%rsi), %rsi         # %rsi = index
 
     # Ensure index >= 0
     cmpq    $0, %rsi
-    jl      ArrayAny.set.abort_index
+    jl      ArrayAny.set.abort_index    # if (%rsi < 0) go to ...
 
     # Ensure index < length
     movq    ARR_LEN(%rdi), %rcx
-    movq    INT_VAL(%rcx), %rcx
+    movq    INT_VAL(%rcx), %rcx         # %rcx = the array's length
     cmpq    %rcx, %rsi
-    jge     ArrayAny.set.abort_index
+    jge     ArrayAny.set.abort_index    # if (index >= length) go to ...
 
     # The index is in range
-    addq    $ARR_ITEMS, %rdi # elements ptr
-    movq    %rdx, (%rdi, %rsi, 8)
+    addq    $ARR_ITEMS, %rdi            # %rdi = a pointer to the array's items memory region
+    leaq    (%rdi, %rsi, 8), %rdi       # %rdi = a pointer to the element at index
+    movq    %rdx, 0(%rdi)
+    call    .MemoryManager.on_assign
 
+    movq    %rbp, %rsp
+    popq    %rbp
     ret
 
 ArrayAny.set.abort_index:
