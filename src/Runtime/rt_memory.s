@@ -21,17 +21,35 @@
 # TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
 #
 ########################################
+# MemoryManager messages
+########################################
+
+    .global .MM.MSG_ALLOC_SIZE_EQ_ASCII
+.MM.MSG_ALLOC_SIZE_EQ_ASCII:     .ascii "MM:  Alloc size    = "
+.MM.MSG_ALLOC_SIZE_EQ_LEN  =             (. - .MM.MSG_ALLOC_SIZE_EQ_ASCII)
+
+    .global .MM.MSG_ALLOC_PTR_EQ_ASCII
+.MM.MSG_ALLOC_PTR_EQ_ASCII:      .ascii "MM: .Alloc.ptr     = "
+.MM.MSG_ALLOC_PTR_EQ_LEN  =             (. - .MM.MSG_ALLOC_PTR_EQ_ASCII)
+
+    .global .MM.MSG_ALLOC_LIMIT_EQ_ASCII
+.MM.MSG_ALLOC_LIMIT_EQ_ASCII:    .ascii "MM: .Alloc.limit   = "
+.MM.MSG_ALLOC_LIMIT_EQ_LEN  =           (. - .MM.MSG_ALLOC_LIMIT_EQ_ASCII)
+
+########################################
 # Common GC messages
 ########################################
 
-.GC.MSG_INTERNAL_ERROR_ASCII:    .ascii "The garbage collector encountered an internal error"
+    .global .GC.MSG_INTERNAL_ERROR_ASCII
+.GC.MSG_INTERNAL_ERROR_ASCII:    .ascii "GC: The garbage collector encountered an internal error"
 .GC.MSG_INTERNAL_ERROR_LEN  =           (. - .GC.MSG_INTERNAL_ERROR_ASCII)
 
 ########################################
 # Messages for the NoGC garabge collector
 ########################################
 
-.NopGC.MSG_COLLECTING_ASCII:    .ascii "NoGC: Increasing heap..."
+    .global .NopGC.MSG_COLLECTING_ASCII
+.NopGC.MSG_COLLECTING_ASCII:    .ascii "NopGC: Increasing heap..."
 .NopGC.MSG_COLLECTING_LEN  =           (. - .NopGC.MSG_COLLECTING_ASCII)
 
 ########################################
@@ -105,13 +123,19 @@
 #    none
 #
 #   Registers modified:
-#    initializer function
+#    .MemoryManager.FN_INIT
 #
 
     .global .MemoryManager.init
 .MemoryManager.init:
-    # pointer to init procedure of a GC implementation
+    pushq    %rbp
+    movq     %rsp, %rbp
+
+    # pointer to the init procedure of a GC implementation
     callq    *.MemoryManager.FN_INIT(%rip)
+
+    movq     %rbp, %rsp
+    popq     %rbp
     ret
 
 #
@@ -132,29 +156,48 @@
 
     .global .MemoryManager.alloc
 .MemoryManager.alloc:
+    ALLOC_SIZE_SIZE   = 8
+    ALLOC_SIZE        = -ALLOC_SIZE_SIZE
+    PAD_SIZE          = 8
+    FRAME_SIZE        = ALLOC_SIZE_SIZE + PAD_SIZE
+
     pushq    %rbp
     movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
 
     salq     $3, %rdi                            # convert quads to bytes
+    movq     %rdi, ALLOC_SIZE(%rbp)
 
-    movq     .Alloc.ptr(%rip), %rax
-    addq     %rdi, %rax                          # calc the new alloc ptr value
+                                                 # %rdi = alloc size in bytes
+    movq     .Alloc.ptr(%rip), %rax              # %rax = .Alloc.ptr
+    addq     %rdi, %rax                          # %rax = .Alloc.ptr + alloc size = the next .Alloc.ptr
 
-    cmpq     .Alloc.limit(%rip), %rax            # check if enough free space in the work area
-    jl       .MemoryManager.alloc.can_alloc      # yes, there is
+    # Check if enough free space in the work area
+    #
+    # `.Alloc.ptr` is always strictly less than `.Alloc.limit`.
+    # Hence there is always enough room for at least one assignment record 
+    # at the tip of assignment stack. 
+    # See the relevant comments in GenGC for more details.
+    cmpq     .Alloc.limit(%rip), %rax
+    jl       .MemoryManager.alloc.can_alloc      # if (the next .Alloc.ptr < .Alloc.limit) go to ...
  
     # Let's make enough free space.
-    # %rdi contains allocation size in bytes 
-    # and the collector fn preserves its value 
-    movq     %rbp, %rsi                          # tip of stack to start collecting from
+                                                 # %rdi = alloc size in bytes
+    movq     %rbp, %rsi                          # %rsi = tip of stack to start collecting from
     callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
 
-    movq     .Alloc.ptr(%rip), %rax
-    addq     %rdi, %rax                          # calc the new alloc ptr value
+    # Assert the collector fn preserved the value of %rdi
+    # cmpq     ALLOC_SIZE(%rbp), %rdi
+    # jne     .GC.abort
+
+                                                 # %rdi = alloc size in bytes
+    movq     .Alloc.ptr(%rip), %rax              # %rax = .Alloc.ptr
+    addq     %rdi, %rax                          # %rax = .Alloc.ptr + alloc size
+
 .MemoryManager.alloc.can_alloc:
-    movq     .Alloc.ptr(%rip), %rdi              # preserve the start addr of allocated memory block
-    movq     %rax, .Alloc.ptr(%rip)              # advance the allocation pointer
-    movq     %rdi, %rax                          # place the start addr of allocated memory block in %rax
+    movq     .Alloc.ptr(%rip), %rdi              # %rdi = .Alloc.ptr
+    movq     %rax, .Alloc.ptr(%rip)              # .Alloc.ptr = %rax = .Alloc.ptr + alloc size
+    movq     %rdi, %rax                          # %rax = %rdi = .Alloc.ptr
 
     movq     %rbp, %rsp
     popq     %rbp
@@ -188,8 +231,8 @@
     subq     $FRAME_SIZE, %rsp
 
     movq     %rdi, ALLOC_SIZE(%rbp)                     # preserve the allocation size in quads
-    salq     $3, %rdi                                   # convert quads to bytes
 
+    salq     $3, %rdi                                   # convert quads to bytes
     movq     .Alloc.ptr(%rip), %rax
     addq     %rdi, %rax                                 # calc the new alloc ptr value
 
@@ -200,6 +243,7 @@
     # %rdi contains allocation size in bytes 
     movq     %rbp, %rsi                                 # tip of stack to start collecting from
     callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
+
 .MemoryManager.ensure_can_alloc.can_alloc:
     movq     ALLOC_SIZE(%rbp), %rdi                     # restore the allocation size in quads
 
@@ -238,6 +282,61 @@
 .MemoryManager.test.done:
     movq    %rbp, %rsp
     popq    %rbp
+    ret
+
+#
+# Print heap stats
+#
+#   INPUT:
+#    None
+#
+#   OUTPUT:
+#    %rax: unchanged
+#    %rdi: unchanged
+#    %rsi: unchanged
+#
+#   Registers modified:
+#    .Runtime.print, .Runtime.out_int, .Runtime.out_nl
+
+    .global .MemoryManager.print_stats
+.MemoryManager.print_stats:
+    RAX_SIZE      = 8
+    RAX           = -RAX_SIZE
+    RDI_SIZE      = 8
+    RDI           = -(RAX_SIZE + RDI_SIZE)
+    RSI_SIZE      = 8
+    RSI           = -(RAX_SIZE + RDI_SIZE + RSI_SIZE)
+    PAD_SIZE      = 8
+    FRAME_SIZE    =   RAX_SIZE + RDI_SIZE + RSI_SIZE + PAD_SIZE
+
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rax, RAX(%rbp)
+    movq     %rdi, RDI(%rbp)
+    movq     %rsi, RSI(%rbp)
+
+    movq     $.MM.MSG_ALLOC_PTR_EQ_ASCII, %rdi
+    movq     $.MM.MSG_ALLOC_PTR_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Alloc.ptr(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    # movq     $.MM.MSG_ALLOC_LIMIT_EQ_ASCII, %rdi
+    # movq     $.MM.MSG_ALLOC_LIMIT_EQ_LEN, %rsi
+    # call     .Runtime.print
+    # movq     .Alloc.limit(%rip), %rdi
+    # call     .Runtime.out_int
+    # call     .Runtime.out_nl
+
+    movq     RAX(%rbp), %rax
+    movq     RDI(%rbp), %rdi
+    movq     RSI(%rbp), %rsi
+
+    movq     %rbp, %rsp
+    popq     %rbp
     ret
 
 ########################################
@@ -282,8 +381,7 @@
 .GC.abort:
     movq     $.GC.MSG_INTERNAL_ERROR_ASCII, %rdi
     movq     $.GC.MSG_INTERNAL_ERROR_LEN, %rsi
-    call     .Platform.out_string
-    call     .Runtime.out_nl
+    call     .Runtime.print_ln
 
     movq   $1, %rdi
     jmp    .Platform.exit_process
@@ -319,6 +417,24 @@
     movq    %rax, .Alloc.limit(%rip)
 
     ret
+#
+# `on_assign` is called to notify the GC an assignment just happened.
+# In the case of `.NopGC` this procedure does nothing.
+#
+#   INPUT:
+#    %rdi: pointer to the pointer being assigned to
+#
+#   OUTPUT:
+#    None
+#
+#   Registers modified:
+#    None
+#
+
+    .global .NopGC.on_assign
+.NopGC.on_assign:
+    ret
+
 
 #
 # Collection
