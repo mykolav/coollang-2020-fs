@@ -283,10 +283,12 @@ type AsmBuilder(_context: TranslationContext) =
 
     member this.PushCallerSavedRegs(): AsmBuilder =
         for reg in SysVAmd64AbiFacts.CallerSavedRegs do
-            if _context.RegSet.IsAllocated(reg)
-            then
-                this.Instr("pushq   {0}", reg, ?comment=None).AsUnit()
+            match _context.RegSet.AllocatedBy(reg) with
+            | ValueSome allocatedBy ->
+                this.Instr("pushq   {0}", reg, ?comment=Some $"allocated by %s{allocatedBy}").AsUnit()
                 _pushed_caller_saved_regs.Push(reg)
+            | ValueNone ->
+                ()
         // TODO: If the number of pushed regs is odd,
         //       should `subq $8, %rsp` to align the stack by 16 bytes?
         this

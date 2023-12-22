@@ -8,7 +8,7 @@ type Reg = Reg of int
 
 type RegisterSetItem =
     { mutable IsFree: bool
-      mutable Owner: string
+      mutable AllocatedBy: string
       Name: string }
 
 
@@ -17,13 +17,13 @@ type RegisterSet() =
 
 
     let _regs: RegisterSetItem[] = [|
-        (* 0 *) { IsFree=true; Owner=""; Name="%rbx" }
-        (* 1 *) { IsFree=true; Owner=""; Name="%r10" }
-        (* 2 *) { IsFree=true; Owner=""; Name="%r11" }
-        (* 3 *) { IsFree=true; Owner=""; Name="%r12" }
-        (* 4 *) { IsFree=true; Owner=""; Name="%r13" }
-        (* 5 *) { IsFree=true; Owner=""; Name="%r14" }
-        (* 6 *) { IsFree=true; Owner=""; Name="%r15" }
+        (* 0 *) { IsFree=true; AllocatedBy=""; Name="%rbx" }
+        (* 1 *) { IsFree=true; AllocatedBy=""; Name="%r10" }
+        (* 2 *) { IsFree=true; AllocatedBy=""; Name="%r11" }
+        (* 3 *) { IsFree=true; AllocatedBy=""; Name="%r12" }
+        (* 4 *) { IsFree=true; AllocatedBy=""; Name="%r13" }
+        (* 5 *) { IsFree=true; AllocatedBy=""; Name="%r14" }
+        (* 6 *) { IsFree=true; AllocatedBy=""; Name="%r15" }
     |]
     
     
@@ -40,13 +40,13 @@ type RegisterSet() =
             invalidOp "A register leak detected"
     
     
-    member this.Allocate(owner: string): Reg =
+    member this.Allocate(allocated_by: string): Reg =
         let index_opt = _regs |> Seq.tryFindIndex (fun it -> it.IsFree)
         match index_opt with
         | Some index ->
             let item = _regs[index]
             item.IsFree <- false
-            item.Owner <- owner
+            item.AllocatedBy <- allocated_by
             Reg index
         | None -> invalidOp "Out of registers"
         
@@ -61,14 +61,20 @@ type RegisterSet() =
                 invalidOp $"The register %i{index} '%s{item.Name}' has not been allocated"
             
             item.IsFree <- true
-            item.Owner <- ""
+            item.AllocatedBy <- ""
             
             
     member this.IsAllocated(reg: string): bool =
         let item = _regs |> Seq.find (fun it -> it.Name = reg)
         not item.IsFree
-        
-        
+
+
+    member this.AllocatedBy(reg: string): string voption =
+        let item = _regs |> Seq.find (fun it -> it.Name = reg)
+        if item.IsFree then ValueNone
+        else ValueSome item.AllocatedBy
+
+
     member this.NameOf(reg: Reg): string =
         if reg = Reg.Null
         then
