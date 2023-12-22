@@ -64,7 +64,9 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         
         _sb_data
              // Eyecatch, unique id to verify any object
-            .AppendLine(        "    .quad -1")
+            .AppendLine()
+            .AppendLine( "    .quad -1")
+            .AppendLine($"    .global %s{int_const.Label}")
             .AppendLine($"%s{int_const.Label}:")
             // Tag
             .AppendLine($"    .quad %d{BasicClasses.Int.Tag} # tag")
@@ -109,7 +111,9 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         
         _sb_data
              // Eyecatch, unique id to verify any object
-            .AppendLine(        "    .quad -1")
+            .AppendLine()
+            .AppendLine( "    .quad -1")
+            .AppendLine($"    .global %s{str_const.Label}")
             .AppendLine($"%s{str_const.Label}:")
             // Tag
             .AppendLine($"    .quad %d{BasicClasses.String.Tag} # tag")
@@ -156,7 +160,11 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     let emitClassNameTable(): unit =
-        _sb_data.AppendLine("class_name_table:").AsUnit()
+        _sb_data
+            .AppendLine()
+            .AppendLine("    .global class_name_table")
+            .AppendLine("class_name_table:")
+            .AsUnit()
         
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
@@ -167,7 +175,11 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     let emitClassParentTable(): unit =
-        _sb_data.AppendLine("class_parent_table:").AsUnit()
+        _sb_data
+            .AppendLine()
+            .AppendLine("    .global class_parent_table")
+            .AppendLine("class_parent_table:")
+            .AsUnit()
         
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
@@ -190,6 +202,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         |> Seq.where (fun class_sym -> not class_sym.IsVirtual)
         |> Seq.iter (fun class_sym ->
             _sb_data
+                .AppendLine()
+                .AppendLine($"    .global %s{class_sym.Name.Value}_vtable")
                 .AppendLine($"%s{class_sym.Name.Value}_vtable:")
                 .AsUnit()
             
@@ -211,7 +225,9 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         let proto_obj_size_in_quads = header_size_in_quads + class_sym.Attrs.Count
         _sb_data
              // Eyecatch, unique id to verify any object
-            .AppendLine(        "    .quad -1")
+            .AppendLine()
+            .AppendLine( "    .quad -1")
+            .AppendLine($"    .global %s{class_sym.Name.Value}_proto_obj")
             .AppendLine($"%s{class_sym.Name.Value}_proto_obj:")
             // Tag
             .AppendLine($"    .quad %d{class_sym.Tag} # tag")
@@ -262,17 +278,13 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 .AppendLine("    .data")
                 .AppendLine()
                 .AppendLine( "    .global .MemoryManager.FN_INIT")
-                .AppendLine($".MemoryManager.FN_INIT:         .quad {gc_name}.init")
+                .AppendLine($".MemoryManager.FN_INIT:        .quad {gc_name}.init")
                 .AppendLine()
                 .AppendLine( "    .global .MemoryManager.FN_COLLECT")
-                .AppendLine($".MemoryManager.FN_COLLECT:      .quad {gc_name}.collect")
+                .AppendLine($".MemoryManager.FN_COLLECT:     .quad {gc_name}.collect")
                 .AppendLine()
                 .AppendLine( "    .global .MemoryManager.IS_TESTING")
-                .AppendLine( ".MemoryManager.IS_TESTING:      .quad 0")
-                .AppendLine()
-                .AppendLine("    .global class_name_table")
-                .AppendLine("    .global Main_proto_obj")
-                .AppendLine("    .global Main..ctor")
+                .AppendLine( ".MemoryManager.IS_TESTING:     .quad 0")
                 .AppendLine()
                 .Append(_sb_data.ToString())
                 .AppendLine()

@@ -29,7 +29,18 @@ type AsmBuilder(_context: TranslationContext) =
         _asm.Append(asm).AsUnit()
         this
 
-        
+
+    member this.Directive(directive: string, comment: string option): AsmBuilder =
+        _asm.Append(_indent)
+            .Append(directive)
+            .AsUnit()
+        this.Ln(?comment=comment)
+
+
+    member this.Directive(directive: string, value: obj, ?comment: string): AsmBuilder =
+        this.Directive(String.Format(directive, value), comment=comment)
+
+
     // Instr[uction]
     member this.Instr(instruction: string, comment: string option): AsmBuilder =
         _asm.Append(_indent)
@@ -294,7 +305,7 @@ type AsmBuilder(_context: TranslationContext) =
         
         
     // Line end
-    member private this.Ln(?comment: string): AsmBuilder =
+    member this.Ln(?comment: string): AsmBuilder =
         if comment.IsSome
         then
             _asm.AppendFormat(" # {0}", comment.Value.ToString())
@@ -363,7 +374,9 @@ module AsmFragments =
                            method_span: Span,
                            frame: FrameInfo,
                            body_frag: string): string =
-            this.Location(method_span)
+            this.Ln()
+                .Location(method_span)
+                .Directive(".global {0}", method_name)
                 .Label(method_name)
                 .MethodPrologue(frame)
                 .Paste(body_frag)
