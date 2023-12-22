@@ -12,25 +12,68 @@
 # Messages for the GenGC garbage collector
 ########################################
 
-.GenGC.MSG_INIT_OK_ASCII:          .ascii "GenGC: initialized"
-.GenGC.MSG_INIT_OK_LEN  =                 (. - .GenGC.MSG_INIT_OK_ASCII)
-.GenGC.MSG_INITED_IN_TEST_ASCII:   .ascii "GenGC: initialized in test mode"
-.GenGC.MSG_INITED_IN_TEST_LEN  =          (. - .GenGC.MSG_INITED_IN_TEST_ASCII)
-.GenGC.MSG_INIT_ERROR_ASCII:       .ascii "GenGC: Unable to initialize the garbage collector"
-.GenGC.MSG_INIT_ERROR_LEN  =              (. - .GenGC.MSG_INIT_ERROR_ASCII)
+.GenGC.MSG_INIT_OK_ASCII:              .ascii "GenGC: Initialized"
+.GenGC.MSG_INIT_OK_LEN  =                     (. - .GenGC.MSG_INIT_OK_ASCII)
+.GenGC.MSG_INITED_IN_TEST_ASCII:       .ascii "GenGC: Initialized in test mode"
+.GenGC.MSG_INITED_IN_TEST_LEN  =              (. - .GenGC.MSG_INITED_IN_TEST_ASCII)
+.GenGC.MSG_INIT_ERROR_ASCII:           .ascii "GenGC: Unable to initialize"
+.GenGC.MSG_INIT_ERROR_LEN  =                  (. - .GenGC.MSG_INIT_ERROR_ASCII)
 
-.GenGC.MSG_COLLECTING_ASCII:       .ascii "GenGC: Garbage collecting ..."
-.GenGC.MSG_COLLECTING_LEN  =              (. - .GenGC.MSG_COLLECTING_ASCII)
+.GenGC.MSG_COLLECTING_ASCII:           .ascii "GenGC: Collecting"
+.GenGC.MSG_COLLECTING_LEN  =                  (. - .GenGC.MSG_COLLECTING_ASCII)
 
-.GenGC.MSG_MAJOR_ASCII:            .ascii "GenGC: Major ..."
-.GenGC.MSG_MAJOR_LEN  =                   (. - .GenGC.MSG_MAJOR_ASCII)
-.GenGC.MSG_MAJOR_ERROR_ASCII:      .ascii "GenGC: Fatal error during major garbage collection"
-.GenGC.MSG_MAJOR_ERROR_LEN  =             (. - .GenGC.MSG_MAJOR_ERROR_ASCII)
+.GenGC.MSG_MAJOR_ASCII:                .ascii "GenGC: Major collection"
+.GenGC.MSG_MAJOR_LEN  =                       (. - .GenGC.MSG_MAJOR_ASCII)
+.GenGC.MSG_MAJOR_ERROR_ASCII:          .ascii "GenGC: Fatal error during a major garbage collection"
+.GenGC.MSG_MAJOR_ERROR_LEN  =                 (. - .GenGC.MSG_MAJOR_ERROR_ASCII)
 
-.GenGC.MSG_MINOR_ASCII:            .ascii "GenGC: Minor ..."
-.GenGC.MSG_MINOR_LEN  =                   (. - .GenGC.MSG_MINOR_ASCII)
-.GenGC.MSG_MINOR_ERROR_ASCII:      .ascii "GenGC: Fatal error during minor garbage collection"
-.GenGC.MSG_MINOR_ERROR_LEN  =             (. - .GenGC.MSG_MINOR_ERROR_ASCII)
+.GenGC.MSG_MINOR_ASCII:                .ascii "GenGC: Minor collection"
+.GenGC.MSG_MINOR_LEN  =                       (. - .GenGC.MSG_MINOR_ASCII)
+.GenGC.MSG_MINOR_ERROR_ASCII:          .ascii "GenGC: Fatal error during a minor garbage collection"
+.GenGC.MSG_MINOR_ERROR_LEN  =                 (. - .GenGC.MSG_MINOR_ERROR_ASCII)
+
+
+.GenGC.MSG_HEAP_START_EQ_ASCII:        .ascii "GenGC: HEAP START  = "
+.GenGC.MSG_HEAP_START_EQ_LEN =                (. - .GenGC.MSG_HEAP_START_EQ_ASCII)
+
+.GenGC.MSG_HEAP_END_EQ_ASCII:          .ascii "GenGC: HEAP END    = "
+.GenGC.MSG_HEAP_END_EQ_LEN =                  (. - .GenGC.MSG_HEAP_END_EQ_ASCII)
+
+.GenGC.MSG_HDR_L0_EQ_ASCII:            .ascii "GenGC: L0          = "
+.GenGC.MSG_HDR_L0_EQ_LEN =                    (. - .GenGC.MSG_HDR_L0_EQ_ASCII)
+
+.GenGC.MSG_HDR_L1_EQ_ASCII:            .ascii "GenGC: L1          = "
+.GenGC.MSG_HDR_L1_EQ_LEN =                    (. - .GenGC.MSG_HDR_L1_EQ_ASCII)
+
+.GenGC.MSG_HDR_L2_EQ_ASCII:            .ascii "GenGC: L2          = "
+.GenGC.MSG_HDR_L2_EQ_LEN =                    (. - .GenGC.MSG_HDR_L2_EQ_ASCII)
+
+.GenGC.MSG_HDR_L3_EQ_ASCII:            .ascii "GenGC: L3          = "
+.GenGC.MSG_HDR_L3_EQ_LEN =                    (. - .GenGC.MSG_HDR_L3_EQ_ASCII)
+
+.GenGC.MSG_HDR_L4_EQ_ASCII:            .ascii "GenGC: L4          = "
+.GenGC.MSG_HDR_L4_EQ_LEN =                    (. - .GenGC.MSG_HDR_L4_EQ_ASCII)
+
+.GenGC.MSG_HDR_MINOR0_EQ_ASCII:        .ascii "GenGC: MINOR0      = "
+.GenGC.MSG_HDR_MINOR0_EQ_LEN =                (. - .GenGC.MSG_HDR_MINOR0_EQ_ASCII)
+
+.GenGC.MSG_HDR_MINOR1_EQ_ASCII:        .ascii "GenGC: MINOR1      = "
+.GenGC.MSG_HDR_MINOR1_EQ_LEN =                (. - .GenGC.MSG_HDR_MINOR1_EQ_ASCII)
+
+.GenGC.MSG_HDR_MAJOR0_EQ_ASCII:        .ascii "GenGC: MAJOR0      = "
+.GenGC.MSG_HDR_MAJOR0_EQ_LEN =                (. - .GenGC.MSG_HDR_MAJOR0_EQ_ASCII)
+
+.GenGC.MSG_HDR_MAJOR1_EQ_ASCII:        .ascii "GenGC: MAJOR1      = "
+.GenGC.MSG_HDR_MAJOR1_EQ_LEN =                (. - .GenGC.MSG_HDR_MAJOR1_EQ_ASCII)
+
+.GenGC.MSG_HDR_STACK_BASE_EQ_ASCII:    .ascii "GenGC: STACK BASE  = "
+.GenGC.MSG_HDR_STACK_BASE_EQ_LEN =            (. - .GenGC.MSG_HDR_STACK_BASE_EQ_ASCII)
+
+.GenGC.MSG_ALLOC_PTR_EQ_ASCII:         .ascii "GenGC: ALLOC PTR   = "
+.GenGC.MSG_ALLOC_PTR_EQ_LEN =                 (. - .GenGC.MSG_ALLOC_PTR_EQ_ASCII)
+
+.GenGC.MSG_ALLOC_LIMIT_EQ_ASCII:       .ascii "GenGC: ALLOC LIMIT = "
+.GenGC.MSG_ALLOC_LIMIT_EQ_LEN =               (. - .GenGC.MSG_ALLOC_LIMIT_EQ_ASCII)
 
 ########################################
 # Text
@@ -368,17 +411,17 @@
 
     movq     $.GenGC.MSG_INITED_IN_TEST_ASCII, %rdi
     movq     $.GenGC.MSG_INITED_IN_TEST_LEN, %rsi
-    call     .Platform.out_string
-    call     .Runtime.out_nl
+    call     .Runtime.print_ln
     jmp      .GenGC.init.ok
 
 .GenGC.init.heap_test_disabled:
-    # movq     $.GenGC.MSG_INIT_OK_ASCII, %rdi
-    # movq     $.GenGC.MSG_INIT_OK_LEN, %rsi
-    # call     .Platform.out_string
-    # call     .Runtime.out_nl
+    movq     $.GenGC.MSG_INIT_OK_ASCII, %rdi
+    movq     $.GenGC.MSG_INIT_OK_LEN, %rsi
+    call     .Runtime.print_ln
 
 .GenGC.init.ok:
+    call     .GenGC.print_stats
+
     movq     %rbp, %rsp
     popq     %rbp
     ret
@@ -386,8 +429,7 @@
 .GenGC.init.abort:
     movq     $.GenGC.MSG_INIT_ERROR_ASCII, %rdi
     movq     $.GenGC.MSG_INIT_ERROR_LEN, %rsi
-    call     .Platform.out_string
-    call     .Runtime.out_nl
+    call     .Runtime.print_ln
 
     movq   $1, %rdi
     jmp    .Platform.exit_process
@@ -506,13 +548,20 @@
     movq     %rdi, ALLOC_SIZE(%rbp)
     movq     %rsi, STACK_TIP(%rbp)
 
-    # movq     $.GenGC.MSG_COLLECTING_ASCII, %rdi
-    # movq     $.GenGC.MSG_COLLECTING_LEN, %rsi
-    # call     .Platform.out_string
-    # call     .Runtime.out_nl
+    movq     $.GenGC.MSG_COLLECTING_ASCII, %rdi
+    movq     $.GenGC.MSG_COLLECTING_LEN, %rsi
+    call     .Runtime.print_ln
+
+    movq     $.GenGC.MSG_MINOR_ASCII, %rdi
+    movq     $.GenGC.MSG_MINOR_LEN, %rsi
+    call     .Runtime.print_ln
+
+    call     .Runtime.out_nl
 
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.minor_collect                # %rax contains the size of all collected live objects
+
+    call     .GenGC.print_stats
 
     # %rdi = heap_start
     movq     .Platform.heap_start(%rip), %rdi
@@ -597,14 +646,15 @@
     jmp      .GenGC.collect.done
 .GenGC.collect.do_major:
     
-    # movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
-    # movq     $.GenGC.MSG_MAJOR_LEN, %rsi
-    # call     .Platform.out_string
-    # call     .Runtime.out_nl
+    movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
+    movq     $.GenGC.MSG_MAJOR_LEN, %rsi
+    call     .Runtime.print_ln
 
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.major_collect                # %rax: the size of all collected live objects
                                                  # L1:   the new Old Area's end
+
+    call     .GenGC.print_stats
 
     # %rdi = heap_start
     movq     .Platform.heap_start(%rip), %rdi
@@ -694,8 +744,8 @@
     #   3) We have enough space in Work Area to
     #      accomodate the requested allocation size
     cmpq     $0, %rcx
-    jle      .GenGC.collect.set_.Alloc.limit_and_L2  # if (%rcx <= 0) 
-                                                     #     go to .GenGC.collect.set_.Alloc.limit_and_L2
+    jle      .GenGC.collect.set_Alloc_limit_and_L2  # if (%rcx <= 0) 
+                                                     #     go to .GenGC.collect.set_Alloc_limit_and_L2
     # %rcx: we need to expand the heap by at least this number of bytes.
     # Round up %rcx to the nearest greater multiple of .GenGC.HEAP_PAGE (e.g., 32768 bytes):
     # %rcx = (%rcx + 32767) & (-32768)
@@ -736,7 +786,7 @@
     movq     %rax, .GenGC.HDR_L4(%rdi)           # L4        = heap_end after the allocation
                                                  # (therefore, sizeof(Unused) = 0 at this point)
     jmp      .GenGC.collect.set_L2
-.GenGC.collect.set_.Alloc.limit_and_L2:
+.GenGC.collect.set_Alloc_limit_and_L2:
     movq     .GenGC.HDR_L3(%rdi), %rax           # %rax = L3
     movq     %rax, .Alloc.limit(%rip)            # .Alloc.limit = L3
                                                  # (therefore, the assign stack size = 0)
@@ -753,8 +803,12 @@
     movq     %rsi, .Alloc.ptr(%rip)              # .Alloc.ptr = %rsi
 
 .GenGC.collect.done:
-    # Zero out the new generation (the new Work Area) to help catch missing pointers
-    movq     .Alloc.ptr(%rip), %rax
+    call     .GenGC.print_stats
+
+    # Zero out the new generation (the new Reserve and Work Area) 
+    # to help catch missing pointers
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_L1(%rax), %rax
 .GenGC.collect.work_area_clear_loop:
     movq     $0, 0(%rax)                         # zero out the quad at %rax
     addq     $8, %rax
@@ -762,9 +816,9 @@
     jl       .GenGC.collect.work_area_clear_loop # if yes, we haven't reached 
                                                  # the end of Work Area yet
 
-    movq    ALLOC_SIZE(%rbp), %rdi               # restore requested allocation size in bytes
-    movq    %rbp, %rsp
-    popq    %rbp
+    movq     ALLOC_SIZE(%rbp), %rdi               # restore requested allocation size in bytes
+    movq     %rbp, %rsp
+    popq     %rbp
     ret
 
 #
@@ -807,6 +861,7 @@
 #    %rax, %rdi, %rcx
 #
 
+    .global .GenGC.check_copy
 .GenGC.check_copy:
     POINTER_SIZE       = 8
     POINTER            = -POINTER_SIZE
@@ -821,11 +876,12 @@
     movq     %rsp, %rbp
     subq     $FRAME_SIZE, %rsp
 
-    movq     %rdi, %rax                         # if a check doesn't pass
-                                                # we promised %rax = %rdi
     movq     %rdi, POINTER(%rbp)
     movq     %rsi, LOWER_BOUND(%rbp)
     movq     %rdx, UPPER_BOUND(%rbp)
+
+    movq     %rdi, %rax                         # if a check doesn't pass
+                                                # we promised %rax = %rdi
 
     # If the pointer is a muliple of 8, 
     # its least significant 3 bits are 000
@@ -857,8 +913,9 @@
 .GenGC.check_copy.copy:
     # The checks have passed, 
     # we're going to copy the object now.
-    addq     $8, .Alloc.ptr(%rip)               # reserve a quad for the eye catcher
-    movq     .Alloc.ptr(%rip), %rcx             # %rcx = the start of copy obj
+    movq     .Alloc.ptr(%rip), %rcx
+    addq     $8, %rcx                           # %rcx = the start of copy obj 
+                                                #        (skipped the eye catcher)
     movq     %rcx, %rdx                         # %rdx = the start of copy obj
     movq     $EYE_CATCH, OBJ_EYE_CATCH(%rdx)    # place the eye catcher before the copy obj
     salq     $3, %rsi                           # %rsi = sizeof(obj) in quads * 8 = sizeof(obj) in bytes
@@ -888,7 +945,7 @@
     movq     %rcx, OBJ_VTAB(%rdi)               # put a forwarding pointer to the copy
                                                 # into the source obj's vtab slot
 .GenGC.check_copy.copy_done:
-    movq     POINTER(%rbp), %rdi
+    # %rdi must be = the start of source obj
     movq     OBJ_VTAB(%rdi), %rax               # %rax = a pointer to the obj copy
     movq     LOWER_BOUND(%rbp), %rsi            # %rsi = the original value
     movq     UPPER_BOUND(%rbp), %rdx            # %rdx = the original value
@@ -954,6 +1011,7 @@
 #    %rax, %rdi, %rsi, %rdx, %rcx, %r8, %r9, .GenGC.check_copy
 #
 
+    .global .GenGC.minor_collect
 .GenGC.minor_collect:
     STACK_TIP_SIZE     = 8
     STACK_TIP          = -STACK_TIP_SIZE
@@ -990,7 +1048,7 @@
                                                   # with the pointer to copy
     addq    $8, %r9                               # move up one stack entry closer to the base
     cmpq    %r10, %r9
-    jl      .GenGC.minor_collect.stack_loop       # if (%rdi < stack base) // stack grows down!
+    jl      .GenGC.minor_collect.stack_loop       # if (%r9 < stack base) // stack grows down!
                                                   # go to .GenGC.minor_collect.stack_loop
 .GenGC.minor_collect.registers:
     # Inspect %rbx, %r12, %r13, %r14, %r15 for GC roots
@@ -1050,8 +1108,8 @@
     
     movq    0(%r9), %rdi                          # %rdi = current assignment stack entry
     movq    %rax, 0(%rdi)                         # obj A's attr = a pointer to obj B's copy
-    addq    $8, %r9                               # move up one entry closer to L3
 .GenGC.minor_collect.assign_continue:
+    addq    $8, %r9                               # move up one entry closer to L3
     cmpq    .GenGC.HDR_L3(%r8), %r9
     jl      .GenGC.minor_collect.assign_loop      # if (%r9 < L3) 
                                                   # go to .GenGC.minor_collect.assign_loop
@@ -1070,10 +1128,10 @@
     jge     .GenGC.minor_collect.done             # if (%r9 >= .Alloc.ptr) go to ...
 .GenGC.minor_collect.ra_loop:
     # Check the current obj is prefixed by $EYE_CATCH
-    addq    $8, %r9                               # %r9 = the first obj in Reserve Area
+    addq    $8, %r9                               # %r9 = the current obj in Reserve Area
                                                   #       (skip the eye-catcher)
     cmpq    $EYE_CATCH, OBJ_EYE_CATCH(%r9)
-    jnz     .GenGC.minor_collect.abort
+    jne     .GenGC.minor_collect.abort
 
     # Calculate the current obj's size in bytes
     movq    OBJ_SIZE(%r9), %r11                   # %r11 = sizeof(obj) in quads
@@ -1183,11 +1241,10 @@
 .GenGC.minor_collect.abort:
     movq     $.GenGC.MSG_MINOR_ERROR_ASCII, %rdi
     movq     $.GenGC.MSG_MINOR_ERROR_LEN, %rsi
-    call     .Platform.out_string
-    call     .Runtime.out_nl
+    call     .Runtime.print_ln
 
-    movq   $1, %rdi
-    jmp    .Platform.exit_process
+    movq     $1, %rdi
+    jmp      .Platform.exit_process
 
 
 #
@@ -1240,6 +1297,7 @@
 #    %rax, %rdi, %rsi, %rdx, %rcx, .Platform.alloc
 #
 
+    .global .GenGC.offset_copy
 .GenGC.offset_copy:
     POINTER_SIZE    = 8
     POINTER         = -POINTER_SIZE
@@ -1272,8 +1330,10 @@
 
     # Check the eye catcher is present
     cmpq     $EYE_CATCH, OBJ_EYE_CATCH(%rdi)
-    jne      .GC.abort                                 # if no eye catcher,
+    je       .GenGC.offset_copy.check_tag
+    call     .GC.abort                                 # if no eye catcher,
                                                        # go to .GC.abort
+.GenGC.offset_copy.check_tag:
     # Check the object's tag != $EYE_CATCH
     cmpq     $EYE_CATCH, OBJ_TAG(%rdi)
     je       .GenGC.offset_copy.done                   # if (tag == $EYE_CATCH)
@@ -1433,9 +1493,6 @@
 #   INPUT:
 #    %rdi: the tip of stack to start checking for roots from
 #
-#    $a0: end of stack
-#    heap_start: start of heap
-#
 #   OUTPUT:
 #    %rax: the size of objects collected into New Area [L2; L3)
 #
@@ -1446,6 +1503,7 @@
 #    All the caller-saved registers
 #
 
+    .global .GenGC.major_collect
 .GenGC.major_collect:
     STACK_TIP_SZ    = 8
     STACK_TIP       = -STACK_TIP_SZ
@@ -1722,8 +1780,166 @@
 .GenGC.major_collect.abort:
     movq     $.GenGC.MSG_MAJOR_ERROR_ASCII, %rdi
     movq     $.GenGC.MSG_MAJOR_ERROR_LEN, %rsi
-    call     .Platform.out_string
+    call     .Runtime.print_ln
+
+    movq     $1, %rdi
+    jmp      .Platform.exit_process
+
+#
+# Print GenGC's current state
+#
+#   Preserves %rax, %rdi, %rsi for convinience of the caller.
+#   Prints the heap's start and end addresses, 
+#   the values stored in the header, .Alloc.ptr, .Alloc.limit
+#
+#   INPUT:
+#    None
+#
+#   OUTPUT:
+#    %rax: unchanged
+#    %rdi: unchanged
+#    %rsi: unchanged
+#
+#   GLOBALS MODIFIED:
+#    None
+#
+#   Registers modified:
+#    .Runtime.print, .Runtime.out_int, .Runtime.out_nl
+#
+
+    .global .GenGC.print_stats
+.GenGC.print_stats:
+    RAX_SIZE      = 8
+    RAX           = -RAX_SIZE
+    RDI_SIZE      = 8
+    RDI           = -(RAX_SIZE + RDI_SIZE)
+    RSI_SIZE      = 8
+    RSI           = -(RAX_SIZE + RDI_SIZE + RSI_SIZE)
+    PAD_SIZE      = 8
+    FRAME_SIZE    =   RAX_SIZE + RDI_SIZE + RSI_SIZE + PAD_SIZE
+
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rax, RAX(%rbp)
+    movq     %rdi, RDI(%rbp)
+    movq     %rsi, RSI(%rbp)
+
+    movq     $.GenGC.MSG_HEAP_START_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HEAP_START_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rdi
+    call     .Runtime.out_int
     call     .Runtime.out_nl
 
-    movq   $1, %rdi
-    jmp    .Platform.exit_process
+    movq     $.GenGC.MSG_HEAP_END_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HEAP_END_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_end(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_L0_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_L0_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_L0(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_L1_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_L1_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_L1(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_L2_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_L2_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_L2(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_L3_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_L3_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_L3(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_L4_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_L4_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_L4(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_MINOR0_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_MINOR0_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_MINOR0(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_MINOR1_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_MINOR1_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_MINOR1(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_MAJOR0_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_MAJOR0_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_MAJOR0(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_MAJOR1_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_MAJOR1_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_MAJOR1(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_HDR_STACK_BASE_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_HDR_STACK_BASE_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rax
+    movq     .GenGC.HDR_STACK_BASE(%rax), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_ALLOC_PTR_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_ALLOC_PTR_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Alloc.ptr(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.GenGC.MSG_ALLOC_LIMIT_EQ_ASCII, %rdi
+    movq     $.GenGC.MSG_ALLOC_LIMIT_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Alloc.limit(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    call     .Runtime.out_nl
+
+    movq     RAX(%rbp), %rax
+    movq     RDI(%rbp), %rdi
+    movq     RSI(%rbp), %rsi
+
+    movq     %rbp, %rsp
+    popq     %rbp
+    ret
