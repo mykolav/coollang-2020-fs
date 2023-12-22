@@ -225,7 +225,7 @@ String.create:
     # -32   16 bytes boundary pad
     subq    $32, %rsp
 
-    movq    %rdi, -8(%rbp)  # length
+    movq    %rdi, -8(%rbp)               # length
 
     # Calc size in quads from length
     addq    $(1 + 7), %rdi               # + 1 to account for null terminator
@@ -247,7 +247,7 @@ String.create:
     movq    $STRING_TAG, OBJ_TAG(%rax)
     
     # size in quads
-    movq    -16(%rbp), %rcx # size in quads
+    movq    -16(%rbp), %rcx              # size in quads
     movq    %rcx, OBJ_SIZE(%rax)
 
     # vtable
@@ -256,9 +256,9 @@ String.create:
     # length (an int object)
     movq    $Int_proto_obj, %rdi
     call    .Runtime.copy_object
-    movq    -8(%rbp), %rcx # length
+    movq    -8(%rbp), %rcx               # length
     movq    %rcx, INT_VAL(%rax)
-    movq    -24(%rbp), %rcx # string object
+    movq    -24(%rbp), %rcx              # string object
     movq    %rax, STR_LEN(%rcx)
 
     # return string object
@@ -692,57 +692,68 @@ String.substring.abort_end_index:
 
     .global ArrayAny..ctor
 ArrayAny..ctor:
+    VAR_ARR_LEN_SIZE            = 8
+    VAR_ARR_LEN                 = -VAR_ARR_LEN_SIZE
+    VAR_OBJ_SIZE_IN_QUADS_SIZE  = 8
+    VAR_OBJ_SIZE_IN_QUADS       = -(VAR_ARR_LEN_SIZE + VAR_OBJ_SIZE_IN_QUADS_SIZE)
+    PAD_SIZE                    = 0
+    FRAME_SIZE                  =   VAR_ARR_LEN_SIZE + VAR_OBJ_SIZE_IN_QUADS_SIZE + PAD_SIZE
+
     pushq   %rbp
     movq    %rsp, %rbp
+    subq    $FRAME_SIZE, %rsp
 
-    subq    $(8 + 8 + 8 + 8), %rsp  # array length (an int object) + 
-                                    # size in quads + 
-                                    # object ptr + 
-                                    # 16 byte boundary padding
+    movq    %rsi, VAR_ARR_LEN(%rbp)              # preserve the array length as an Int object
+    movq    INT_VAL(%rsi), %rsi                  # %rsi = array length (number of items)
 
-    movq    %rsi, -8(%rbp)          # preserve the array length as int object
-    movq    INT_VAL(%rsi), %rsi     # array length
+    # An `ArrayAny` object size in quads is 
+    # %rsi + a quad for each of the
+    #     TAG slot + 
+    #     OBJ SIZE slot + 
+    #     VTAB slot + 
+    #     LENGTH slot
+    addq    $4, %rsi                             # %rsi = the array object size in quads
+    movq    %rsi, VAR_OBJ_SIZE_IN_QUADS(%rbp)    # preserve the size in quads
 
-    addq    $5, %rsi                # size in quads = eyecatch + tag + size + vtab + length
-    movq    %rsi, -16(%rbp)         # preserve the size in quads
+    movq    %rsi, %rdi                           # %rdi = %rsi = the array object size in quads
+    incq    %rdi                                 # %rdi = eye catcher + the array obj size in quads
+    call    .MemoryManager.alloc                 # %rax = the start of allocated memory block
 
-    movq    %rsi, %rdi              # allocation size in quads
-    call    .MemoryManager.alloc
+    addq    $8, %rax                             # %rax = the start of array obj
 
-    movq    $EYE_CATCH, (%rax)      # write the eyecatch value
-    addq    $8, %rax                # move ptr to the beginning of object
-
+    movq    $EYE_CATCH, OBJ_EYE_CATCH(%rax)
     movq    $ARRAYANY_TAG, OBJ_TAG(%rax)
 
-    movq    -16(%rbp), %rsi         # size in quads
+    movq    VAR_OBJ_SIZE_IN_QUADS(%rbp), %rsi    # %rsi = size in quads
     movq    %rsi, OBJ_SIZE(%rax)
 
     movq    $ArrayAny_vtable, OBJ_VTAB(%rax)
 
-    movq    -8(%rbp), %rsi          # restore length (an int object)
+    movq    VAR_ARR_LEN(%rbp), %rsi              # %rsi = array length (an Int object)
     movq    %rsi, ARR_LEN(%rax)
 
     # %rdi - current element
     # %rsi - elements end
 
-    movq    INT_VAL(%rsi), %rsi     # length
-    salq    $3, %rsi                # length * 8 -- as each element is 
-                                    # an 8-byte long pointer to an object
-    leaq    ARR_ITEMS(%rax), %rdi   # point %rdi at the start of array items mem region
-    addq    %rdi, %rsi              # point %rsi at the end of array items mem region
+    movq    INT_VAL(%rsi), %rsi                  # %rsi = array length (number of items)
+    salq    $3, %rsi                             # %rsi = arary length * 8 (sizeof(an array item)) 
+                                                 #      = sizeof(all array items) in bytes
+    leaq    ARR_ITEMS(%rax), %rdi                # %rdi = the start of array items mem region
+    addq    %rdi, %rsi                           # %rsi = the start of array items + sizeof(all array items)
+                                                 #        the limit of array items mem region
 
     jmp     .ArrayAny..ctor.loop_cond
 
     # init the array's elements to $0
 .ArrayAny..ctor.loop_body:
-    movq    $0, (%rdi)
+    movq    $0, 0(%rdi) 
     addq    $8, %rdi
 
 .ArrayAny..ctor.loop_cond:
-    cmpq    %rdi, %rsi
-    jne     .ArrayAny..ctor.loop_body
+    cmpq    %rsi, %rdi
+    jl     .ArrayAny..ctor.loop_body             # if (%rdi < the limit of array items) go to ...
 
-    # %rax points to array object
+    # %rax = the start of array object
 
     movq    %rbp, %rsp
     popq    %rbp
@@ -1027,7 +1038,8 @@ IO.in_int.input_not_digit:
 main:
     MAIN_OBJ_SIZE    = 8
     MAIN_OBJ         = -MAIN_OBJ_SIZE
-    FRAME_SIZE       =  MAIN_OBJ_SIZE
+    PAD_SIZE         = 8
+    FRAME_SIZE       =  MAIN_OBJ_SIZE + PAD_SIZE
 
     pushq   %rbp
     movq    %rsp, %rbp
