@@ -31,5 +31,5 @@ type TranslationContext =
       Diags: DiagnosticBag
       Source: Source
       // Accumulators
-      IntConsts: ConstSet<int>
-      StrConsts: ConstSet<string> }
+      IntConsts: IntConstSet
+      StrConsts: StringConstSet }

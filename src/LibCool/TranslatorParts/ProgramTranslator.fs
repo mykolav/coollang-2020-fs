@@ -30,8 +30,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                      Diags = _diags
                      Source = _source
                      // Accumulators
-                     IntConsts = ConstSet<int>("int_const")
-                     StrConsts = ConstSet<string>("str_const") }
+                     IntConsts = IntConstSet("INT")
+                     StrConsts = StringConstSet("STR") }
     
     // Add default values here so that their indexes are 0,
     // and const labels look similar to `int_const_0`, `str_const_0`.
