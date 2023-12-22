@@ -459,8 +459,8 @@
 #    %rax, %rdi, %rsi, .GenGC.collect
 #
 
-    .global .GenGC.handle_assign
-.GenGC.handle_assign:
+    .global .GenGC.on_assign
+.GenGC.on_assign:
     POINTER_SIZE = 8
 
     pushq    %rbp
@@ -475,14 +475,14 @@
                                            # at the tip of assignment stack
     cmpq     .Alloc.ptr(%rip), %rax        # if `.Alloc.ptr` and `.Alloc.limit` have met
                                            # we'll have to collect garbage
-    jg       .GenGC.handle_assign.done
+    jg       .GenGC.on_assign.done         # if (.Alloc.limit > .Alloc.ptr) go to ...
 
     xor      %edi, %edi                    # we request to allocate 0 bytes
                                            # as we only need to collect garbage
     movq     %rbp, %rsi                    # the tip of stack to start checking for roots from
     call     .GenGC.collect
 
-.GenGC.handle_assign.done:
+.GenGC.on_assign.done:
     movq     %rbp, %rsp
     popq     %rbp
     ret
@@ -1366,7 +1366,7 @@
     # %rcx contains the amount of required additional memory in bytes.
     # We add 8 bytes to %rcx, to maintain `.Alloc.ptr` < `.Alloc.limit` after the allocation.
     # So, there is room to record an assignment before a garbage collection has to run (if any).
-    # See the comments at `.GenGC.handle_assignment` for details.
+    # See the comments at `.GenGC.on_assign` for details.
     addq $8, %rcx
 
     # Now, as usual, round up %rcx to the nearest greater multiple of 

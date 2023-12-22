@@ -139,6 +139,42 @@
     ret
 
 #
+# Record an Assignment in the Assignment Stack
+#
+#   The GC's code guarantees `.Alloc.ptr` is always strictly less than `.Alloc.limit`.
+#   Hence there is always enough room for at least one assignment record 
+#   at the tip of assignment stack.
+#
+#   If the above invariant hadn't been maintained, we would've ended up
+#   in a situation where at the moment we're requested to record an 
+#   assignment, `.Alloc.ptr` == `.Alloc.limit`. As there is no room to 
+#   record the assignment a garbage collection has to run first. 
+#   As the unrecorded assignment can point to a GC root, the garbage 
+#   collection would've missed that root and removed a live object or 
+#   multiple live objects...
+#
+#   INPUT:
+#    %rdi: pointer to the pointer being assigned to
+#
+#   OUTPUT:
+#    None
+#
+#   Registers modified:
+#    .MemoryManager.FN_ON_ASSIGN
+#
+
+    .global .MemoryManager.on_assign
+.MemoryManager.on_assign:
+    pushq    %rbp
+    movq     %rsp, %rbp
+
+    callq    *.MemoryManager.FN_ON_ASSIGN(%rip)
+
+    movq     %rbp, %rsp
+    popq     %rbp
+    ret
+
+#
 # Memory Allocation
 #
 #   Allocates the requested amount of memory and returns a pointer

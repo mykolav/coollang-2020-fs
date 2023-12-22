@@ -65,4 +65,4 @@ module RtNames =
     
     let StringConcat = "String.concat"
 
-    let GenGCHandleAssign = ".GenGC.handle_assign"
+    let GenGCHandleAssign = ".GenGC.on_assign"
