@@ -415,12 +415,12 @@
     jmp      .GenGC.init.ok
 
 .GenGC.init.heap_test_disabled:
-    movq     $.GenGC.MSG_INIT_OK_ASCII, %rdi
-    movq     $.GenGC.MSG_INIT_OK_LEN, %rsi
-    call     .Runtime.print_ln
+    # movq     $.GenGC.MSG_INIT_OK_ASCII, %rdi
+    # movq     $.GenGC.MSG_INIT_OK_LEN, %rsi
+    # call     .Runtime.print_ln
 
 .GenGC.init.ok:
-    call     .GenGC.print_stats
+    # call     .GenGC.print_stats
 
     movq     %rbp, %rsp
     popq     %rbp
@@ -548,20 +548,20 @@
     movq     %rdi, ALLOC_SIZE(%rbp)
     movq     %rsi, STACK_TIP(%rbp)
 
-    movq     $.GenGC.MSG_COLLECTING_ASCII, %rdi
-    movq     $.GenGC.MSG_COLLECTING_LEN, %rsi
-    call     .Runtime.print_ln
+    # movq     $.GenGC.MSG_COLLECTING_ASCII, %rdi
+    # movq     $.GenGC.MSG_COLLECTING_LEN, %rsi
+    # call     .Runtime.print_ln
 
-    movq     $.GenGC.MSG_MINOR_ASCII, %rdi
-    movq     $.GenGC.MSG_MINOR_LEN, %rsi
-    call     .Runtime.print_ln
+    # movq     $.GenGC.MSG_MINOR_ASCII, %rdi
+    # movq     $.GenGC.MSG_MINOR_LEN, %rsi
+    # call     .Runtime.print_ln
 
-    call     .Runtime.out_nl
+    # call     .Runtime.out_nl
 
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.minor_collect                # %rax contains the size of all collected live objects
 
-    call     .GenGC.print_stats
+    # call     .GenGC.print_stats
 
     # %rdi = heap_start
     movq     .Platform.heap_start(%rip), %rdi
@@ -646,15 +646,16 @@
     jmp      .GenGC.collect.done
 .GenGC.collect.do_major:
     
-    movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
-    movq     $.GenGC.MSG_MAJOR_LEN, %rsi
-    call     .Runtime.print_ln
+    # movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
+    # movq     $.GenGC.MSG_MAJOR_LEN, %rsi
+    # call     .Runtime.print_ln
+
+    # call     .Runtime.out_nl
 
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.major_collect                # %rax: the size of all collected live objects
                                                  # L1:   the new Old Area's end
-
-    call     .GenGC.print_stats
+    # call     .GenGC.print_stats
 
     # %rdi = heap_start
     movq     .Platform.heap_start(%rip), %rdi
@@ -803,7 +804,7 @@
     movq     %rsi, .Alloc.ptr(%rip)              # .Alloc.ptr = %rsi
 
 .GenGC.collect.done:
-    call     .GenGC.print_stats
+    # call     .GenGC.print_stats
 
     # Zero out the new generation (the new Reserve and Work Area) 
     # to help catch missing pointers
