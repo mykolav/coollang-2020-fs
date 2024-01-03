@@ -22,17 +22,28 @@ class Cell() {
 }
 
 class Board(var width: Int, var height: Int) {
+    var io: IO = new IO();
     var rows: ArrayAny = null;
 
     def get_height(): Int = height;
     def get_width(): Int = width;
 
     def get_cell(x: Int, y: Int): Cell = {
+        // io.out_string("Board.get_cell(");
+        // io.out_int(x);
+        // io.out_string(", ");
+        // io.out_int(y);
+        // io.out_string(")");
+        // io.out_nl();
+
         var row: ArrayAny = rows.get(y) match { case it: ArrayAny => it };
         row.get(x) match { case it: Cell => it }
     };
 
     {
+        // io.out_string("Board..ctor");
+        // io.out_nl();
+
         rows = new ArrayAny(height);
 
         var y: Int = 0;
@@ -52,13 +63,20 @@ class Board(var width: Int, var height: Int) {
 }
 
 class Game(var board: Board) {
+    var io: IO = new IO();
 
     def step(): Unit = {
+        // io.out_string("Game.step");
+        // io.out_nl();
+
         compute_next_generation();
         replace_current_generation()
     };
 
     def compute_next_generation(): Unit = {
+        // io.out_string("Game.compute_next_generation");
+        // io.out_nl();
+
         var y: Int = 0;
         while (y < board.get_height()) {
 
@@ -89,9 +107,12 @@ class Game(var board: Board) {
     };
 
     def count_neighbours(x: Int, y: Int): Int = {
+        // io.out_string("Game.count_neighbours");
+        // io.out_nl();
+
         var count: Int = 0;
 
-        // The column of three nieghbouring cells to the left
+        // The column of three neighbouring cells to the left
         if (x > 0) {
             if (y > 0) {
                 if (board.get_cell(x - 1, y - 1).get_state()) {
@@ -149,6 +170,9 @@ class Game(var board: Board) {
     };
 
     def replace_current_generation(): Unit = {
+        // io.out_string("Game.compute_next_generation");
+        // io.out_nl();
+
         var y: Int = 0;
         while (y < board.get_height()) {
 
@@ -174,6 +198,10 @@ class Main() {
 
     var step: Int = 0;
     while (step < 11) {
+        // io.out_string("Step: ");
+        // io.out_int(step);
+        // io.out_nl();
+
         game.step();
         // out_board(board);
 
@@ -233,6 +261,9 @@ class Main() {
 }
 
 // DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// IN:  ...................>...................>....xxx...xxx......>...................>..x....x.x....x....>..x....x.x....x....>..x....x.x....x....>....xxx...xxx......>...................>....xxx...xxx......>..x....x.x....x....>..x....x.x....x....>..x....x.x....x....>...................>....xxx...xxx......>...................>...................>...................>...................>...................>
+
 // OUT: ....................
 // OUT: ....................
 // OUT: ....xx.....xx.......
@@ -248,6 +279,29 @@ class Main() {
 // OUT: ..x..x.x.x.x..x.....
 // OUT: .....xx...xx........
 // OUT: ....xx.....xx.......
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+
+// IN:  ...................>.xx................>.xx................>...xx..............>...xx..............>...................>...................>...................>...................>...................>...................>...................>...................>...................>...................>...................>...................>...................>...................>...................>
+
+// OUT: ....................
+// OUT: .xx.................
+// OUT: .x..................
+// OUT: ....x...............
+// OUT: ...xx...............
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
+// OUT: ....................
 // OUT: ....................
 // OUT: ....................
 // OUT: ....................

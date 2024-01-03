@@ -6,7 +6,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="SharedParts\StringBuilderExtension.fs" />
+        <Compile Include="SharedParts\StringBuilderExtensions.fs" />
+        <Compile Include="SharedParts\SeqExtensions.fs" />
         <Compile Include="SharedParts\ProcessRunner.fs" />
         <Compile Include="SharedParts\ProcessOutputParser.fs" />
         <Compile Include="SharedParts\LcResult.fs" />

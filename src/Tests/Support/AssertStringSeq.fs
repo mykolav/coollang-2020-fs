@@ -1,12 +1,8 @@
 namespace Tests.Support
 
 
+open LibCool.SharedParts
 open Tests.Support
-
-
-[<RequireQualifiedAccess>]
-module private Seq =
-    let any source = not (Seq.isEmpty source)
 
 
 type FormatMessageFn = ((*expected_len=*)int) -> ((*actual_len=*)int) -> ((*mismatches=*)seq<Mismatch>) -> string

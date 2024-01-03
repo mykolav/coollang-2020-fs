@@ -46,8 +46,18 @@ class Main() {
 
 // DIAG: Build succeeded: Errors: 0. Warnings: 0
 
+// IN:  Elizabeth Alexandra Mary Windsor
+
 // OUT: What is your name? "Hello, Elizabeth Alexandra Mary Windsor!"
 // OUT: Exciting facts about the name "Elizabeth Alexandra Mary Windsor"
 // OUT: It has 32 letters
 // OUT: The first letter is E
 // OUT: The last letter is r
+
+// IN:  Bond, James Bond
+
+// OUT: What is your name? "Hello, Bond, James Bond!"
+// OUT: Exciting facts about the name "Bond, James Bond"
+// OUT: It has 16 letters
+// OUT: The first letter is B
+// OUT: The last letter is d

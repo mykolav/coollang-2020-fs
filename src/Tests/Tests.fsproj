@@ -25,7 +25,7 @@
         <Compile Include="Parser\ParserTests.fs" />
         <Compile Include="Compiler\ClcRunner.fs" />
         <Compile Include="Compiler\CompilerTestCase.fs" />
-        <Compile Include="Compiler\AssertCompilerTestCaseOutput.fs" />
+        <Compile Include="Compiler\CompilerTestAssert.fs" />
         <Compile Include="Compiler\CompilerTestsFixture.fs" />
         <Compile Include="Compiler\CompilerTests.fs" />
         <Compile Include="Compiler\Sandbox.fs" />
@@ -62,11 +62,6 @@
         <Content Include="CoolPrograms\Runtime\Concat.cool" />
         <Content Include="CoolPrograms\Runtime\Concat1.cool" />
         <Content Include="CoolPrograms\Runtime\InInt.cool" />
-        <Content Include="CoolPrograms\Runtime\InInt1.cool" />
-        <Content Include="CoolPrograms\Runtime\InInt2.cool" />
-        <Content Include="CoolPrograms\Runtime\InInt3.cool" />
-        <Content Include="CoolPrograms\Runtime\InInt4.cool" />
-        <Content Include="CoolPrograms\Runtime\InInt5.cool" />
         <Content Include="CoolPrograms\Runtime\InString.cool" />
         <Content Include="CoolPrograms\Runtime\InString1.cool" />
         <Content Include="CoolPrograms\Runtime\Life.cool" />

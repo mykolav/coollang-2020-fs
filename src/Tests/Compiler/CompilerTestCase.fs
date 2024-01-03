@@ -1,10 +1,10 @@
 namespace Tests.Compiler
 
 
+open System
 open System.Collections.Generic
 open System.IO
 open System.Runtime.CompilerServices
-open System.Text
 open System.Text.RegularExpressions
 open LibCool.SharedParts
 
@@ -19,15 +19,7 @@ type CompilerTestCaseSource private () =
     static let programs_discovery_path = @"../../../CoolPrograms/"
     
     
-    static let excluded_files = [| "InString.cool"
-                                   "InString1.cool"
-                                   "InInt.cool"
-                                   "InInt1.cool"
-                                   "InInt2.cool"
-                                   "InInt3.cool"
-                                   "InInt4.cool"
-                                   "InInt5.cool"
-                                   "Life.cool" |]
+    static let excluded_files: string[] = [||]
     
     
     static let isExcludedPath (path: string): bool =
@@ -57,6 +49,7 @@ module private CompilerTestCaseParser =
 
     
     let re_expected_diags = Regex("//\\s*DIAG:\\s*", RegexOptions.Compiled)
+    let re_expected_input = Regex("//\\s*IN:\\s*", RegexOptions.Compiled)
     let re_expected_output = Regex("//\\s*OUT:\\s*", RegexOptions.Compiled)
 
     
@@ -65,14 +58,14 @@ module private CompilerTestCaseParser =
         |> Seq.filter(fun it -> re.IsMatch(it))
         |> Seq.map(fun it -> re.Replace(it, ""))
 
+    let isSnippetLine (line: string): bool =
+        not (re_expected_diags.IsMatch(line) || re_expected_output.IsMatch(line))
 
-    let takeSnippet (lines: seq<string>): string =
-        let sb = StringBuilder()
-        lines
-        |> Seq.takeWhile (fun it -> not (re_expected_diags.IsMatch(it) || re_expected_output.IsMatch(it)))
-        |> Seq.iteri (fun i it -> sb.AppendLine($"%d{i + 1}\t%s{it}").AsUnit())
-        
-        sb.ToString()
+
+[<IsReadOnly; Struct>]
+type CompilerTestCaseRun =
+    { GivenInput: seq<string>
+      ExpectedOutput: seq<string> }
 
 
 [<IsReadOnly; Struct>]
@@ -81,16 +74,60 @@ type CompilerTestCase =
       FileName: string
       Snippet: string
       ExpectedDiags: seq<string>
-      ExpectedOutput: seq<string> }
-    
+      Runs: CompilerTestCaseRun[] }
 
-    static member ReadFrom(path: string): CompilerTestCase =
-        let lines = File.ReadAllLines(path) |> Seq.map (fun it -> it.Trim())
+
+    static member ParseFrom(path: string): CompilerTestCase =
+        let file_lines = File.ReadAllLines(path) |> Array.map (_.Trim())
+        let mutable line_index = 0
+
+        let snippet_lines = List<string>()
+        while line_index < file_lines.Length && isSnippetLine file_lines[line_index] do
+            snippet_lines.Add(file_lines[line_index])
+            line_index <- line_index + 1
+
+        let inputs = List<seq<string>>()
+        let outputs = List<seq<string>>()
+        while line_index < file_lines.Length do
+            let multiline_input = List<string>()
+            while line_index < file_lines.Length && re_expected_input.IsMatch(file_lines[line_index]) do
+                multiline_input.Add(re_expected_input.Replace(file_lines[line_index], ""))
+                line_index <- line_index + 1
+
+            if multiline_input.Count > 0
+            then
+                inputs.Add(multiline_input)
+
+            let multiline_output = List<string>()
+            while line_index < file_lines.Length && re_expected_output.IsMatch(file_lines[line_index]) do
+                multiline_output.Add(re_expected_output.Replace(file_lines[line_index], ""))
+                line_index <- line_index + 1
+
+            if multiline_output.Count > 0
+            then
+                outputs.Add(multiline_output)
+
+            while line_index < file_lines.Length &&
+                  not (re_expected_input.IsMatch(file_lines[line_index])) &&
+                  not (re_expected_output.IsMatch(file_lines[line_index])) do
+                line_index <- line_index + 1
+
+        let mutable run_index = 0
+        let runs = List<CompilerTestCaseRun>()
+        while run_index < outputs.Count do
+            runs.Add({
+                GivenInput = if run_index < inputs.Count
+                             then inputs[run_index]
+                             else []
+                ExpectedOutput = outputs[run_index]
+            })
+            run_index <- run_index + 1
+
         { Path = path
           FileName = Path.GetFileNameWithoutExtension(path)
-          ExpectedDiags = takeMatchingLines lines re_expected_diags
-          ExpectedOutput = takeMatchingLines lines re_expected_output
-          Snippet = takeSnippet lines }
+          Snippet = String.Join(Environment.NewLine, snippet_lines)
+          ExpectedDiags = takeMatchingLines file_lines re_expected_diags
+          Runs = runs.ToArray() }
 
 
 [<IsReadOnly; Struct>]

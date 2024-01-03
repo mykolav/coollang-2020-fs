@@ -13,4 +13,21 @@ class Main() {
 
 
 // DIAG: Build succeeded: Errors: 0. Warnings: 0
+
+// IN:  9001
 // OUT: Pick a number! 9001 
+
+// IN:  +9001
+// OUT: Pick a number! 9001
+
+// IN:  -9001
+// OUT: Pick a number! -9001
+
+// IN:  a9001
+// OUT: Pick a number! IO.in_int: Input string contains a char that is not a digit
+
+// IN:  9001a
+// OUT: Pick a number! IO.in_int: Input string contains a char that is not a digit
+
+// IN:  12345678912
+// OUT: Pick a number! IO.in_int: Input string is too long

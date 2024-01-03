@@ -25,7 +25,11 @@ type StringBuilderWriter() =
 type ProcessRunner private () =
 
 
-    static member Run(exe_name: string, args: string, ?stdin: string): string =
+    static member Run(exe_name: string, args: string, ?stdin_lines: seq<string>): string =
+        let stdin_lines = match stdin_lines with
+                          | Some stdin_lines -> stdin_lines
+                          | None             -> []
+
         let sb_output = StringBuilder()
 
         use theProcess =
@@ -36,13 +40,12 @@ type ProcessRunner private () =
                                  UseShellExecute = false,
                                  RedirectStandardOutput = true,
                                  RedirectStandardError = true,
-                                 RedirectStandardInput = stdin.IsSome))
+                                 RedirectStandardInput = Seq.any stdin_lines))
 
         theProcess.Start() |> ignore
-        
-        if stdin.IsSome
-        then
-            theProcess.StandardInput.WriteLine(stdin.Value)
+
+        for stdin_line in stdin_lines do
+            theProcess.StandardInput.WriteLine(stdin_line)
             theProcess.StandardInput.Close()
 
         theProcess.WaitForExit()

@@ -84,7 +84,14 @@ type EmitExeHandler(_writer: IWriteLine) =
         
     
     static member Assemble(asm: string, obj_file: string) : string[] =
-        ProcessRunner.Run(exe_name="as", args= $"-o %s{obj_file}", stdin=asm)
+        // ProcessRunner.Run(exe_name="as", args= $"-o %s{obj_file}", stdin=asm)
+        // |> ProcessOutputParser.splitInLines
+        // |> Array.ofSeq
+
+        let asm_file = obj_file.Replace(".o", ".s")
+        File.WriteAllText(asm_file, asm)
+
+        ProcessRunner.Run(exe_name="as", args= $"-g -o %s{obj_file} {asm_file}")
         |> ProcessOutputParser.splitInLines
         |> Array.ofSeq
 
@@ -123,8 +130,7 @@ type EmitExeHandler(_writer: IWriteLine) =
             invalidOp ($"'%s{RuntimeInformation.OSDescription}' is not supported.%s{Environment.NewLine}" +
                        $"Use '-S' to emit assembly anyway.%s{Environment.NewLine}")
             
-        ProcessRunner.Run(exe_name="ld",
-                          args=ld_args.ToString())
+        ProcessRunner.Run(exe_name="ld", args=ld_args.ToString())
         |> ProcessOutputParser.splitInLines
         |> Array.ofSeq
     

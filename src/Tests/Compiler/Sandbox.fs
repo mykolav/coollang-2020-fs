@@ -20,7 +20,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
     let parse (path: string): ProgramSyntax voption =
         // Prepare
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
-        let tc = CompilerTestCase.ReadFrom(path)
+        let tc = CompilerTestCase.ParseFrom(path)
 
         let source = Source([{ FileName = tc.FileName; Content = File.ReadAllText(path) }])
         let diagnostic_bag = DiagnosticBag()

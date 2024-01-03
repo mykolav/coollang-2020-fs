@@ -7,7 +7,7 @@ open Tests.Compiler
 
 
 [<Sealed>]
-type AssertCompilerTestCaseOutput private () =
+type CompilerTestAssert private () =
 
 
     static let formatMismatches (title: string)
@@ -37,29 +37,31 @@ type AssertCompilerTestCaseOutput private () =
             .ToString()
 
 
-    static member Matches(tc: CompilerTestCase, co: CompilerOutput, po: ProgramOutput) =
+    static member Match(actual: CompilerOutput, expected_diags: seq<string>, snippet: string) =
         let actual_diags =
-            co.Diags
+            actual.Diags
             |> Seq.map (fun it -> if it.StartsWith(CompilerTestCaseSource.ProgramsPath)
                                   then it.Replace(CompilerTestCaseSource.ProgramsPath, "")
                                   else it)
-                           
-        let diag_mismatches = StringSeq.compare tc.ExpectedDiags actual_diags
+
+        let diag_mismatches = StringSeq.compare expected_diags actual_diags
         AssertStringSeq.EmptyMismatches(diag_mismatches,
-                                        Seq.length tc.ExpectedDiags,
-                                        Seq.length co.Diags,
-                                        formatMismatches "DIAGS:" tc.Snippet)
+                                        Seq.length expected_diags,
+                                        Seq.length actual.Diags,
+                                        formatMismatches "DIAGS:" snippet)
 
         let expected_binutils_diags = []
-        let actual_binutils_diags = co.BinutilsDiags
+        let actual_binutils_diags = actual.BinutilsDiags
         let binutils_diag_mismatches = StringSeq.compare expected_binutils_diags actual_binutils_diags
         AssertStringSeq.EmptyMismatches(binutils_diag_mismatches,
                                         Seq.length expected_binutils_diags,
                                         Seq.length actual_binutils_diags,
-                                        formatMismatches "BINUTILS DIAGS:" tc.Snippet)
+                                        formatMismatches "BINUTILS DIAGS:" snippet)
 
-        let output_mismatches = StringSeq.compare tc.ExpectedOutput po.Output
+
+    static member Match(po: ProgramOutput, expected_output: seq<string>, snippet: string) =
+        let output_mismatches = StringSeq.compare expected_output po.Output
         AssertStringSeq.EmptyMismatches(output_mismatches,
-                                        Seq.length tc.ExpectedOutput,
+                                        Seq.length expected_output,
                                         Seq.length po.Output,
-                                        formatMismatches "OUTPUT" tc.Snippet)
+                                        formatMismatches "OUTPUT" snippet)

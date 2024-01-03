@@ -45,7 +45,6 @@ class Main() {
 // OUT: equal
 // OUT: equal
 // OUT: equal
-
 // OUT: not equal
 // OUT: not equal
 // OUT: not equal

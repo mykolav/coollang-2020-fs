@@ -34,16 +34,12 @@ class Main() extends IO() {
 // OUT: i = 0
 // OUT: i = 1
 // OUT: i = 2
-
 // OUT: i = 0
 // OUT: i = 1
 // OUT: i = 2
-
 // OUT: i = 0
 // OUT: i = 1
 // OUT: i = 2
-
 // OUT: i = 0
 // OUT: i = 1
 // OUT: i = 2
-
