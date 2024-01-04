@@ -19,4 +19,4 @@ type LabelGenerator() =
         
     member this.NameOf(label: Label): string =
         let (Label n) = label
-        $".label_%i{n}"
+        $".LABEL_%i{n}"
