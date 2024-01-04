@@ -93,22 +93,6 @@ IO_VTABLE:
 # Prototype objects
 ########################################
     .quad -1
-    .global Int_PROTO_OBJ
-Int_PROTO_OBJ:
-    .quad INT_TAG    # tag
-    .quad 4          # size in quads
-    .quad Int_VTABLE
-    .quad 0          # value
-
-    .quad -1
-    .global Int_0
-Int_0:
-    .quad INT_TAG    # tag
-    .quad 4          # size in quads
-    .quad Int_VTABLE
-    .quad 0          # value
-
-    .quad -1
     .global Unit_VALUE
 Unit_VALUE:
     .quad UNIT_TAG    # tag
@@ -121,7 +105,7 @@ String_EMPTY:
     .quad STRING_TAG    # tag
     .quad 5             # size in quads
     .quad String_VTABLE
-    .quad Int_0         # length
+    .quad INT_0         # length
     .quad 0             # terminating 0 and 
                         # 16 bytes boundary padding
     
@@ -324,15 +308,93 @@ String.create:
     movq    $String_VTABLE, OBJ_VTAB(%rax)
 
     # length (an int object)
-    movq    $Int_PROTO_OBJ, %rdi
-    call    .Runtime.copy_object
-    movq    -8(%rbp), %rcx               # length
-    movq    %rcx, INT_VAL(%rax)
+
+    movq    -8(%rbp), %rdi               # length (an integer value)
+    call    Int.get_or_create
     movq    -24(%rbp), %rcx              # string object
-    movq    %rax, STR_LEN(%rcx)
+    movq    %rax, STR_LEN(%rcx)          # length (an Int object)
 
     # return string object
     movq    %rcx, %rax
+
+    movq    %rbp, %rsp
+    popq    %rbp
+    
+    ret
+
+########################################
+# Int
+########################################
+
+#
+# Get a predefined Int object or create a new one
+#
+#   Find a predefined Int object corresponding to the value of %rdi.
+#   If not found, create a new one.
+#
+#   INPUT:
+#    %rdi: an int value (not an Int object)
+#
+#   OUTPUT:
+#    %rax: pointer to the Int object
+#
+#   Registers modified:
+#    %rdi, %rsi, %rax
+#
+    .global Int.get_or_create
+Int.get_or_create:
+    MIN_PREDEFINED              = -500
+    MAX_PREDEFINED              = 500
+    # An `Int` object size in quads is 4:
+    # TAG slot + OBJ SIZE slot + VTAB slot + VALUE slot
+    INT_OBJ_SIZE_IN_QUADS       = 4
+
+    VAR_VALUE_SIZE              = 8
+    VAR_VALUE                   = -VAR_VALUE_SIZE
+    PAD_SIZE                    = 8
+    FRAME_SIZE                  = VAR_VALUE_SIZE + PAD_SIZE
+
+    pushq   %rbp
+    movq    %rsp, %rbp
+    subq    $FRAME_SIZE, %rsp
+
+    cmpq    $MIN_PREDEFINED, %rdi
+    jl      Int.get_or_create.create                   # if (%rdi < -500) go to ...
+    cmpq    $MAX_PREDEFINED, %rdi
+    jg      Int.get_or_create.create                   # if (%rdi > 500) go to ...
+
+    # %rdi contains the requested value, which basically is
+    # an element index in the predefined Int objects table.
+    # The element's offset in quads = index * (INT_OBJ_SIZE_IN_QUADS + 1 for eye catcher)
+    # The offset in bytes = the offset in quads * 8
+    movq    %rdi, %rax                                 # %rax = %rdi = index
+    salq    $2, %rax                                   # %rax = index * 4
+    addq    %rdi, %rax                                 # %rax = index * 4 + index = index * 5 
+                                                       #      = index * (INT_OBJ_SIZE_IN_QUADS + 1)
+                                                       #      = offset in quads
+    salq    $3, %rax                                   # %rax = offset in quads * 8 = offset in bytes
+    addq    $INT_0, %rax                               # %rax = the table base + offset in bytes
+                                                       #      = the address of the Int object
+    jmp     Int.get_or_create.done
+
+Int.get_or_create.create:
+    movq    %rdi, VAR_VALUE(%rbp)                      # preserve the requested int value
+
+    movq    $(INT_OBJ_SIZE_IN_QUADS + 1), %rdi         # %rdi = eye catcher + an Int obj size in quads
+    call    .MemoryManager.alloc                       # %rax = the start of allocated memory block
+
+    addq    $8, %rax                                   # %rax = the start of Int obj (moved past the eye-catcher)
+
+    movq    $EYE_CATCH, OBJ_EYE_CATCH(%rax)
+    movq    $INT_TAG, OBJ_TAG(%rax)
+    movq    $INT_OBJ_SIZE_IN_QUADS, OBJ_SIZE(%rax)
+    movq    $Int_VTABLE, OBJ_VTAB(%rax)
+
+    movq    VAR_VALUE(%rbp), %rdi
+    movq    %rdi, INT_VAL(%rax)
+
+Int.get_or_create.done:
+    # %rax = the pointer to Int object
 
     movq    %rbp, %rsp
     popq    %rbp
@@ -1002,17 +1064,6 @@ IO.in_int:
     pushq   %rbp
     movq    %rsp, %rbp
 
-    # -8    int object
-    # -16   16 bytes boundary padding
-    subq    $16, %rsp
-
-    # Create an int object,
-    # that will hold the int value 
-    # converted from a string read from stdin.
-    movq    $Int_PROTO_OBJ, %rdi
-    call    .Runtime.copy_object
-    movq    %rax, -8(%rbp)
-
     # %rsi - length
     # %rdx - buffer
     # %rcx - buffer_end
@@ -1101,8 +1152,9 @@ IO.in_int.loop_cond:
     negq    %rdi                # int value = -(int value)
 
 IO.in_int.ret:
-    movq    -8(%rbp), %rax       # int object
-    movq    %rdi, INT_VAL(%rax)
+    # %rdi = the integer value parsed from STDIN
+    call    Int.get_or_create
+    # %rax = the pointer to Int object
 
     movq    %rbp, %rsp
     popq    %rbp

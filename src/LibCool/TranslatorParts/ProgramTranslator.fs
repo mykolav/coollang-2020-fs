@@ -149,12 +149,15 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     let emitConsts (): unit =
         // Add class names to string constants -- class name table needs these.
         _context.ClassSymMap.Values
-        |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
-        |> Seq.iter (fun class_sym -> _context.StrConsts.GetOrAdd(class_sym.Name.Value) |> ignore)
+            |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
+            |> Seq.iter (fun class_sym -> _context.StrConsts.GetOrAdd(class_sym.Name.Value) |> ignore)
         
         // Translate.
         _context.StrConsts.Items |> Seq.iter translateStrConst
-        _context.IntConsts.Items |> Seq.iter translateIntConst
+        _context.IntConsts.Items
+            |> Seq.where (fun it -> it.Value < IntConstFacts.MinPredefinedValue ||
+                                    it.Value > IntConstFacts.MaxPredefinedValue)
+            |> Seq.iter translateIntConst
     
     
     let emitClassNameTable(): unit =

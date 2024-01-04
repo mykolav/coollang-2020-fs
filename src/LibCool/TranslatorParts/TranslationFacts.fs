@@ -50,6 +50,11 @@ module FrameLayoutFacts =
     let This = -8
 
 
+module IntConstFacts =
+    let MinPredefinedValue = -500
+    let MaxPredefinedValue = 500
+
+
 module RtNames =
     let ClassParentMap = "CLASS_PARENT_MAP"
     
@@ -64,5 +69,7 @@ module RtNames =
     let RtAbortDispatch = ".Runtime.abort_dispatch"
     
     let StringConcat = "String.concat"
+
+    let IntGetOrCreate = "Int.get_or_create"
 
     let GenGCHandleAssign = ".GenGC.on_assign"

@@ -247,9 +247,9 @@ type private ExprTranslator(_context: TranslationContext,
         then
             let left, right, op, jmp =
                 match cond_node.Syntax with
-                | ExprSyntax.Lt (left, right)   -> left, right, "<", "jl"
+                | ExprSyntax.Lt (left, right)   -> left, right, "<",  "jl "
                 | ExprSyntax.LtEq (left, right) -> left, right, "<=", "jle"
-                | ExprSyntax.Gt (left, right)   -> left, right, ">", "jg"
+                | ExprSyntax.Gt (left, right)   -> left, right, ">",  "jg "
                 | ExprSyntax.GtEq (left, right) -> left, right, ">=", "jge"
                 | _                             -> invalidOp "Unreachable"
             let operands = translateInfixOpIntOperands left right op
@@ -409,7 +409,6 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         | Ok (left_frag, right_frag) ->
             let asm = this.EmitAsm().Mul(mul_node.Span, left_frag, right_frag)
-
             _context.RegSet.Free(right_frag.Reg)
 
             Ok { AsmFragment.Asm = asm
@@ -424,7 +423,6 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         | Ok (left_frag, right_frag) ->
             let asm = this.EmitAsm().Div(div_node.Span, left_frag, right_frag)
-
             _context.RegSet.Free(right_frag.Reg)
 
             Ok { AsmFragment.Asm = asm
@@ -452,12 +450,13 @@ type private ExprTranslator(_context: TranslationContext,
         | Error ->
             Error
         | Ok (left_frag, right_frag) ->
+            // left = left + right
             let asm = this.EmitAsm().Sum(sum_node.Span, left_frag, right_frag)
-            _context.RegSet.Free(left_frag.Reg)
+            _context.RegSet.Free(right_frag.Reg)
 
             Ok { AsmFragment.Asm = asm.ToString()
-                 Type = right_frag.Type
-                 Reg = right_frag.Reg }
+                 Type = left_frag.Type
+                 Reg = left_frag.Reg }
         
         
     and translateSub sub_node left right =

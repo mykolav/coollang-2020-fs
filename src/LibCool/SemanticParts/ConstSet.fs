@@ -56,7 +56,7 @@ type IntConstSet(prefix: string) =
 
         let suffix = if value >= 0
                      then value.ToString()
-                     else $"MINUS_%d{-value}"
+                     else $"__%d{-value}"
 
         let label = $"%s{prefix}_%s{suffix}"
         _valueToLabelMap.Add(value, label)

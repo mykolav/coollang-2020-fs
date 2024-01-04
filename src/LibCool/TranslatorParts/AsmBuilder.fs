@@ -210,8 +210,8 @@ type AsmBuilder(_context: TranslationContext) =
             .AppendLine()
             .AsUnit()
         this
-        
-        
+
+
     member this.RtAbortMatch(location: Location, expr_reg: Reg): AsmBuilder =
         let filename_str_const = _context.StrConsts.GetOrAdd(location.FileName)
         this.Instr("movq    ${0}, %rdi", value=filename_str_const, comment="file name")
@@ -227,8 +227,14 @@ type AsmBuilder(_context: TranslationContext) =
             .Instr("movq    ${0}, %rsi", location.Line, comment="line")
             .Instr("movq    ${0}, %rdx", location.Col, comment="col")
             .Instr("call    {0}", RtNames.RtAbortDispatch)
-    
-    
+
+
+    member this.IntGetOrCreate(): AsmBuilder =
+        this.PushCallerSavedRegs()
+            .Instr("call    {0}", RtNames.IntGetOrCreate)
+            .PopCallerSavedRegs()
+
+
     member this.RtCopyObject(proto_reg: Reg, copy_reg: Reg): AsmBuilder =
         this.RtCopyObject(proto=_context.RegSet.NameOf(proto_reg),
                           copy_reg=copy_reg)
@@ -417,9 +423,11 @@ module AsmFragments =
 
         member this.UnaryMinus(unary_minus_span: Span, negated_frag: AsmFragment): string =
             this.Paste(negated_frag.Asm)
-                .RtCopyObject(proto_reg=negated_frag.Reg, copy_reg=negated_frag.Reg)
+                .Instr("movq    {0}({1}), %rdi", ObjLayoutFacts.IntValue, negated_frag.Reg)
                 .Location(unary_minus_span)
-                .Instr("negq    {0}({1})", ObjLayoutFacts.IntValue, negated_frag.Reg)
+                .Instr("negq    %rdi", comment=None)
+                .IntGetOrCreate()
+                .Instr("movq    %rax, {0}", negated_frag.Reg)
                 .ToString()
 
 
@@ -482,25 +490,28 @@ module AsmFragments =
 
         member this.Mul(mul_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
             this.Paste(left_frag.Asm)
-                .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
                 .Paste(right_frag.Asm)
+                // left = left * right
                 .Instr("movq    {0}({1}), %rax", ObjLayoutFacts.IntValue, left_frag.Reg)
                 .Location(mul_span)
                 .Instr("imulq   {0}({1})", ObjLayoutFacts.IntValue, right_frag.Reg)
-                .Instr("movq    %rax, {0}({1})", ObjLayoutFacts.IntValue, left_frag.Reg)
+                .Instr("movq    %rax, %rdi", comment=None)
+                .IntGetOrCreate()
+                .Instr("movq    %rax, {0}", left_frag.Reg)
                 .ToString()
 
 
         member this.Div(div_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
             this.Paste(left_frag.Asm)
-                .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
                 .Paste(right_frag.Asm)
-                // left / right
+                // left = left / right
                 .Instr("movq    {0}({1}), %rax", ObjLayoutFacts.IntValue, left_frag.Reg)
                 .Instr("cqto", comment=Some "sign-extend %rax to %rdx:%rax")
                 .Location(div_span)
                 .Instr("idivq    {0}({1})", ObjLayoutFacts.IntValue, right_frag.Reg)
-                .Instr("movq    %rax, {0}({1})", ObjLayoutFacts.IntValue, left_frag.Reg)
+                .Instr("movq    %rax, %rdi", comment=None)
+                .IntGetOrCreate()
+                .Instr("movq    %rax, {0}", left_frag.Reg)
                 .ToString()
 
 
@@ -511,25 +522,27 @@ module AsmFragments =
 
             if left_frag.Type.Is(BasicClasses.Int) &&
                right_frag.Type.Is(BasicClasses.Int)
-            then
-                this.RtCopyObject(proto_reg=right_frag.Reg, copy_reg=right_frag.Reg)
-                    .Instr("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, left_frag.Reg, left_frag.Reg)
+            then // left = left + right
+                this.Instr("movq    {0}({1}), %rdi", ObjLayoutFacts.IntValue, left_frag.Reg)
                     .Location(sum_span)
-                    .Instr("addq    {0}, {1}({2})", left_frag.Reg, ObjLayoutFacts.IntValue, right_frag.Reg)
+                    .Instr("addq    {0}({1}), %rdi", ObjLayoutFacts.IntValue, right_frag.Reg)
+                    .IntGetOrCreate()
+                    .Instr("movq    %rax, {0}", left_frag.Reg)
                     .ToString()
             else // string concatenation
-                this.StringConcatOp(sum_span, left_frag.Reg, right_frag.Reg, result_reg=right_frag.Reg)
+                this.StringConcatOp(sum_span, left_frag.Reg, right_frag.Reg, result_reg=left_frag.Reg)
                     .ToString()
 
 
         member this.Sub(sub_span: Span, left_frag: AsmFragment, right_frag: AsmFragment): string =
             this.Paste(left_frag.Asm)
                 .Paste(right_frag.Asm)
-                // left - right
-                .RtCopyObject(proto_reg=left_frag.Reg, copy_reg=left_frag.Reg)
-                .Instr("movq    {0}({1}), {2}", ObjLayoutFacts.IntValue, right_frag.Reg, right_frag.Reg)
+                // left = left - right
+                .Instr("movq    {0}({1}), %rdi", ObjLayoutFacts.IntValue, left_frag.Reg)
                 .Location(sub_span)
-                .Instr("subq    {0}, {1}({2})", right_frag.Reg, ObjLayoutFacts.IntValue, left_frag.Reg)
+                .Instr("subq    {0}({1}), %rdi", ObjLayoutFacts.IntValue, right_frag.Reg)
+                .IntGetOrCreate()
+                .Instr("movq    %rax, {0}", left_frag.Reg)
                 .ToString()
 
 
