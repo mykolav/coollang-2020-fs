@@ -450,7 +450,7 @@
 #   multiple live objects...
 #
 #   INPUT:
-#    %rdi: pointer to the pointer being assigned to
+#    %rdi: pointer to an obj's attribute (a pointer itself) being assigned to
 #
 #   OUTPUT:
 #    None
@@ -468,6 +468,34 @@
 
     # TODO: Preserve %rdi?
 
+    movq     .Platform.heap_start(%rip), %rsi
+
+    # An assignment is a GC root only if
+    #   1) The obj's field that is being assigned to is within [L0, L1) (Old Area)
+    #   2) The assigned value points to an object withing [L2, .Alloc.limit) (Work Area).
+    #      Otherwise, it points to an obj withing an area not managed by 
+    #      the minor collection:
+    #        - Either [L0, L1) (Old Area)
+    #        - Or outside of the heap -- e.g., a predefined object in the data segment
+    #
+    # Check if the pointer is within [L0, L1) (Old Area)
+    cmpq     .GenGC.HDR_L0(%rsi), %rdi
+    jl       .GenGC.on_assign.done         # if (%rdi < L0) 
+                                           # go to .GenGC.on_assign.done
+    cmpq     .GenGC.HDR_L1(%rsi), %rdi
+    jge      .GenGC.on_assign.done         # if (%rdi >= L1)
+                                           # go to .GenGC.on_assign.done
+
+    # Check if the obj pointed to is within [L2, .Alloc.limit) (Work Area)
+    movq     0(%rdi), %rax                  # %rax = the obj being pointed to
+    cmpq     .GenGC.HDR_L2(%rsi), %rax
+    jl       .GenGC.on_assign.done         # if (%rax < L2) 
+                                           #     go to .GenGC.on_assign.done
+    cmpq     .Alloc.limit(%rip), %rax
+    jge      .GenGC.on_assign.done         # if (%rax >= .Alloc.limit)
+                                           #     go to .GenGC.on_assign.done
+
+    # OK, we do want to track this assignment
     movq     .Alloc.limit(%rip), %rax
     subq     $POINTER_SIZE, %rax
     movq     %rax, .Alloc.limit(%rip)      # make room in the assignment stack
