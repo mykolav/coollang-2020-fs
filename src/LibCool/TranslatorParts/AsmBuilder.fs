@@ -213,19 +213,19 @@ type AsmBuilder(_context: TranslationContext) =
         
         
     member this.RtAbortMatch(location: Location, expr_reg: Reg): AsmBuilder =
-        let filename_label = _context.StrConsts.GetOrAdd(location.FileName)
-        this.Instr("movq    ${0}, %rdi", value=filename_label)
-            .Instr("movq    ${0}, %rsi", value=location.Line)
-            .Instr("movq    ${0}, %rdx", value=location.Col)
-            .Instr("movq    {0}, %rcx", expr_reg)
+        let filename_str_const = _context.StrConsts.GetOrAdd(location.FileName)
+        this.Instr("movq    ${0}, %rdi", value=filename_str_const, comment="file name")
+            .Instr("movq    ${0}, %rsi", value=location.Line, comment="line")
+            .Instr("movq    ${0}, %rdx", value=location.Col, comment="col")
+            .Instr("movq    {0}, %rcx", expr_reg, comment="match value")
             .Instr("call    {0}", RtNames.RtAbortMatch)
 
 
     member this.RtAbortDispatch(location: Location): AsmBuilder =
-        let filename_label = _context.StrConsts.GetOrAdd(location.FileName)
-        this.Instr("movq    ${0}, %rdi", filename_label)
-            .Instr("movq    ${0}, %rsi", location.Line)
-            .Instr("movq    ${0}, %rdx", location.Col)
+        let filename_str_const = _context.StrConsts.GetOrAdd(location.FileName)
+        this.Instr("movq    ${0}, %rdi", filename_str_const, comment="file name")
+            .Instr("movq    ${0}, %rsi", location.Line, comment="line")
+            .Instr("movq    ${0}, %rdx", location.Col, comment="col")
             .Instr("call    {0}", RtNames.RtAbortDispatch)
     
     
@@ -244,8 +244,8 @@ type AsmBuilder(_context: TranslationContext) =
             
     member this.RtAreEqual(left_reg: Reg, right_reg: Reg): AsmBuilder =
         this.PushCallerSavedRegs()
-            .Instr("movq    {0}, %rdi", left_reg)
-            .Instr("movq    {0}, %rsi", right_reg)
+            .Instr("movq    {0}, %rdi", left_reg, comment="left")
+            .Instr("movq    {0}, %rsi", right_reg, comment="right")
             .Instr("call    {0}", RtNames.RtAreEqual)
             .PopCallerSavedRegs()
         
@@ -264,18 +264,18 @@ type AsmBuilder(_context: TranslationContext) =
         let right_str_is_some_label = this.Context.LabelGen.Generate("RIGHT_STR_IS_SOME")
         
         this.Instr("cmpq    $0, {0}", left_str_reg)
-            .Jne(left_str_is_some_label, "left string is some")
+            .Jne(left_str_is_some_label)
             .Instr("movq    ${0}, {1}", _context.StrConsts.GetOrAdd("null"),
-                                     left_str_reg)
-            .Label(left_str_is_some_label, "left string is some")
+                                        left_str_reg)
+            .Label(left_str_is_some_label)
             .Instr("cmpq    $0, {0}", right_str_reg)
-            .Jne(right_str_is_some_label, "right string is some")
+            .Jne(right_str_is_some_label)
             .Instr("movq    ${0}, {1}", _context.StrConsts.GetOrAdd("null"),
-                                     right_str_reg)
-            .Label(right_str_is_some_label, "right string is some")
+                                        right_str_reg)
+            .Label(right_str_is_some_label)
             .PushCallerSavedRegs()
-            .Instr("movq    {0}, %rdi", left_str_reg)
-            .Instr("movq    {0}, %rsi", right_str_reg)
+            .Instr("movq    {0}, %rdi", left_str_reg, "left str")
+            .Instr("movq    {0}, %rsi", right_str_reg, "right str")
             .Instr("call    {0}", RtNames.StringConcat)
             .PopCallerSavedRegs()
             .Instr("movq    %rax, {0}", result_reg)
@@ -355,7 +355,7 @@ module AsmFragments =
 
             for i = 0 to (frame.ActualsInFrameCount - 1) do
                 this.Instr("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.ActualRegs[i],
-                                                   FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize)
+                                                      FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize)
                     .AsUnit()
 
             this.Comment("store callee-saved regs on the stack")
@@ -363,7 +363,7 @@ module AsmFragments =
 
             for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
                 this.Instr("movq    {0}, -{1}(%rbp)", SysVAmd64AbiFacts.CalleeSavedRegs[i],
-                                                   frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
+                                                      frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize)
                     .AsUnit()
 
             this
@@ -375,7 +375,7 @@ module AsmFragments =
 
             for i = 0 to (SysVAmd64AbiFacts.CalleeSavedRegs.Length - 1) do
                 this.Instr("movq    -{0}(%rbp), {1}", value0=frame.CalleeSavedRegs + (i + 1) * FrameLayoutFacts.ElemSize,
-                                                   value1=SysVAmd64AbiFacts.CalleeSavedRegs[i])
+                                                      value1=SysVAmd64AbiFacts.CalleeSavedRegs[i])
                     .AsUnit()
 
             this.Comment("restore the caller's frame")
@@ -558,7 +558,8 @@ module AsmFragments =
                 this.Jmp(null_pattern_asm_info.Label)
                     .AsUnit()
             else
-                this.RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
+                this.Comment("abort if the match value is null")
+                    .RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
                     .AsUnit()
 
             this.Label(match_init_label)
@@ -571,11 +572,11 @@ module AsmFragments =
                 this.Instr("movq    {0}, -{1}(%rbp)",
                         expr_frag.Reg,
                         frame.Vars + (frame.VarsCount + 1) * 8,
-                        "the expression's value")
+                        comment="the match expression's value")
                     .AsUnit()
 
-            this.Instr("movq    ({0}), {1}", expr_frag.Reg, tag_reg, "tag")
-                .Label(is_tag_valid_label, "no match?")
+            this.Instr("movq    ({0}), {1}", expr_frag.Reg, tag_reg, comment="the match expression type's tag")
+                .Label(is_tag_valid_label, "is the inheritance chain's end reached and still no match?")
                 .Instr("cmpq    $-1, {0}", tag_reg)
                 .Jne(try_match_label)
                 .RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
@@ -592,7 +593,7 @@ module AsmFragments =
 
             this.Instr("salq    $3, {0}", tag_reg, "multiply by 8")
                 .Instr("movq    {0}({1}), {2}", RtNames.ClassParentMap, tag_reg, tag_reg, "the parent's tag")
-                .Jmp(is_tag_valid_label, "no match?")
+                .Jmp(is_tag_valid_label, "check if the inheritance chain's end is reached")
 
 
         member this.MatchCase(case_span: Span,
@@ -627,6 +628,7 @@ module AsmFragments =
                 .Paste(receiver_frag.Asm)
                 .Instr("cmpq    $0, {0}", receiver_frag.Reg)
                 .Jne(receiver_is_some_label)
+                .Comment("abort if the receiver is null")
                 .RtAbortDispatch(this.Context.Source.Map(dispatch_span.First))
                 .Label(receiver_is_some_label)
                 .Paste(actuals_asm)

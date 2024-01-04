@@ -545,7 +545,7 @@ type private ExprTranslator(_context: TranslationContext,
                                 pattern.Span)
                             pattern_error <- true
 
-            let done_label = _context.LabelGen.Generate("ENDMATCH")
+            let endmatch_label = _context.LabelGen.Generate("ENDMATCH")
             let result_reg = _context.RegSet.Allocate("translate_match.result_reg")
 
             let pattern_var_index = _sym_table.Frame.VarsCount
@@ -573,7 +573,7 @@ type private ExprTranslator(_context: TranslationContext,
                                   pattern_asm_info.Label,
                                   block_frag,
                                   result_reg,
-                                  done_label)
+                                  endmatch_label)
 
                     _context.RegSet.Free(block_frag.Reg)
 
@@ -581,7 +581,7 @@ type private ExprTranslator(_context: TranslationContext,
 
                 block_frag)
 
-            asm.Label(done_label, "end match")
+            asm.Label(endmatch_label)
                .AsUnit()
 
             if pattern_error || (block_frags |> Seq.exists (fun it -> LcResult.isError it))

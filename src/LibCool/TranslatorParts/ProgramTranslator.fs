@@ -124,7 +124,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                     // Addr of an int object containing the string's len in chars
                     .Directive(".quad {0}", len_const_label, comment=($"length = %d{ascii_bytes.Length}"))
                     // A comment with the string's content in human-readable form
-                    .Ln(comment=str_const.Value.Replace("\r", "").Replace("\n", "\\n"))
+                    .Comment(str_const.Value.Replace("\r", "").Replace("\n", "\\n"))
 
         // String content encoded in UTF8
         if ascii_bytes.Length > 0
@@ -139,7 +139,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         if pad_size_in_bytes > 0
         then
             // Ensure 8 byte alignment
-            asm.Ln(comment=($"payload's size in bytes = %d{str_object_size_in_bytes}, pad to an 8 byte boundary"))
+            asm.Comment($"payload's size in bytes = %d{str_object_size_in_bytes}, pad to an 8 byte boundary")
                .Directive(".zero {0}", pad_size_in_bytes)
                .AsUnit()
 
