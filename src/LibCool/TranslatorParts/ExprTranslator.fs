@@ -196,19 +196,19 @@ type private ExprTranslator(_context: TranslationContext,
         | Error ->
             Error
         | Ok body_frag ->
-            let while_cond_label = _context.LabelGen.Generate()
+            let while_cond_label = _context.LabelGen.Generate("WHILE_COND")
 
             let body_asm =
                 this.EmitAsm()
                     .Paste(body_frag.Asm)
-                    .Jmp(while_cond_label, "while cond")
+                    .Jmp(while_cond_label)
                     .ToString()
 
             _context.RegSet.Free(body_frag.Reg)
 
             let result_reg = _context.RegSet.Allocate("translate_while.result_reg")
             let done_asm = this.EmitAsm()
-                               .Single("movq    ${0}, {1}", RtNames.UnitValue, result_reg, "unit")
+                               .Single("movq    ${0}, {1}", RtNames.UnitValue, result_reg)
 
             let cond_asm = emitCond {| Name="while"; Span=cond_node.Span |}
                                      cond_node
@@ -220,7 +220,7 @@ type private ExprTranslator(_context: TranslationContext,
                 Error
             | Ok cond_asm ->
                 let asm = this.EmitAsm()
-                              .Label(while_cond_label, "while cond")
+                              .Label(while_cond_label)
                               .Paste(cond_asm)
                               .Location(while_node.Span)
                               .ToString()
@@ -489,9 +489,10 @@ type private ExprTranslator(_context: TranslationContext,
             let pattern_asm_infos = Dictionary<TYPENAME, PatternAsmInfo>()
             for pattern in patterns do
                 let pattern_ty = _context.ClassSymMap[pattern.Syntax]
-                pattern_asm_infos.Add(pattern.Syntax,
-                                      { PatternAsmInfo.Label = _context.LabelGen.Generate()
-                                        Tag = pattern_ty.Tag })
+                pattern_asm_infos.Add(
+                    pattern.Syntax,
+                    { PatternAsmInfo.Label = _context.LabelGen.Generate($"CASE_%s{pattern_ty.Name.Value}")
+                      Tag = pattern_ty.Tag })
 
             let tag_reg = _context.RegSet.Allocate("translate_match.tag_reg")
             let expr_location = _context.Source.Map(expr.Span.First)
@@ -544,7 +545,7 @@ type private ExprTranslator(_context: TranslationContext,
                                 pattern.Span)
                             pattern_error <- true
 
-            let done_label = _context.LabelGen.Generate()
+            let done_label = _context.LabelGen.Generate("ENDMATCH")
             let result_reg = _context.RegSet.Allocate("translate_match.result_reg")
 
             let pattern_var_index = _sym_table.Frame.VarsCount
@@ -570,7 +571,6 @@ type private ExprTranslator(_context: TranslationContext,
                     let pattern_asm_info = pattern_asm_infos[pattern_ty]
                     asm.MatchCase(case.Span,
                                   pattern_asm_info.Label,
-                                  pattern_ty,
                                   block_frag,
                                   result_reg,
                                   done_label)

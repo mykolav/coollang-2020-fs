@@ -62,7 +62,7 @@ Fib..ctor:
     movq    $INT_0, %rbx
     # ../CoolPrograms/Runtime/Fibonacci.cool(8,5): var i: Int = 0
     movq    %rbx, -16(%rbp)                       # i
-.label_6:                                         # while cond
+.L6_WHILE_COND:
     # ../CoolPrograms/Runtime/Fibonacci.cool(9,12): i
     movq    -16(%rbp), %r10                       # i
     # ../CoolPrograms/Runtime/Fibonacci.cool(9,17): 10

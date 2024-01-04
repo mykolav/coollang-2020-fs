@@ -136,27 +136,27 @@ type AsmBuilder(_context: TranslationContext) =
         String.Format(instruction, value, _context.RegSet.NameOf(reg))
 
 
-    member this.Jmp(jmp: string, label: Label, comment: string) =
-        this.Instr(String.Format("{0}    {1}", jmp, _context.LabelGen.NameOf(label)), comment=Some comment)
+    member this.Jmp(jmp: string, label: Label, ?comment: string) =
+        this.Instr(String.Format("{0}    {1}", jmp, _context.LabelGen.NameOf(label)), comment=comment)
 
 
-    member this.Jmp(label: Label, comment: string) =
-        this.Jmp("jmp ", label, comment)
+    member this.Jmp(label: Label, ?comment: string) =
+        this.Jmp("jmp ", label, ?comment=comment)
 
 
-    member this.Je(label: Label, comment: string) =
-        this.Jmp("je  ", label, comment)
+    member this.Je(label: Label, ?comment: string) =
+        this.Jmp("je  ", label, ?comment=comment)
 
 
-    member this.Jne(label: Label, comment: string) =
-        this.Jmp("jne ", label, comment)
+    member this.Jne(label: Label, ?comment: string) =
+        this.Jmp("jne ", label, ?comment=comment)
         
         
-    member this.Label(label: Label, comment: string) =
+    member this.Label(label: Label, ?comment: string) =
         let label_name = _context.LabelGen.NameOf(label)
         _asm.AppendFormat("{0}:", label_name)
             .AsUnit()
-        this.Ln(comment, label_name.Length + 1)
+        this.Ln(?comment=comment, line_len=label_name.Length + 1)
         
         
     member this.Label(label: string) =
@@ -260,8 +260,8 @@ type AsmBuilder(_context: TranslationContext) =
         // But in Scala, `left_str + right_str` never fails, and instead
         // replaces `null` operand(s) with `"null"` string literal.
         // We choose to be consistent with Scala.
-        let left_str_is_some_label = this.Context.LabelGen.Generate()
-        let right_str_is_some_label = this.Context.LabelGen.Generate()
+        let left_str_is_some_label = this.Context.LabelGen.Generate("LEFT_STR_IS_SOME")
+        let right_str_is_some_label = this.Context.LabelGen.Generate("RIGHT_STR_IS_SOME")
         
         this.Instr("cmpq    $0, {0}", left_str_reg)
             .Jne(left_str_is_some_label, "left string is some")
@@ -399,8 +399,8 @@ module AsmFragments =
 
 
         member this.BoolNegation(bool_negation_span: Span, negated_frag: AsmFragment): string =
-            let false_label = this.Context.LabelGen.Generate()
-            let done_label = this.Context.LabelGen.Generate()
+            let false_label = this.Context.LabelGen.Generate("NEG_FALSE")
+            let endneg_label = this.Context.LabelGen.Generate("ENDNEG")
 
             this.Paste(negated_frag.Asm)
                 .Location(bool_negation_span)
@@ -408,10 +408,10 @@ module AsmFragments =
                 .Je(false_label, "false")
                 .Comment("true:")
                 .Instr("movq    ${0}, {1}", RtNames.BoolFalse, negated_frag.Reg)
-                .Jmp(done_label, "done")
+                .Jmp(endneg_label, "done")
                 .Label(false_label, "false")
                 .Instr("movq    ${0}, {1}", RtNames.BoolTrue, negated_frag.Reg)
-                .Label(done_label, "done")
+                .Label(endneg_label, "done")
                 .ToString()
 
 
@@ -427,8 +427,8 @@ module AsmFragments =
                        condition_frag: AsmFragment,
                        then_asm: string,
                        else_asm: string): string =
-            let else_label = this.Context.LabelGen.Generate()
-            let done_label = this.Context.LabelGen.Generate()
+            let else_label = this.Context.LabelGen.Generate("ELSE")
+            let endif_label = this.Context.LabelGen.Generate("ENDIF")
 
             this.Paste(condition_frag.Asm)
                 .Location(if_span)
@@ -436,10 +436,10 @@ module AsmFragments =
                 .Je(else_label, "else")
                 .Comment("then")
                 .Paste(then_asm)
-                .Jmp(done_label, "end if")
+                .Jmp(endif_label)
                 .Label(else_label, "else")
                 .Paste(else_asm)
-                .Label(done_label, "end if")
+                .Label(endif_label)
                 .ToString()
 
 
@@ -447,36 +447,36 @@ module AsmFragments =
                           condition_frag: AsmFragment,
                           body_frag: AsmFragment,
                           result_reg: Reg): string =
-            let while_cond_label = this.Context.LabelGen.Generate()
-            let done_label = this.Context.LabelGen.Generate()
+            let while_cond_label = this.Context.LabelGen.Generate("WHILE_COND")
+            let endwhile_label = this.Context.LabelGen.Generate("ENDWHILE")
 
-            this.Label(while_cond_label, "while cond")
+            this.Label(while_cond_label)
                 .Paste(condition_frag.Asm)
                 .Location(while_span)
                 .Instr("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, condition_frag.Reg)
-                .Je(done_label, "end while")
+                .Je(endwhile_label)
                 .Paste(body_frag.Asm)
-                .Jmp(while_cond_label, "while cond")
-                .Label(done_label, "end while")
-                .Instr("movq    ${0}, {1}", RtNames.UnitValue, result_reg, "unit")
+                .Jmp(while_cond_label)
+                .Label(endwhile_label)
+                .Instr("movq    ${0}, {1}", RtNames.UnitValue, result_reg)
                 .ToString()
 
 
         member this.Cond(cond_frag: AsmFragment,
                          true_branch_asm: string,
                          false_branch_asm: string): string =
-            let cond_false_label = this.Context.LabelGen.Generate()
-            let done_label = this.Context.LabelGen.Generate()
+            let cond_false_label = this.Context.LabelGen.Generate("COND_IS_FALSE")
+            let endcond_label = this.Context.LabelGen.Generate("ENDCOND")
 
             this.Paste(cond_frag.Asm)
                 .Instr("cmpq    $0, {0}({1})", ObjLayoutFacts.BoolValue, cond_frag.Reg)
-                .Je(cond_false_label, "condition is false")
+                .Je(cond_false_label)
                 .Comment("condition is true")
                 .Paste(true_branch_asm)
-                .Jmp(done_label, "done")
-                .Label(cond_false_label, "condition is false")
+                .Jmp(endcond_label)
+                .Label(cond_false_label)
                 .Paste(false_branch_asm)
-                .Label(done_label, "done")
+                .Label(endcond_label)
                 .ToString()
 
 
@@ -541,27 +541,27 @@ module AsmFragments =
                           pattern_asm_infos: IReadOnlyDictionary<TYPENAME, PatternAsmInfo>)
                          : AsmBuilder =
 
-            let match_init_label = this.Context.LabelGen.Generate()
-            let is_tag_valid_label = this.Context.LabelGen.Generate()
-            let try_match_label = this.Context.LabelGen.Generate()
+            let match_init_label = this.Context.LabelGen.Generate("MATCH_INIT")
+            let is_tag_valid_label = this.Context.LabelGen.Generate("IS_TAG_VALID")
+            let try_match_label = this.Context.LabelGen.Generate("TRY_MATCH")
 
             this.Paste(expr_frag.Asm)
                 .Comment("handle null")
                 .Location(match_span)
                 .Instr("cmpq    $0, {0}", expr_frag.Reg)
-                .Jne(match_init_label, "match init")
+                .Jne(match_init_label)
                 .AsUnit()
 
             if pattern_asm_infos.ContainsKey(BasicClassNames.Null)
             then
                 let null_pattern_asm_info = pattern_asm_infos[BasicClassNames.Null]
-                this.Jmp(null_pattern_asm_info.Label, "case null => ...")
+                this.Jmp(null_pattern_asm_info.Label)
                     .AsUnit()
             else
                 this.RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
                     .AsUnit()
 
-            this.Label(match_init_label, "match init")
+            this.Label(match_init_label)
                 .AsUnit()
 
             if pattern_asm_infos |> Seq.exists (fun it -> it.Key <> BasicClassNames.Null)
@@ -577,9 +577,9 @@ module AsmFragments =
             this.Instr("movq    ({0}), {1}", expr_frag.Reg, tag_reg, "tag")
                 .Label(is_tag_valid_label, "no match?")
                 .Instr("cmpq    $-1, {0}", tag_reg)
-                .Jne(try_match_label, "try match")
+                .Jne(try_match_label)
                 .RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
-                .Label(try_match_label, "try match")
+                .Label(try_match_label)
                 .AsUnit()
 
             for pattern_asm_info in pattern_asm_infos do
@@ -587,7 +587,7 @@ module AsmFragments =
                 if pattern_asm_info.Key <> BasicClassNames.Null
                 then
                     this.Instr("cmpq    ${0}, {1}", pattern_asm_info.Value.Tag, tag_reg)
-                        .Je(pattern_asm_info.Value.Label, comment=pattern_asm_info.Key.ToString())
+                        .Je(pattern_asm_info.Value.Label)
                         .AsUnit()
 
             this.Instr("salq    $3, {0}", tag_reg, "multiply by 8")
@@ -597,15 +597,14 @@ module AsmFragments =
 
         member this.MatchCase(case_span: Span,
                               case_label: Label,
-                              pattern_ty: TYPENAME,
                               block_frag: AsmFragment,
                               result_reg: Reg,
                               done_label: Label): unit =
-            this.Label(case_label, comment="case " + pattern_ty.ToString())
+            this.Label(case_label)
                 .Paste(block_frag.Asm)
                 .Location(case_span)
                 .Instr("movq    {0}, {1}", block_frag.Reg, result_reg)
-                .Jmp(done_label, "end match")
+                .Jmp(done_label)
                 .AsUnit()
 
 
@@ -622,14 +621,14 @@ module AsmFragments =
                                      actuals_count: int,
                                      result_reg: Reg): unit =
 
-            let receiver_is_some_label = this.Context.LabelGen.Generate()
+            let receiver_is_some_label = this.Context.LabelGen.Generate("RECEIVER_IS_SOME")
 
             this.Comment("actual #0")
                 .Paste(receiver_frag.Asm)
                 .Instr("cmpq    $0, {0}", receiver_frag.Reg)
-                .Jne(receiver_is_some_label, "the receiver is some")
+                .Jne(receiver_is_some_label)
                 .RtAbortDispatch(this.Context.Source.Map(dispatch_span.First))
-                .Label(receiver_is_some_label, "the receiver is some")
+                .Label(receiver_is_some_label)
                 .Paste(actuals_asm)
                 .Instr("movq    {0}(%rdi), {1}", ObjLayoutFacts.VTable,
                                               method_reg,
@@ -760,8 +759,8 @@ module AsmFragments =
                           true_branch_asm: string)
                           : string =
 
-            let true_label = this.Context.LabelGen.Generate()
-            let done_label = this.Context.LabelGen.Generate()
+            let true_label = this.Context.LabelGen.Generate("CMP_TRUE")
+            let done_label = this.Context.LabelGen.Generate("ENDCMP")
 
             this.Paste(left_frag.Asm)
                 .Paste(right_frag.Asm)
@@ -786,8 +785,8 @@ module AsmFragments =
                          equal_branch_asm: string)
                          : string =
 
-            let equal_label = this.Context.LabelGen.Generate()
-            let done_label = this.Context.LabelGen.Generate()
+            let equal_label = this.Context.LabelGen.Generate("EQUAL")
+            let done_label = this.Context.LabelGen.Generate("ENDEQ")
 
             this.Paste(left_frag.Asm)
                 .Paste(right_frag.Asm)
