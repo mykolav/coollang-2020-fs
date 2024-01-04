@@ -33,7 +33,9 @@ The emitted assembly code contains a lot of hopefully useful comments. The idea 
 
 ```assembly
     .text
+
     # ../CoolPrograms/Runtime/Fibonacci.cool(1,7): Fib
+    .global Fib..ctor
 Fib..ctor:
     pushq   %rbp
     movq    %rsp, %rbp
@@ -49,24 +51,22 @@ Fib..ctor:
     # actual #0
     movq    -8(%rbp), %rbx
     subq    $8, %rsp
-    movq    %rbx, 0(%rsp) # actual #0
+    movq    %rbx, 0(%rsp)                         # actual #0
     # load up to 6 first actuals into regs
     movq    0(%rsp), %rdi
     # remove the register-loaded actuals from stack
     addq    $8, %rsp
-    call    IO..ctor # super..ctor
-    movq    %rax, %rbx # returned value
-    # ../CoolPrograms/Runtime/Fibonacci.cool(8,5): var i: Int = 0
+    call    IO..ctor                              # super..ctor
+    movq    %rax, %rbx                            # returned value
     # ../CoolPrograms/Runtime/Fibonacci.cool(8,18): 0
-    movq    $int_const_0, %rbx
-    movq    %rbx, -16(%rbp) # i
-    # ../CoolPrograms/Runtime/Fibonacci.cool(9,5): while (i <= 10) { \n   ...
-.label_6: # while cond
-    # ../CoolPrograms/Runtime/Fibonacci.cool(9,12): i <= 10
+    movq    $INT_0, %rbx
+    # ../CoolPrograms/Runtime/Fibonacci.cool(8,5): var i: Int = 0
+    movq    %rbx, -16(%rbp)                       # i
+.label_6:                                         # while cond
     # ../CoolPrograms/Runtime/Fibonacci.cool(9,12): i
-    movq    -16(%rbp), %r10 # i
+    movq    -16(%rbp), %r10                       # i
     # ../CoolPrograms/Runtime/Fibonacci.cool(9,17): 10
-    movq    $int_const_2, %r11
+    movq    $INT_10, %r11
 ```
 
 </details>
