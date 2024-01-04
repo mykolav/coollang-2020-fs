@@ -203,7 +203,10 @@ class Main() {
         // io.out_nl();
 
         game.step();
-        // out_board(board);
+
+        // if (step - (step / 10 * 10) == 0) {
+        //     out_board(board)
+        // } else {};
 
         step = step + 1
     };

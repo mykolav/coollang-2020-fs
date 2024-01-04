@@ -31,21 +31,29 @@ ascii_input_not_digit:          .ascii "IO.in_int: Input string contains a char 
 Any_vtable:
     .quad Any.abort
     .quad Any.equals
+    .quad Any.GC_collect
+    .quad Any.GC_print_state
 
     .global Unit_vtable
 Unit_vtable:
     .quad Any.abort
     .quad Any.equals
+    .quad Any.GC_collect
+    .quad Any.GC_print_state
 
     .global Int_vtable
 Int_vtable:
     .quad Any.abort
     .quad Any.equals
+    .quad Any.GC_collect
+    .quad Any.GC_print_state
 
     .global String_vtable
 String_vtable:
     .quad Any.abort
     .quad Any.equals
+    .quad Any.GC_collect
+    .quad Any.GC_print_state
     .quad String.length
     .quad String.concat
     .quad String.substring
@@ -54,11 +62,15 @@ String_vtable:
 Boolean_vtable:
     .quad Any.abort
     .quad Any.equals
+    .quad Any.GC_collect
+    .quad Any.GC_print_state
 
     .global ArrayAny_vtable
 ArrayAny_vtable:
     .quad Any.abort
     .quad Any.equals
+    .quad Any.GC_collect
+    .quad Any.GC_print_state
     .quad ArrayAny.get
     .quad ArrayAny.set
     .quad ArrayAny.length
@@ -67,6 +79,8 @@ ArrayAny_vtable:
 IO_vtable:
     .quad Any.abort
     .quad Any.equals
+    .quad Any.GC_collect
+    .quad Any.GC_print_state
     .quad IO.out_string
     .quad IO.out_int
     .quad IO.out_nl
@@ -197,6 +211,62 @@ Any.abort:
     .global Any.equals
 Any.equals:
     jmp     .Runtime.are_equal
+
+
+#
+# Collect garbage
+#  
+#   Triggers a garbage collection by invoking .MemoryManager.FN_COLLECT
+#   Requests additional allocation of 0 bytes, 
+#   as we only want to collect the garbage.
+#
+#   INPUT: 
+#    None
+#   OUTPUT: 
+#    None
+#
+#   Registers modified:
+#    %rdi, %rsi, .MemoryManager.FN_COLLECT
+#
+    .global Any.GC_collect
+Any.GC_collect:
+    pushq    %rbp
+    movq     %rsp, %rbp
+
+    xorl     %edi, %edi                          # %rdi = alloc size = 0
+    movq     %rbp, %rsi                          # %rsi = tip of stack to start collecting from
+    callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
+
+    movq     %rbp, %rsp
+    popq     %rbp
+
+    ret
+
+#
+#  Print GC's state
+#  
+#  Makes the configured garbage collector dump its current state to STDOUT 
+#  by invoking .MemoryManager.FN_PRINT_STATE
+#
+#  INPUT: 
+#   None
+#  OUTPUT: 
+#   None
+#
+#   Registers modified:
+#    .MemoryManager.FN_PRINT_STATE
+#
+    .global Any.GC_print_state
+Any.GC_print_state:
+    pushq    %rbp
+    movq     %rsp, %rbp
+
+    callq    *.MemoryManager.FN_PRINT_STATE(%rip)
+
+    movq     %rbp, %rsp
+    popq     %rbp
+
+    ret
 
 ########################################
 # String

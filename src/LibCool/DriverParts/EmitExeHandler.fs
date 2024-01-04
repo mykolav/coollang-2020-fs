@@ -84,16 +84,16 @@ type EmitExeHandler(_writer: IWriteLine) =
         
     
     static member Assemble(asm: string, obj_file: string) : string[] =
-        // ProcessRunner.Run(exe_name="as", args= $"-o %s{obj_file}", stdin=asm)
-        // |> ProcessOutputParser.splitInLines
-        // |> Array.ofSeq
-
-        let asm_file = obj_file.Replace(".o", ".s")
-        File.WriteAllText(asm_file, asm)
-
-        ProcessRunner.Run(exe_name="as", args= $"-g -o %s{obj_file} {asm_file}")
+        ProcessRunner.Run(exe_name="as", args= $"-o %s{obj_file}", stdin_lines=[asm])
         |> ProcessOutputParser.splitInLines
         |> Array.ofSeq
+
+        // let asm_file = obj_file.Replace(".o", ".s")
+        // File.WriteAllText(asm_file, asm)
+        //
+        // ProcessRunner.Run(exe_name="as", args= $"-g -o %s{obj_file} {asm_file}")
+        // |> ProcessOutputParser.splitInLines
+        // |> Array.ofSeq
 
 
     static member Link(obj_file: string, exe_file: string): string[] =

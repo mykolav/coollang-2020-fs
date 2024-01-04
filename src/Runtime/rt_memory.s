@@ -45,12 +45,24 @@
 .GC.MSG_INTERNAL_ERROR_LEN  =           (. - .GC.MSG_INTERNAL_ERROR_ASCII)
 
 ########################################
-# Messages for the NoGC garabge collector
+# NopGC garabge collector messages
 ########################################
 
     .global .NopGC.MSG_COLLECTING_ASCII
-.NopGC.MSG_COLLECTING_ASCII:    .ascii "NopGC: Increasing heap..."
-.NopGC.MSG_COLLECTING_LEN  =           (. - .NopGC.MSG_COLLECTING_ASCII)
+.NopGC.MSG_COLLECTING_ASCII:           .ascii "NopGC: Increasing heap..."
+.NopGC.MSG_COLLECTING_LEN  =                  (. - .NopGC.MSG_COLLECTING_ASCII)
+
+.NopGC.MSG_HEAP_START_EQ_ASCII:        .ascii "NopGC: HEAP START  = "
+.NopGC.MSG_HEAP_START_EQ_LEN =                (. - .NopGC.MSG_HEAP_START_EQ_ASCII)
+
+.NopGC.MSG_HEAP_END_EQ_ASCII:          .ascii "NopGC: HEAP END    = "
+.NopGC.MSG_HEAP_END_EQ_LEN =                  (. - .NopGC.MSG_HEAP_END_EQ_ASCII)
+
+.NopGC.MSG_ALLOC_PTR_EQ_ASCII:         .ascii "NopGC: ALLOC PTR   = "
+.NopGC.MSG_ALLOC_PTR_EQ_LEN =                 (. - .NopGC.MSG_ALLOC_PTR_EQ_ASCII)
+
+.NopGC.MSG_ALLOC_LIMIT_EQ_ASCII:       .ascii "NopGC: ALLOC LIMIT = "
+.NopGC.MSG_ALLOC_LIMIT_EQ_LEN =               (. - .NopGC.MSG_ALLOC_LIMIT_EQ_ASCII)
 
 ########################################
 # Text
@@ -321,7 +333,7 @@
     ret
 
 #
-# Print heap stats
+# Print heap state
 #
 #   INPUT:
 #    None
@@ -334,8 +346,8 @@
 #   Registers modified:
 #    .Runtime.print, .Runtime.out_int, .Runtime.out_nl
 
-    .global .MemoryManager.print_stats
-.MemoryManager.print_stats:
+    .global .MemoryManager.print_state
+.MemoryManager.print_state:
     RAX_SIZE      = 8
     RAX           = -RAX_SIZE
     RDI_SIZE      = 8
@@ -466,7 +478,6 @@
 #   Registers modified:
 #    None
 #
-
     .global .NopGC.on_assign
 .NopGC.on_assign:
     ret
@@ -486,7 +497,6 @@
 #   Registers modified:
 #    %rax, %rsi, .Platform.alloc
 #
-
     .global .NopGC.collect
 .NopGC.collect:
     .NopGC.HEAP_PAGE    = 0x10000               # size in bytes to expand heap (65536B)
@@ -530,4 +540,82 @@
     movq     %rbp, %rsp
     popq     %rbp
 
+    ret
+
+#
+# Print NopGC's current state
+#
+#   Preserves %rax, %rdi, %rsi for convinience of the caller.
+#   Prints the heap's start and end addresses, .Alloc.ptr, .Alloc.limit
+#
+#   INPUT:
+#    None
+#
+#   OUTPUT:
+#    %rax: unchanged
+#    %rdi: unchanged
+#    %rsi: unchanged
+#
+#   GLOBALS MODIFIED:
+#    None
+#
+#   Registers modified:
+#    .Runtime.print, .Runtime.out_int, .Runtime.out_nl
+#
+
+    .global .NopGC.print_state
+.NopGC.print_state:
+    RAX_SIZE      = 8
+    RAX           = -RAX_SIZE
+    RDI_SIZE      = 8
+    RDI           = -(RAX_SIZE + RDI_SIZE)
+    RSI_SIZE      = 8
+    RSI           = -(RAX_SIZE + RDI_SIZE + RSI_SIZE)
+    PAD_SIZE      = 8
+    FRAME_SIZE    =   RAX_SIZE + RDI_SIZE + RSI_SIZE + PAD_SIZE
+
+    pushq    %rbp
+    movq     %rsp, %rbp
+    subq     $FRAME_SIZE, %rsp
+
+    movq     %rax, RAX(%rbp)
+    movq     %rdi, RDI(%rbp)
+    movq     %rsi, RSI(%rbp)
+
+    movq     $.NopGC.MSG_HEAP_START_EQ_ASCII, %rdi
+    movq     $.NopGC.MSG_HEAP_START_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_start(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.NopGC.MSG_HEAP_END_EQ_ASCII, %rdi
+    movq     $.NopGC.MSG_HEAP_END_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Platform.heap_end(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.NopGC.MSG_ALLOC_PTR_EQ_ASCII, %rdi
+    movq     $.NopGC.MSG_ALLOC_PTR_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Alloc.ptr(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    movq     $.NopGC.MSG_ALLOC_LIMIT_EQ_ASCII, %rdi
+    movq     $.NopGC.MSG_ALLOC_LIMIT_EQ_LEN, %rsi
+    call     .Runtime.print
+    movq     .Alloc.limit(%rip), %rdi
+    call     .Runtime.out_int
+    call     .Runtime.out_nl
+
+    call     .Runtime.out_nl
+
+    movq     RAX(%rbp), %rax
+    movq     RDI(%rbp), %rdi
+    movq     RSI(%rbp), %rsi
+
+    movq     %rbp, %rsp
+    popq     %rbp
     ret

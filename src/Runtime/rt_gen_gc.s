@@ -420,7 +420,7 @@
     # call     .Runtime.print_ln
 
 .GenGC.init.ok:
-    # call     .GenGC.print_stats
+    # call     .GenGC.print_state
 
     movq     %rbp, %rsp
     popq     %rbp
@@ -561,7 +561,7 @@
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.minor_collect                # %rax contains the size of all collected live objects
 
-    # call     .GenGC.print_stats
+    # call     .GenGC.print_state
 
     # %rdi = heap_start
     movq     .Platform.heap_start(%rip), %rdi
@@ -655,7 +655,7 @@
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.major_collect                # %rax: the size of all collected live objects
                                                  # L1:   the new Old Area's end
-    # call     .GenGC.print_stats
+    # call     .GenGC.print_state
 
     # %rdi = heap_start
     movq     .Platform.heap_start(%rip), %rdi
@@ -804,7 +804,7 @@
     movq     %rsi, .Alloc.ptr(%rip)              # .Alloc.ptr = %rsi
 
 .GenGC.collect.done:
-    # call     .GenGC.print_stats
+    # call     .GenGC.print_state
 
     # Zero out the new generation (the new Reserve and Work Area) 
     # to help catch missing pointers
@@ -1808,8 +1808,8 @@
 #    .Runtime.print, .Runtime.out_int, .Runtime.out_nl
 #
 
-    .global .GenGC.print_stats
-.GenGC.print_stats:
+    .global .GenGC.print_state
+.GenGC.print_state:
     RAX_SIZE      = 8
     RAX           = -RAX_SIZE
     RDI_SIZE      = 8

@@ -135,6 +135,12 @@ module BasicClasses =
                 MethodSymbol.Virtual(ID "equals"(*name*),
                                      BasicClassNames.Boolean(*return_type*),
                                      formals=[| (ID "other", BasicClassNames.Any) |])
+
+                MethodSymbol.Virtual(ID "GC_collect"(*name*),
+                                     BasicClassNames.Unit(*return_type*))
+
+                MethodSymbol.Virtual(ID "GC_print_state"(*name*),
+                                     BasicClassNames.Unit(*return_type*))
             |])
     
     
