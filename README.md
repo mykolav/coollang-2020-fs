@@ -322,7 +322,21 @@ if while
 
 The compiler can successfully build a Windows x64 or Linux x64 executable out of every [sample program](./src/Tests/CoolPrograms/Runtime).
 
-Generational garbage collection is planned for some time in the future, but doesn't exist at the moment. As a result we never free allocated memory.
+## TODO
+
+Introduce the concept of a companion object limited to objects predefined by the runtime. In particular, it will allow a Cool 2020 program to invoke GC related methods like this:
+
+```scala
+GC.collect();
+GC.print_state()
+```
+
+Instead of the current approach:
+
+```scala
+GC_collect();
+GC_print_state()
+```
 
 # Build
 
