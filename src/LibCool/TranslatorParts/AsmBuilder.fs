@@ -591,7 +591,7 @@ module AsmFragments =
                         .AsUnit()
 
             this.Instr("salq    $3, {0}", tag_reg, "multiply by 8")
-                .Instr("movq    {0}({1}), {2}", RtNames.ClassParentTable, tag_reg, tag_reg, "the parent's tag")
+                .Instr("movq    {0}({1}), {2}", RtNames.ClassParentMap, tag_reg, tag_reg, "the parent's tag")
                 .Jmp(is_tag_valid_label, "no match?")
 
 
@@ -633,7 +633,7 @@ module AsmFragments =
                 .Paste(actuals_asm)
                 .Instr("movq    {0}(%rdi), {1}", ObjLayoutFacts.VTable,
                                               method_reg,
-                                              comment=receiver_frag.Type.Name.ToString() + "_vtable")
+                                              comment=receiver_frag.Type.Name.ToString() + "_VTABLE")
                 .Instr("movq    {0}({1}), {2}", method_sym.Index * MemLayoutFacts.VTableEntrySize,
                                              method_reg,
                                              method_reg,
@@ -689,7 +689,7 @@ module AsmFragments =
                     .AsUnit()
             else
                 // Copy the relevant prototype and place a pointer to the copy in 'this_reg'.
-                this.RtCopyObject(proto="$" + ty.Name.ToString() + "_proto_obj",
+                this.RtCopyObject(proto="$" + ty.Name.ToString() + "_PROTO_OBJ",
                                   copy_reg=this_reg)
                    .AsUnit()
 

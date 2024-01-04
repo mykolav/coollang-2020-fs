@@ -27,29 +27,29 @@ ascii_input_not_digit:          .ascii "IO.in_int: Input string contains a char 
 ########################################
 # Virtual tables
 ########################################
-    .global Any_vtable
-Any_vtable:
+    .global Any_VTABLE
+Any_VTABLE:
     .quad Any.abort
     .quad Any.equals
     .quad Any.GC_collect
     .quad Any.GC_print_state
 
-    .global Unit_vtable
-Unit_vtable:
+    .global Unit_VTABLE
+Unit_VTABLE:
     .quad Any.abort
     .quad Any.equals
     .quad Any.GC_collect
     .quad Any.GC_print_state
 
-    .global Int_vtable
-Int_vtable:
+    .global Int_VTABLE
+Int_VTABLE:
     .quad Any.abort
     .quad Any.equals
     .quad Any.GC_collect
     .quad Any.GC_print_state
 
-    .global String_vtable
-String_vtable:
+    .global String_VTABLE
+String_VTABLE:
     .quad Any.abort
     .quad Any.equals
     .quad Any.GC_collect
@@ -58,15 +58,15 @@ String_vtable:
     .quad String.concat
     .quad String.substring
 
-    .global Boolean_vtable
-Boolean_vtable:
+    .global Boolean_VTABLE
+Boolean_VTABLE:
     .quad Any.abort
     .quad Any.equals
     .quad Any.GC_collect
     .quad Any.GC_print_state
 
-    .global ArrayAny_vtable
-ArrayAny_vtable:
+    .global ArrayAny_VTABLE
+ArrayAny_VTABLE:
     .quad Any.abort
     .quad Any.equals
     .quad Any.GC_collect
@@ -75,8 +75,8 @@ ArrayAny_vtable:
     .quad ArrayAny.set
     .quad ArrayAny.length
 
-    .global IO_vtable
-IO_vtable:
+    .global IO_VTABLE
+IO_VTABLE:
     .quad Any.abort
     .quad Any.equals
     .quad Any.GC_collect
@@ -93,11 +93,11 @@ IO_vtable:
 # Prototype objects
 ########################################
     .quad -1
-    .global Int_proto_obj
-Int_proto_obj:
+    .global Int_PROTO_OBJ
+Int_PROTO_OBJ:
     .quad INT_TAG    # tag
     .quad 4          # size in quads
-    .quad Int_vtable
+    .quad Int_VTABLE
     .quad 0          # value
 
     .quad -1
@@ -105,48 +105,48 @@ Int_proto_obj:
 Int_0:
     .quad INT_TAG    # tag
     .quad 4          # size in quads
-    .quad Int_vtable
+    .quad Int_VTABLE
     .quad 0          # value
 
     .quad -1
-    .global Unit_value
-Unit_value:
+    .global Unit_VALUE
+Unit_VALUE:
     .quad UNIT_TAG    # tag
     .quad 3           # size in quads
-    .quad Unit_vtable
+    .quad Unit_VTABLE
     
     .quad -1
-    .global String_empty
-String_empty:
+    .global String_EMPTY
+String_EMPTY:
     .quad STRING_TAG    # tag
     .quad 5             # size in quads
-    .quad String_vtable
+    .quad String_VTABLE
     .quad Int_0         # length
     .quad 0             # terminating 0 and 
                         # 16 bytes boundary padding
     
     .quad -1
-    .global Boolean_true
-Boolean_true:
+    .global Boolean_TRUE
+Boolean_TRUE:
     .quad BOOLEAN_TAG    # tag
     .quad 4              # size in quads
-    .quad Boolean_vtable
+    .quad Boolean_VTABLE
     .quad 1              # value
 
     .quad -1
-    .global Boolean_false
-Boolean_false:
+    .global Boolean_FALSE
+Boolean_FALSE:
     .quad BOOLEAN_TAG    # tag
     .quad 4              # size in quads
-    .quad Boolean_vtable
+    .quad Boolean_VTABLE
     .quad 0              # value
     
     .quad -1
-    .global IO_proto_obj
-IO_proto_obj:
+    .global IO_PROTO_OBJ
+IO_PROTO_OBJ:
     .quad IO_TAG         # tag
     .quad 3              # size in quads
-    .quad IO_vtable
+    .quad IO_VTABLE
 
 ########################################
 # Text
@@ -205,8 +205,8 @@ Any.abort:
 #      'this'   in %rdi
 #      'other'  in %rsi
 #  OUTPUT: 
-#      $Boolean_true  in %rax, if the objects are equal.
-#      $Boolean_false in %rax, if the objects are unequal.
+#      $Boolean_TRUE  in %rax, if the objects are equal.
+#      $Boolean_FALSE in %rax, if the objects are unequal.
 #
     .global Any.equals
 Any.equals:
@@ -321,10 +321,10 @@ String.create:
     movq    %rcx, OBJ_SIZE(%rax)
 
     # vtable
-    movq    $String_vtable, OBJ_VTAB(%rax)
+    movq    $String_VTABLE, OBJ_VTAB(%rax)
 
     # length (an int object)
-    movq    $Int_proto_obj, %rdi
+    movq    $Int_PROTO_OBJ, %rdi
     call    .Runtime.copy_object
     movq    -8(%rbp), %rcx               # length
     movq    %rcx, INT_VAL(%rax)
@@ -686,7 +686,7 @@ String.substring.indices_ok:
     cmpq    $0, %rdi
     jne     String.substring.copy_substring
 
-    movq    $String_empty, %rax
+    movq    $String_EMPTY, %rax
     jmp     String.substring.ret
 
 String.substring.copy_substring:
@@ -797,7 +797,7 @@ ArrayAny..ctor:
     movq    VAR_OBJ_SIZE_IN_QUADS(%rbp), %rsi    # %rsi = size in quads
     movq    %rsi, OBJ_SIZE(%rax)
 
-    movq    $ArrayAny_vtable, OBJ_VTAB(%rax)
+    movq    $ArrayAny_VTABLE, OBJ_VTAB(%rax)
 
     movq    VAR_ARR_LEN(%rbp), %rsi              # %rsi = array length (an Int object)
     movq    %rsi, ARR_LEN(%rax)
@@ -1009,7 +1009,7 @@ IO.in_int:
     # Create an int object,
     # that will hold the int value 
     # converted from a string read from stdin.
-    movq    $Int_proto_obj, %rdi
+    movq    $Int_PROTO_OBJ, %rdi
     call    .Runtime.copy_object
     movq    %rax, -8(%rbp)
 
@@ -1137,7 +1137,7 @@ main:
 
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.
-    movq    $Main_proto_obj, %rdi
+    movq    $Main_PROTO_OBJ, %rdi
     call    .Runtime.copy_object
 
     # Place the created `Main` object on the stack

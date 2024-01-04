@@ -274,8 +274,8 @@ ascii_apostrophe_is_null:       .ascii "' is null"
 .Runtime.out_type_name.is_some:
     movq    OBJ_TAG(%rdi), %rdi
     salq    $3, %rdi # multiply the tag by 8
-                     # to get the offset in 'class_name_table'
-    addq    $class_name_table, %rdi
+                     # to get the offset in 'CLASS_NAME_MAP'
+    addq    $CLASS_NAME_MAP, %rdi
     movq    (%rdi), %rdi
 
     movq    STR_LEN(%rdi), %rsi
@@ -358,8 +358,8 @@ ascii_apostrophe_is_null:       .ascii "' is null"
 #      obj1 in %rdi
 #      obj2 in %rsi
 #  OUTPUT: 
-#      $Boolean_true  in %rax, if the objects are equal.
-#      $Boolean_false in %rax, if the objects are unequal.
+#      $Boolean_TRUE  in %rax, if the objects are equal.
+#      $Boolean_FALSE in %rax, if the objects are unequal.
 #
     .global .Runtime.are_equal
 .Runtime.are_equal:
@@ -433,11 +433,11 @@ ascii_apostrophe_is_null:       .ascii "' is null"
     # fall through to .Runtime.are_equal.true
 
 .Runtime.are_equal.true:
-    movq    $Boolean_true, %rax
+    movq    $Boolean_TRUE, %rax
     jmp     .Runtime.are_equal.return
 
 .Runtime.are_equal.false:
-    movq    $Boolean_false, %rax
+    movq    $Boolean_FALSE, %rax
 
 .Runtime.are_equal.return:
     ret

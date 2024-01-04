@@ -61,31 +61,31 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                                 else 8 - (int_object_size_in_bytes % 8)
         
         let int_object_size_in_quads = (int_object_size_in_bytes + pad_size_in_bytes) / 8
-        
-        _sb_data
-             // Eyecatch, unique id to verify any object
-            .AppendLine()
-            .AppendLine( "    .quad -1")
-            .AppendLine($"    .global %s{int_const.Label}")
-            .AppendLine($"%s{int_const.Label}:")
-            // Tag
-            .AppendLine($"    .quad %d{BasicClasses.Int.Tag} # tag")
-            // Object size in quads
-            .AppendLine($"    .quad %d{int_object_size_in_quads} # size in quads")
-            // Addr of the vtable
-            .AppendLine($"    .quad %s{BasicClasses.Int.Name.Value}_vtable")
-            // Value
-            .AppendLine($"    .quad %d{int_const.Value} # value")
-            .AsUnit()
-        
+
+        let asm = AsmBuilder(_context)
+                     // Eyecatch, unique id to verify any object
+                    .Ln()
+                    .Directive(".quad {0}", "-1")
+                    .Directive(".global {0}", int_const.Label)
+                    .Label(int_const.Label)
+                    // Tag
+                    .Directive(".quad {0}", BasicClasses.Int.Tag, comment="tag")
+                    // Object size in quads
+                    .Directive(".quad {0}", int_object_size_in_quads, comment="size in quads")
+                    // Addr of the vtable
+                    .Directive(".quad {0}_VTABLE", BasicClasses.Int.Name.Value)
+                    // Value
+                    .Directive(".quad {0}", int_const.Value, comment="value")
+
         if pad_size_in_bytes > 0
         then
              // Ensure 8 byte alignment
-            _sb_data
-                .Append($"    .zero %d{pad_size_in_bytes} ")
-                .AppendLine($"# payload's size in bytes = %d{int_object_size_in_bytes}, pad to an 8 byte boundary")
-                .AsUnit()
-        
+            asm.Ln(comment=($"payload's size in bytes = %d{int_object_size_in_bytes}, pad to an 8 byte boundary"))
+               .Directive(".zero {0}", pad_size_in_bytes)
+               .AsUnit()
+
+        _sb_data.Append(asm.ToString()).AsUnit()
+
         
     let translateStrConst (str_const: ConstSetItem<string>): unit =
         let ascii_bytes = Encoding.ASCII.GetBytes(str_const.Value)
@@ -108,45 +108,43 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                                 else 8 - (str_object_size_in_bytes % 8)
         
         let str_object_size_in_quads = (str_object_size_in_bytes + pad_size_in_bytes) / 8
-        
-        _sb_data
-             // Eyecatch, unique id to verify any object
-            .AppendLine()
-            .AppendLine( "    .quad -1")
-            .AppendLine($"    .global %s{str_const.Label}")
-            .AppendLine($"%s{str_const.Label}:")
-            // Tag
-            .AppendLine($"    .quad %d{BasicClasses.String.Tag} # tag")
-            // Object size in quads
-            .AppendLine($"    .quad %d{str_object_size_in_quads} # size in quads")
-            // Addr of the vtable
-            .AppendLine($"    .quad %s{BasicClasses.String.Name.Value}_vtable")
-            // Addr of an int object containing the string's len in chars
-            .AppendLine($"    .quad %s{len_const_label} # length = %d{ascii_bytes.Length}")
-            // A comment with the string's content in human-readable form
-            .AppendLine(sprintf "    # '%s'" (str_const.Value.Replace("\r", "").Replace("\n", "\\n")))
-            .AsUnit()
-        
+
+        let asm = AsmBuilder(_context)
+                     // Eyecatch, unique id to verify any object
+                    .Ln()
+                    .Directive(".quad {0}", "-1")
+                    .Directive(".global {0}", str_const.Label)
+                    .Label(str_const.Label)
+                    // Tag
+                    .Directive(".quad {0}", BasicClasses.String.Tag, comment="tag")
+                    // Object size in quads
+                    .Directive(".quad {0}", str_object_size_in_quads, comment="size in quads")
+                    // Addr of the vtable
+                    .Directive(".quad {0}_VTABLE", BasicClasses.String.Name.Value)
+                    // Addr of an int object containing the string's len in chars
+                    .Directive(".quad {0}", len_const_label, comment=($"length = %d{ascii_bytes.Length}"))
+                    // A comment with the string's content in human-readable form
+                    .Ln(comment=str_const.Value.Replace("\r", "").Replace("\n", "\\n"))
+
         // String content encoded in UTF8
         if ascii_bytes.Length > 0
         then
-            _sb_data
-                .AppendLine(sprintf "    .byte %s" (String.Join(", ", ascii_bytes)))
-                .AsUnit()
+            asm.Directive(".byte {0}", (String.Join(", ", ascii_bytes)))
+               .AsUnit()
                 
         // String terminator
-        _sb_data
-            .AppendLine("    .byte 0 # terminator")
-            .AsUnit()
+        asm.Directive(".byte {0}", "0", comment="terminator")
+           .AsUnit()
             
         if pad_size_in_bytes > 0
         then
             // Ensure 8 byte alignment
-            _sb_data
-                .Append($"    .zero %d{pad_size_in_bytes} ")
-                .AppendLine($"# payload's size in bytes = %d{str_object_size_in_bytes}, pad to an 8 byte boundary")
-                .AsUnit()
-    
+            asm.Ln(comment=($"payload's size in bytes = %d{str_object_size_in_bytes}, pad to an 8 byte boundary"))
+               .Directive(".zero {0}", pad_size_in_bytes)
+               .AsUnit()
+
+        _sb_data.Append(asm.ToString()).AsUnit()
+
     
     let emitConsts (): unit =
         // Add class names to string constants -- class name table needs these.
@@ -160,93 +158,99 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     
     
     let emitClassNameTable(): unit =
-        _sb_data
-            .AppendLine()
-            .AppendLine("    .global class_name_table")
-            .AppendLine("class_name_table:")
-            .AsUnit()
-        
+        let asm = AsmBuilder(_context)
+                    .Ln()
+                    .Directive(".global {0}", "CLASS_NAME_MAP")
+                    .Label("CLASS_NAME_MAP")
+
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
         |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
         |> Seq.iter (fun class_sym ->
-            let name_const_label = _context.StrConsts.GetOrAdd(class_sym.Name.Value)
-            _sb_data.AppendLine($"    .quad %s{name_const_label} # %s{class_sym.Name.Value}").AsUnit())
-    
-    
+               let name_const_label = _context.StrConsts.GetOrAdd(class_sym.Name.Value)
+               asm.Directive(".quad {0}", name_const_label, comment=class_sym.Name.Value).AsUnit())
+
+        _sb_data.Append(asm.ToString()).AsUnit()
+
+
     let emitClassParentTable(): unit =
-        _sb_data
-            .AppendLine()
-            .AppendLine("    .global class_parent_table")
-            .AppendLine("class_parent_table:")
-            .AsUnit()
-        
+        let asm = AsmBuilder(_context)
+                    .Ln()
+                    .Directive(".global {0}", RtNames.ClassParentMap)
+                    .Label(RtNames.ClassParentMap)
+
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
         |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
         |> Seq.iter (fun class_sym ->
-            if class_sym.Is(BasicClasses.Any)
-            then
-                _sb_data.AppendLine("    .quad -1 # Any").AsUnit()
-            else
-                
-            let super_sym = _context.ClassSymMap[class_sym.Super]
-            _sb_data.Append($"    .quad %d{super_sym.Tag} ")
-                    .AppendLine($"# %s{class_sym.Name.Value} extends %s{super_sym.Name.Value}")
-                    .AsUnit())
-    
+               if class_sym.Is(BasicClasses.Any)
+               then
+                   asm.Directive(".quad {0}", "-1", comment="Any").AsUnit()
+               else
+
+               let super_sym = _context.ClassSymMap[class_sym.Super]
+               asm.Directive(
+                       ".quad {0}",
+                       super_sym.Tag,
+                       comment=($"%s{class_sym.Name.Value} extends %s{super_sym.Name.Value}"))
+                  .AsUnit())
+
+        _sb_data.Append(asm.ToString()).AsUnit()
+
     
     let emitClassVTables(): unit =
+        let asm = AsmBuilder(_context)
+
         _context.ClassSymMap.Values
         |> Seq.sortBy (fun class_sym -> class_sym.Tag)
         |> Seq.where (fun class_sym -> not class_sym.IsVirtual)
         |> Seq.iter (fun class_sym ->
-            _sb_data
-                .AppendLine()
-                .AppendLine($"    .global %s{class_sym.Name.Value}_vtable")
-                .AppendLine($"%s{class_sym.Name.Value}_vtable:")
-                .AsUnit()
-            
+            asm.Ln()
+               .Directive(".global {0}_VTABLE", class_sym.Name.Value)
+               .Label($"%s{class_sym.Name.Value}_VTABLE")
+               .AsUnit()
+
             class_sym.Methods.Values
             |> Seq.sortBy (fun method_sym -> method_sym.Index)
             |> Seq.where (fun method_sym -> method_sym.Name <> ID ".ctor")
             |> Seq.iter (fun method_sym ->
-                _sb_data.AppendLine(sprintf "    .quad %s.%s %s"
-                                            method_sym.DeclaringClass.Value
-                                            method_sym.Name.Value
-                                            (if method_sym.Override then "# overrides" else ""))
-                        .AsUnit()
-                )
+                   asm.Directive(".quad {0}", $"%s{method_sym.DeclaringClass.Value}.%s{method_sym.Name.Value}",
+                                 ?comment=(if method_sym.Override then Some "overrides" else None))
+                      .AsUnit())
         )
+
+        _sb_data.Append(asm.ToString()).AsUnit()
 
 
     let emitPrototypeObj(class_sym: ClassSymbol): unit =
         let header_size_in_quads = 3 // tag + size + vtable
         let proto_obj_size_in_quads = header_size_in_quads + class_sym.Attrs.Count
-        _sb_data
-             // Eyecatch, unique id to verify any object
-            .AppendLine()
-            .AppendLine( "    .quad -1")
-            .AppendLine($"    .global %s{class_sym.Name.Value}_proto_obj")
-            .AppendLine($"%s{class_sym.Name.Value}_proto_obj:")
-            // Tag
-            .AppendLine($"    .quad %d{class_sym.Tag} # tag")
-            // Object size in quads
-            .AppendLine($"    .quad %d{proto_obj_size_in_quads} # size in quads")
-            // Addr of the vtable
-            .AppendLine($"    .quad %s{class_sym.Name.Value}_vtable")
-            .AsUnit()
-            
+
+        let asm = AsmBuilder(_context)
+                     // Eyecatch, unique id to verify any object
+                    .Ln()
+                    .Directive(".quad {0}", "-1")
+                    .Directive(".global {0}_PROTO_OBJ", class_sym.Name.Value)
+                    .Label($"%s{class_sym.Name.Value}_PROTO_OBJ")
+                    // Tag
+                    .Directive(".quad {0}", class_sym.Tag, comment="tag")
+                    // Object size in quads
+                    .Directive(".quad {0}", proto_obj_size_in_quads, comment="size in quads")
+                    // Addr of the vtable
+                    .Directive(".quad {0}_VTABLE", class_sym.Name.Value)
+
         class_sym.Attrs.Values
         |> Seq.sortBy (fun attr_sym -> attr_sym.Index)
         |> Seq.iter (fun attr_sym ->
-            let default_value_ref =
-                if attr_sym.Type = TYPENAME "Unit" then "Unit_value"
-                else if attr_sym.Type = TYPENAME "Int" then _context.IntConsts.GetOrAdd(0)
-                else if attr_sym.Type = TYPENAME "String" then _context.StrConsts.GetOrAdd("")
-                else if attr_sym.Type = TYPENAME "Boolean" then "Boolean_false"
-                else "0"
-            _sb_data.AppendLine($"    .quad %s{default_value_ref} # %s{attr_sym.Name.Value}").AsUnit())
+               let default_value_ref =
+                   if attr_sym.Type = TYPENAME "Unit" then RtNames.UnitValue
+                   else if attr_sym.Type = TYPENAME "Int" then _context.IntConsts.GetOrAdd(0)
+                   else if attr_sym.Type = TYPENAME "String" then _context.StrConsts.GetOrAdd("")
+                   else if attr_sym.Type = TYPENAME "Boolean" then RtNames.BoolFalse
+                   else "0"
+               asm.Directive(".quad {0}", default_value_ref, comment=attr_sym.Name.Value).AsUnit())
+
+        _sb_data.Append(asm.ToString()).AsUnit()
     
     
     let emitPrototypeObjs(): unit =

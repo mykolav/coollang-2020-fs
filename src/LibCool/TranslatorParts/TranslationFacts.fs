@@ -51,12 +51,12 @@ module FrameLayoutFacts =
 
 
 module RtNames =
-    let ClassParentTable = "class_parent_table"
+    let ClassParentMap = "CLASS_PARENT_MAP"
     
-    let BoolFalse = "Boolean_false"
-    let BoolTrue = "Boolean_true"
+    let BoolFalse = "Boolean_FALSE"
+    let BoolTrue = "Boolean_TRUE"
     
-    let UnitValue = "Unit_value"
+    let UnitValue = "Unit_VALUE"
     
     let RtCopyObject = ".Runtime.copy_object"
     let RtAreEqual = ".Runtime.are_equal"
