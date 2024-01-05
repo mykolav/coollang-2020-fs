@@ -1,0 +1,17 @@
+class Main() {
+  {
+    GC_print_state();
+
+    new Garbage();
+    GC_print_state();
+
+    GC_collect();
+    GC_print_state();
+  };
+}
+
+// Allocating an object of type `Garbage` takes 4 quads (32 bytes):
+//  1 quad for the eye catcher
+//  3 quads for the object
+class Garbage() {
+}

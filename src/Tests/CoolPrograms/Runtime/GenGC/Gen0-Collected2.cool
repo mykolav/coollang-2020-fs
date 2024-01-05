@@ -1,30 +1,28 @@
 class Main() {
   {
-    GC_print_state();
-
     // Initially (see `.GenGC.init`), the entire heap size = .GenGC.HEAP_PAGE = 32_768 bytes
     // Roughly, Work Area is a bit smaller than the half of that = 16_384 bytes.
-    // Creating a single `Garbage` object takes up 32 bytes,
-    // therefore creating about 512 (16_384 / 32) objects has to 
-    // trigger garbage collection at least once.
+    // Creating a single `Garbage` object takes up 32 bytes...
 
-    // We avoid using the number 512 directly, 
-    // to avoid the Int allocations that would result from using it
-    // interfering with the test.
     var i: Int = 0;
-    while (i < 2) {
+    while (i < 64) {
+      GC_print_state();
 
+      // Create 8 unreachable objects.
       var j: Int = 0;
-      while (j < 256) {
-        // Create an unreachable object.
+      while (j < 8) {
         new Garbage();
-        GC_print_state();
 
         j = j + 1
       }
 
+      GC_print_state();
+      GC_collect();
+
       i = i + 1
     }
+
+    GC_print_state();
   };
 }
 

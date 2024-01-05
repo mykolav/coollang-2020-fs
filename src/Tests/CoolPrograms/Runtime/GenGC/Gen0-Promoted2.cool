@@ -1,0 +1,38 @@
+class Main() {
+  {
+    // Initially (see `.GenGC.init`), the entire heap size = .GenGC.HEAP_PAGE = 32_768 bytes
+    // Roughly, Work Area is a bit smaller than the half of that = 16_384 bytes.
+    // Creating a single `EmptyObject` object takes up 32 bytes...
+
+    var gc_roots: ArrayAny = new ArrayAny(256);
+    // Force `gc_roots` promotion to Old Area,
+    // so its stats don't get mixed up with the
+    // `EmptyObject` allocation stats.
+    GC_collect();
+
+    var i: Int = 0;
+    while (i < 32) {
+      GC_print_state();
+
+      var j: Int = 0;
+      while (j < 8) {
+        gc_roots.set(i * 8 + j, new EmptyObject());
+
+        j = j + 1
+      }
+
+      GC_print_state();
+      GC_collect();
+
+      i = i + 1
+    }
+
+    GC_print_state();
+  };
+}
+
+// Allocating an object of type `EmptyObject` takes 4 quads (32 bytes):
+//  1 quad for the eye catcher
+//  3 quads for the object
+class EmptyObject() {
+}
