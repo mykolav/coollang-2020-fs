@@ -77,7 +77,8 @@
 
 ########################################
 # Text
-#
+########################################
+
 # The following memory management and garbage collection code has been
 # adapted from [the Cool runtime system](https://theory.stanford.edu/~aiken/software/cooldist/lib/trap.handler).
 #
@@ -101,7 +102,7 @@
 # AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
 # ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATION TO
 # PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
-########################################
+
     .text
 
     .include "constants.inc"
@@ -325,7 +326,7 @@
 #   k is the granularity.
 #
 
-.GenGC.HEAP_PAGE     = 32768 # in bytes
+.GenGC.HEAP_PAGE     = 32768   # in bytes
 
 #
 # Old to usable heap size ratio
@@ -334,7 +335,7 @@
 #   size of the heap is at most 1/(2^k) where k is the value provided.
 #
 
-.GenGC.OLD_RATIO     = 2     # 1/(2^2)=.25=25%
+.GenGC.OLD_RATIO     = 2       # 1/(2^2)=.25=25%
 
 #
 # Initialization

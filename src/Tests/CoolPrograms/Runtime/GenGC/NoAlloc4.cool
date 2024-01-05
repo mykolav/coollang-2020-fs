@@ -1,0 +1,13 @@
+class Main() {
+  {
+    GC_print_state();
+
+    var i: Int = 0;
+    while (i < 10) {
+      GC_collect();
+      GC_print_state();
+
+      i = i + 1
+    }
+  };
+}

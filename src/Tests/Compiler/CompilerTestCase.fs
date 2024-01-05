@@ -23,15 +23,16 @@ type CompilerTestCaseSource private () =
     
     
     static let isExcludedPath (path: string): bool =
+        path.Contains("Runtime/GenGC/") ||
         excluded_files |> Seq.exists (fun it -> path.EndsWith(it))
     
     
     static let discoverCompilerTestCases () =
         let test_cases =
             Directory.EnumerateFiles(programs_discovery_path, "*.cool", SearchOption.AllDirectories)
+            |> Seq.map (_.Replace(programs_discovery_path, "").Replace("\\", "/"))
             |> Seq.where (fun it -> not (isExcludedPath it))
-            |> Seq.map (fun it -> [| it.Replace(programs_discovery_path, "")
-                                       .Replace("\\", "/") :> obj |])
+            |> Seq.map (fun it -> [| it :> obj |])
             |> Array.ofSeq
         test_cases
 

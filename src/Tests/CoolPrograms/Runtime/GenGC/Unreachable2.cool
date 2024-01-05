@@ -1,0 +1,35 @@
+class Main() {
+  {
+
+    // Initially (see `.GenGC.init`), the entire heap size = .GenGC.HEAP_PAGE = 32_768 bytes
+    // Roughly, Work Area is a bit smaller than the half of that = 16_384 bytes.
+    // Creating a single `Garbage` object takes up 32 bytes...
+
+    // We avoid using the number 512 directly, 
+    // to avoid the Int allocations that would result from using it
+    // interfering with the test.
+    var i: Int = 0;
+    while (i < 64) {
+      GC_print_state();
+
+      // Create 8 unreachable objects.
+      var j: Int = 0;
+      while (j < 8) {
+        new Garbage();
+
+        j = j + 1
+      }
+
+      GC_print_state();
+      GC_collect();
+
+      i = i + 1
+    }
+  };
+}
+
+// Allocating an object of type `Garbage` takes 4 quads (32 bytes):
+//  1 quad for the eye catcher
+//  3 quads for the object
+class Garbage() {
+}

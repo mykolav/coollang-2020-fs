@@ -1,0 +1,12 @@
+class Main() {
+  {
+    // No allocations happen (or anything at all, for that matter)
+    // in between the first and the second `GC_print_state()` call.
+    // Therefore the call to `GC_collect` has the following effects
+    // - there is no garbage to collect 
+    // - the Main object gets promoted into Old Area
+    GC_print_state();
+    GC_collect();
+    GC_print_state()
+  };
+}
