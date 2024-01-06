@@ -17,8 +17,8 @@ module StringSeq =
 
     let private zipAll (xs: seq<'X>) (ys: seq<'Y>) =
         seq {
-            let ex = xs.GetEnumerator()
-            let ey = ys.GetEnumerator()
+            use ex = xs.GetEnumerator()
+            use ey = ys.GetEnumerator()
 
             let mutable haveX = true
             let mutable haveY = true
