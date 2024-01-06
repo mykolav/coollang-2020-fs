@@ -1,5 +1,10 @@
 class Main() {
   {
+    // This is just a basic sanity test.
+    //
+    // As no allocations/collections happen (or anything at all, for that matter)
+    // inside the loop's body, the heap state must not change.
+    // I.e., each `GC_print_state()` call must print the same numbers.
     GC_print_state();
 
     var i: Int = 0;

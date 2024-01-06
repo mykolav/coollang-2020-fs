@@ -1,9 +1,16 @@
 class Main() {
   {
+    // Force the `Main` instance promotion to Old Area,
+    // so its stats don't distract from the test scenario.
+    GC_collect();
     GC_print_state();
 
     var i: Int = 0;
     while (i < 10) {
+      // No allocations happen (or anything at all, for that matter)
+      // inside the loop's body.
+      // And there is no garbage to collect either.
+      // Therefore the call to `GC_collect` must not change the heap state.
       GC_collect();
       GC_print_state();
 

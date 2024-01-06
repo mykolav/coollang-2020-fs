@@ -2,7 +2,7 @@ class Main() {
   {
     // This is just a basic sanity test.
     //
-    // As no allocations happen (or anything at all, for that matter)
+    // As no allocations/collections happen (or anything at all, for that matter)
     // in between the first and the second `GC_print_state()` call,
     // the heap state must not change from one call to the other.
     // So both calls must print the same numbers.

@@ -5,7 +5,7 @@ class Main() {
     // Creating a single `EmptyObject` object takes up 32 bytes...
 
     var gc_roots: ArrayAny = new ArrayAny(256);
-    // Force `gc_roots` promotion to Old Area,
+    // Force `gc_roots` and the `Main` instance promotion to Old Area,
     // so its stats don't get mixed up with the
     // `EmptyObject` allocation stats.
     GC_collect();
