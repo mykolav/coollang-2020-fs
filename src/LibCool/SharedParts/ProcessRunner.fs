@@ -1,8 +1,8 @@
 namespace LibCool.SharedParts
 
 
-open System.IO
 open System.Diagnostics
+open System.IO
 open System.Text
 
 
@@ -42,15 +42,23 @@ type ProcessRunner private () =
                                  RedirectStandardError = true,
                                  RedirectStandardInput = Seq.any stdin_lines))
 
+        // To avoid deadlocks, we read STDOUT asynchronously.
+        // See the discussion of possible dead-lock conditions, when redirecting STDOUT and STDERR.
+        // https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.standardoutput?view=net-8.0&redirectedfrom=MSDN#remarks
+        theProcess.OutputDataReceived.Add(fun it -> sb_output.AppendLine(it.Data) |> ignore)
+
         theProcess.Start() |> ignore
+        theProcess.BeginOutputReadLine()
 
         for stdin_line in stdin_lines do
             theProcess.StandardInput.WriteLine(stdin_line)
             theProcess.StandardInput.Close()
 
+        // This must happen before the call to `WaitForExit()`
+        let std_err = theProcess.StandardError.ReadToEnd()
+
         theProcess.WaitForExit()
         
         sb_output
-            .Append(theProcess.StandardOutput.ReadToEnd())
-            .Append(theProcess.StandardError.ReadToEnd())
+            .Append(std_err)
             .ToString()
