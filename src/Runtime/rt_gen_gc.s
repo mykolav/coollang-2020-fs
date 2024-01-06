@@ -683,7 +683,7 @@
 
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.major_collect                # %rax: the size of all collected live objects
-                                                 # L1:   the new Old Area's end
+                                                 # L1:   the new end of Old Area
     # call     .GenGC.print_state
 
     # %rdi = heap_start
@@ -700,8 +700,8 @@
     # Calculate how much we need to expand the heap (if at all),
     # to preserve the chosen Old Area/Heap size ratio.
 
-    # Calculate the max Old Area boundary that 
-    # still stays within the chosen ratio to the total heap size.
+    # Calculate the max end of Old Area that still stays 
+    # within the chosen ratio to the total heap size.
     # Place the value in %rdx
     movq     .GenGC.HDR_L0(%rdi), %rdx           # %rdx = L0
     movq     .GenGC.HDR_L3(%rdi), %rcx           # %rcx = L3
@@ -709,17 +709,23 @@
     subq     %rdx, %rax                          # %rax = L3 - L0
     sarq     $.GenGC.OLD_RATIO, %rax             # %rax = (L3 - L0) / 2^.GenGC.OLD_RATIO
     addq     %rax, %rdx                          # %rdx = L0 + (L3 - L0) / 2^.GenGC.OLD_RATIO
-                                                 #      = sizeof(max Old Area)
+                                                 #      = L0 + sizeof(max Old Area)
 
-    # Calculate the difference between the new Old Area size and the max Old Area size.
-    # Place the value in %rcx
+    # Calculate
+    # %rcx = the new end of Old Area - the max end of Old Area.
+    # (Remember `.GenGC.major_collect` places the new end of Old Area into L1))
     #
-    # If the difference <= 0, although we don't branch physically,
-    # further calculations on %rcx can be logically ignored.
-    # We'll check the memory to allocate's size is not <= 0 later on.
+    # If %rcx <= 0
+    #   (i.e. the new size of Old Area is less than the max size of Old Area) 
+    #   we don't need to allocate addtional memory to restore the size ratio.
+    #   Although we don't branch physically, further calculations on %rcx can 
+    #   be logically ignored.
+    #   We'll check the memory to allocate's size is not <= 0 later on.
     #
-    # If the difference > 0 we need to allocate %rcx * 2^.GenGC.OLD_RATIO memory
-    # to restore the Old Area/Heap size ratio.
+    # If %rcx > 0 
+    #   (i.e. the new size of Old Area is greater than the max size of Old Area) 
+    #   we need to allocate %rcx * 2^.GenGC.OLD_RATIO memory
+    #   to restore the Old Area/Heap size ratio.
     #
     # Keep in mind,
     #     L1 - (L0 + (L3 - L0) / 2^.GenGC.OLD_RATIO) =
@@ -727,7 +733,7 @@
     #     sizeof(the new Old Area) - sizeof(max Old Area)
     movq     .GenGC.HDR_L1(%rdi), %rcx           # %rcx = L1
                                                  # (`.GenGC.major_collect` places
-                                                 #  the new Old Area's end into L1)
+                                                 #  the new end of Old Area into L1)
     subq     %rdx, %rcx                          # %rcx = L1 - (L0 + (L3 - L0) / 2^.GenGC.OLD_RATIO)
     salq     $.GenGC.OLD_RATIO, %rcx             # %rcx = %rcx * 2^.GenGC.OLD_RATIO
 
@@ -763,7 +769,7 @@
     addq     $8, %rdx                            # %rdx += 8 -- adjust for round off errors 
                                                  #              (interger division by 2, etc)
     salq     $1, %rdx                            # %rdx *= 2 -- need to allocate this much memory
-                                                 # %rcx = max(%rcx, %rdx)
+    # %rcx = max(%rcx, %rdx)
     cmpq     %rdx, %rcx
     jge      .GenGC.collect.ensure_heap_size     # if (%rcx >= %rdx) go to .GenGC.collect.ensure_heap_size
     movq     %rdx, %rcx                          # else              %rcx = %rdx
@@ -1639,7 +1645,7 @@
     # `.Alloc.ptr` points right past the last obj copied by `.GenGC.offset_copy`
     # into X Area. `.Alloc.ptr` <= L1 means no objects have been copied.
     cmpq    .Alloc.ptr(%rip), %r9
-    jge     .GenGC.major_collect.copy_back             # if (L1 >= .Alloc.ptr) go to ...
+    jge     .GenGC.major_collect.copy_back        # if (L1 >= .Alloc.ptr) go to ...
 
     # X Area loop
     # %r9 = L1 = the first obj's eye-catcher
@@ -1792,16 +1798,16 @@
     movq    %rax, .GenGC.HDR_L4(%r8)              # L4 = .Alloc.limit
 
     movq    .Alloc.ptr(%rip), %rax
-    subq    .GenGC.HDR_L2(%r8), %rax              # %rax      = the size of objects collected into New Area [L2; .Alloc.ptr)
+    subq    .GenGC.HDR_L2(%r8), %rax              # %rax = the size of objects collected into New Area [L2; .Alloc.ptr)
 
-    movq    .Alloc.ptr(%rip), %r9                 # %r10      = .Alloc.ptr 
-                                                  #           = the end of collected objects
+    movq    .Alloc.ptr(%rip), %r9                 # %r10 = .Alloc.ptr 
+                                                  #      = the end of collected objects
     # (L1 - L0) is the number of bytes we back copied the live object.
     addq    .GenGC.HDR_L0(%r8), %r9
-    subq    .GenGC.HDR_L1(%r8), %r9               # %r9       = .Alloc.ptr - (L1 - L0) 
-                                                  #           = the new end of Old Area
+    subq    .GenGC.HDR_L1(%r8), %r9               # %r9 = .Alloc.ptr - (L1 - L0) 
+                                                  #     = the new end of Old Area
     movq    %r9, .Alloc.ptr(%rip)                 # .Alloc.ptr = the new end of Old Area
-    movq    %r9, .GenGC.HDR_L1(%r8)               # L1        = the new end of Old Area
+    movq    %r9, .GenGC.HDR_L1(%r8)               # L1         = the new end of Old Area
 
     movq    %rbp, %rsp
     popq    %rbp
