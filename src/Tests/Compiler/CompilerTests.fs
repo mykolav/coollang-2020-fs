@@ -9,8 +9,12 @@ open Xunit.Abstractions
 open Tests.Compiler.ClcRunner
 
 
-[<Collection("Compiler collection")>]
 type CompilerTests(test_output: ITestOutputHelper) =
+
+
+    do
+        // We want to change the current directory to 'Tests/CoolBuild'.
+        CompilerTestCaseSource.CwdCoolBuild()
 
 
     [<Theory>]

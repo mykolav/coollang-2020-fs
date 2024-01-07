@@ -10,7 +10,6 @@ open Tests.Compiler
 open Tests.Compiler.ClcRunner
 
 
-[<Collection("Compiler collection")>]
 type GenGCTests(test_output: ITestOutputHelper) =
 
 

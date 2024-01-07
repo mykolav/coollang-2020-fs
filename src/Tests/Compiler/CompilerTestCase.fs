@@ -4,6 +4,7 @@ namespace Tests.Compiler
 open System
 open System.Collections.Generic
 open System.IO
+open System.Reflection
 open System.Runtime.CompilerServices
 open System.Text.RegularExpressions
 open LibCool.SharedParts
@@ -43,6 +44,15 @@ type CompilerTestCaseSource private () =
 
 
     static member TestCases = discoverCompilerTestCases ()
+
+
+    static member CwdCoolBuild() =
+        // The test assembly's location is 'Tests/bin/Debug/net8.0',
+        // We want to change to 'Tests/CoolBuild'.
+        let assemblyLocationUri = UriBuilder(Assembly.GetExecutingAssembly().Location)
+        let assemblyLocationPath = Uri.UnescapeDataString(assemblyLocationUri.Path)
+        let assemblyLocationDirectoryName = Path.GetDirectoryName(assemblyLocationPath)
+        Directory.SetCurrentDirectory(Path.Combine(assemblyLocationDirectoryName, "../../../CoolBuild"))
 
 
 [<AutoOpen>]    

@@ -26,7 +26,6 @@
         <Compile Include="Compiler\ClcRunner.fs" />
         <Compile Include="Compiler\CompilerTestCase.fs" />
         <Compile Include="Compiler\CompilerTestAssert.fs" />
-        <Compile Include="Compiler\CompilerTestsFixture.fs" />
         <Compile Include="Compiler\CompilerTests.fs" />
         <Compile Include="Compiler\Sandbox.fs" />
         <Compile Include="GenGC\GenGCStateInfo.fs" />
@@ -120,6 +119,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Meziantou.Xunit.ParallelTestFramework" Version="2.1.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
         <PackageReference Include="xunit" Version="2.6.2" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
@@ -134,7 +134,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\clc\clc.fsproj">
-            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>            
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
         </ProjectReference>
       <ProjectReference Include="..\LibCool\LibCool.fsproj" />
     </ItemGroup>

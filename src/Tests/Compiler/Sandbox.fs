@@ -13,9 +13,13 @@ open Tests.Parser
 open Tests.Compiler.ClcRunner 
 
 
-[<Collection("Compiler collection")>]
 type Sandbox(_test_output: ITestOutputHelper) =
-    
+
+
+    do
+        // We want to change the current directory to 'Tests/CoolBuild'.
+        CompilerTestCaseSource.CwdCoolBuild()
+
     
     let parse (path: string): ProgramSyntax voption =
         // Prepare
