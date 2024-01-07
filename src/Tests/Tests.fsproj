@@ -31,6 +31,7 @@
         <Compile Include="GenGC\GenGCStateInfo.fs" />
         <Compile Include="GenGC\GenGCTests.fs" />
         <Compile Include="Program.fs" />
+
         <Content Include="CoolPrograms\Runtime\GenGC\Allocating-Triggers-Collection.cool" />
         <Content Include="CoolPrograms\Runtime\GenGC\Cycle-Reachable.cool" />
         <Content Include="CoolPrograms\Runtime\GenGC\Cycle-Unreachable.cool" />
@@ -43,6 +44,11 @@
         <Content Include="CoolPrograms\Runtime\GenGC\NoAlloc2.cool" />
         <Content Include="CoolPrograms\Runtime\GenGC\NoAlloc3.cool" />
         <Content Include="CoolPrograms\Runtime\GenGC\NoAlloc4.cool" />
+        <Content Include="CoolPrograms\Runtime\GenGC\NoLeak-Fibonacci.cool" />
+        <Content Include="CoolPrograms\Runtime\GenGC\NoLeak-InsertionSort.cool" />
+        <Content Include="CoolPrograms\Runtime\GenGC\NoLeak-Life.cool" />
+        <Content Include="CoolPrograms\Runtime\GenGC\NoLeak-QuickSort.cool" />
+        
         <Content Include="CoolPrograms\Runtime\QuickSort.cool" />
         <Content Include="CoolPrograms\Runtime\InsertionSort.cool" />
         <Content Include="CoolPrograms\Runtime\Fibonacci.cool" />

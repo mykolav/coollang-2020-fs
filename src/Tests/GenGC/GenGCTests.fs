@@ -13,6 +13,11 @@ open Tests.Compiler.ClcRunner
 type GenGCTests(test_output: ITestOutputHelper) =
 
 
+    do
+        // We want to change the current directory to 'Tests/CoolBuild'.
+        CompilerTestCaseSource.CwdCoolBuild()
+
+
     [<Fact>]
     member this.``When no allocs/collections the heap state doesn't change``() =
         // Arrange
@@ -67,6 +72,63 @@ type GenGCTests(test_output: ITestOutputHelper) =
             Assert.Equal(expected=expected_state_info.StackBase, actual=state_infos[i].StackBase)
             Assert.Equal(expected=expected_state_info.AllocInfo, actual=state_infos[i].AllocInfo)
             i <- i + 1
+
+
+    [<Fact>]
+    member this.``An unreachable Gen0 object gets collected``() =
+        // Arrange
+        let initial_state_pos = 0
+        let allocated_state_pos = 1
+        let collected_state_pos = 2
+
+        // Act
+        let program_output = this.CompileAndRun("Runtime/GenGC/Gen0-Collected1.cool")
+        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let initial_state = state_infos[initial_state_pos]
+        let allocated_state = state_infos[allocated_state_pos]
+        let collected_state = state_infos[collected_state_pos]
+
+        // Assert
+        // We haven't allocated enough to trigger a heap resize.
+        Assert.Equal(expected=initial_state.HeapInfo, actual=allocated_state.HeapInfo)
+
+        // The test cool code is supposed to allocate 32 bytes.
+        Assert.Equal(expected=initial_state.AllocInfo.AllocPtr + 32L,
+                     actual  =allocated_state.AllocInfo.AllocPtr)
+
+        // We don't expect the histories to be the same as
+        // the history naturally changes after each collection.
+        Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
+                     actual  ={ collected_state with History = GenGCHistory.Empty })
+
+
+    [<Fact>]
+    member this.``Unreachable Gen0 objects in a loop get collected``() =
+        // Arrange
+        // Act
+        let program_output = this.CompileAndRun("Runtime/GenGC/Gen0-Collected2.cool")
+        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
+        // Assert
+        let initial_state = state_infos[0]
+
+        let mutable i = 1
+        while i < state_infos.Length do
+            let allocated_state = state_infos[i + 0]
+            let collected_state = state_infos[i + 1]
+
+            Assert.Equal(expected=initial_state.HeapInfo, actual=allocated_state.HeapInfo)
+
+            // The test cool code is supposed to allocate 8 * 32 bytes.
+            Assert.Equal(expected=initial_state.AllocInfo.AllocPtr + 8L * 32L,
+                         actual  =allocated_state.AllocInfo.AllocPtr)
+
+            // We don't expect the histories to be the same as
+            // the history naturally changes after each collection.
+            Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
+                         actual  ={ collected_state with History = GenGCHistory.Empty })
+
+            i <- i + 2
 
 
     member private this.CompileAndRun(path: string): ProgramOutput =

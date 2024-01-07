@@ -1,5 +1,9 @@
 class Main() {
   {
+    // Force the `Main` instance promotion to Old Area,
+    // so its stats don't get in the way of checking the test scenario.
+    GC_collect();
+
     // Initially (see `.GenGC.init`), the entire heap size = .GenGC.HEAP_PAGE = 32_768 bytes
     // Roughly, Work Area is a bit smaller than the half of that = 16_384 bytes.
     // Creating a single `Garbage` object takes up 32 bytes...
@@ -14,15 +18,15 @@ class Main() {
         new Garbage();
 
         j = j + 1
-      }
+      };
 
       GC_print_state();
       GC_collect();
 
       i = i + 1
-    }
+    };
 
-    GC_print_state();
+    GC_print_state()
   };
 }
 
