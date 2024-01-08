@@ -1,12 +1,16 @@
 class Main() {
   {
+    // Force the `Main` instance promotion to Old Area,
+    // so its stats don't get mixed up with the
+    // `EmptyObject` allocation stats.
+    GC_collect();
     GC_print_state();
 
     var gc_root: EmptyObject = new EmptyObject();
     GC_print_state();
     
     GC_collect();
-    GC_print_state();
+    GC_print_state()
   };
 }
 

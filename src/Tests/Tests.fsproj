@@ -32,7 +32,7 @@
         <Compile Include="GenGC\GenGCTests.fs" />
         <Compile Include="Program.fs" />
 
-        <Content Include="CoolPrograms\Runtime\GenGC\Allocating-Triggers-Collection.cool" />
+        <Content Include="CoolPrograms\Runtime\GenGC\Alloc-Gen0-Triggers-Collection.cool" />
         <Content Include="CoolPrograms\Runtime\GenGC\Cycle-Reachable.cool" />
         <Content Include="CoolPrograms\Runtime\GenGC\Cycle-Unreachable.cool" />
         <Content Include="CoolPrograms\Runtime\GenGC\Gen0-Collected1.cool" />

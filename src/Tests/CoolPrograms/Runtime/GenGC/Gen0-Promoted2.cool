@@ -19,15 +19,15 @@ class Main() {
         gc_roots.set(i * 8 + j, new EmptyObject());
 
         j = j + 1
-      }
+      };
 
       GC_print_state();
       GC_collect();
 
       i = i + 1
-    }
+    };
 
-    GC_print_state();
+    GC_print_state()
   };
 }
 

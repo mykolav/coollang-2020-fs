@@ -1,0 +1,33 @@
+class Main() {
+  {
+    // Force the `Main` instance promotion to Old Area,
+    // so its stats don't get in the way of checking the test scenario.
+    GC_collect();
+    GC_print_state();
+
+    new Left().set_right(new Right());
+    GC_print_state();
+    
+    GC_collect();
+    GC_print_state()
+  };
+}
+
+// Allocating an object of type `Left` takes 4 + 1 quads (40 bytes).
+class Left() {
+    var _right: Right = null;
+    def set_right(r: Right): Unit = {
+        _right = r;
+        _right.set_left(this);
+        ()
+    };
+}
+
+// Allocating an object of type `Right` takes 4 + 1 quads (40 bytes).
+class Right() {
+    var _left: Left = null;
+    def set_left(l: Left): Unit = {
+        _left = l;
+        ()
+    };
+}

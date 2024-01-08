@@ -1,7 +1,5 @@
 class Main() {
   {
-    GC_print_state();
-
     // Initially (see `.GenGC.init`), the entire heap size = .GenGC.HEAP_PAGE = 32_768 bytes
     // Roughly, Work Area is a bit smaller than the half of that = 16_384 bytes.
     // Creating a single `Garbage` object takes up 32 bytes,
@@ -21,7 +19,7 @@ class Main() {
         GC_print_state();
 
         j = j + 1
-      }
+      };
 
       i = i + 1
     }
