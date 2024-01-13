@@ -684,11 +684,11 @@
     jmp      .GenGC.collect.done
 .GenGC.collect.do_major:
     
-    movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
-    movq     $.GenGC.MSG_MAJOR_LEN, %rsi
-    call     .Runtime.print_ln
+    # movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
+    # movq     $.GenGC.MSG_MAJOR_LEN, %rsi
+    # call     .Runtime.print_ln
 
-    call     .Runtime.out_nl
+    # call     .Runtime.out_nl
 
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.major_collect                # %rax: the size of all collected live objects
