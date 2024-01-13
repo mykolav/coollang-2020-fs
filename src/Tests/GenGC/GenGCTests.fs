@@ -244,6 +244,17 @@ type GenGCTests(test_output: ITestOutputHelper) =
                      actual  =collected_state.HeapInfo.L1)
 
 
+    [<Fact>]
+    member this.``Promoting objects to Gen1 triggers a major collection``() =
+        // Arrange
+        // Act
+        let program_output = this.CompileAndRun("Runtime/GenGC/Promoting-Triggers-Collection.cool")
+        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
+        // Assert
+        Assert.True(Array.exists (fun it -> it.History.Major0 <> 0) state_infos)
+
+
     member private this.CompileAndRun(path: string): ProgramOutput =
         // Build a program's path relative to the 'CoolBuild' folder.
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
