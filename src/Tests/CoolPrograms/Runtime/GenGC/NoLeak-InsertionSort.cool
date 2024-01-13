@@ -1,0 +1,76 @@
+// This code snippet's origin is [a paper](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
+// from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao)
+class List() {
+    def isNil() : Boolean = abort();
+    def head() : Int = abort();
+    def tail() : List = abort();
+}
+    
+class Nil() extends List() {
+    override def isNil() : Boolean = true;
+}
+        
+class Cons(var car : Int, var cdr : List) extends List() {
+    override def isNil() : Boolean = false;
+    override def head() : Int = car;
+    override def tail() : List = cdr;
+}
+
+class Main() extends IO() {
+    def insert(lst : List, i : Int) : List = {
+        // out_string("Main.insert: i = "); out_int(i); out_nl();
+        if (lst.isNil()) {
+            // out_string("Main.insert: lst.isNil()"); out_nl();
+            new Cons(i, lst)
+        }
+        else if (i <= lst.head()) {
+            // out_string("Main.insert: i <= "); out_int(lst.head()); out_nl();
+            new Cons(i, lst)
+        }
+        else {
+            // out_string("Main.insert: else"); out_nl();
+            new Cons(lst.head(), insert(lst.tail(), i))
+        }
+    };
+    
+    def sort(lst : List) : List = {
+        // out_string("Main.sort"); out_nl();
+        if (lst.isNil()) {
+            // out_string("Main.sort: lst.isNil()"); out_nl();
+            lst
+        }
+        else {
+            // out_string("Main.sort: else"); out_nl();
+            insert(sort(lst.tail()), lst.head())
+        }
+    };
+
+    def out_list(lst : List) : Unit = {
+        if (lst.isNil())
+            out_nl()
+        else {
+            out_int(lst.head());
+            out_string(" ");
+            out_list(lst.tail())
+        }
+    };
+
+    def run(): Unit = {
+        var lst: List = new Cons(184, new Cons(220, new Cons(236, new Cons(10, new Cons(184, new Cons(25, new Cons(90, new Cons(145, new Cons(13, new Cons(33, new Cons(128, new Cons(125, new Cons(159, new Cons(62, new Cons(47, new Cons(1, new Cons(70, new Cons(228, new Cons(25, new Cons(104, new Cons(133, new Cons(108, new Cons(142, new Cons(139, new Cons(42, new Cons(164, new Cons(114, new Cons(133, new Cons(114, new Cons(233, new Cons(132, new Cons(147, new Cons(98, new Cons(46, new Cons(15, new Cons(16, new Cons(147, new Cons(52, new Cons(184, new Cons(132, new Cons(38, new Cons(96, new Cons(176, new Cons(23, new Cons(36, new Cons(70, new Cons(255, new Cons(27, new Cons(116, new Cons(91, new Cons(222, new Cons(70, new Cons(251, new Cons(231, new Cons(91, new Cons(102, new Cons(163, new Cons(198, new Cons(3, new Cons(151, new Cons(38, new Cons(180, new Cons(64, new Cons(81, new Cons(77, new Cons(91, new Cons(125, new Cons(10, new Cons(110, new Cons(85, new Cons(100, new Cons(190, new Cons(124, new Cons(31, new Cons(220, new Cons(213, new Cons(122, new Cons(96, new Cons(1, new Cons(206, new Cons(55, new Cons(20, new Cons(228, new Cons(222, new Cons(73, new Cons(36, new Cons(224, new Cons(54, new Cons(157, new Cons(159, new Cons(90, new Cons(212, new Cons(255, new Cons(238, new Cons(169, new Cons(48, new Cons(165, new Cons(230, new Cons(113, new Cons(69, new Nil()))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))));
+
+        out_list(lst);
+        out_list(sort(lst))
+    };
+
+    {
+        // Force the `Main` instance promotion to Old Area,
+        // so its stats don't get in the way of checking the test scenario.
+        GC_collect(-1);
+        GC_print_state();
+
+        run();
+
+        GC_collect(1);
+        GC_print_state()
+    };
+}

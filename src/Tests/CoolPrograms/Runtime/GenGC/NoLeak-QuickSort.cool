@@ -1,0 +1,96 @@
+// This code snippet's origin is [a paper](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
+// from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao)
+class QuickSort() extends IO() {
+  def quicksort(array: ArrayAny, lo: Int, hi: Int): Unit = {
+    if (lo < hi) {
+      var p: Int = partition(array, lo, hi);
+      quicksort(array, lo, p - 1);
+      quicksort(array, p + 1, hi)
+    } else ()
+  };
+    
+  def partition(array: ArrayAny, lo: Int, hi: Int): Int = {
+    var pivot: Int = array.get(lo) match { case i: Int => i };
+    var p: Int = lo;
+    var i: Int = lo + 1;
+    while (i <= hi) {
+      if (((array.get(i)) match { case i: Int => i }) <= pivot)
+        array_swap(array, i, { p = p + 1; p })
+      else
+        ();
+      i = i + 1
+    };
+    
+    array_swap(array, p, lo);
+    p
+  };
+    
+  def array_swap(array: ArrayAny, p: Int, q: Int): Unit = {
+    var tmp: Any = array.get(p);
+    array.set(p, array.get(q));
+    array.set(q, tmp)
+  };
+    
+  def out_array(array: ArrayAny): Unit = {
+    var i: Int = 0;
+    while (i < array.length()) {
+      array.get(i) match {
+        case i: Int => out_int(i); out_string(" ")
+      };
+        
+      i = i + 1
+    };
+    
+    out_nl()
+  };
+    
+  {
+    var array: ArrayAny = new ArrayAny(100);
+
+    array.set(0, 211);   array.set(1, 94);    array.set(2, 77);    array.set(3, 187);
+    array.set(5, 181);   array.set(6, 237);   array.set(7, 146);   array.set(8, 126);
+    array.set(9, 78);    array.set(10, 144);  array.set(11, 123);  array.set(12, 163);
+    array.set(13, 211);  array.set(14, 152);  array.set(15, 157);  array.set(16, 207);
+    array.set(17, 144);  array.set(18, 172);  array.set(19, 152);  array.set(20, 122);
+    array.set(21, 77);   array.set(22, 199);  array.set(23, 218);  array.set(24, 150);
+    array.set(25, 46);   array.set(26, 123);  array.set(27, 222);  array.set(28, 170);
+    array.set(29, 180);  array.set(30, 113);  array.set(31, 109);  array.set(32, 7);
+    array.set(33, 152);  array.set(34, 146);  array.set(35, 27);   array.set(36, 246);
+    array.set(37, 108);  array.set(38, 10);   array.set(39, 72);   array.set(40, 188);
+    array.set(41, 6);    array.set(42, 60);   array.set(43, 68);   array.set(44, 182);
+    array.set(45, 33);   array.set(46, 28);   array.set(47, 8);    array.set(48, 130);
+    array.set(49, 130);  array.set(50, 228);  array.set(51, 171);  array.set(52, 169);
+    array.set(53, 29);   array.set(54, 46);   array.set(55, 23);   array.set(56, 226);
+    array.set(57, 142);  array.set(58, 228);  array.set(59, 14);   array.set(60, 32);
+    array.set(61, 20);   array.set(62, 23);   array.set(63, 243);  array.set(64, 183);
+    array.set(65, 102);  array.set(66, 127);  array.set(67, 172);  array.set(68, 147);
+    array.set(69, 83);   array.set(70, 54);   array.set(71, 8);    array.set(72, 12);
+    array.set(73, 188);  array.set(74, 50);   array.set(75, 158);  array.set(76, 169);
+    array.set(77, 126);  array.set(78, 188);  array.set(79, 187);  array.set(80, 182);
+    array.set(81, 49);   array.set(82, 33);   array.set(83, 179);  array.set(84, 64);
+    array.set(85, 243);  array.set(86, 16);   array.set(87, 245);  array.set(88, 72);
+    array.set(89, 174);  array.set(90, 97);   array.set(91, 136);  array.set(92, 167);
+    array.set(93, 171);  array.set(94, 225);  array.set(95, 189);  array.set(96, 0);
+    array.set(97, 202);  array.set(98, 129);  array.set(99, 247);  array.set(4, 35);
+
+    out_array(array);
+    
+    quicksort(array, 0, array.length() - 1);
+    
+    out_array(array)
+  };
+}
+
+class Main() {
+  {
+    // Force the `Main` instance promotion to Old Area,
+    // so its stats don't get in the way of checking the test scenario.
+    GC_collect(-1);
+    GC_print_state();
+
+    new QuickSort();
+
+    GC_collect(1);
+    GC_print_state()
+  };
+}

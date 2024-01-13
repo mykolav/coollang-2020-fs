@@ -179,6 +179,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
 
         let initial_state = state_infos[0]
         let final_state = state_infos[state_infos.Length - 1]
+        // The test cool code is supposed to allocate 256 * 32 bytes in total.
         Assert.Equal(expected=initial_state.HeapInfo.L1 + 256L * 32L,
                      actual  =final_state.HeapInfo.L1)
 
@@ -253,6 +254,44 @@ type GenGCTests(test_output: ITestOutputHelper) =
 
         // Assert
         Assert.True(Array.exists (fun it -> it.History.Major0 <> 0) state_infos)
+
+
+    [<Fact>]
+    member this.``Unreachable Gen1 objects get collected``() =
+        // Arrange
+        // Act
+        let program_output = this.CompileAndRun("Runtime/GenGC/Gen1-Collected.cool")
+        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
+        // Assert
+        let initial_state = state_infos[0]
+        let collected_state = state_infos[1]
+
+        // We don't expect the histories to be the same as
+        // the history naturally changes after each collection.
+        Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
+                     actual  ={ collected_state with History = GenGCHistory.Empty })
+
+
+    [<Theory>]
+    [<InlineData("NoLeak-Fibonacci")>]
+    [<InlineData("NoLeak-InsertionSort")>]
+    [<InlineData("NoLeak-Life")>]
+    [<InlineData("NoLeak-QuickSort")>]
+    member this.``No leaks``(source_file_name: string) =
+        // Arrange
+        // Act
+        let program_output = this.CompileAndRun($"Runtime/GenGC/{source_file_name}.cool")
+        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
+        // Assert
+        let initial_state = state_infos[0]
+        let collected_state = state_infos[1]
+
+        // We don't expect the histories to be the same as
+        // the history naturally changes after each collection.
+        Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
+                     actual  ={ collected_state with History = GenGCHistory.Empty })
 
 
     member private this.CompileAndRun(path: string): ProgramOutput =

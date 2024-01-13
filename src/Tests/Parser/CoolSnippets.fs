@@ -21,7 +21,7 @@ type CoolSnippets private () =
       "}\n"
 
 
-    // This code snippet's origin is [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
+    // This code snippet's origin is [a paper](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
     // from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao)
     //[<Literal>]
     static member QuickSort =
@@ -91,7 +91,7 @@ type CoolSnippets private () =
       "  };\r\n" +
       "}"
 
-    // This code snippet's origin is [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
+    // This code snippet's origin is [a paper](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
     // from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao)
     //[<Literal>]
     static member InsertionSort =

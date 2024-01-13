@@ -1,4 +1,4 @@
-// This code snippet's origin is [a papaer](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
+// This code snippet's origin is [a paper](https://www.lume.ufrgs.br/bitstream/handle/10183/151038/001009883.pdf)
 // from [LUME - the Digital Repository of the Universidade Federal do Rio Grande do Sul](https://www.lume.ufrgs.br/apresentacao)
 class QuickSort() extends IO() {
   def quicksort(array: ArrayAny, lo: Int, hi: Int): Unit = {

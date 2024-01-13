@@ -1,0 +1,33 @@
+class Fib(var _max: Int) extends IO() {
+  def fib(x: Int): Int =
+    if (x == 0) 0
+    else if (x == 1) 1
+    else fib(x - 2) + fib(x - 1);
+
+  {
+    var i: Int = 0;
+    while (i <= _max) {
+      out_string("fib("); out_int(i); out_string(") = ");
+      out_int(fib(i));
+      out_nl();
+      
+      i = i + 1
+    }
+  };
+}
+
+class Main() {
+  {
+    // Force the `Main` instance promotion to Old Area,
+    // so its stats don't get in the way of checking the test scenario.
+    GC_collect(-1);
+    GC_print_state();
+
+    new Fib(35);
+    new Fib(35);
+    new Fib(35);
+
+    GC_collect(1);
+    GC_print_state()
+  };
+}
