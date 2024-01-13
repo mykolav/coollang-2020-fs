@@ -137,7 +137,8 @@ module BasicClasses =
                                      formals=[| (ID "other", BasicClassNames.Any) |])
 
                 MethodSymbol.Virtual(ID "GC_collect"(*name*),
-                                     BasicClassNames.Unit(*return_type*))
+                                     BasicClassNames.Unit(*return_type*),
+                                     formals=[| (ID "max_generation", BasicClassNames.Int) |])
 
                 MethodSymbol.Virtual(ID "GC_print_state"(*name*),
                                      BasicClassNames.Unit(*return_type*))

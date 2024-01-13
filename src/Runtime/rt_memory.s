@@ -232,6 +232,7 @@
     # Let's make enough free space.
                                                  # %rdi = alloc size in bytes
     movq     %rbp, %rsi                          # %rsi = tip of stack to start collecting from
+    xorl     %edx, %edx                          # %rdx = %edx = 0, don't force a major collection
     callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage
 
     # Assert the collector fn preserved the value of %rdi
@@ -290,6 +291,7 @@
     # Let's make enough free space
     # %rdi contains allocation size in bytes 
     movq     %rbp, %rsi                                 # tip of stack to start collecting from
+    xorl     %edx, %edx                                 # %rdx = %edx = 0, don't force a major collection
     callq    *.MemoryManager.FN_COLLECT(%rip)           # collect garbage
 
 .MemoryManager.ensure_can_alloc.can_alloc:
@@ -325,6 +327,7 @@
 
     xorl     %edi, %edi                               # 0 bytes allocation size in %rdi
     movq     %rbp, %rsi                               # tip of stack to start collecting from
+    xorl     %edx, %edx                               # %rdx = %edx = 0, don't force a major collection
     callq    *.MemoryManager.FN_COLLECT(%rip)         # collect garbage
 
 .MemoryManager.test.done:

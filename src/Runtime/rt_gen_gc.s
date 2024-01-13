@@ -549,6 +549,7 @@
 #   INPUT:
 #    %rdi: requested allocation size in bytes
 #    %rsi: the tip of stack to start checking for roots from
+#    %rdx: force a major collection if %rdx != 0
 #
 #   OUTPUT:
 #    %rdi: requested allocation size in bytes (unchanged)
@@ -566,9 +567,11 @@
     ALLOC_SIZE_SIZE    = 8
     ALLOC_SIZE         = -ALLOC_SIZE_SIZE
     STACK_TIP_SIZE     = 8
-    STACK_TIP          = -(STACK_TIP_SIZE + ALLOC_SIZE_SIZE)
-    PAD_SIZE           = 0
-    FRAME_SIZE         = STACK_TIP_SIZE + ALLOC_SIZE_SIZE + PAD_SIZE
+    STACK_TIP          = -(ALLOC_SIZE_SIZE + STACK_TIP_SIZE)
+    FORCE_MAJOR_SIZE   = 8
+    FORCE_MAJOR        = -(ALLOC_SIZE_SIZE + STACK_TIP_SIZE + FORCE_MAJOR_SIZE)
+    PAD_SIZE           = 8
+    FRAME_SIZE         = ALLOC_SIZE_SIZE + STACK_TIP_SIZE + FORCE_MAJOR_SIZE + PAD_SIZE
 
     pushq    %rbp
     movq     %rsp, %rbp
@@ -576,6 +579,7 @@
 
     movq     %rdi, ALLOC_SIZE(%rbp)
     movq     %rsi, STACK_TIP(%rbp)
+    movq     %rdx, FORCE_MAJOR(%rbp)
 
     # movq     $.GenGC.MSG_COLLECTING_ASCII, %rdi
     # movq     $.GenGC.MSG_COLLECTING_LEN, %rsi
@@ -600,7 +604,12 @@
     addq     %rax, %rsi                          # %rsi = MINOR1 + MINOR0
     sarq     $1, %rsi                            # %rsi = (MINOR0 + MINOR1) / 2
     movq     %rsi, .GenGC.HDR_MINOR1(%rdi)       # MINOR1 = (MINOR0 + MINOR1) / 2
-    
+
+    # See if we were requested to perform a major collection unconditionally.
+    movq     FORCE_MAJOR(%rbp), %rdx
+    testq    %rdx, %rdx
+    jnz      .GenGC.collect.do_major
+
     # breakpoint = MIN(L3 - MAX(MAJOR0, MAJOR1) - MAX(MINOR0, MINOR1), 
     #                  L3 - (L3 - L0) / 2)
     #
@@ -675,11 +684,11 @@
     jmp      .GenGC.collect.done
 .GenGC.collect.do_major:
     
-    # movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
-    # movq     $.GenGC.MSG_MAJOR_LEN, %rsi
-    # call     .Runtime.print_ln
+    movq     $.GenGC.MSG_MAJOR_ASCII, %rdi
+    movq     $.GenGC.MSG_MAJOR_LEN, %rsi
+    call     .Runtime.print_ln
 
-    # call     .Runtime.out_nl
+    call     .Runtime.out_nl
 
     movq     STACK_TIP(%rbp), %rdi
     call     .GenGC.major_collect                # %rax: the size of all collected live objects

@@ -2,13 +2,13 @@ class Main() {
   {
     // Force the `Main` instance promotion to Old Area,
     // so its stats don't get in the way of checking the test scenario.
-    GC_collect();
+    GC_collect(-1);
     GC_print_state();
 
     new Garbage();
     GC_print_state();
 
-    GC_collect();
+    GC_collect(-1);
     GC_print_state()
   };
 }

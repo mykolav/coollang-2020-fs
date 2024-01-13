@@ -205,18 +205,27 @@ Any.equals:
 #   as we only want to collect the garbage.
 #
 #   INPUT: 
-#    None
+#    %rdi: this
+#    %rsi: an Int object
+#          force a major collection if INT_VAL(%rsi) != -1
+#
 #   OUTPUT: 
 #    None
 #
 #   Registers modified:
-#    %rdi, %rsi, .MemoryManager.FN_COLLECT
+#    %rdi, %rsi, %rdx, .MemoryManager.FN_COLLECT
 #
     .global Any.GC_collect
 Any.GC_collect:
     pushq    %rbp
     movq     %rsp, %rbp
 
+    movq     INT_VAL(%rsi), %rdx                 # force a major collection?
+    incq     %rdx                                # If %rdx == -1, adding 1 will make %rdx == 0
+                                                 # %rdx == 0 tells `.GenGC.collect` to decide wether 
+                                                 # to do a major colletion on its own.
+                                                 # %rdx != 0 tells `.GenGC.collect` it must 
+                                                 # do a major collection
     xorl     %edi, %edi                          # %rdi = alloc size = 0
     movq     %rbp, %rsi                          # %rsi = tip of stack to start collecting from
     callq    *.MemoryManager.FN_COLLECT(%rip)    # collect garbage

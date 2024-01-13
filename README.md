@@ -327,14 +327,14 @@ The compiler can successfully build a Windows x64 or Linux x64 executable out of
 Introduce the concept of a companion object limited to objects predefined by the runtime. In particular, it will allow a Cool 2020 program to invoke GC related methods like this:
 
 ```scala
-GC.collect();
+GC.collect(-1);
 GC.print_state()
 ```
 
 Instead of the current approach:
 
 ```scala
-GC_collect();
+GC_collect(-1);
 GC_print_state()
 ```
 

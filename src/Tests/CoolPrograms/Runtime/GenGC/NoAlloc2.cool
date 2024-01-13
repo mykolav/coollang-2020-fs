@@ -2,14 +2,14 @@ class Main() {
   {
     // Force the `Main` instance promotion to Old Area,
     // so its stats don't distract from the test scenario.
-    GC_collect();
+    GC_collect(-1);
 
     // No allocations happen (or anything at all, for that matter)
     // in between the first and the second `GC_print_state()` call.
     // And there is no garbage to collect either.
     // Therefore the call to `GC_collect` must not change the heap state.
     GC_print_state();
-    GC_collect();
+    GC_collect(-1);
     GC_print_state()
   };
 }

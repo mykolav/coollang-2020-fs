@@ -8,7 +8,7 @@ class Main() {
     // Force `gc_roots` and the `Main` instance promotion to Old Area,
     // so its stats don't get mixed up with the
     // `EmptyObject` allocation stats.
-    GC_collect();
+    GC_collect(-1);
 
     var i: Int = 0;
     while (i < 32) {
@@ -22,7 +22,7 @@ class Main() {
       };
 
       GC_print_state();
-      GC_collect();
+      GC_collect(-1);
 
       i = i + 1
     };
