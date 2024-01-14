@@ -288,10 +288,12 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let initial_state = state_infos[0]
         let collected_state = state_infos[1]
 
-        // We don't expect the histories to be the same as
-        // the history naturally changes after each collection.
-        Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
-                     actual  ={ collected_state with History = GenGCHistory.Empty })
+        // Make sure
+        // 1) Old Area doesn't contain any objects except the `Main` instance
+        Assert.Equal(expected=initial_state.HeapInfo.L0, actual=collected_state.HeapInfo.L0)
+        Assert.Equal(expected=initial_state.HeapInfo.L1, actual=collected_state.HeapInfo.L1)
+        // 2) Work Area is doesn't contain any objects
+        Assert.Equal(expected=0L, actual=collected_state.AllocInfo.AllocPtr - collected_state.HeapInfo.L2)
 
 
     member private this.CompileAndRun(path: string): ProgramOutput =
