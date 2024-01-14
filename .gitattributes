@@ -2,4 +2,8 @@ docs/* linguist-documentation
 misc/* linguist-documentation
 sandbox/* linguist-documentation
 
+*.mips linguist-vendored
+*.asm linguist-vendored
+sandbox/asm/* linguist-vendored
+
 *.cool linguist-language=Scala
