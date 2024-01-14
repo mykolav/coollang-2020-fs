@@ -46,13 +46,19 @@ type CompilerTestCaseSource private () =
     static member TestCases = discoverCompilerTestCases ()
 
 
-    static member CwdCoolBuild() =
+    static member CwdCoolBuild(): unit =
         // The test assembly's location is 'Tests/bin/Debug/net8.0',
         // We want to change to 'Tests/CoolBuild'.
-        let assemblyLocationUri = UriBuilder(Assembly.GetExecutingAssembly().Location)
-        let assemblyLocationPath = Uri.UnescapeDataString(assemblyLocationUri.Path)
-        let assemblyLocationDirectoryName = Path.GetDirectoryName(assemblyLocationPath)
-        Directory.SetCurrentDirectory(Path.Combine(assemblyLocationDirectoryName, "../../../CoolBuild"))
+        let assembly_location = Assembly.GetExecutingAssembly().Location
+        try
+            let assemblyLocationUri = UriBuilder(assembly_location)
+            let assemblyLocationPath = Uri.UnescapeDataString(assemblyLocationUri.Path)
+            let assemblyLocationDirectoryName = Path.GetDirectoryName(assemblyLocationPath)
+            Directory.SetCurrentDirectory(Path.Combine(assemblyLocationDirectoryName, "../../../CoolBuild"))
+        with
+        | :? UriFormatException as ufe ->
+            raise (Xunit.Sdk.XunitException(assembly_location, ufe))
+
 
 
 [<AutoOpen>]    
