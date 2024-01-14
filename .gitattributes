@@ -1,0 +1,5 @@
+docs/* linguist-documentation
+misc/* linguist-documentation
+sandbox/* linguist-documentation
+
+*.cool linguist-language=Scala
