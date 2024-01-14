@@ -80,8 +80,8 @@ type FrameInfo() =
 
     
     // We pass these actuals in regs,
-    // but still allocate space and store them in frame.
-    // Otherwise non-leaf functions could not re-use regs
+    // but still allocate space and store them in the frame.
+    // Otherwise non-leaf functions would not be able to re-use the regs
     // to pass actuals to functions called by them. 
     member this.ActualsInFrameCount: int =
         if this.ActualsCount >= SysVAmd64AbiFacts.ActualRegs.Length
