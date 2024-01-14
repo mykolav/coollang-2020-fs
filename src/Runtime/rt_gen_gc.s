@@ -1076,7 +1076,10 @@
     movq     .Platform.heap_start(%rip), %r8      # %r8 = heap_start
 
     # Set up the bounds for `.GenGC.check_copy`
-    movq     .GenGC.HDR_L2(%r8), %rsi             # $rsi = [lower bound for .GenGC.check_copy
+    movq     .GenGC.HDR_L2(%r8), %rsi             # %rsi = [lower bound for .GenGC.check_copy
+    addq     $8, %rsi                             #   an obj pointer min value is L2 + 8
+                                                  #   as the object must be preceded 
+                                                  #   by the 8 bytes of eye-catcher
     movq     .Alloc.limit(%rip), %rdx             # %rdx = upper bound) for .GenGC.check_copy
     # Set up the destination for `.GenGC.check_copy`
     movq     .GenGC.HDR_L1(%r8), %rax             # %rax = L1 = the start of Reserve Area
@@ -1367,9 +1370,12 @@
 
     movq     .Platform.heap_start(%rip), %rsi          # %rsi = heap_start
 
-    # Check if the pointer is within [L0, L2)
+    # Check if the pointer is within (L0, L2)
+    # An object pointer min value = L0 + 8,
+    # as the object must be preceded by the 8 bytes of eye-catcher.
+    # Therefore we jump to `.GenGC.offset_copy.done` if %rdi is smaller or _equal_ to L0.
     cmpq     .GenGC.HDR_L0(%rsi), %rdi
-    jl       .GenGC.offset_copy.done                   # if (%rdi < L0) 
+    jle      .GenGC.offset_copy.done                   # if (%rdi <= L0) 
                                                        # go to .GenGC.offset_copy.done
     cmpq     .GenGC.HDR_L2(%rsi), %rdi
     jge      .GenGC.offset_copy.done                   # if (%rdi >= L2)
