@@ -51,13 +51,11 @@ type CompilerTestCaseSource private () =
         // We want to change to 'Tests/CoolBuild'.
         let assembly_location = Assembly.GetExecutingAssembly().Location
         try
-            let assemblyLocationUri = UriBuilder(assembly_location)
-            let assemblyLocationPath = Uri.UnescapeDataString(assemblyLocationUri.Path)
-            let assemblyLocationDirectoryName = Path.GetDirectoryName(assemblyLocationPath)
-            Directory.SetCurrentDirectory(Path.Combine(assemblyLocationDirectoryName, "../../../CoolBuild"))
+            let directory_name = Path.GetDirectoryName(assembly_location)
+            Directory.SetCurrentDirectory(Path.Combine(directory_name, "../../../CoolBuild"))
         with
-        | :? UriFormatException as ufe ->
-            raise (Xunit.Sdk.XunitException(assembly_location, ufe))
+        | ex ->
+            raise (Xunit.Sdk.XunitException(assembly_location, ex))
 
 
 
