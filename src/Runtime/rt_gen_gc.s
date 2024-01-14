@@ -944,8 +944,10 @@
 
     # Check the eye catcher is present
     cmpq     $EYE_CATCH, OBJ_EYE_CATCH(%rdi)
-    jne      .GC.abort                          # if no eye catcher,
+    je       .GenGC.check_copy.check_tag
+    call     .GC.abort                          # if no eye catcher,
                                                 # go to .GC.abort
+.GenGC.check_copy.check_tag:
     # Check the object's tag != EYE_CATCH
     cmpq     $EYE_CATCH, OBJ_TAG(%rdi)
     je       .GenGC.check_copy.done             # if (tag == $EYE_CATCH)

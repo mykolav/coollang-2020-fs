@@ -414,7 +414,7 @@
     jz       .GC.validate_ptr.ok                # null is valid
     cmpq     $EYE_CATCH, OBJ_EYE_CATCH(%rdi)
     je       .GC.validate_ptr.ok                # found the eye-catch just before the object
-    jmp      .GC.abort                          # this is not a pointer to an object
+    call     .GC.abort                          # this is not a pointer to an object
 .GC.validate_ptr.ok:
     ret
 
