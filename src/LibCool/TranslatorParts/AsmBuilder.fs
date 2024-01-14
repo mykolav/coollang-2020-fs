@@ -364,6 +364,15 @@ module AsmFragments =
                                                       FrameLayoutFacts.Actuals + (i + 1) * FrameLayoutFacts.ElemSize)
                     .AsUnit()
 
+            if frame.VarsCount > 0
+            then
+                this.Comment("zero-out local variables stack slots")
+                    .AsUnit()
+
+                for i = 0 to (frame.VarsCount - 1) do
+                    this.Instr("movq    $0, -{0}(%rbp)", frame.Vars + (i + 1) * FrameLayoutFacts.ElemSize)
+                        .AsUnit()
+
             this.Comment("store callee-saved regs on the stack")
                 .AsUnit()
 
