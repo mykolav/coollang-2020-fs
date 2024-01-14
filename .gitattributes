@@ -1,9 +1,13 @@
-docs/* linguist-documentation
-misc/* linguist-documentation
-sandbox/* linguist-documentation
+docs/*                    linguist-documentation
+misc/*                    linguist-documentation
+sandbox/*                 linguist-documentation
 
-*.mips linguist-vendored
-*.asm linguist-vendored
-sandbox/asm/* linguist-vendored
+*.mips                    linguist-vendored
+*.asm                     linguist-vendored
+sandbox/asm/*             linguist-vendored
 
-*.cool linguist-language=Scala
+src/Runtime/rt_gen_gc2.s  linguist-vendored
+
+*.inc                     linguist-language=Assembly
+*.s                       linguist-language=Assembly
+*.cool                    linguist-language=Scala
