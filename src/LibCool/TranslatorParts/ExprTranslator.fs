@@ -706,11 +706,11 @@ type private ExprTranslator(_context: TranslationContext,
             let method_name = $"'{receiver_frag.Type.Name}.{method_sym.Name}'"
 
             let actuals_asm = translateActuals method_name
-                                                 method_id.Span
-                                                 method_sym
-                                                 (*formal_name=*)"formal"
-                                                 receiver_frag.Reg
-                                                 actuals
+                                               method_id.Span
+                                               method_sym
+                                               (*formal_name=*)"formal"
+                                               receiver_frag.Reg
+                                               actuals
             match actuals_asm with
             | Error ->
                 Error
@@ -760,11 +760,11 @@ type private ExprTranslator(_context: TranslationContext,
             let method_name = $"'{super_sym.Name}.{method_sym.Name}'"
 
             let actuals_asm = translateActuals method_name
-                                                method_id.Span
-                                                method_sym
-                                                (*formal_name=*)"formal"
-                                                this_frag.Reg
-                                                actuals
+                                               method_id.Span
+                                               method_sym
+                                               (*formal_name=*)"formal"
+                                               this_frag.Reg
+                                               actuals
             match actuals_asm with
             | Error ->
                 Error
@@ -832,19 +832,9 @@ type private ExprTranslator(_context: TranslationContext,
                              (actual_nodes: AstNode<ExprSyntax>[])
                              : LcResult<string> =
 
-        let asm = this.EmitAsm()
-                      .BeginActuals(type_name.Span, actual_nodes.Length, (*this_reg=*)Reg.Null)
-
-        let actual_frags = List<LcResult<AsmFragment>>()
-        for actual_index = 0 to (actual_nodes.Length - 1) do
-            let actual_frag = translateExpr actual_nodes[actual_index]
-            match actual_frag with
-            | Error -> ()
-            | Ok actual_frag ->
-                asm.Actual(actual_index, actual_frag)
-                _context.RegSet.Free(actual_frag.Reg)
-
-            actual_frags.Add(actual_frag)
+        let asm, actual_frags = beginTranslateActuals type_name.Span
+                                                      (*this_reg=*)Reg.Null
+                                                      actual_nodes
 
         if ty.Is(BasicClasses.ArrayAny)
         then
@@ -863,41 +853,17 @@ type private ExprTranslator(_context: TranslationContext,
 
         asm.LoadActualsIntoRegs(actual_frags.Count)
 
-        if actual_frags |> Seq.exists (fun it -> LcResult.isError it)
-        then
+        let check_res = checkActuals (*method_name=*)    $"Constructor of '{ty.Name}'"
+                                     (*method_id_span=*) type_name.Span
+                                     (*method_sym=*)     ty.Ctor
+                                     (*formal_name=*)    "varformal"
+                                     actual_nodes
+                                     actual_frags
+        match check_res with
+        | Error ->
             Error
-        else
-
-        if ty.Ctor.Formals.Length <> actual_frags.Count
-        then
-            _context.Diags.Error(
-                $"Constructor of '{ty.Name}' takes %d{ty.Ctor.Formals.Length} formal(s) " +
-                $"but was passed %d{actual_frags.Count} actual(s)",
-                type_name.Span)
-
-            Error
-        else
-
-        let mutable formal_actual_mismatch = false
-
-        for i = 0 to ty.Ctor.Formals.Length - 1 do
-            let formal = ty.Ctor.Formals[i]
-            let formal_ty = _context.ClassSymMap[formal.Type]
-            let actual = actual_frags[i].Value
-            if not (_context.TypeCmp.Conforms(ancestor=formal_ty, descendant=actual.Type))
-            then
-                formal_actual_mismatch <- true
-                _context.Diags.Error(
-                    $"The actual's type '{actual.Type.Name}' does not conform to " +
-                    $"the varformal's type '{formal_ty.Name}'",
-                    actual_nodes[i].Span)
-
-        if formal_actual_mismatch
-        then
-            Error
-        else
-
-        Ok (asm.ToString())
+        | Ok () ->
+            Ok (asm.ToString())
 
 
     and translateActuals (method_name: string)
@@ -907,6 +873,28 @@ type private ExprTranslator(_context: TranslationContext,
                          (this_reg: Reg)
                          (actual_nodes: AstNode<ExprSyntax>[])
                          : LcResult<string> =
+
+        let asm, actual_frags = beginTranslateActuals method_id_span this_reg actual_nodes
+
+        asm.LoadActualsIntoRegs(actual_frags.Count)
+
+        let check_res = checkActuals method_name
+                                     method_id_span
+                                     method_sym
+                                     formal_name
+                                     actual_nodes
+                                     actual_frags
+        match check_res with
+        | Error ->
+            Error
+        | Ok () ->
+            Ok (asm.ToString())
+
+
+    and beginTranslateActuals (method_id_span: Span)
+                              (this_reg: Reg)
+                              (actual_nodes: AstNode<ExprSyntax>[])
+                              : AsmBuilder * List<LcResult<AsmFragment>> =
 
         let asm = this.EmitAsm()
                       .BeginActuals(method_id_span, actual_nodes.Length, this_reg)
@@ -924,7 +912,16 @@ type private ExprTranslator(_context: TranslationContext,
 
             actual_frags.Add(actual_frag)
 
-        asm.LoadActualsIntoRegs(actual_frags.Count)
+        asm, actual_frags
+
+
+    and checkActuals (method_name: string)
+                     (method_id_span: Span)
+                     (method_sym: MethodSymbol)
+                     (formal_name: string)
+                     (actual_nodes: AstNode<ExprSyntax>[])
+                     (actual_frags: List<LcResult<AsmFragment>>)
+                     : LcResult<Unit> =
 
         if actual_frags |> Seq.exists (fun it -> LcResult.isError it)
         then
@@ -960,7 +957,7 @@ type private ExprTranslator(_context: TranslationContext,
             Error
         else
 
-        Ok (asm.ToString())
+        Ok ()
 
 
     and translateId id_node id =
