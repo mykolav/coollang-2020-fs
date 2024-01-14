@@ -90,7 +90,7 @@ type EmitExeHandler(_writer: IWriteLine) =
 
         // let asm_file = obj_file.Replace(".o", ".s")
         // File.WriteAllText(asm_file, asm)
-        //
+
         // ProcessRunner.Run(exe_name="as", args= $"-g -o %s{obj_file} {asm_file}")
         // |> ProcessOutputParser.splitInLines
         // |> Array.ofSeq
