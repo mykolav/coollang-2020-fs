@@ -11,6 +11,10 @@ The project is purely for fun and it's, honestly, just another toy compiler. Her
 
 A lot of mini-compilers have a language consisting of functions, primitive values and pretty much nothing else. Whereas [this project's language](#cool-2020) is a small Scala subset &mdash; it has classes, inheritance, virtual dispatch, and even a very simple form of pattern matching. Implementing all of these features yourself, making them function at the assembly level provides a lot of insights into how production-grade programming languages work.
 
+## It is garbage collected
+
+The language's runtime library implements [a simple generational garbage collector](./src/Runtime/rt_gen_gc.s).
+
 ## It compiles down to x86-64 assembly
 
 Then GNU `as` and `ld` come into play to build a native executable from the assembly. Many educational compilers emit MIPS assembly, and although it's possible to run it using an emulator, to me, running a native executable produced by your own compiler feels much more rewarding.
