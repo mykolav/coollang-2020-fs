@@ -222,21 +222,20 @@ class Main() {
     var y: Int = 0;
     while (y < height) {
 
-        if (serialized_board.length() >= width) {
-
-            var x: Int = 0;
-            while (x < width) {
-                var offset: Int = y * width + x;
+        var x: Int = 0;
+        while (x < width) {
+            var offset: Int = y * width + x;
+            if (offset < serialized_board.length()) {
                 if (serialized_board.substring(offset, offset + 1) == "x") {
                     board.get_cell(x, y).set_state(true)
                 }
-                else {};
+                else {}
+            } else {};
 
-                x = x + 1
-            };
+            x = x + 1
+        };
 
-            y = y + 1
-        } else {}
+        y = y + 1
     };
 
     board
