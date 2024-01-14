@@ -240,12 +240,18 @@ type AsmBuilder(_context: TranslationContext) =
                           copy_reg=copy_reg)
     
     
-    member this.RtCopyObject(proto: string, copy_reg: Reg): AsmBuilder =
-        this.PushCallerSavedRegs()
-            .Instr("movq    {0}, %rdi", proto)
-            .Instr("call    {0}", RtNames.RtCopyObject)
-            .PopCallerSavedRegs()
-            .Instr("movq    %rax, {0}", copy_reg)
+    member this.RtCopyObject(proto: string, ?copy_reg: Reg): AsmBuilder =
+        let asm =
+            this.PushCallerSavedRegs()
+                .Instr("movq    {0}, %rdi", proto)
+                .Instr("call    {0}", RtNames.RtCopyObject)
+                .PopCallerSavedRegs()
+
+        match copy_reg with
+        | Some copy_reg ->
+            asm.Instr("movq    %rax, {0}", copy_reg)
+        | None ->
+            asm
             
             
     member this.RtAreEqual(left_reg: Reg, right_reg: Reg): AsmBuilder =
@@ -697,25 +703,9 @@ module AsmFragments =
 
 
         member this.CompleteNew(ty: ClassSymbol,
-                                this_reg: Reg,
                                 actuals_asm: string,
                                 actuals_count: int,
                                 result_reg: Reg): unit =
-            if ty.Is(BasicClasses.ArrayAny)
-            then
-                // Set 'this_reg' to 0.
-                // As the size of array in passed to the ctor of 'ArrayAny',
-                // it doesn't use an object copied from a prototype.
-                // Instead it will allocate memory and create an 'ArrayAny' object there itself.
-                this.Comment("ArrayAny..ctor will allocate memory for N items")
-                    .Instr("xorq    {0}, {1}", this_reg, this_reg)
-                    .AsUnit()
-            else
-                // Copy the relevant prototype and place a pointer to the copy in 'this_reg'.
-                this.RtCopyObject(proto="$" + ty.Name.ToString() + "_PROTO_OBJ",
-                                  copy_reg=this_reg)
-                   .AsUnit()
-
             // `actuals_asm` contains `movq    $this_reg, %rdi`
             this.Paste(actuals_asm)
                 .Instr("call    {0}..ctor", ty.Name)
@@ -740,10 +730,15 @@ module AsmFragments =
                                                      " actual(s) from stack")
 
 
-        member this.BeginActuals(method_id_span: Span, actuals_count, this_reg: Reg): AsmBuilder =
-            this.Location(method_id_span.Last)
-                .Instr("subq    ${0}, %rsp", (actuals_count + (*this*)1) * FrameLayoutFacts.ElemSize)
-                .Instr("movq    {0}, 0(%rsp)", this_reg, comment="actual #0")
+        member this.BeginActuals(method_id_span: Span, actuals_count: int, this_reg: Reg): AsmBuilder =
+            let asm = this.Location(method_id_span.Last)
+                          .Instr("subq    ${0}, %rsp", (actuals_count + (*this*)1) * FrameLayoutFacts.ElemSize)
+
+            if this_reg = Reg.Null
+            then
+                asm
+            else
+                asm.Instr("movq    {0}, 0(%rsp)", this_reg, comment="actual #0")
 
 
         member this.Actual(actual_index: int, actual_frag: AsmFragment): unit =
