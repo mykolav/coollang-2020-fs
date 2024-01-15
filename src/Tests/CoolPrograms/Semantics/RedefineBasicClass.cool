@@ -1,0 +1,19 @@
+class Any() {}
+class Unit() {}
+class Int() {}
+class String() {}
+class Boolean() {}
+class ArrayAny() {}
+class IO() {}
+
+class Main() {
+}
+
+// DIAG: Semantics/RedefineBasicClass.cool(1,7): Error: The type name 'Any' conflicts with the name of built-in type
+// DIAG: Semantics/RedefineBasicClass.cool(2,7): Error: The type name 'Unit' conflicts with the name of built-in type
+// DIAG: Semantics/RedefineBasicClass.cool(3,7): Error: The type name 'Int' conflicts with the name of built-in type
+// DIAG: Semantics/RedefineBasicClass.cool(4,7): Error: The type name 'String' conflicts with the name of built-in type
+// DIAG: Semantics/RedefineBasicClass.cool(5,7): Error: The type name 'Boolean' conflicts with the name of built-in type
+// DIAG: Semantics/RedefineBasicClass.cool(6,7): Error: The type name 'ArrayAny' conflicts with the name of built-in type
+// DIAG: Semantics/RedefineBasicClass.cool(7,7): Error: The type name 'IO' conflicts with the name of built-in type
+// DIAG: Build failed: Errors: 7. Warnings: 0

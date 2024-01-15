@@ -389,10 +389,22 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         else
 
         let class_sym = _class_sym_map[class_name_node.Syntax]
-        if not class_sym.IsAllowedInUserCode && not class_sym.IsError
+        if class_sym.IsError
+        then
+            ()
+        else
+
+        if not class_sym.IsAllowedInUserCode
         then
             _diags.Error(
                 $"The type name '{class_name_node.Syntax}' is not allowed in user code",
+                class_name_node.Span)
+        else
+
+        if class_sym.IsVirtual
+        then
+            _diags.Error(
+                $"The type name '{class_name_node.Syntax}' conflicts with the name of built-in type",
                 class_name_node.Span)
 
 
@@ -410,9 +422,6 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         addClassSymToMap BasicClasses.Boolean
         addClassSymToMap BasicClasses.ArrayAny
         addClassSymToMap BasicClasses.IO
-        
-        // User code cannot directly reference the class Null.
-        // So we don't add it to the map before collecting class symbols from the program's ast. 
         
         _program_syntax.Classes |> Array.iter (fun class_node ->
             collectClassSym class_node.Syntax.NAME)
