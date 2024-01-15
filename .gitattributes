@@ -2,11 +2,11 @@ docs/*                    linguist-documentation
 misc/*                    linguist-documentation
 sandbox/*                 linguist-documentation
 
-*.mips                    linguist-detectable=false
-*.asm                     linguist-detectable=false
+*.mips                    linguist-vendored
+*.asm                     linguist-vendored
 
-src/Runtime/rt_gen_gc.s   linguist-detectable=false
-src/Runtime/rt_gen_gc2.s  linguist-detectable=false
+src/Runtime/rt_gen_gc.s   linguist-vendored
+src/Runtime/rt_gen_gc2.s  linguist-vendored
 
-*.inc                     linguist-language=Unix Assembly
-*.cool                    linguist-language=Scala
+*.inc linguist-language=Unix Assembly
+*.cool linguist-language=Scala

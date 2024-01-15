@@ -26,7 +26,7 @@ skip_commits:
     - sandbox/*
     - docs/*
     - '**/*.md'
-    - .gitattributes
+    - '**/.gitattributes'
 
 #---------------------------------#
 #    environment configuration    #
