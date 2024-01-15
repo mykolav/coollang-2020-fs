@@ -10,6 +10,5 @@
 docs/*                    linguist-documentation
 misc/*                    linguist-vendored
 
-src/Runtime/rt_gen_gc.s   linguist-vendored
 src/Runtime/rt_gen_gc2.s  linguist-vendored
 
