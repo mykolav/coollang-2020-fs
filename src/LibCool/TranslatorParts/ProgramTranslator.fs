@@ -40,7 +40,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     do _context.StrConsts.GetOrAdd("") |> ignore
 
     
-    let translateClass (class_node: AstNode<ClassSyntax>): string =
+    let translateClassMethods (class_node: AstNode<ClassSyntax>): string =
         ClassMethodsTranslator(_context, class_node.Syntax).Translate()
         
         
@@ -265,7 +265,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     member this.Translate(): string =
         let sb_code = StringBuilder()
         for class_syntax in _program_syntax.Classes do
-            let class_methods_frag = translateClass class_syntax
+            let class_methods_frag = translateClassMethods class_syntax
             sb_code.Append(class_methods_frag)
                    .AsUnit()
         
