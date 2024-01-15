@@ -8,5 +8,5 @@ sandbox/asm/*             linguist-vendored
 
 src/Runtime/rt_gen_gc2.s  linguist-vendored
 
-*.inc                     linguist-language=Assembly.Unix
+*.inc                     linguist-language=Unix Assembly
 *.cool                    linguist-language=Scala
