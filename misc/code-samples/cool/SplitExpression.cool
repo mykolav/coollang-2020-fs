@@ -1,0 +1,21 @@
+class Main() {
+  {
+    // a + b + c + d
+    // (+ [+ (+ a b) c] d)
+
+    var tmp0: Int;
+    var tmp1: Int;
+    var result: Int;
+    
+    tmp0 = a;
+    tmp1 = b;
+    tmp0 = tmp0 + tmp1; // tmp0 = a + b
+    
+    tmp1 = c;
+    tmp0 = tmp0 + tmp1; // tmp0 = a + b + c
+        
+    tmp1 = d;
+    tmp0 = tmp0 + tmp1; // tmp0 = a + b + c + d
+        
+    result = tmp0;      // result = a + b + c + d  };
+}
