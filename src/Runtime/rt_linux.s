@@ -1,16 +1,18 @@
 ########################################
-# Data
+# Read Only Data
 ########################################
-    .data
+    .section .rodata
 
-########################################
-# Strings
-########################################
     .global .Platform.ascii_new_line
 .Platform.ascii_new_line:   .ascii "\n"
 
     .global .Platform.new_line_len
 .Platform.new_line_len:     .quad  1
+
+########################################
+# Data
+########################################
+    .data
 
 ########################################
 # Global vars

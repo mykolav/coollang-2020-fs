@@ -1,12 +1,8 @@
 ########################################
-# Data
+# Read Only Data
 ########################################
 
-    .data
-
-#
-# TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
-#
+    .section .rodata
 
 ########################################
 # Messages for the GenGC garbage collector

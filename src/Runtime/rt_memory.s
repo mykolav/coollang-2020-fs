@@ -1,25 +1,16 @@
 ########################################
-# Data
+# Read Only Data
 ########################################
 
-    .data
-########################################
-# Memory Manager Globals
-########################################
+    .section .rodata
 
-# The compiler emits the following globals
-#   .MemoryManager.FN_INIT
-#   .MemoryManager.FN_COLLECT
-#   .MemoryManager.IS_TESTING
+# The compiler emits the following read-only globals
+#     .MemoryManager.FN_INIT
+#     .MemoryManager.FN_ON_ASSIGN
+#     .MemoryManager.FN_COLLECT
+#     .MemoryManager.FN_PRINT_STATE
+#     .MemoryManager.IS_TESTING
 
-    .global .Alloc.ptr
-.Alloc.ptr:                      .quad 0
-    .global .Alloc.limit
-.Alloc.limit:                    .quad 0
-
-#
-# TODO: Place strings and other constants in `.section .rodata` instead of `.data`.
-#
 ########################################
 # MemoryManager messages
 ########################################
@@ -63,6 +54,20 @@
 
 .NopGC.MSG_ALLOC_LIMIT_EQ_ASCII:       .ascii "NopGC: ALLOC LIMIT = "
 .NopGC.MSG_ALLOC_LIMIT_EQ_LEN =               (. - .NopGC.MSG_ALLOC_LIMIT_EQ_ASCII)
+
+########################################
+# Data
+########################################
+
+    .data
+########################################
+# Memory Manager Globals
+########################################
+
+    .global .Alloc.ptr
+.Alloc.ptr:                      .quad 0
+    .global .Alloc.limit
+.Alloc.limit:                    .quad 0
 
 ########################################
 # Text

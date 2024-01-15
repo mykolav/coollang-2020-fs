@@ -1,11 +1,8 @@
 ########################################
-# Data
+# Read Only Data
 ########################################
-    .data
+    .section .rodata
 
-########################################
-# Strings
-########################################
     .global .Platform.ascii_new_line
 .Platform.ascii_new_line:   .ascii "\r\n"
 
@@ -15,6 +12,10 @@
 MSG_INIT_FAILED_ASCII:          .ascii "Init failed"
 MSG_INIT_FAILED_LEN  =                 (. - MSG_INIT_FAILED_ASCII)
 
+########################################
+# Data
+########################################
+    .data
 
 ########################################
 # Global vars

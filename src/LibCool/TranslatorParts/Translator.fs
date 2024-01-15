@@ -97,7 +97,7 @@ type Translator private () =
         // Combine the data and code.
         let asm =
             StringBuilder()
-                .AppendLine("    .data")
+                .AppendLine("    .section .rodata")
                 .AppendLine()
                 .Append(data_asm)
                 .AppendLine()
