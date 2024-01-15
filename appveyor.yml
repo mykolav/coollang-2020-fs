@@ -23,7 +23,6 @@ branches:
 skip_commits:
   files:
     - misc/*
-    - sandbox/*
     - docs/*
     - '**/*.md'
     - '**/.gitattributes'
