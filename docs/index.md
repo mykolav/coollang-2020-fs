@@ -1,3 +1,7 @@
+<!--
+pandoc --css=styles.css --metadata title="A toy compiler of a small Scala subset" -s index.md -o index.html
+-->
+
 > 🐌  
 > Yours truly is not an expert in compilers but does enjoy diving into this topic and learning something new from time to time.
 
@@ -11,6 +15,7 @@ As someone who finds these reasons compelling, [I developed a hobby compiler too
   - [The language is concise but retains a degree of expressivity](#the-language-is-concise-but-retains-a-degree-of-expressivity)
 - [A couple words about the implementation](#a-couple-words-about-the-implementation)
   - [It is cross-platform](#it-is-cross-platform)
+  - [It is garbage-collected](#it-is-garbage-collected)
   - [The test suite](#the-test-suite)
   - [Maybe the only hobby-compiler that has a demo video :)](#maybe-the-only-hobby-compiler-that-has-a-demo-video-)
 - [A crucial design decision: compile time errors handling](#a-crucial-design-decision-compile-time-errors-handling)
@@ -86,9 +91,13 @@ The language being a Scala subset, tools for Scala code syntax highlighting, for
 
 The two supported hosts are x86-64 Windows and Linux. And in general, the project is based on cross-platform technologies. The compiler itself runs on .NET. The GNU tools `as` and `ld` are available on Linux and Windows (and many, many other, of course). The language's runtime is implemented in assembly and is split up into three parts: the majority of code is in a common source file, Windows-specific bits, and Linux-specific bits that are responsible for calling Windows API and Linux system functions reside in their respective source files.
 
+## It is garbage-collected
+
+The language's runtime library implements [a simple generational garbage collector](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_gen_gc.s).
+
 ## The test suite
 
-Approximately 288 automated tests make up [the test suite](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Tests). One nice consequence of generating native executables is an automated test can compile a program, run it, and compare the program's output to the expected values. Out of the 288 tests, there are [39 that do exactly that](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Tests/CoolPrograms/Runtime).
+Approximately 312 automated tests make up [the test suite](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Tests). One nice consequence of generating native executables is an automated test can compile a program, run it, and compare the program's output to the expected values. Out of the 288 tests, there are [39 that do exactly that](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Tests/CoolPrograms/Runtime).
 
 ## Maybe the only hobby-compiler that has a demo video :)
 
@@ -235,11 +244,19 @@ Examining the sources of [chibicc: A Small C Compiler](https://github.com/rui314
 
 ## Human-readable assembly
 
-The emitted assembly code contains a lot of hopefully useful comments. The idea here is to help understand the assembly and relate it back to the source code as much as possible. 
+The assembly contains constant names instead of magic numbers where possible. The number of places using constant names is planned to grow.
+
+The compiler tries to generate useful names for integer and string constants. For example, `INT_0` corresponds to an integer value `0`, `INT_42` &mdash; to `42`. 
+
+If a string does not contain any characters illegal in an identifier and is not too long, the corresponding constant name will contain this string's value. To illustrate, a constant name for the string `"Boolean"` is going to be `STR_8_Boolean`. 
+
+The emitted assembly code contains a lot of hopefully useful comments. Some of the comments indicate the point in the source code that the assembly corresponds too. The idea here is to help understand the assembly and relate it back to the source code as much as possible. 
 
 ```asm
     .text
+
     # ../CoolPrograms/Runtime/Fibonacci.cool(1,7): Fib
+    .global Fib..ctor
 Fib..ctor:
     pushq   %rbp
     movq    %rsp, %rbp
@@ -255,24 +272,22 @@ Fib..ctor:
     # actual #0
     movq    -8(%rbp), %rbx
     subq    $8, %rsp
-    movq    %rbx, 0(%rsp) # actual #0
+    movq    %rbx, 0(%rsp)                         # actual #0
     # load up to 6 first actuals into regs
     movq    0(%rsp), %rdi
     # remove the register-loaded actuals from stack
     addq    $8, %rsp
-    call    IO..ctor # super..ctor
-    movq    %rax, %rbx # returned value
-    # ../CoolPrograms/Runtime/Fibonacci.cool(8,5): var i: Int = 0
+    call    IO..ctor                              # super..ctor
+    movq    %rax, %rbx                            # returned value
     # ../CoolPrograms/Runtime/Fibonacci.cool(8,18): 0
-    movq    $int_const_0, %rbx
-    movq    %rbx, -16(%rbp) # i
-    # ../CoolPrograms/Runtime/Fibonacci.cool(9,5): while (i <= 10) { \n   ...
-.label_6: # while cond
-    # ../CoolPrograms/Runtime/Fibonacci.cool(9,12): i <= 10
+    movq    $INT_0, %rbx
+    # ../CoolPrograms/Runtime/Fibonacci.cool(8,5): var i: Int = 0
+    movq    %rbx, -16(%rbp)                       # i
+.L6_WHILE_COND:
     # ../CoolPrograms/Runtime/Fibonacci.cool(9,12): i
-    movq    -16(%rbp), %r10 # i
+    movq    -16(%rbp), %r10                       # i
     # ../CoolPrograms/Runtime/Fibonacci.cool(9,17): 10
-    movq    $int_const_2, %r11
+    movq    $INT_10, %r11
 ```
 
 ## Register allocation
@@ -304,15 +319,20 @@ The only readily available [runtime implementation](https://theory.stanford.edu/
 
 (Notice, while the names Cool 2020 and COOL sound confusingly similar, the languages themselves are distinct: Cool 2020 is a Scala subset and COOL is an invention of Alex Aiken. The name Cool 2020 is a tribute to Aiken's COOL.)
 
-Examining COOL runtime's MIPS code provides enough insights to implement a similar one for a different "client" language and dialect of assembly. This is how I came up with a [runtime](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Runtime) for Cool 2020 in x86-64 assembly. It's written in an extremely naive and unoptimized way, but gets the job done. One serious omission though, there's no garbage collection code (One day...) 
+Examining COOL runtime's MIPS code provides enough insights to implement a similar one for a different "client" language and dialect of assembly. This is how I came up with a [runtime](https://github.com/mykolav/coollang-2020-fs/tree/master/src/Runtime) for Cool 2020 in x86-64 assembly. It's written in an extremely naive and unoptimized way, but gets the job done.
 
 ## Runtime library source code structure
 
-The runtime is made up of three assembly source files: 
+The runtime is made up of these assembly source files: 
 
-- [rt_common.s](https://github.com/mykolav/coollang-2020-fs/blob/6174d03148e7e395d1e5777c370000bf47e1578f/src/Runtime/rt_common.s) &mdash; the common code that doesn't depend on a platform's specifics resides in this file
-- [rt_linux.s](https://github.com/mykolav/coollang-2020-fs/blob/6174d03148e7e395d1e5777c370000bf47e1578f/src/Runtime/rt_linux.s)  &mdash; Linux-specific bits
-- [rt_windows.s](https://github.com/mykolav/coollang-2020-fs/blob/6174d03148e7e395d1e5777c370000bf47e1578f/src/Runtime/rt_windows.s) &mdash; Windows-specific bits
+- [rt_common.s](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_common.s) &mdash; the code of built-in classes such as `Any`, `String`, `ArrayAny`, etc resides in this file
+- [rt_runtime.s](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_runtime.s) &mdash; built-in runtime functions that haven't been exposed through any built-in class
+- [rt_memory.s](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_memory.s) &mdash; a memory management interface/facade and a no-op garbage collector implementation
+- [rt_gen_gc.s](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_gen_gc.s) &mdash; a simple generational garbage collector implementation
+- [rt_linux.s](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_linux.s) &mdash; Linux-specific bits
+- [rt_windows.s](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_windows.s) &mdash; Windows-specific bits
+- [rt_integers.s](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_integers.s) &mdash; predefined integer immutable objects that help avoid constantly allocating `Int` objects
+- [constants.inc](https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/constants.inc) &mdash; well, these are constants
 
 ## The entry point
 
@@ -339,12 +359,29 @@ And here is the actual assembly code.
 ```asm
     .global main
 main:
+    MAIN_OBJ_SIZE    = 8
+    MAIN_OBJ         = -MAIN_OBJ_SIZE
+    PAD_SIZE         = 8
+    FRAME_SIZE       =  MAIN_OBJ_SIZE + PAD_SIZE
+
+    pushq   %rbp
+    movq    %rsp, %rbp
+    subq    $FRAME_SIZE, %rsp
+
     call    .Platform.init
+
+    # The base of stack -- to stop checking for stack GC roots at.
+    movq    %rbp, %rdi
+    call    .MemoryManager.init
 
     # A class 'Main' must be present in every Cool2020 program.
     # Create a new instance of 'Main'.
-    movq    $Main_proto_obj, %rdi
+    movq    $Main_PROTO_OBJ, %rdi
     call    .Runtime.copy_object
+
+    # Place the created `Main` object on the stack
+    # to let the GC know it's not garbage.
+    movq    %rax, MAIN_OBJ(%rbp)
 
     # 'Main..ctor' is a Cool2020 program's entry point.
     # Pass a reference to the newly created 'Main' instance in %rdi.

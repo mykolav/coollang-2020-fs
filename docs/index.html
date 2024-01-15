@@ -210,6 +210,9 @@
 <header id="title-block-header">
 <h1 class="title">A toy compiler of a small Scala subset</h1>
 </header>
+<!--
+pandoc --css=styles.css --metadata title="A toy compiler of a small Scala subset" -s index.md -o index.html
+-->
 <blockquote>
 <p>🐌<br />
 Yours truly is not an expert in compilers but does enjoy diving into
@@ -241,6 +244,7 @@ language is concise but retains a degree of expressivity</a></li>
 about the implementation</a>
 <ul>
 <li><a href="#it-is-cross-platform">It is cross-platform</a></li>
+<li><a href="#it-is-garbage-collected">It is garbage-collected</a></li>
 <li><a href="#the-test-suite">The test suite</a></li>
 <li><a
 href="#maybe-the-only-hobby-compiler-that-has-a-demo-video-">Maybe the
@@ -355,8 +359,12 @@ parts: the majority of code is in a common source file, Windows-specific
 bits, and Linux-specific bits that are responsible for calling Windows
 API and Linux system functions reside in their respective source
 files.</p>
+<h2 id="it-is-garbage-collected">It is garbage-collected</h2>
+<p>The language’s runtime library implements <a
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_gen_gc.s">a
+simple generational garbage collector</a>.</p>
 <h2 id="the-test-suite">The test suite</h2>
-<p>Approximately 288 automated tests make up <a
+<p>Approximately 312 automated tests make up <a
 href="https://github.com/mykolav/coollang-2020-fs/tree/master/src/Tests">the
 test suite</a>. One nice consequence of generating native executables is
 an automated test can compile a program, run it, and compare the
@@ -590,45 +598,57 @@ href="https://github.com/rui314/chibicc">chibicc: A Small C Compiler</a>
 or <a href="https://github.com/rui314/8cc">8cc C Compiler</a> is an
 excellent opportunity to see assembly-generating code in action.</p>
 <h2 id="human-readable-assembly">Human-readable assembly</h2>
+<p>The assembly contains constant names instead of magic numbers where
+possible. The number of places using constant names is planned to
+grow.</p>
+<p>The compiler tries to generate useful names for integer and string
+constants. For example, <code>INT_0</code> corresponds to an integer
+value <code>0</code>, <code>INT_42</code> — to <code>42</code>.</p>
+<p>If a string does not contain any characters illegal in an identifier
+and is not too long, the corresponding constant name will contain this
+string’s value. To illustrate, a constant name for the string
+<code>"Boolean"</code> is going to be <code>STR_8_Boolean</code>.</p>
 <p>The emitted assembly code contains a lot of hopefully useful
-comments. The idea here is to help understand the assembly and relate it
-back to the source code as much as possible.</p>
+comments. Some of the comments indicate the point in the source code
+that the assembly corresponds too. The idea here is to help understand
+the assembly and relate it back to the source code as much as
+possible.</p>
 <div class="sourceCode" id="cb5"><pre
 class="sourceCode asm"><code class="sourceCode fasm"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>    .text</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">1</span><span class="op">,</span><span class="dv">7</span><span class="op">):</span> Fib</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Fib..ctor:</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    pushq   <span class="op">%</span><span class="kw">rbp</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rsp</span><span class="op">,</span> <span class="op">%</span><span class="kw">rbp</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    subq    <span class="op">$</span><span class="bn">64</span><span class="op">,</span> <span class="op">%</span><span class="kw">rsp</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">store</span> actuals on the stack</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rdi</span><span class="op">,</span> <span class="op">-</span><span class="dv">8</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">store</span> callee<span class="op">-</span>saved regs on the stack</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rbx</span><span class="op">,</span> <span class="op">-</span><span class="dv">24</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r12</span><span class="op">,</span> <span class="op">-</span><span class="dv">32</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r13</span><span class="op">,</span> <span class="op">-</span><span class="dv">40</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r14</span><span class="op">,</span> <span class="op">-</span><span class="dv">48</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r15</span><span class="op">,</span> <span class="op">-</span><span class="dv">56</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    # actual <span class="op">#</span><span class="dv">0</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">-</span><span class="dv">8</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">),</span> <span class="op">%</span><span class="kw">rbx</span></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    subq    <span class="op">$</span><span class="bn">8</span><span class="op">,</span> <span class="op">%</span><span class="kw">rsp</span></span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rbx</span><span class="op">,</span> <span class="dv">0</span><span class="op">(%</span><span class="kw">rsp</span><span class="op">)</span> <span class="op">#</span> actual <span class="op">#</span><span class="dv">0</span></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">load</span> up to <span class="dv">6</span> first actuals into regs</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="dv">0</span><span class="op">(%</span><span class="kw">rsp</span><span class="op">),</span> <span class="op">%</span><span class="kw">rdi</span></span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    # remove the register<span class="op">-</span>loaded actuals from stack</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    addq    <span class="op">$</span><span class="bn">8</span><span class="op">,</span> <span class="op">%</span><span class="kw">rsp</span></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    IO<span class="op">..</span>ctor <span class="op">#</span> super<span class="op">..</span>ctor</span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rax</span><span class="op">,</span> <span class="op">%</span><span class="kw">rbx</span> <span class="op">#</span> returned value</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">8</span><span class="op">,</span><span class="dv">5</span><span class="op">):</span> var i<span class="op">:</span> Int <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">8</span><span class="op">,</span><span class="dv">18</span><span class="op">):</span> <span class="dv">0</span></span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">$</span>int_const_0<span class="op">,</span> <span class="op">%</span><span class="kw">rbx</span></span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rbx</span><span class="op">,</span> <span class="op">-</span><span class="dv">16</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span> <span class="op">#</span> i</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">9</span><span class="op">,</span><span class="dv">5</span><span class="op">):</span> while <span class="op">(</span>i <span class="op">&lt;=</span> <span class="dv">10</span><span class="op">)</span> <span class="op">{</span> <span class="op">\</span>n   <span class="op">...</span></span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="fu">.label_6:</span> # <span class="pp">while</span> cond</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">9</span><span class="op">,</span><span class="dv">12</span><span class="op">):</span> i <span class="op">&lt;=</span> <span class="dv">10</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">1</span><span class="op">,</span><span class="dv">7</span><span class="op">):</span> Fib</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    .global Fib<span class="op">..</span>ctor</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">Fib..ctor:</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    pushq   <span class="op">%</span><span class="kw">rbp</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rsp</span><span class="op">,</span> <span class="op">%</span><span class="kw">rbp</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    subq    <span class="op">$</span><span class="bn">64</span><span class="op">,</span> <span class="op">%</span><span class="kw">rsp</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">store</span> actuals on the stack</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rdi</span><span class="op">,</span> <span class="op">-</span><span class="dv">8</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">store</span> callee<span class="op">-</span>saved regs on the stack</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rbx</span><span class="op">,</span> <span class="op">-</span><span class="dv">24</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r12</span><span class="op">,</span> <span class="op">-</span><span class="dv">32</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r13</span><span class="op">,</span> <span class="op">-</span><span class="dv">40</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r14</span><span class="op">,</span> <span class="op">-</span><span class="dv">48</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">r15</span><span class="op">,</span> <span class="op">-</span><span class="dv">56</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    # actual <span class="op">#</span><span class="dv">0</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">-</span><span class="dv">8</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">),</span> <span class="op">%</span><span class="kw">rbx</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    subq    <span class="op">$</span><span class="bn">8</span><span class="op">,</span> <span class="op">%</span><span class="kw">rsp</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rbx</span><span class="op">,</span> <span class="dv">0</span><span class="op">(%</span><span class="kw">rsp</span><span class="op">)</span>                         <span class="op">#</span> actual <span class="op">#</span><span class="dv">0</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">load</span> up to <span class="dv">6</span> first actuals into regs</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="dv">0</span><span class="op">(%</span><span class="kw">rsp</span><span class="op">),</span> <span class="op">%</span><span class="kw">rdi</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    # remove the register<span class="op">-</span>loaded actuals from stack</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    addq    <span class="op">$</span><span class="bn">8</span><span class="op">,</span> <span class="op">%</span><span class="kw">rsp</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    IO<span class="op">..</span>ctor                              <span class="op">#</span> super<span class="op">..</span>ctor</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rax</span><span class="op">,</span> <span class="op">%</span><span class="kw">rbx</span>                            <span class="op">#</span> returned value</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">8</span><span class="op">,</span><span class="dv">18</span><span class="op">):</span> <span class="dv">0</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">$</span>INT_0<span class="op">,</span> <span class="op">%</span><span class="kw">rbx</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">8</span><span class="op">,</span><span class="dv">5</span><span class="op">):</span> var i<span class="op">:</span> Int <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rbx</span><span class="op">,</span> <span class="op">-</span><span class="dv">16</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span>                       <span class="op">#</span> i</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="fu">.L6_WHILE_COND:</span></span>
 <span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">9</span><span class="op">,</span><span class="dv">12</span><span class="op">):</span> i</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">-</span><span class="dv">16</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">),</span> <span class="op">%</span><span class="kw">r10</span> <span class="op">#</span> i</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">-</span><span class="dv">16</span><span class="op">(%</span><span class="kw">rbp</span><span class="op">),</span> <span class="op">%</span><span class="kw">r10</span>                       <span class="op">#</span> i</span>
 <span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    # ../CoolPrograms<span class="op">/</span>Runtime<span class="op">/</span>Fibonacci<span class="op">.</span>cool<span class="op">(</span><span class="dv">9</span><span class="op">,</span><span class="dv">17</span><span class="op">):</span> <span class="dv">10</span></span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">$</span>int_const_2<span class="op">,</span> <span class="op">%</span><span class="kw">r11</span></span></code></pre></div>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">$</span>INT_10<span class="op">,</span> <span class="op">%</span><span class="kw">r11</span></span></code></pre></div>
 <h2 id="register-allocation">Register allocation</h2>
 <p>In short, programs use processor registers to temporarily store
 variable and expression values. This post won’t dig any deeper than
@@ -711,22 +731,40 @@ implement a similar one for a different “client” language and dialect of
 assembly. This is how I came up with a <a
 href="https://github.com/mykolav/coollang-2020-fs/tree/master/src/Runtime">runtime</a>
 for Cool 2020 in x86-64 assembly. It’s written in an extremely naive and
-unoptimized way, but gets the job done. One serious omission though,
-there’s no garbage collection code (One day…)</p>
+unoptimized way, but gets the job done.</p>
 <h2 id="runtime-library-source-code-structure">Runtime library source
 code structure</h2>
-<p>The runtime is made up of three assembly source files:</p>
+<p>The runtime is made up of these assembly source files:</p>
 <ul>
 <li><a
-href="https://github.com/mykolav/coollang-2020-fs/blob/6174d03148e7e395d1e5777c370000bf47e1578f/src/Runtime/rt_common.s">rt_common.s</a>
-— the common code that doesn’t depend on a platform’s specifics resides
-in this file</li>
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_common.s">rt_common.s</a>
+— the code of built-in classes such as <code>Any</code>,
+<code>String</code>, <code>ArrayAny</code>, etc resides in this
+file</li>
 <li><a
-href="https://github.com/mykolav/coollang-2020-fs/blob/6174d03148e7e395d1e5777c370000bf47e1578f/src/Runtime/rt_linux.s">rt_linux.s</a>
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_runtime.s">rt_runtime.s</a>
+— built-in runtime functions that haven’t been exposed through any
+built-in class</li>
+<li><a
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_memory.s">rt_memory.s</a>
+— a memory management interface/facade and a no-op garbage collector
+implementation</li>
+<li><a
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_gen_gc.s">rt_gen_gc.s</a>
+— a simple generational garbage collector implementation</li>
+<li><a
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_linux.s">rt_linux.s</a>
 — Linux-specific bits</li>
 <li><a
-href="https://github.com/mykolav/coollang-2020-fs/blob/6174d03148e7e395d1e5777c370000bf47e1578f/src/Runtime/rt_windows.s">rt_windows.s</a>
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_windows.s">rt_windows.s</a>
 — Windows-specific bits</li>
+<li><a
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/rt_integers.s">rt_integers.s</a>
+— predefined integer immutable objects that help avoid constantly
+allocating <code>Int</code> objects</li>
+<li><a
+href="https://github.com/mykolav/coollang-2020-fs/blob/1dfa5fcd4e6d28d43fa474609e791061e9618c4e/src/Runtime/constants.inc">constants.inc</a>
+— well, these are constants</li>
 </ul>
 <h2 id="the-entry-point">The entry point</h2>
 <p>In particular, <code>rt_common.s</code> contains a compiled program’s
@@ -751,21 +789,38 @@ class="sourceCode scala"><code class="sourceCode scala"><span id="cb6-1"><a href
 <div class="sourceCode" id="cb7"><pre
 class="sourceCode asm"><code class="sourceCode fasm"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>    .global main</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">main:</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    <span class="op">.</span>Platform<span class="op">.</span>init</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    # A class <span class="st">&#39;Main&#39;</span> must be present in every Cool2020 program<span class="op">.</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    # Create a new instance of <span class="st">&#39;Main&#39;</span><span class="op">.</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">$</span>Main_proto_obj<span class="op">,</span> <span class="op">%</span><span class="kw">rdi</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    <span class="op">.</span>Runtime<span class="op">.</span>copy_object</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    # &#39;Main<span class="op">..</span>ctor<span class="st">&#39; is a Cool2020 program&#39;</span>s entry point<span class="op">.</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    # Pass a reference to the newly created <span class="st">&#39;Main&#39;</span> instance in <span class="op">%</span><span class="kw">rdi</span><span class="op">.</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">Invoke</span> the constructor<span class="op">.</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rax</span><span class="op">,</span> <span class="op">%</span><span class="kw">rdi</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    Main<span class="op">..</span>ctor</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    xorq    <span class="op">%</span><span class="kw">rdi</span><span class="op">,</span> <span class="op">%</span><span class="kw">rdi</span></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">jmp</span>     <span class="op">.</span>Platform<span class="op">.</span>exit_process</span></code></pre></div>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    MAIN_OBJ_SIZE    <span class="op">=</span> <span class="dv">8</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    MAIN_OBJ         <span class="op">=</span> <span class="op">-</span>MAIN_OBJ_SIZE</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    PAD_SIZE         <span class="op">=</span> <span class="dv">8</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    FRAME_SIZE       <span class="op">=</span>  MAIN_OBJ_SIZE <span class="op">+</span> PAD_SIZE</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    pushq   <span class="op">%</span><span class="kw">rbp</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rsp</span><span class="op">,</span> <span class="op">%</span><span class="kw">rbp</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    subq    <span class="op">$</span>FRAME_SIZE<span class="op">,</span> <span class="op">%</span><span class="kw">rsp</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    <span class="op">.</span>Platform<span class="op">.</span>init</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    # The base of stack <span class="op">--</span> to stop checking for stack GC roots at<span class="op">.</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rbp</span><span class="op">,</span> <span class="op">%</span><span class="kw">rdi</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    <span class="op">.</span>MemoryManager<span class="op">.</span>init</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    # A class <span class="st">&#39;Main&#39;</span> must be present in every Cool2020 program<span class="op">.</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    # Create a new instance of <span class="st">&#39;Main&#39;</span><span class="op">.</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">$</span>Main_PROTO_OBJ<span class="op">,</span> <span class="op">%</span><span class="kw">rdi</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    <span class="op">.</span>Runtime<span class="op">.</span>copy_object</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    # Place the created <span class="op">`</span>Main<span class="op">`</span> object on the stack</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    # to let the GC know it<span class="st">&#39;s not garbage.</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rax</span><span class="op">,</span> MAIN_OBJ<span class="op">(%</span><span class="kw">rbp</span><span class="op">)</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    # &#39;Main<span class="op">..</span>ctor<span class="st">&#39; is a Cool2020 program&#39;</span>s entry point<span class="op">.</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    # Pass a reference to the newly created <span class="st">&#39;Main&#39;</span> instance in <span class="op">%</span><span class="kw">rdi</span><span class="op">.</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    # <span class="bu">Invoke</span> the constructor<span class="op">.</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="bu">movq</span>    <span class="op">%</span><span class="kw">rax</span><span class="op">,</span> <span class="op">%</span><span class="kw">rdi</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">call</span>    Main<span class="op">..</span>ctor</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    xorq    <span class="op">%</span><span class="kw">rdi</span><span class="op">,</span> <span class="op">%</span><span class="kw">rdi</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">jmp</span>     <span class="op">.</span>Platform<span class="op">.</span>exit_process</span></code></pre></div>
 <h1 id="learning-resources">Learning resources</h1>
 <h2 id="crafting-interpreters">Crafting Interpreters</h2>
 <p>Yes, yes, you read that right, interpreters. <a
