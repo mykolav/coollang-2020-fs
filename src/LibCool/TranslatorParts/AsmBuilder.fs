@@ -13,18 +13,18 @@ open LibCool.SourceParts
 
 [<Sealed>]
 type AsmBuilder(_context: TranslationContext) =
-    
-    
+
+
     let _asm = StringBuilder()
     let _indent = "    "
-    
-    
+
+
     let _pushed_caller_saved_regs = Stack<string>()
-    
-    
+
+
     member val Context = _context with get
-    
-    
+
+
     member this.Paste(asm: string): AsmBuilder =
         _asm.Append(asm).AsUnit()
         this
@@ -54,12 +54,12 @@ type AsmBuilder(_context: TranslationContext) =
             ?line_len=Some(_indent.Length + instruction.Length),
             ?comment=comment)
 
-        
+
     // Instr[uction]
     member this.Instr(instruction: string, value: obj, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, value), comment=comment)
 
-        
+
     // Instr[uction]
     member this.Instr(instruction: string, reg: Reg, ?comment: string): AsmBuilder =
         this.Instr(String.Format(instruction, _context.RegSet.NameOf(reg)), comment=comment)
@@ -110,7 +110,7 @@ type AsmBuilder(_context: TranslationContext) =
         then
             _asm.Append(dst.Asm.Value)
                 .AsUnit()
-        
+
         this.Instr(instruction, src, dst.Addr, ?comment=comment)
 
 
@@ -120,18 +120,18 @@ type AsmBuilder(_context: TranslationContext) =
         then
             _asm.Append(src.Asm.Value)
                 .AsUnit()
-        
+
         this.Instr(instruction, src.Addr, dst, ?comment=comment)
 
 
     member this.Single(instruction: string, value: obj, reg: Reg, ?comment: string): string =
         this.Instr(String.Format(instruction, value, _context.RegSet.NameOf(reg)), comment=comment).ToString()
 
-        
+
     member this.Addr(instruction: string, value: obj): string =
         String.Format(instruction, value)
 
-        
+
     member this.Addr(instruction: string, value: obj, reg: Reg): string =
         String.Format(instruction, value, _context.RegSet.NameOf(reg))
 
@@ -155,55 +155,55 @@ type AsmBuilder(_context: TranslationContext) =
     member this.Jnz(label: Label, ?comment: string) =
         this.Jmp("jnz ", label, ?comment=comment)
 
-        
+
     member this.Label(label: Label, ?comment: string) =
         let label_name = _context.LabelGen.NameOf(label)
         _asm.AppendFormat("{0}:", label_name)
             .AsUnit()
         this.Ln(?comment=comment, line_len=label_name.Length + 1)
-        
-        
+
+
     member this.Label(label: string) =
         _asm.AppendFormat("{0}:", label)
             .AsUnit()
         this.Ln()
-        
-        
+
+
      member this.Location(offset: uint32, ?length: uint32) =
          if offset = UInt32.MaxValue
          then
              this
          else
              let max_length = 20u
-             
+
              let length, shortified =
                  match length with
                  | None        -> max_length, true
                  | Some length -> if length <= max_length
                                   then length, false
                                   else max_length, true
-                                  
+
              let location = _context.Source.Map(offset)
-             
+
              let slice_start = offset
              // A slice is a closed interval, so we subtract one
              // to make `slice_end` point to the last char instead of past it.
              let slice_end = offset + length - 1u
-                            
+
              let code_slice = _context.Source[slice_start .. slice_end]
                                              .Replace("\r", "")
                                              .Replace("\n", " \\n ")
              let code_slice = if shortified
                               then code_slice + " ..."
                               else code_slice
- 
+
              this.Comment(String.Format("{0}({1},{2}): {3}",
                                    location.FileName,
                                    location.Line,
                                    location.Col,
-                                   code_slice))        
-        
-        
+                                   code_slice))
+
+
     member this.Location(span: Span) =
         this.Location(span.First, span.Last - span.First)
 
@@ -242,8 +242,8 @@ type AsmBuilder(_context: TranslationContext) =
     member this.RtCopyObject(proto_reg: Reg, copy_reg: Reg): AsmBuilder =
         this.RtCopyObject(proto=_context.RegSet.NameOf(proto_reg),
                           copy_reg=copy_reg)
-    
-    
+
+
     member this.RtCopyObject(proto: string, ?copy_reg: Reg): AsmBuilder =
         let asm =
             this.PushCallerSavedRegs()
@@ -256,29 +256,29 @@ type AsmBuilder(_context: TranslationContext) =
             asm.Instr("movq    %rax, {0}", copy_reg)
         | None ->
             asm
-            
-            
+
+
     member this.RtAreEqual(left_reg: Reg, right_reg: Reg): AsmBuilder =
         this.PushCallerSavedRegs()
             .Instr("movq    {0}, %rdi", left_reg, comment="left")
             .Instr("movq    {0}, %rsi", right_reg, comment="right")
             .Instr("call    {0}", RtNames.RtAreEqual)
             .PopCallerSavedRegs()
-        
-        
+
+
     member this.StringConcatOp(concat_span: Span,
                                left_str_reg: Reg,
                                right_str_reg: Reg,
                                result_reg: Reg)
                               : AsmBuilder =
-        
+
         // Calling `String.concat` directly behaves as a normal method call.
         // But in Scala, `left_str + right_str` never fails, and instead
         // replaces `null` operand(s) with `"null"` string literal.
         // We choose to be consistent with Scala.
         let left_str_is_some_label = this.Context.LabelGen.Generate("LEFT_STR_IS_SOME")
         let right_str_is_some_label = this.Context.LabelGen.Generate("RIGHT_STR_IS_SOME")
-        
+
         this.Instr("testq   {0}, {0}", left_str_reg)
             .Jnz(left_str_is_some_label)
             .Instr("movq    ${0}, {1}", _context.StrConsts.GetOrAdd("null"),
@@ -295,7 +295,7 @@ type AsmBuilder(_context: TranslationContext) =
             .Instr("call    {0}", RtNames.StringConcat)
             .PopCallerSavedRegs()
             .Instr("movq    %rax, {0}", result_reg)
-    
+
 
     member this.GenGCHandleAssign(dest_addr_frag: AddrFragment): AsmBuilder =
         this.PushCallerSavedRegs()
@@ -315,8 +315,8 @@ type AsmBuilder(_context: TranslationContext) =
         // TODO: If the number of pushed regs is odd,
         //       should `subq $8, %rsp` to align the stack by 16 bytes?
         this
-            
-            
+
+
     member this.PopCallerSavedRegs(): AsmBuilder =
         // TODO: If the number of pushed regs was odd,
         //       should `addq $8, %rsp` to compensate
@@ -324,11 +324,11 @@ type AsmBuilder(_context: TranslationContext) =
         while _pushed_caller_saved_regs.Count > 0 do
             let reg = _pushed_caller_saved_regs.Pop()
             this.Instr("popq    {0}", reg, ?comment=None).AsUnit()
-                
+
         _pushed_caller_saved_regs.Clear()
         this
-        
-        
+
+
     // Line end
     member this.Ln(?comment: string, ?line_len: int): AsmBuilder =
         if comment.IsSome
@@ -340,19 +340,19 @@ type AsmBuilder(_context: TranslationContext) =
                                String(' ', Math.Max(comment_col - line_len, 1))
             _asm.AppendFormat("{0}# {1}", left_pad, comment.Value.ToString())
                 .AsUnit()
-                
+
         _asm.AppendLine()
             .AsUnit()
         this
-        
-        
+
+
     override this.ToString() : string = _asm.ToString()
     member this.AsUnit() : unit = ()
 
 
 module AsmFragments =
-    
-    
+
+
     [<Struct; IsReadOnly>]
     type PatternAsmInfo =
         { Label: Label
@@ -829,3 +829,26 @@ module AsmFragments =
                 .Paste(equal_branch_asm)
                 .Label(done_label, "done")
                 .ToString()
+
+
+        member this.BeginPredefinedObj(label: string,
+                                       tag_name: string,
+                                       size_in_quads: int,
+                                       class_name: TYPENAME)
+                                       : AsmBuilder =
+            this.Ln()
+                .Directive(".quad EYE_CATCH", comment=None)
+                .Directive(".global {0}", label)
+                .Label(label)
+                // Tag
+                .Directive(".quad {0}", tag_name, comment="tag")
+                // Object size in quads
+                .Directive(".quad {0}", size_in_quads, comment="size in quads")
+                // Addr of the vtable
+                .Directive(".quad {0}_VTABLE", class_name)
+
+
+        member this.CompletePredefinedObj(pad_size: int): AsmBuilder =
+            if pad_size > 0
+            then this.Directive(".zero {0}", pad_size, comment="align by 8 bytes")
+            else this

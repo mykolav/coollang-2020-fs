@@ -10,14 +10,14 @@ open LibCool.TranslatorParts.AsmFragments
 
 
 [<Sealed>]
-type private ClassMethodsTranslator(_context: TranslationContext,
-                                    _class_syntax: ClassSyntax) as this =
-    
-    
+type private MethodsTranslator(_context: TranslationContext,
+                               _class_syntax: ClassSyntax) as this =
+
+
     let _sym_table = SymbolTable(_context.ClassSymMap[_class_syntax.NAME.Syntax])
     let _expr_translator = ExprTranslator(_context, _class_syntax, _sym_table)
 
-    
+
     let translateAttrInit (attr_node: AstNode<AttrSyntax>): LcResult<string> =
         let initial_node = attr_node.Syntax.Initial
         let expr_node =
@@ -26,7 +26,7 @@ type private ClassMethodsTranslator(_context: TranslationContext,
                 AstNode.Of(expr_syntax, initial_node.Span)
             | AttrInitialSyntax.Native ->
                 invalidOp "AttrInitialSyntax.Native"
-                
+
         let initial_frag = _expr_translator.Translate(expr_node)
         match initial_frag with
         | Error ->
@@ -58,8 +58,8 @@ type private ClassMethodsTranslator(_context: TranslationContext,
             _context.RegSet.Free(addr_frag.Reg)
 
             Ok asm
-    
-    
+
+
     let translateCtorBody (): LcResult<string> =
 
         let asm = this.EmitAsm()
@@ -74,7 +74,7 @@ type private ClassMethodsTranslator(_context: TranslationContext,
         //     (as a result, the last block's last expr's type doesn't have to match the class' type)
 
         _sym_table.AddFormal(Symbol.This(_class_syntax))
-        
+
         // By a cruel twist of fate, you can't say `this.ID = ...` in Cool2020.
         // Gotta be creative and prefix formal names with "."
         // to avoid shadowing attr names by the ctor's formal names.
@@ -82,13 +82,13 @@ type private ClassMethodsTranslator(_context: TranslationContext,
             let sym = Symbol.Of(formal_node=vf_node.Map(fun vf -> vf.AsFormalSyntax(id_prefix=".")),
                                 index=_sym_table.Frame.ActualsCount)
             _sym_table.AddFormal(sym))
-        
+
         // We're entering .ctor's body, which is a block.
         _sym_table.EnterBlock()
-        
+
         // Assign values passed as varformals to attrs derived from them.
         // We do it before invoking `super..ctor`,
-        // as the code may be passing attrs derived from varformals as actuals to `super..ctor`. 
+        // as the code may be passing attrs derived from varformals as actuals to `super..ctor`.
         _class_syntax.VarFormals
         |> Seq.iter (fun vf_node ->
             let attr_name = vf_node.Syntax.ID.Syntax.Value
@@ -102,10 +102,10 @@ type private ClassMethodsTranslator(_context: TranslationContext,
             | Ok assign_frag ->
                 _context.RegSet.Free(assign_frag.Reg)
                 asm.Paste(assign_frag.Asm).AsUnit()
-        
+
             _context.RegSet.AssertAllFree()
         )
-        
+
         _context.RegSet.AssertAllFree()
 
         // Invoke the super's .ctor with actuals from the extends syntax
@@ -114,14 +114,14 @@ type private ClassMethodsTranslator(_context: TranslationContext,
         let super_dispatch_syntax = ExprSyntax.SuperDispatch (
                                         method_id=AstNode.Virtual(ID ".ctor"),
                                         actuals=extends_syntax.Actuals)
-        
+
         let super_dispatch_frag = _expr_translator.Translate(AstNode.Virtual(super_dispatch_syntax))
         match super_dispatch_frag with
         | Error -> ()
         | Ok super_dispatch_frag ->
             _context.RegSet.Free(super_dispatch_frag.Reg)
             asm.Paste(super_dispatch_frag.Asm).AsUnit()
-            
+
         _context.RegSet.AssertAllFree()
 
         // Assign initial values to attributes declared in the class.
@@ -156,17 +156,17 @@ type private ClassMethodsTranslator(_context: TranslationContext,
         let this_syntax = ExprSyntax.This
         let this_frag = _expr_translator.Translate(AstNode.Virtual(this_syntax))
                                         .Value
-        
+
         asm.Paste(this_frag.Asm)
            .Instr("movq    {0}, %rax", this_frag.Reg, comment="this")
            .AsUnit()
 
         _context.RegSet.Free(this_frag.Reg)
         _sym_table.LeaveBlock()
-        
+
         Ok (asm.ToString())
-    
-    
+
+
     let translateMethodBody (method_syntax: MethodSyntax): LcResult<string> =
         let mutable override_ok = true
 
@@ -174,7 +174,7 @@ type private ClassMethodsTranslator(_context: TranslationContext,
         then
             let super_sym = _context.ClassSymMap[_class_syntax.ExtendsSyntax.SUPER.Syntax]
             let overridden_method_sym = super_sym.Methods[method_syntax.ID.Syntax]
-            
+
             if overridden_method_sym.Formals.Length <> method_syntax.Formals.Length
             then
                 _context.Diags.Error(
@@ -184,7 +184,7 @@ type private ClassMethodsTranslator(_context: TranslationContext,
                     $"number of formals %d{overridden_method_sym.Formals.Length}",
                     method_syntax.ID.Span)
                 override_ok <- false
-                
+
             overridden_method_sym.Formals |> Array.iteri (fun i overridden_formal_sym ->
                 let formal = method_syntax.Formals[i].Syntax
                 if overridden_formal_sym.Type <> formal.TYPE.Syntax
@@ -211,15 +211,15 @@ type private ClassMethodsTranslator(_context: TranslationContext,
         then
             Error
         else
-            
+
         // Add the method's formal parameters to the symbol table.
         _sym_table.AddFormal(Symbol.This(_class_syntax))
-        
+
         method_syntax.Formals
         |> Seq.iter (fun formal_node ->
             let sym = Symbol.Of(formal_node, index=_sym_table.Frame.ActualsCount)
             _sym_table.AddFormal(sym))
-        
+
         // Translate the method's body
         let body_frag = _expr_translator.Translate(method_syntax.Body)
         match body_frag with
@@ -253,7 +253,7 @@ type private ClassMethodsTranslator(_context: TranslationContext,
                 Ok (asm.Instr("movq    {0}, %rax", body_frag.Reg)
                        .ToString())
 
-        
+
     let translateMethod (method_name: string)
                         (method_span: Span)
                         (translate_body: unit -> LcResult<string>)
@@ -261,7 +261,7 @@ type private ClassMethodsTranslator(_context: TranslationContext,
         _context.RegSet.AssertAllFree()
         _sym_table.EnterMethod()
 
-        let body_frag = translate_body ()        
+        let body_frag = translate_body ()
         match body_frag with
         | Error ->
             Error
@@ -273,8 +273,8 @@ type private ClassMethodsTranslator(_context: TranslationContext,
             _context.RegSet.AssertAllFree()
 
             Ok asm
-    
-    
+
+
     member private this.EmitAsm(): AsmBuilder = AsmBuilder(_context)
 
 
@@ -282,19 +282,19 @@ type private ClassMethodsTranslator(_context: TranslationContext,
         _context.RegSet.AssertAllFree()
 
         let asm = this.EmitAsm()
-        
+
         let ctor_name = $"{_class_syntax.NAME.Syntax}..ctor"
         let ctor_span = if _class_syntax.VarFormals.Length > 0
                         then Span.Of(_class_syntax.NAME.Span.First,
                                      _class_syntax.VarFormals[_class_syntax.VarFormals.Length - 1].Span.Last)
                         else _class_syntax.NAME.Span
-            
+
         let method_frag = translateMethod ctor_name ctor_span translateCtorBody
         match method_frag with
         | Error -> ()
         | Ok method_frag ->
             asm.Paste(method_frag).AsUnit()
-            
+
         for feature_node in _class_syntax.Features do
             match feature_node with
             | { Syntax = FeatureSyntax.Method method_syntax } ->
@@ -310,5 +310,5 @@ type private ClassMethodsTranslator(_context: TranslationContext,
             | _ -> ()
 
         _context.RegSet.AssertAllFree()
-        
+
         asm.ToString()

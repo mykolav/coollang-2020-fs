@@ -20,36 +20,43 @@ module MemLayoutFacts =
 // We don't use any suffix for offsets.
 module ObjLayoutFacts =
     let ElemSize = 8
+    // tag slot + size slot + vtable slot
+    let HeaderSizeInQuads = 3
 
     let Tag = 0
     let TagConst = "OBJ_TAG"
+    let TagSlotSize = 8
 
     let Size = 8
     let SizeConst = "OBJ_SIZE"
+    let SizeSlotSize = 8
 
     let VTable = 16
     let VTableConst = "OBJ_VTAB"
+    let VTableAddrSlotSize = 8
 
     let Attrs = 24
     let AttrsConst = "OBJ_ATTR"
-        
+
     let StringLength = 24
     let StringLengthConst = "STR_LEN"
 
     let StringContent = 32
     let StringContentConst = "STR_VAL"
-    
+
     let ArrayLength = 24
     let ArrayLengthConst = "ARR_LEN"
 
     let ArrayItems = 32
     let ArrayItemsConst = "ARR_ITEMS"
-    
+
     let BoolValue = 24
     let BoolValueConst = "BOOL_VAL"
 
     let IntValue = 24
     let IntValueConst = "INT_VAL"
+    let IntValueSlotSize = 8
+
 
 
 // All offsets and sizes are given in bytes.
@@ -57,9 +64,9 @@ module ObjLayoutFacts =
 // We don't use any suffix for offsets.
 module FrameLayoutFacts =
     let ElemSize = 8
-    
+
     let CalleeSavedRegsSize = SysVAmd64AbiFacts.CalleeSavedRegs.Length * ElemSize
-    
+
     // skip saved %rbp, and return addr
     let ActualsInCallerFrame = 2 * ElemSize
     let Actuals = 0
@@ -73,17 +80,17 @@ module IntConstFacts =
 
 module RtNames =
     let ClassParentMap = "CLASS_PARENT_MAP"
-    
+
     let BoolFalse = "Boolean_FALSE"
     let BoolTrue = "Boolean_TRUE"
-    
+
     let UnitValue = "Unit_VALUE"
-    
+
     let RtCopyObject = ".Runtime.copy_object"
     let RtAreEqual = ".Runtime.are_equal"
     let RtAbortMatch = ".Runtime.abort_match"
     let RtAbortDispatch = ".Runtime.abort_dispatch"
-    
+
     let StringConcat = "String.concat"
 
     let IntGetOrCreate = "Int.get_or_create"
