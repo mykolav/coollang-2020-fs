@@ -22,18 +22,34 @@ module ObjLayoutFacts =
     let ElemSize = 8
 
     let Tag = 0
+    let TagConst = "OBJ_TAG"
+
     let Size = 8
+    let SizeConst = "OBJ_SIZE"
+
     let VTable = 16
+    let VTableConst = "OBJ_VTAB"
+
     let Attrs = 24
+    let AttrsConst = "OBJ_ATTR"
         
     let StringLength = 24
+    let StringLengthConst = "STR_LEN"
+
     let StringContent = 32
+    let StringContentConst = "STR_VAL"
     
     let ArrayLength = 24
+    let ArrayLengthConst = "ARR_LEN"
+
     let ArrayItems = 32
+    let ArrayItemsConst = "ARR_ITEMS"
     
     let BoolValue = 24
+    let BoolValueConst = "BOOL_VAL"
+
     let IntValue = 24
+    let IntValueConst = "INT_VAL"
 
 
 // All offsets and sizes are given in bytes.

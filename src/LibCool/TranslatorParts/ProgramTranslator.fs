@@ -69,7 +69,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                     .Directive(".global {0}", int_const.Label)
                     .Label(int_const.Label)
                     // Tag
-                    .Directive(".quad {0}", BasicClasses.Int.Tag, comment="tag")
+                    .Directive(".quad INT_TAG", comment=Some "tag")
                     // Object size in quads
                     .Directive(".quad {0}", int_object_size_in_quads, comment="size in quads")
                     // Addr of the vtable
@@ -116,7 +116,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                     .Directive(".global {0}", str_const.Label)
                     .Label(str_const.Label)
                     // Tag
-                    .Directive(".quad {0}", BasicClasses.String.Tag, comment="tag")
+                    .Directive(".quad STRING_TAG", comment=Some "tag")
                     // Object size in quads
                     .Directive(".quad {0}", str_object_size_in_quads, comment="size in quads")
                     // Addr of the vtable
@@ -129,7 +129,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
         // String content encoded in UTF8
         if ascii_bytes.Length > 0
         then
-            asm.Directive(".byte {0}", (String.Join(", ", ascii_bytes)))
+            asm.Directive(".byte {0}", String.Join(", ", ascii_bytes))
                .AsUnit()
                 
         // String terminator
@@ -299,6 +299,28 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                 .AppendLine( "    .global .MemoryManager.IS_TESTING")
                 .AppendLine( ".MemoryManager.IS_TESTING:      .quad 0")
                 .AppendLine()
+                .AppendLine("EYE_CATCH        = -1")
+                .AppendLine()
+                .AppendLine("# Tags")
+                .AppendLine("UNIT_TAG         = 1")
+                .AppendLine("INT_TAG          = 2")
+                .AppendLine("STRING_TAG       = 3")
+                .AppendLine("BOOLEAN_TAG      = 4")
+                .AppendLine("ARRAYANY_TAG     = 5")
+                .AppendLine("IO_TAG           = 6")
+                .AppendLine()
+                .AppendLine("# Offsets")
+                .AppendLine("OBJ_EYE_CATCH    = -8")
+                .AppendLine("OBJ_TAG          = 0")
+                .AppendLine("OBJ_SIZE         = 8")
+                .AppendLine("OBJ_VTAB         = 16")
+                .AppendLine("OBJ_ATTR         = 24")
+                .AppendLine("STR_LEN          = 24")
+                .AppendLine("STR_VAL          = 32")
+                .AppendLine("ARR_LEN          = 24")
+                .AppendLine("ARR_ITEMS        = 32")
+                .AppendLine("BOOL_VAL         = 24")
+                .AppendLine("INT_VAL          = 24")
                 .Append(_sb_data.ToString())
                 .AppendLine()
                 .AppendLine("    .text")
