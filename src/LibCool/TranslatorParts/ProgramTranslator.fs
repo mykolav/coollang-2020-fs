@@ -149,7 +149,7 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
     let emitConsts (): unit =
         // Add class names to string constants -- class name table needs these.
         _context.ClassSymMap.Values
-            |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
+            |> Seq.where (_.IsAllowedInUserCode)
             |> Seq.iter (fun class_sym -> _context.StrConsts.GetOrAdd(class_sym.Name.Value) |> ignore)
         
         // Translate.
@@ -167,8 +167,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                     .Label("CLASS_NAME_MAP")
 
         _context.ClassSymMap.Values
-        |> Seq.sortBy (fun class_sym -> class_sym.Tag)
-        |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
+        |> Seq.sortBy (_.Tag)
+        |> Seq.where (_.IsAllowedInUserCode)
         |> Seq.iter (fun class_sym ->
                let name_const_label = _context.StrConsts.GetOrAdd(class_sym.Name.Value)
                asm.Directive(".quad {0}", name_const_label, comment=class_sym.Name.Value).AsUnit())
@@ -183,8 +183,8 @@ type private ProgramTranslator(_program_syntax: ProgramSyntax,
                     .Label(RtNames.ClassParentMap)
 
         _context.ClassSymMap.Values
-        |> Seq.sortBy (fun class_sym -> class_sym.Tag)
-        |> Seq.where (fun class_sym -> not class_sym.IsSpecial)
+        |> Seq.sortBy (_.Tag)
+        |> Seq.where (_.IsAllowedInUserCode)
         |> Seq.iter (fun class_sym ->
                if class_sym.Is(BasicClasses.Any)
                then

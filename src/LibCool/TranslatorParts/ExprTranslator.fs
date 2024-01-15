@@ -1109,7 +1109,7 @@ type private ExprTranslator(_context: TranslationContext,
         if _context.ClassSymMap.ContainsKey(ty_node.Syntax)
         then
             let class_sym = _context.ClassSymMap[ty_node.Syntax]
-            if class_sym.IsSpecial
+            if not class_sym.IsAllowedInUserCode
             then
                 _context.Diags.Error(
                     $"The type name '{ty_node.Syntax}' is not allowed in user code",

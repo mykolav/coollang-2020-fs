@@ -60,7 +60,7 @@ type ClassSymbol =
       SyntaxSpan: Span }
     
     
-    member this.IsSpecial: bool = this.Tag = -1
+    member this.IsAllowedInUserCode: bool = this.Tag <> -1
     member this.IsVirtual: bool = this.SyntaxSpan = Span.Virtual
     
     
@@ -74,7 +74,7 @@ type ClassSymbol =
                           ?methods: MethodSymbol[]): ClassSymbol =
         let method_map = Dictionary<ID, MethodSymbol>()
 
-        let (super_name, super_methods) =
+        let super_name, super_methods =
             match super with
             | Some sym -> sym.Name, sym.Methods.Values
             | None -> TYPENAME "", Seq.empty

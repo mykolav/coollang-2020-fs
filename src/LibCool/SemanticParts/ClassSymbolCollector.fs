@@ -46,8 +46,8 @@ type private InheritanceChain() =
         let subchain =
             _ancestry_map.Values
             |> Seq.where (fun it -> it.Distance >= start_distance)
-            |> Seq.sortBy (fun it -> it.Distance)
-            |> Seq.map (fun it -> it.Syntax)
+            |> Seq.sortBy (_.Distance)
+            |> Seq.map (_.Syntax)
         Array.ofSeq subchain
 
 
@@ -73,7 +73,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         // Make sure it's not a reference to a system class that is not allowed in user code.
         if _class_sym_map.ContainsKey(class_name) &&
            (let class_sym = _class_sym_map[class_name]
-            class_sym.IsSpecial && not class_sym.IsError)
+            not class_sym.IsAllowedInUserCode && not class_sym.IsError)
         then
             _diags.Error(
                 $"The type name '{class_name_node.Syntax}' is not allowed in user code",
@@ -283,7 +283,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
           Ctor = mkCtorSym class_syntax
           Attrs = attr_syms
           Methods = method_syms
-          Tag = _class_sym_map.Values |> Seq.where (fun it -> it.Tag <> -1) |> Seq.length
+          Tag = _class_sym_map.Values |> Seq.where (_.IsAllowedInUserCode) |> Seq.length
           SyntaxSpan = class_node.Span }
         
         
@@ -321,7 +321,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         if _class_sym_map.ContainsKey(class_name)
         then
             let class_sym = _class_sym_map[class_name_node.Syntax]
-            if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
+            if not class_sym.IsAllowedInUserCode && not class_sym.IsError
             then
                 _diags.Error(
                     $"The type name '{class_name_node.Syntax}' is not allowed in user code",
@@ -345,7 +345,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         match result with
         | Error ->
             SpecialClasses.Error
-        | Ok result ->
+        | Ok _ ->
 
         // We didn't collect a symbol for this class previously.
         // And we aren't in an inheritance cycle.
@@ -389,7 +389,7 @@ type ClassSymbolCollector(_program_syntax: ProgramSyntax,
         else
 
         let class_sym = _class_sym_map[class_name_node.Syntax]
-        if class_sym.Tag = -1 && class_sym <> SpecialClasses.Error
+        if not class_sym.IsAllowedInUserCode && not class_sym.IsError
         then
             _diags.Error(
                 $"The type name '{class_name_node.Syntax}' is not allowed in user code",
