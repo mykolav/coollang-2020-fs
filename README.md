@@ -346,7 +346,7 @@ GC_print_state()
 
 ## Install .NET 8 SDK
 
-The compiler is written in F#. F# is a .NET language. Rather predictably, a .NET SDK is a dependency.
+The compiler is written in F#. F# is a .NET language. In the light of these facts, it might not necessarily come as a surprise that a .NET SDK is a dependency.
 
 Get it from [the download page](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).  
 
