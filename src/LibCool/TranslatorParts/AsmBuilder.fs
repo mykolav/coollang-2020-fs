@@ -279,13 +279,13 @@ type AsmBuilder(_context: TranslationContext) =
         let left_str_is_some_label = this.Context.LabelGen.Generate("LEFT_STR_IS_SOME")
         let right_str_is_some_label = this.Context.LabelGen.Generate("RIGHT_STR_IS_SOME")
         
-        this.Instr("cmpq    $0, {0}", left_str_reg)
-            .Jne(left_str_is_some_label)
+        this.Instr("testq   {0}, {0}", left_str_reg)
+            .Jnz(left_str_is_some_label)
             .Instr("movq    ${0}, {1}", _context.StrConsts.GetOrAdd("null"),
                                         left_str_reg)
             .Label(left_str_is_some_label)
-            .Instr("cmpq    $0, {0}", right_str_reg)
-            .Jne(right_str_is_some_label)
+            .Instr("testq   {0}, {0}", right_str_reg)
+            .Jnz(right_str_is_some_label)
             .Instr("movq    ${0}, {1}", _context.StrConsts.GetOrAdd("null"),
                                         right_str_reg)
             .Label(right_str_is_some_label)
@@ -578,19 +578,20 @@ module AsmFragments =
             let try_match_label = this.Context.LabelGen.Generate("TRY_MATCH")
 
             this.Paste(expr_frag.Asm)
-                .Comment("handle null")
+                .Comment("check if the test expression is null ")
                 .Location(match_span)
-                .Instr("cmpq    $0, {0}", expr_frag.Reg)
-                .Jne(match_init_label)
+                .Instr("testq   {0}, {0}", expr_frag.Reg)
+                .Jnz(match_init_label)
                 .AsUnit()
 
             if pattern_asm_infos.ContainsKey(BasicClassNames.Null)
             then
                 let null_pattern_asm_info = pattern_asm_infos[BasicClassNames.Null]
-                this.Jmp(null_pattern_asm_info.Label)
+                this.Comment("go to the null test expression handling case")
+                    .Jmp(null_pattern_asm_info.Label)
                     .AsUnit()
             else
-                this.Comment("abort if the match value is null")
+                this.Comment("abort if the test expression is null")
                     .RtAbortMatch(expr_location, expr_reg=expr_frag.Reg)
                     .AsUnit()
 
@@ -658,7 +659,7 @@ module AsmFragments =
 
             this.Comment("actual #0")
                 .Paste(receiver_frag.Asm)
-                .Instr("testq    {0}, {0}", receiver_frag.Reg)
+                .Instr("testq   {0}, {0}", receiver_frag.Reg)
                 .Jnz(receiver_is_some_label)
                 .Comment("abort if the receiver is null")
                 .RtAbortDispatch(this.Context.Source.Map(dispatch_span.First))
@@ -819,8 +820,8 @@ module AsmFragments =
                 .RtAreEqual(left_reg=left_frag.Reg, right_reg=right_frag.Reg)
                 .Instr("movq    {0}(%rax), %rax", ObjLayoutFacts.BoolValue)
                 .Location(eqop_span)
-                .Instr("cmpq    $0, %rax", comment=None)
-                .Jne(equal_label, "equal")
+                .Instr("testq   %rax, %rax", comment=None)
+                .Jnz(equal_label, "equal")
                 .Comment("unequal")
                 .Paste(unequal_branch_asm)
                 .Jmp(done_label, "done")
