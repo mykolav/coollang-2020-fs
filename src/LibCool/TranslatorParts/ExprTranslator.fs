@@ -132,13 +132,20 @@ type private ExprTranslator(_context: TranslationContext,
     and translateUnaryMinus (unary_minus_node: AstNode<ExprSyntax>)
                             (negated_node: AstNode<ExprSyntax>)
                             : LcResult<AsmFragment> =
-        let negated_frag = translateUnaryOpOperand negated_node (*op=*)"-" (*expected_ty=*)BasicClasses.Int
-        match negated_frag with
-        | Error           -> Error
-        | Ok negated_frag ->
-            Ok { negated_frag with
-                   Asm = this.EmitAsm()
-                             .UnaryMinus(unary_minus_node.Span, negated_frag) }
+        match negated_node.Syntax with
+        | ExprSyntax.Int int_syntax ->
+            translateInt unary_minus_node (INT -int_syntax.Value)
+
+        | _ ->
+            let negated_frag = translateUnaryOpOperand negated_node
+                                                       (*op=*)"-"
+                                                       (*expected_ty=*)BasicClasses.Int
+            match negated_frag with
+            | Error           -> Error
+            | Ok negated_frag ->
+                Ok { negated_frag with
+                       Asm = this.EmitAsm()
+                                 .UnaryMinus(unary_minus_node.Span, negated_frag) }
 
 
     and translateIf (if_node: AstNode<ExprSyntax>)
