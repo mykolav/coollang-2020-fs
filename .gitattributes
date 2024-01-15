@@ -1,12 +1,15 @@
-docs/*                    linguist-documentation
-misc/*                    linguist-documentation
-sandbox/*                 linguist-documentation
+*.inc linguist-language=Unix-Assembly
+*.cool linguist-language=Scala
 
-*.mips                    linguist-vendored
-*.asm                     linguist-vendored
+# These files aren't really vendored of course.
+# It's just a work-around to keep F# the repository's
+# primary language. To the best of my knowledge,
+# there is no config setting to specify the primary
+# language directly.
+
+docs/*                    linguist-documentation
+misc/*                    linguist-vendored
 
 src/Runtime/rt_gen_gc.s   linguist-vendored
 src/Runtime/rt_gen_gc2.s  linguist-vendored
 
-*.inc linguist-language=Unix Assembly
-*.cool linguist-language=Scala
