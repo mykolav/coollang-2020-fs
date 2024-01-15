@@ -150,7 +150,11 @@ type AsmBuilder(_context: TranslationContext) =
 
     member this.Jne(label: Label, ?comment: string) =
         this.Jmp("jne ", label, ?comment=comment)
-        
+
+
+    member this.Jnz(label: Label, ?comment: string) =
+        this.Jmp("jnz ", label, ?comment=comment)
+
         
     member this.Label(label: Label, ?comment: string) =
         let label_name = _context.LabelGen.NameOf(label)
@@ -654,8 +658,8 @@ module AsmFragments =
 
             this.Comment("actual #0")
                 .Paste(receiver_frag.Asm)
-                .Instr("cmpq    $0, {0}", receiver_frag.Reg)
-                .Jne(receiver_is_some_label)
+                .Instr("testq    {0}, {0}", receiver_frag.Reg)
+                .Jnz(receiver_is_some_label)
                 .Comment("abort if the receiver is null")
                 .RtAbortDispatch(this.Context.Source.Map(dispatch_span.First))
                 .Label(receiver_is_some_label)
