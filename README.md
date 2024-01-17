@@ -5,7 +5,7 @@
 > :snail:  
 > Hey, check out [my blog posts](https://mykolam.net/tags/compilers/) on compilers in general and this one in particular.
 
-The project is purely for fun and it's, honestly, just another toy compiler. That said, here's a couple things that might set it apart.
+The project is purely for fun and it's, quite frankly, just another toy compiler. That said, here's a couple things that might set it apart.
 
 ## The [language](#cool-2020) is concise but retains a degree of expressivity
 
