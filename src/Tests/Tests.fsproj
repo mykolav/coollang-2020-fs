@@ -22,8 +22,8 @@
         <Compile Include="Parser\CoolSnippets.fs" />
         <Compile Include="Parser\CodeSnippetAsserts.fs" />
         <Compile Include="Parser\ParserTests.fs" />
-        <Compile Include="Compiler\ClcRunner.fs" />
         <Compile Include="Compiler\CompilerTestCase.fs" />
+        <Compile Include="Compiler\CoolProgram.fs" />
         <Compile Include="Compiler\Asserts.fs" />
         <Compile Include="Compiler\CompilerTests.fs" />
         <Compile Include="Compiler\Sandbox.fs" />

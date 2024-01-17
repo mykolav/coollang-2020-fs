@@ -10,7 +10,6 @@ open LibCool.DriverParts
 open LibCool.SourceParts
 open LibCool.ParserParts
 open Tests.Parser
-open Tests.Compiler.ClcRunner 
 
 
 type Sandbox(_test_output: ITestOutputHelper) =
@@ -20,7 +19,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
         // We want to change the current directory to 'Tests/CoolBuild'.
         CompilerTestCaseSource.CwdCoolBuild()
 
-    
+
     let parse (path: string): ProgramSyntax voption =
         // Prepare
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
@@ -51,14 +50,14 @@ type Sandbox(_test_output: ITestOutputHelper) =
             ValueSome ast
 
         let ast_opt = doParse()
-        
+
         DiagRenderer.Render(diagnostic_bag,
                             source,
                             { new IWriteLine with
                                 member _.WriteLine(line: string) =
                                     _test_output.WriteLine(line)})
         ast_opt
-        
+
 
     [<Fact>]
     member _.``Print ast``() =
@@ -84,7 +83,7 @@ type Sandbox(_test_output: ITestOutputHelper) =
         let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, "Runtime/Life.cool")
 
         // Act
-        let clc_output = runClcInProcess ([ path; "-S" ])
-        
+        let clc_output = ClcRunner.runInProcess [ path; "-S" ]
+
         _test_output.WriteLine("===== clc: =====")
         _test_output.WriteLine(clc_output)

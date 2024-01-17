@@ -3,12 +3,10 @@ namespace Tests.GenGC
 
 open System.IO
 open System.Runtime.CompilerServices
-open LibCool.SharedParts
 open Tests.Support
 open Xunit
 open Xunit.Abstractions
 open Tests.Compiler
-open Tests.Compiler.ClcRunner
 
 
 [<Sealed; AbstractClass; Extension>]
@@ -40,8 +38,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``When no allocs/collections the heap state doesn't change``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc1.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/NoAlloc1.cool")
 
         // Assert
         Assert.That(state_infos[1]).IsEqualTo(state_infos[0])
@@ -51,8 +48,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``When no allocs/collections in a loop the heap state doesn't change``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc3.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/NoAlloc3.cool")
 
         // Assert
         let expected_state_info = state_infos[0]
@@ -66,8 +62,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``When no allocs collection doesn't change the heap state``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc2.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/NoAlloc2.cool")
 
         // Assert
         // We don't expect the histories to be the same as
@@ -79,8 +74,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``When no allocs collection in a loop doesn't change the heap state``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc4.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/NoAlloc4.cool")
 
         // Assert
         let expected_state_info = state_infos[0]
@@ -96,8 +90,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``An unreachable Gen0 object gets collected``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Gen0-Collected1.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Gen0-Collected1.cool")
 
         // Assert
         let initial_state = state_infos[0]
@@ -120,8 +113,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``Unreachable Gen0 objects in a loop get collected``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Gen0-Collected2.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Gen0-Collected2.cool")
 
         // Assert
         let initial_state = state_infos[0]
@@ -153,8 +145,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``A reachable Gen0 object gets promoted``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Gen0-Promoted1.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Gen0-Promoted1.cool")
 
         // Assert
         let initial_state = state_infos[0]
@@ -178,8 +169,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``Reachable Gen0 objects in a loop get promoted``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Gen0-Promoted2.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Gen0-Promoted2.cool")
 
         // Assert
         let mutable i = 1
@@ -211,8 +201,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``Allocating Gen0 objects triggers a collection``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Alloc-Gen0-Triggers-Collection.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Alloc-Gen0-Triggers-Collection.cool")
 
         // Assert
         Assert.That(state_infos).Contains(fun it -> it.History.Minor0 <> 0)
@@ -222,8 +211,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``An unreachable cycle gets collected``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Cycle-Unreachable.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Cycle-Unreachable.cool")
 
         // Assert
         let initial_state = state_infos[0]
@@ -246,8 +234,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``A reachable cycle gets promoted``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Cycle-Reachable.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Cycle-Reachable.cool")
 
         // Assert
         let initial_state = state_infos[0]
@@ -271,8 +258,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``Promoting objects to Gen1 triggers a major collection``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Promoting-Triggers-Collection.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Promoting-Triggers-Collection.cool")
 
         // Assert
         Assert.That(state_infos).Contains(fun it -> it.History.Major0 <> 0)
@@ -282,8 +268,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``Unreachable Gen1 objects get collected``() =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun("Runtime/GenGC/Gen1-Collected.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun("Runtime/GenGC/Gen1-Collected.cool")
 
         // Assert
         let initial_state = state_infos[0]
@@ -302,8 +287,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
     member this.``No leaks``(source_file_name: string) =
         // Arrange
         // Act
-        let program_output = this.CompileAndRun($"Runtime/GenGC/{source_file_name}.cool")
-        let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+        let state_infos = this.CompileAndRun($"Runtime/GenGC/{source_file_name}.cool")
 
         // Assert
         let initial_state = state_infos[0]
@@ -318,24 +302,18 @@ type GenGCTests(test_output: ITestOutputHelper) =
               .IsEqualTo(0)
 
 
-    member private this.CompileAndRun(path: string): ProgramOutput =
-        // Build a program's path relative to the 'CoolBuild' folder.
-        let path = Path.Combine(CompilerTestCaseSource.ProgramsPath, path).Replace("\\", "/")
-
-        let snippet = File.ReadAllText(path)
-        let exe_file = Path.GetFileNameWithoutExtension(path) + ".exe"
+    member private this.CompileAndRun(path: string): GenGCStateInfo[] =
+        let test_program = CoolProgram.From(path)
+        let snippet = File.ReadAllText(test_program.SourcePath)
 
         // Compile
-        let clc_output = runClcInProcess [ path; "-o"; exe_file ]
+        let compiler_output = test_program.Compile()
 
         test_output.WriteLine("===== clc: =====")
-        test_output.WriteLine(clc_output)
+        test_output.WriteLine(compiler_output.Raw)
 
-        let compiler_output = CompilerOutput.Parse(clc_output)
-
-        // Ensure the compilation has succeeded.
         Assert.That(compiler_output).IsBuildSucceeded(snippet)
 
-        let std_output = ProcessRunner.Run(exe_name= $"./%s{exe_file}", args="")
-        let program_output = ProgramOutput.Parse(std_output)
-        program_output
+        // Run
+        let program_output = test_program.Run(std_input=[])
+        Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
