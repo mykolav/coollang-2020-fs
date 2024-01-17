@@ -38,7 +38,7 @@ type CompilerTests(test_output: ITestOutputHelper) =
         let compiler_output = CompilerOutput.Parse(clc_output)
 
         // Ensure the actual compilation results match the expected
-        CompilerTestAssert.Match(compiler_output, test_case.ExpectedDiags, test_case.Snippet)
+        Assert.That(compiler_output).IsExpectedBy(test_case)
 
         // Run
         for run in test_case.Runs do
@@ -47,4 +47,4 @@ type CompilerTests(test_output: ITestOutputHelper) =
             let program_output = ProgramOutput.Parse(std_output)
 
             // Ensure the actual execution results match the expected
-            CompilerTestAssert.Match(program_output, run.ExpectedOutput, test_case.Snippet)
+            Assert.That(program_output).IsExpectedBy(test_case, run)

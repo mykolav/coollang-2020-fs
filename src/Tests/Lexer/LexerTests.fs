@@ -23,7 +23,7 @@ type LexerTestCaseSource private () =
         tuples |> Array.map (fun (snippet, expected) ->
                                  [| { TokenTestCase.Snippet = Snippet(snippet)
                                       Expected = expected } :> obj |])
-        
+
 
     [<Literal>]
     static let qqqStringContent1 = "This starts a string literal\r\nthat continues on for several lines\neven though it includes \"'s and \\'s and newline characters\r\nin a \"wild\" profu\\sion\\\\ of normally i\\\\egal t\"ings.\\"
@@ -35,32 +35,32 @@ type LexerTestCaseSource private () =
         //
         // Whitespace
         //
-        "", [||] 
-        " ", [||] 
-        "  ", [||] 
-        "   ", [||] 
-        "    ", [||] 
-        "\t", [||] 
-        " \t", [||] 
-        " \t ", [||] 
-        "  \t  ", [||] 
-        "   \t   ", [||] 
-        "    \t    ", [||] 
-        "\t\t", [||] 
-        " \t\t", [||] 
-        " \t\t ", [||] 
-        "  \t\t  ", [||] 
-        "   \t\t   ", [||] 
-        "    \t\t    ", [||] 
-        "\t\t\t", [||] 
-        " \t\t\t", [||] 
-        " \t\t\t ", [||] 
-        "  \t\t\t  ", [||] 
-        "   \t\t\t   ", [||] 
-        "    \t\t\t    ", [||] 
-        " \t \t \t ", [||] 
-        "  \t  \t  \t  ", [||] 
-        "   \t   \t   \t   ", [||] 
+        "", [||]
+        " ", [||]
+        "  ", [||]
+        "   ", [||]
+        "    ", [||]
+        "\t", [||]
+        " \t", [||]
+        " \t ", [||]
+        "  \t  ", [||]
+        "   \t   ", [||]
+        "    \t    ", [||]
+        "\t\t", [||]
+        " \t\t", [||]
+        " \t\t ", [||]
+        "  \t\t  ", [||]
+        "   \t\t   ", [||]
+        "    \t\t    ", [||]
+        "\t\t\t", [||]
+        " \t\t\t", [||]
+        " \t\t\t ", [||]
+        "  \t\t\t  ", [||]
+        "   \t\t\t   ", [||]
+        "    \t\t\t    ", [||]
+        " \t \t \t ", [||]
+        "  \t  \t  \t  ", [||]
+        "   \t   \t   \t   ", [||]
         "    \t    \t    \t    ", [||]
         //
         // Identifiers
@@ -182,128 +182,128 @@ type LexerTestCaseSource private () =
         ";",   [| T.Semi |]
         ".",   [| T.Dot |]
         ",",   [| T.Comma |]
-        
+
         // Keywords
-        "case", [| T.Case |] 
-        "Case", [| T.ID("Case") |] 
+        "case", [| T.Case |]
+        "Case", [| T.ID("Case") |]
 
-        "class", [| T.Class |] 
-        "Class", [| T.ID("Class") |] 
+        "class", [| T.Class |]
+        "Class", [| T.ID("Class") |]
 
-        "def", [| T.Def |] 
-        "Def", [| T.ID("Def") |] 
+        "def", [| T.Def |]
+        "Def", [| T.ID("Def") |]
 
-        "else", [| T.Else |] 
-        "Else", [| T.ID("Else") |] 
+        "else", [| T.Else |]
+        "Else", [| T.ID("Else") |]
 
-        "extends", [| T.Extends |] 
-        "Extends", [| T.ID("Extends") |] 
+        "extends", [| T.Extends |]
+        "Extends", [| T.ID("Extends") |]
 
-        "false", [| T.False |] 
-        "False", [| T.ID("False") |] 
+        "false", [| T.False |]
+        "False", [| T.ID("False") |]
 
-        "if", [| T.If |] 
-        "If", [| T.ID("If") |] 
+        "if", [| T.If |]
+        "If", [| T.ID("If") |]
 
-        "match", [| T.Match |] 
-        "Match", [| T.ID("Match") |] 
+        "match", [| T.Match |]
+        "Match", [| T.ID("Match") |]
 
         "native", [| T.Native |]
         "Native", [| T.ID("Native") |]
 
-        "new", [| T.New |] 
-        "New", [| T.ID("New") |] 
+        "new", [| T.New |]
+        "New", [| T.ID("New") |]
 
-        "null", [| T.Null |] 
-        "Null", [| T.ID("Null") |] 
+        "null", [| T.Null |]
+        "Null", [| T.ID("Null") |]
 
-        "override", [| T.Override |] 
-        "Override", [| T.ID("Override") |] 
+        "override", [| T.Override |]
+        "Override", [| T.ID("Override") |]
 
-        "super", [| T.Super |] 
-        "Super", [| T.ID("Super") |] 
+        "super", [| T.Super |]
+        "Super", [| T.ID("Super") |]
 
-        "this", [| T.This |] 
-        "This", [| T.ID("This") |] 
+        "this", [| T.This |]
+        "This", [| T.ID("This") |]
 
-        "true", [| T.True |] 
-        "True", [| T.ID("True") |] 
+        "true", [| T.True |]
+        "True", [| T.ID("True") |]
 
-        "var", [| T.Var |] 
-        "Var", [| T.ID("Var") |] 
+        "var", [| T.Var |]
+        "Var", [| T.ID("Var") |]
 
-        "while", [| T.While |] 
-        "While", [| T.ID("While") |] 
+        "while", [| T.While |]
+        "While", [| T.ID("While") |]
 
         // Illegal/reserved keywords
-        "abstract", [| T.Abstract |] 
-        "Abstract", [| T.ID("Abstract") |] 
+        "abstract", [| T.Abstract |]
+        "Abstract", [| T.ID("Abstract") |]
 
-        "catch", [| T.Catch |] 
-        "Catch", [| T.ID("Catch") |] 
+        "catch", [| T.Catch |]
+        "Catch", [| T.ID("Catch") |]
 
-        "do", [| T.Do |] 
-        "Do", [| T.ID("Do") |] 
+        "do", [| T.Do |]
+        "Do", [| T.ID("Do") |]
 
-        "final", [| T.Final |] 
-        "Final", [| T.ID("Final") |] 
+        "final", [| T.Final |]
+        "Final", [| T.ID("Final") |]
 
-        "finally", [| T.Finally |] 
-        "Finally", [| T.ID("Finally") |] 
+        "finally", [| T.Finally |]
+        "Finally", [| T.ID("Finally") |]
 
-        "for", [| T.For |] 
-        "For", [| T.ID("For") |] 
+        "for", [| T.For |]
+        "For", [| T.ID("For") |]
 
-        "forSome", [| T.ForSome |] 
-        "ForSome", [| T.ID("ForSome") |] 
+        "forSome", [| T.ForSome |]
+        "ForSome", [| T.ID("ForSome") |]
 
-        "implicit", [| T.Implicit |] 
-        "Implicit", [| T.ID("Implicit") |] 
+        "implicit", [| T.Implicit |]
+        "Implicit", [| T.ID("Implicit") |]
 
-        "import", [| T.Import |] 
-        "Import", [| T.ID("Import") |] 
+        "import", [| T.Import |]
+        "Import", [| T.ID("Import") |]
 
-        "lazy", [| T.Lazy |] 
-        "Lazy", [| T.ID("Lazy") |] 
+        "lazy", [| T.Lazy |]
+        "Lazy", [| T.ID("Lazy") |]
 
-        "object", [| T.Object |] 
-        "Object", [| T.ID("Object") |] 
+        "object", [| T.Object |]
+        "Object", [| T.ID("Object") |]
 
-        "package", [| T.Package |] 
-        "Package", [| T.ID("Package") |] 
+        "package", [| T.Package |]
+        "Package", [| T.ID("Package") |]
 
-        "private", [| T.Private |] 
-        "Private", [| T.ID("Private") |] 
+        "private", [| T.Private |]
+        "Private", [| T.ID("Private") |]
 
-        "protected", [| T.Protected |] 
-        "Protected", [| T.ID("Protected") |] 
+        "protected", [| T.Protected |]
+        "Protected", [| T.ID("Protected") |]
 
-        "requires", [| T.Requires |] 
-        "Requires", [| T.ID("Requires") |] 
+        "requires", [| T.Requires |]
+        "Requires", [| T.ID("Requires") |]
 
-        "return", [| T.Return |] 
-        "Return", [| T.ID("Return") |] 
+        "return", [| T.Return |]
+        "Return", [| T.ID("Return") |]
 
-        "sealed", [| T.Sealed |] 
-        "Sealed", [| T.ID("Sealed") |] 
+        "sealed", [| T.Sealed |]
+        "Sealed", [| T.ID("Sealed") |]
 
-        "throw", [| T.Throw |] 
-        "Throw", [| T.ID("Throw") |] 
+        "throw", [| T.Throw |]
+        "Throw", [| T.ID("Throw") |]
 
-        "trait", [| T.Trait |] 
-        "Trait", [| T.ID("Trait") |] 
+        "trait", [| T.Trait |]
+        "Trait", [| T.ID("Trait") |]
 
-        "try", [| T.Try |] 
-        "Try", [| T.ID("Try") |] 
+        "try", [| T.Try |]
+        "Try", [| T.ID("Try") |]
 
-        "type", [| T.Type |] 
-        "Type", [| T.ID("Type") |] 
+        "type", [| T.Type |]
+        "Type", [| T.ID("Type") |]
 
-        "val", [| T.Val |] 
-        "Val", [| T.ID("Val") |] 
+        "val", [| T.Val |]
+        "Val", [| T.ID("Val") |]
 
-        "with", [| T.With |] 
-        "With", [| T.ID("With") |] 
+        "with", [| T.With |]
+        "With", [| T.ID("With") |]
 
         "yield", [| T.Yield |]
         "Yield", [| T.ID("Yield") |]
@@ -314,8 +314,8 @@ open Xunit
 
 
 type LexerTests() =
-    
-    
+
+
     [<Theory>]
     [<MemberData("TokenTestCases", MemberType=typeof<LexerTestCaseSource>)>]
     member _.Lex(tc: TokenTestCase) =
@@ -326,6 +326,6 @@ type LexerTests() =
 
         // Act
         let actual_tokens = TokenArray.ofLexer lexer
-        
+
         // Assert
-        AssertTokens.Equal(expected = expected_tokens, actual = actual_tokens)
+        Assert.That(actual_tokens).Match(expected_tokens)

@@ -1,25 +1,26 @@
 namespace Tests.Parser
 
+open System.Runtime.CompilerServices
 open System.Text
 open System.Text.RegularExpressions
 open Tests.Support
 
 
-[<Sealed>]
-type AssertSnippets private () =
+[<Sealed; AbstractClass; Extension>]
+type CodeSnippetAsserts private () =
+
+
     static let re_ws = Regex(@"\s+", RegexOptions.Compiled)
-    
-    
-    static let condense (input: string) : string =
-        let result = re_ws.Replace(input, "")
-        result
-        
-        
-    static member EqualIgnoringWhitespace(expected: string, actual: string) : unit =
-        let expected_condensed = condense expected
-        let actual_condensed = condense actual
+
+
+    [<Extension>]
+    static member IsEqualIgnoringWhitespaceTo(assert_that: IAssertThat<string>,
+                                              expected: string) : unit =
+        let expected_condensed = re_ws.Replace(expected, "")
+        let actual_condensed = re_ws.Replace(assert_that.Actual, "")
+
         if System.String.CompareOrdinal(expected_condensed, actual_condensed) <> 0
-        then do
+        then
             let message =
                 StringBuilder()
                     .AppendFormat("EXPECTED [CONDENSED LENGTH = {0}]: ", expected_condensed.Length)
@@ -28,6 +29,7 @@ type AssertSnippets private () =
                     .AppendLine()
                     .AppendFormat("ACTUAL [CONDENSED LENGTH = {0}]: ", actual_condensed.Length)
                     .AppendLine()
-                    .AppendLine(actual)
-                    .ToString();
-            AssertFail.With(message)
+                    .AppendLine(assert_that.Actual)
+                    .ToString()
+
+            Assert.It.Fails(message)

@@ -2,12 +2,30 @@ namespace Tests.GenGC
 
 
 open System.IO
+open System.Runtime.CompilerServices
 open LibCool.SharedParts
 open Tests.Support
 open Xunit
 open Xunit.Abstractions
 open Tests.Compiler
 open Tests.Compiler.ClcRunner
+
+
+[<Sealed; AbstractClass; Extension>]
+type GenGCStateInfoAsserts private () =
+
+
+    [<Extension>]
+    static member IsEqualIgnoringHistoryTo(assert_that: IAssertThat<GenGCStateInfo>,
+                                           expected: GenGCStateInfo): unit =
+        Assert.Equal(expected={ expected with History = GenGCHistory.Empty },
+                     actual  ={ assert_that.Actual with History = GenGCHistory.Empty })
+
+
+    [<Extension>]
+    static member Contains(assert_that: IAssertThat<GenGCStateInfo[]>,
+                           predicate: GenGCStateInfo -> bool): unit =
+        Assert.True(Array.exists predicate assert_that.Actual)
 
 
 type GenGCTests(test_output: ITestOutputHelper) =
@@ -24,8 +42,9 @@ type GenGCTests(test_output: ITestOutputHelper) =
         // Act
         let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc1.cool")
         let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
         // Assert
-        Assert.Equal(expected=state_infos[0], actual=state_infos[1])
+        Assert.That(state_infos[1]).IsEqualTo(state_infos[0])
 
 
     [<Fact>]
@@ -34,11 +53,12 @@ type GenGCTests(test_output: ITestOutputHelper) =
         // Act
         let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc3.cool")
         let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
         // Assert
         let expected_state_info = state_infos[0]
         let mutable i = 1
         while (i < state_infos.Length) do
-            Assert.Equal(expected=expected_state_info, actual=state_infos[i])
+            Assert.That(state_infos[i]).IsEqualTo(expected_state_info)
             i <- i + 1
 
 
@@ -48,12 +68,11 @@ type GenGCTests(test_output: ITestOutputHelper) =
         // Act
         let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc2.cool")
         let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
         // Assert
         // We don't expect the histories to be the same as
         // the history naturally changes after each collection.
-        Assert.Equal(expected=state_infos[0].HeapInfo, actual=state_infos[1].HeapInfo)
-        Assert.Equal(expected=state_infos[0].StackBase, actual=state_infos[1].StackBase)
-        Assert.Equal(expected=state_infos[0].AllocInfo, actual=state_infos[1].AllocInfo)
+        Assert.That(state_infos[1]).IsEqualIgnoringHistoryTo(state_infos[0])
 
 
     [<Fact>]
@@ -62,15 +81,14 @@ type GenGCTests(test_output: ITestOutputHelper) =
         // Act
         let program_output = this.CompileAndRun("Runtime/GenGC/NoAlloc4.cool")
         let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
+
         // Assert
         let expected_state_info = state_infos[0]
         let mutable i = 1
         while (i < state_infos.Length) do
             // We don't expect the histories to be the same as
             // the history naturally changes after each collection.
-            Assert.Equal(expected=expected_state_info.HeapInfo, actual=state_infos[i].HeapInfo)
-            Assert.Equal(expected=expected_state_info.StackBase, actual=state_infos[i].StackBase)
-            Assert.Equal(expected=expected_state_info.AllocInfo, actual=state_infos[i].AllocInfo)
+            Assert.That(state_infos[i]).IsEqualIgnoringHistoryTo(expected_state_info)
             i <- i + 1
 
 
@@ -95,8 +113,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
 
         // We don't expect the histories to be the same as
         // the history naturally changes after each collection.
-        Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
-                     actual  ={ collected_state with History = GenGCHistory.Empty })
+        Assert.That(collected_state).IsEqualIgnoringHistoryTo(initial_state)
 
 
     [<Fact>]
@@ -114,16 +131,20 @@ type GenGCTests(test_output: ITestOutputHelper) =
             let allocated_state = state_infos[i + 0]
             let collected_state = state_infos[i + 1]
 
-            Assert.Equal(expected=initial_state.HeapInfo, actual=allocated_state.HeapInfo)
+            // In this test case,
+            // the heap is not expected to get re-sized or re-arranged in any way.
+            Assert.That(allocated_state.HeapInfo)
+                  .IsEqualTo(initial_state.HeapInfo)
 
             // The test cool code is supposed to allocate 8 * 32 bytes.
-            Assert.Equal(expected=initial_state.AllocInfo.AllocPtr + 8L * 32L,
-                         actual  =allocated_state.AllocInfo.AllocPtr)
+            Assert.That(allocated_state.AllocInfo.AllocPtr)
+                  .IsEqualTo(initial_state.AllocInfo.AllocPtr + 8L * 32L)
 
+            // We expect the collection to remove all the allocated objects,
+            // reverting the heap to its initial state as a result.
             // We don't expect the histories to be the same as
             // the history naturally changes after each collection.
-            Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
-                         actual  ={ collected_state with History = GenGCHistory.Empty })
+            Assert.That(collected_state).IsEqualIgnoringHistoryTo(initial_state)
 
             i <- i + 2
 
@@ -141,16 +162,16 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let collected_state = state_infos[2]
 
         // The test cool code is supposed to allocate 32 bytes.
-        Assert.Equal(expected=initial_state.AllocInfo.AllocPtr + 32L,
-                     actual  =allocated_state.AllocInfo.AllocPtr)
+        Assert.That(allocated_state.AllocInfo.AllocPtr)
+              .IsEqualTo(initial_state.AllocInfo.AllocPtr + 32L)
 
         // The allocated object resides in Work Area prior to the collection.
-        Assert.Equal(expected=initial_state.HeapInfo,
-                     actual  =allocated_state.HeapInfo)
+        Assert.That(allocated_state.HeapInfo)
+              .IsEqualTo(initial_state.HeapInfo)
 
         // The allocated object should've been promoted.
-        Assert.Equal(expected=initial_state.HeapInfo.L1 + 32L,
-                     actual  =collected_state.HeapInfo.L1)
+        Assert.That(collected_state.HeapInfo.L1)
+              .IsEqualTo(initial_state.HeapInfo.L1 + 32L)
 
 
     [<Fact>]
@@ -168,20 +189,22 @@ type GenGCTests(test_output: ITestOutputHelper) =
             let collected_state = state_infos[i + 1]
 
             // The test cool code is supposed to allocate 8 * 32 bytes every iteration.
-            // After each collection `AllocPtr` gets reset to its original position.
-            Assert.Equal(expected=prev_state.AllocInfo.AllocPtr + 8L * 32L,
-                         actual  =allocated_state.AllocInfo.AllocPtr)
+            Assert.That(allocated_state.AllocInfo.AllocPtr)
+                  .IsEqualTo(prev_state.AllocInfo.AllocPtr + 8L * 32L)
 
-            Assert.Equal(expected=allocated_state.HeapInfo.L1 + 8L * 32L,
-                         actual  =collected_state.HeapInfo.L1)
+            // After each collection
+            // the reachable objects get promoted to Old Area [L0; L1).
+            Assert.That(collected_state.HeapInfo.L1)
+                  .IsEqualTo(allocated_state.HeapInfo.L1 + 8L * 32L)
 
             i <- i + 2
 
         let initial_state = state_infos[0]
         let final_state = state_infos[state_infos.Length - 1]
+
         // The test cool code is supposed to allocate 256 * 32 bytes in total.
-        Assert.Equal(expected=initial_state.HeapInfo.L1 + 256L * 32L,
-                     actual  =final_state.HeapInfo.L1)
+        Assert.That(final_state.HeapInfo.L1)
+              .IsEqualTo(initial_state.HeapInfo.L1 + 256L * 32L)
 
 
     [<Fact>]
@@ -192,7 +215,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
 
         // Assert
-        Assert.True(Array.exists (fun it -> it.History.Minor0 <> 0) state_infos)
+        Assert.That(state_infos).Contains(fun it -> it.History.Minor0 <> 0)
 
 
     [<Fact>]
@@ -208,16 +231,15 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let collected_state = state_infos[2]
 
         // We haven't allocated enough to trigger a heap resize.
-        Assert.Equal(expected=initial_state.HeapInfo, actual=allocated_state.HeapInfo)
+        Assert.That(allocated_state.HeapInfo)
+              .IsEqualTo(initial_state.HeapInfo)
 
-        // The test cool code is supposed to allocate 32 bytes.
-        Assert.Equal(expected=initial_state.AllocInfo.AllocPtr + 80L,
-                     actual  =allocated_state.AllocInfo.AllocPtr)
+        // The test cool code is supposed to allocate 80 bytes.
+        Assert.That(allocated_state.AllocInfo.AllocPtr)
+              .IsEqualTo(initial_state.AllocInfo.AllocPtr + 80L)
 
-        // We don't expect the histories to be the same as
-        // the history naturally changes after each collection.
-        Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
-                     actual  ={ collected_state with History = GenGCHistory.Empty })
+        // The allocated objects should've been collected.
+        Assert.That(collected_state).IsEqualIgnoringHistoryTo(initial_state)
 
 
     [<Fact>]
@@ -232,17 +254,17 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let allocated_state = state_infos[1]
         let collected_state = state_infos[2]
 
-        // The test cool code is supposed to allocate 32 bytes.
-        Assert.Equal(expected=initial_state.AllocInfo.AllocPtr + 80L,
-                     actual  =allocated_state.AllocInfo.AllocPtr)
+        // We haven't allocated enough to trigger a heap resize.
+        Assert.That(allocated_state.HeapInfo)
+              .IsEqualTo(initial_state.HeapInfo)
 
-        // The allocated objects reside in Work Area prior to the collection.
-        Assert.Equal(expected=initial_state.HeapInfo,
-                     actual  =allocated_state.HeapInfo)
+        // The test cool code is supposed to allocate 80 bytes.
+        Assert.That(allocated_state.AllocInfo.AllocPtr)
+              .IsEqualTo(initial_state.AllocInfo.AllocPtr + 80L)
 
         // The allocated objects should've been promoted.
-        Assert.Equal(expected=initial_state.HeapInfo.L1 + 80L,
-                     actual  =collected_state.HeapInfo.L1)
+        Assert.That(collected_state.HeapInfo.L1)
+              .IsEqualTo(initial_state.HeapInfo.L1 + 80L)
 
 
     [<Fact>]
@@ -253,7 +275,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let state_infos = Array.ofSeq (GenGCStateInfo.Parse(program_output.Output))
 
         // Assert
-        Assert.True(Array.exists (fun it -> it.History.Major0 <> 0) state_infos)
+        Assert.That(state_infos).Contains(fun it -> it.History.Major0 <> 0)
 
 
     [<Fact>]
@@ -269,8 +291,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
 
         // We don't expect the histories to be the same as
         // the history naturally changes after each collection.
-        Assert.Equal(expected={ initial_state with History = GenGCHistory.Empty },
-                     actual  ={ collected_state with History = GenGCHistory.Empty })
+        Assert.That(collected_state).IsEqualIgnoringHistoryTo(initial_state)
 
 
     [<Theory>]
@@ -290,10 +311,11 @@ type GenGCTests(test_output: ITestOutputHelper) =
 
         // Make sure
         // 1) Old Area doesn't contain any objects except the `Main` instance
-        Assert.Equal(expected=initial_state.HeapInfo.L0, actual=collected_state.HeapInfo.L0)
-        Assert.Equal(expected=initial_state.HeapInfo.L1, actual=collected_state.HeapInfo.L1)
-        // 2) Work Area is doesn't contain any objects
-        Assert.Equal(expected=0L, actual=collected_state.AllocInfo.AllocPtr - collected_state.HeapInfo.L2)
+        Assert.That(collected_state.HeapInfo.L0).IsEqualTo(initial_state.HeapInfo.L0)
+        Assert.That(collected_state.HeapInfo.L1).IsEqualTo(initial_state.HeapInfo.L1)
+        // 2) Work Area doesn't contain any objects -- i.e. it's empty
+        Assert.That(collected_state.AllocInfo.AllocPtr - collected_state.HeapInfo.L2)
+              .IsEqualTo(0)
 
 
     member private this.CompileAndRun(path: string): ProgramOutput =
@@ -312,10 +334,7 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let compiler_output = CompilerOutput.Parse(clc_output)
 
         // Ensure the compilation has succeeded.
-        CompilerTestAssert.Match(
-            compiler_output,
-            [ "Build succeeded: Errors: 0. Warnings: 0" ],
-            snippet)
+        Assert.That(compiler_output).IsBuildSucceeded(snippet)
 
         let std_output = ProcessRunner.Run(exe_name= $"./%s{exe_file}", args="")
         let program_output = ProgramOutput.Parse(std_output)

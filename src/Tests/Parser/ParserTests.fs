@@ -16,12 +16,12 @@ type ParserTestCase =
 
 [<Sealed>]
 type ParserTestCaseSource private () =
-    
-    
+
+
     static let mapParserTestCases (snippets: string[]) =
         snippets |> Array.map (fun it -> [| { ParserTestCase.Snippet = Snippet(it) } :> obj |])
 
-    
+
     static member ParserTestCases = mapParserTestCases [|
         ""
         CoolSnippets.Fib
@@ -31,8 +31,8 @@ type ParserTestCaseSource private () =
 
 
 type ParserTests() =
-   
-   
+
+
     [<Theory>]
     [<MemberData("ParserTestCases", MemberType=typeof<ParserTestCaseSource>)>]
     member _.Parse(tc: ParserTestCase) =
@@ -45,9 +45,7 @@ type ParserTests() =
         // Act
         let ast = Parser.Parse(TokenArray.ofLexer lexer, diagnostic_bag)
         let rendered = if diagnostic_bag.ErrorsCount = 0 then CoolRenderer.Render(ast) else ""
-        
+
         // Assert
-        Assert.Equal(expected=0, actual=diagnostic_bag.ErrorsCount)
-        AssertSnippets.EqualIgnoringWhitespace(
-            expected = tc.Snippet.ToString(),
-            actual = rendered)
+        Assert.That(diagnostic_bag.ErrorsCount).IsEqualTo(0)
+        Assert.That(rendered).IsEqualIgnoringWhitespaceTo(tc.Snippet.ToString())
