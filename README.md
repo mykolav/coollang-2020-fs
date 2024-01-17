@@ -35,7 +35,7 @@ The emitted assembly code contains a lot of hopefully useful comments. The idea 
 <details>
   <summary>Click to expand/collapse a sample assembly listing</summary>
 
-```assembly
+```Unix-Assembly
     .text
 
     # ../CoolPrograms/Runtime/Fibonacci.cool(1,7): Fib
