@@ -98,11 +98,11 @@ type GenGCTests(test_output: ITestOutputHelper) =
         let collected_state = state_infos[2]
 
         // We haven't allocated enough to trigger a heap resize.
-        Assert.Equal(expected=initial_state.HeapInfo, actual=allocated_state.HeapInfo)
+        Assert.That(allocated_state.HeapInfo).IsEqualTo(initial_state.HeapInfo)
 
         // The test cool code is supposed to allocate 32 bytes.
-        Assert.Equal(expected=initial_state.AllocInfo.AllocPtr + 32L,
-                     actual  =allocated_state.AllocInfo.AllocPtr)
+        Assert.That(allocated_state.AllocInfo.AllocPtr)
+              .IsEqualTo(initial_state.AllocInfo.AllocPtr + 32L)
 
         // We don't expect the histories to be the same as
         // the history naturally changes after each collection.
