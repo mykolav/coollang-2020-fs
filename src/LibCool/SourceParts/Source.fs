@@ -15,23 +15,23 @@ type SourcePart =
 
 
 [<DebuggerDisplay("FL: [{_file_names.Length}] - S: [{_size}]")>]
-type Source(partSeq: seq<SourcePart>) =
-    
-    
-    let parts = Array.ofSeq partSeq
+type Source(part_seq: seq<SourcePart>) =
+
+
+    let parts = Array.ofSeq part_seq
     do
        if Array.isEmpty parts
        then invalidArg "partSeq" "Expected at least one SourcePart but partSeq is empty"
-    
-    // Combine the parts' content    
+
+    // Combine the parts' content
     let _content =
         let sb = StringBuilder()
         parts |> Array.iter (fun it -> sb.Append(it.Content) |> ignore)
         sb.ToString()
-        
+
     // Extract the parts' file names
     let _file_names = parts |> Array.map (fun it -> it.FileName)
-    
+
     // Calculate the part offsets
     let (_part_offsets, _size) =
         parts |> Array.mapFold (fun offset it -> (offset, (*next offset=*) offset + uint32 it.Content.Length))
@@ -40,11 +40,11 @@ type Source(partSeq: seq<SourcePart>) =
     // Calculate the line offsets
     let _line_offsets =
         let acc_offsets = List<uint32>()
-        
+
         // The first line's offset is by definition 0,
         // all the other offsets we'll calculate
         acc_offsets.Add(0u)
-        
+
         let mutable i = 0
         while uint32 i < _size do
            // Did we find a line's end?
@@ -55,7 +55,7 @@ type Source(partSeq: seq<SourcePart>) =
                if (uint32 i + 1u < _size) && (_content[i + 1] = '\r' || _content[i + 1] = '\n')
                then do
                    i <- i + 1
-               
+
                // OK, we moved past the current line's end.
                // If we haven't reached past the source's end, i + 1 is the next line's start offset.
                // We treat (i + 1u = _size) as a valid case to accomodate
@@ -68,7 +68,7 @@ type Source(partSeq: seq<SourcePart>) =
            i <- i + 1
         Array.ofSeq acc_offsets
 
-    
+
     let ensureInRange (offset: uint32) =
         // We treat (offset = _size) as a valid case to accomodate
         // diagnostics that have their location at EOF.
@@ -78,8 +78,8 @@ type Source(partSeq: seq<SourcePart>) =
         then raise (ArgumentOutOfRangeException(
                         "offset",
                         $"Expected offset >= 0 and <= [%d{_size}] but it was [%d{offset}]"))
-            
-    
+
+
     // Binary search the exact or closest left index of an offset in an array of offsets
     let indexOf offset offsets =
         ensureInRange offset
@@ -88,50 +88,50 @@ type Source(partSeq: seq<SourcePart>) =
         let index = if search_result >= 0
                     then search_result
                     else ~~~search_result - 1
-        
+
         if index >= offsets.Length
         then invalidOp $"index [%d{index}] >= offsets.Length [%d{offsets.Length}]"
-        
+
         index
-        
-    
+
+
     // Map a global offset to the source part's index
     let partIndexOf globalOffset =
         indexOf globalOffset _part_offsets
-        
-    
-    // Map a global offset to the line and col numbers  
+
+
+    // Map a global offset to the line and col numbers
     let lineColOf globalOffset =
         let line = indexOf globalOffset _line_offsets
         // We add 1 to the line and col, as lines and columns numbering starts from 1:1
         // (and not 0:0)
         struct {| Line = uint32 line + 1u; Col = globalOffset - _line_offsets[line] + 1u |}
-        
-    
+
+
     member _.Size with get(): uint32 = _size
-    
-    
+
+
     member _.Item with get(offset: uint32): char =
         ensureInRange offset
         _content[int offset]
-        
-    
+
+
     member _.GetSlice(start: uint32 option, finish: uint32 option): string =
         let start = defaultArg start 0u
-        
+
         let content_finish = uint32 _content.Length - 1u
         let finish = defaultArg finish content_finish
         let finish = if finish <= content_finish
                      then finish
                      else content_finish
-        
+
         // Wny do we add 1u to get the slice's length?
         // [first, start] is a closed interval (includes its endpoints).
         // So, the length of [0, 0] is 1 = (0 - 0) + 1
         //     the length of [0, 1] is 2 = (1 - 0) + 1
         //     etc ...
         let length = (finish - start) + 1u
-                     
+
         _content.Substring(startIndex=int start, length=int length)
 
 
