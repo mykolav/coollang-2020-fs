@@ -1,4 +1,4 @@
-# Compiler of a small Scala subset into x86-64 assembly
+# Compiler for a small Scala subset into x86-64 assembly
 
 [![Build status](https://ci.appveyor.com/api/projects/status/h5u412oqjd4ceh7j?svg=true)](https://ci.appveyor.com/project/mykolav/coollang-2020-fs)
 
