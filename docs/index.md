@@ -1,5 +1,5 @@
 <!--
-pandoc --css=styles.css --metadata title="A toy compiler of a small Scala subset" -s index.md -o index.html
+pandoc --css=styles.css --metadata title="A toy compiler for a small Scala subset" -s index.md -o index.html
 -->
 
 > 🐌  
